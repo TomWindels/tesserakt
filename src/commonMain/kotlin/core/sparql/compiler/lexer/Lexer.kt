@@ -53,7 +53,7 @@ abstract class Lexer: Iterator<Token> {
      */
     abstract fun stacktrace(description: String): String
 
-    protected abstract fun position(): String
+    abstract fun position(): String
 
     protected fun bail(reason: String = "Internal compiler error"): Nothing {
         throw SyntaxError(problem = "Syntax error at index ${position()}", description = reason)

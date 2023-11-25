@@ -1,9 +1,6 @@
 # Roadmap
 ## TODOs
 ### SPARQL Compiler
-#### Hierarchy
-* Folder per compiler component: Analyser split up into query segments (e.g. `SelectProcessor`?), Lexer into various Lexer
- types optimised for various use cases
 #### Analyser
 * Current Analyser impl can be slightly more fragmented in function calls: `SELECT DISTINCT` & `SELECT *` should move
  to a different stub instead of reusing the `SELECT` and `SELECT ?binding` stub
