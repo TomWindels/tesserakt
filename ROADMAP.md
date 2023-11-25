@@ -4,11 +4,6 @@
 #### Hierarchy
 * Folder per compiler component: Analyser split up into query segments (e.g. `SelectProcessor`?), Lexer into various Lexer
  types optimised for various use cases
-#### Lexer
-* Base Lexer is interface or abstract class w/ utility functions; all lexers expose a type extending `Iterator<Token>`
- for use in (any?) Analyzer
-* Most basic (provided) Lexer iterates over the input string directly and is its own iterator (no helper 
- type / sequence / ...); current logic can be moved to `SequenceLexer` (?)
 #### Analyser
 * Current Analyser impl can be slightly more fragmented in function calls: `SELECT DISTINCT` & `SELECT *` should move
  to a different stub instead of reusing the `SELECT` and `SELECT ?binding` stub
