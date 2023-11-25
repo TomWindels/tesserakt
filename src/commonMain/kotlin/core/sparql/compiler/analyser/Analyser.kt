@@ -67,6 +67,12 @@ abstract class Analyser<T> {
         }
     }
 
+    protected fun expectPatternElement() {
+        if (token !is Token.Term) {
+            expectedPatternElement()
+        }
+    }
+
     protected fun expectPatternElementOrToken(vararg tokens: Token) {
         if (token !is Token.Term && token !in tokens) {
             expectedPatternElementOrToken(*tokens)
@@ -80,6 +86,10 @@ abstract class Analyser<T> {
             else -> "Unexpected $token, expected any of ${tokens.joinToString { it.syntax }}"
         }
         bail(msg)
+    }
+
+    protected fun expectedPatternElement(): Nothing {
+        bail("Unexpected $token, expected pattern element")
     }
 
     protected fun expectedPatternElementOrToken(vararg tokens: Token): Nothing {
