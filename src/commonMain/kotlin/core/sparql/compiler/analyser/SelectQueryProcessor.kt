@@ -37,8 +37,8 @@ class SelectQueryProcessor: Analyser<SelectQueryProcessor.IntermediateResult>() 
         val name = (token as Token.Term).value
         consumeOrBail()
         val value = (token as Token.Term).value
-        // adding it to the table of prefixes
-        result.prefixes[name] = value
+        // adding it to the table of prefixes, without the surrounding `<`, `>`
+        result.prefixes[name.substring(0, name.length - 1)] = value.substring(1, value.length - 1)
         // advancing the rest of the query
         consumeOrBail()
         // will either go back processing another prefix, or

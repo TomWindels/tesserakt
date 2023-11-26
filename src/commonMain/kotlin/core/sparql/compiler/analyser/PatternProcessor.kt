@@ -31,61 +31,55 @@ class PatternProcessor(
     }
 
     private fun processPatternPredicate() {
-        when (token) {
-            Token.Syntax.RoundBracketStart -> {
-                processPatternPredicateGroup()
+        predicate = processPatternPredicateNext()
+        while (true) {
+            when (token) {
+                Token.Syntax.PredicateOr -> {
+                    predicate = processPatternPredicateOr(predicate)
+                }
+                Token.Syntax.PredicateChain -> {
+                    predicate = processPatternPredicateChain(predicate)
+                }
+                is Token.Term -> {
+                    // object, so not setting anything and returning instead
+                    processPatternObject()
+                    return
+                }
+                else -> expectedPatternElementOrToken(
+                    Token.Syntax.PredicateOr,
+                    Token.Syntax.PredicateChain
+                )
             }
-            is Token.Term -> {
-                // setting and continuing to see if there's a chain or object next
-                predicate = (token as Token.Term).asPredicate()
-                consumeOrBail()
-                processPatternPredicateEnd()
-            }
-            else -> expectedPatternElementOrToken(Token.Syntax.RoundBracketStart)
         }
     }
 
-    private fun processPatternPredicateEnd() {
-        // if the current token is a term, its interpreted as an object,
-        // otherwise, predicate chain can also be expected
-        when (token) {
-            is Token.Term -> processPatternObject()
-            Token.Syntax.PredicateOr -> processPatternPredicate()
-            Token.Syntax.PredicateChain -> processPatternPredicateChain()
-            else -> expectedPatternElementOrToken(Token.Syntax.PredicateOr, Token.Syntax.PredicateChain)
+
+    /** Processes [(]<predicate>[)][*] **/
+    private fun processPatternPredicateNext() = when (token) {
+        Token.Syntax.RoundBracketStart -> processPatternPredicateGroup()
+        is Token.Term -> (token as Token.Term).asPredicate()
+        else -> expectedPatternElementOrToken(Token.Syntax.RoundBracketStart)
+    }.let { current ->
+        // consuming the last token from the currently processed predicate
+        consumeOrBail()
+        // consuming the star if possible
+        if (token == Token.Syntax.Star) {
+            consumeOrBail()
+            Pattern.Repeating(current)
+        } else {
+            current
         }
     }
 
     private fun processPatternPredicateGroup(): Pattern.Predicate {
+        // token should be `(`, so consuming and continuing
         consumeOrBail()
-        var result: Pattern.Predicate = when (token) {
-            Token.Syntax.RoundBracketStart -> processPatternPredicateGroup()
-            is Token.Term -> (token as Token.Term).asPredicate()
-            else -> expectedPatternElementOrToken(Token.Syntax.RoundBracketStart)
-        }
+        var result = processPatternPredicateNext()
         while (true) {
-            when (token) {
-                Token.Syntax.RoundBracketEnd -> {
-                    return result
-                }
-                Token.Syntax.PredicateOr -> {
-                    consumeOrBail()
-                    val extra = when (token) {
-                        Token.Syntax.RoundBracketStart -> processPatternPredicateGroup()
-                        is Token.Term -> (token as Token.Term).asPredicate()
-                        else -> expectedPatternElementOrToken(Token.Syntax.RoundBracketStart)
-                    }
-                    // FIXME use extra
-                }
-                Token.Syntax.PredicateChain -> {
-                    consumeOrBail()
-                    val extra = when (token) {
-                        Token.Syntax.RoundBracketStart -> processPatternPredicateGroup()
-                        is Token.Term -> (token as Token.Term).asPredicate()
-                        else -> expectedPatternElementOrToken(Token.Syntax.RoundBracketStart)
-                    }
-                    // FIXME use extra
-                }
+            result = when (token) {
+                Token.Syntax.RoundBracketEnd -> return result
+                Token.Syntax.PredicateOr -> processPatternPredicateOr(result)
+                Token.Syntax.PredicateChain -> processPatternPredicateChain(result)
                 else -> expectedToken(
                     Token.Syntax.RoundBracketEnd,
                     Token.Syntax.PredicateOr,
@@ -95,8 +89,21 @@ class PatternProcessor(
         }
     }
 
+    private fun processPatternPredicateChain(prior: Pattern.Predicate): Pattern.Predicate {
+        // should currently be pointing to /, so consuming it
+        consumeOrBail()
+        val next = processPatternPredicateNext()
+        return Pattern.Chain(listOf(prior, next))
+    }
+
+    private fun processPatternPredicateOr(prior: Pattern.Predicate): Pattern.Predicate {
+        // should currently be pointing to |, so consuming it
+        consumeOrBail()
+        val next = processPatternPredicateNext()
+        return Pattern.Constrained(listOf(prior, next))
+    }
+
     private fun processPatternObject() {
-        expectPatternElementOrToken()
         result.add(
             Pattern(
                 s = subject,
@@ -153,7 +160,7 @@ class PatternProcessor(
         } else {
             // removing the `<`, `>`
             Triple.NamedTerm(
-                value = value.substring(1, value.length - 2)
+                value = value.substring(1, value.length - 1)
             )
         }
     }

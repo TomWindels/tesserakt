@@ -16,6 +16,7 @@ class SPARQL {
                 println(result)
             } catch (e: CompilerError) {
                 printerrln("${e::class.simpleName}: ${e.problem}\n${lexer.stacktrace(e.description)}")
+                throw e
             }
         }
 
