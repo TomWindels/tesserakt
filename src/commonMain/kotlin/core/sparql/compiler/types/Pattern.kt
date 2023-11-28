@@ -1,6 +1,6 @@
 package core.sparql.compiler.types
 
-import core.rdf.Triple
+import core.rdf.types.Triple
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmStatic
 

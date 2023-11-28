@@ -1,6 +1,7 @@
 package core.sparql.compiler.analyser
 
-import core.rdf.Triple
+import core.rdf.ontology.RDF
+import core.rdf.types.Triple
 import core.sparql.compiler.types.Token
 import core.sparql.compiler.types.Pattern
 import core.sparql.compiler.types.Pattern.Companion.asBinding
@@ -153,10 +154,7 @@ class PatternProcessor(
 
     private fun Token.Term.asNamedTerm(): Triple.NamedTerm {
         return if (value == "a") {
-            // TODO: use the actual ontology objects
-            Triple.NamedTerm(
-                value = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-            )
+            RDF.type
         } else if (value.contains(':')) {
             Triple.NamedTerm(
                 value = prefixes[value.substringBefore(':')]!! + value.substringAfter(':')
