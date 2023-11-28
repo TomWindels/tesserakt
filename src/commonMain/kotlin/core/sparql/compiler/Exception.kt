@@ -1,7 +1,7 @@
 package core.sparql.compiler
 
-open class CompilerError(val problem: String, val description: String): RuntimeException()
+open class CompilerError(message: String, val stacktrace: String): RuntimeException(message)
 
-class SyntaxError(problem: String, description: String): CompilerError(problem, description)
+class SyntaxError(message: String, stacktrace: String): CompilerError(message, stacktrace)
 
-class StructuralError(problem: String, description: String): CompilerError(problem, description)
+class StructuralError(message: String, stacktrace: String): CompilerError(message, stacktrace)

@@ -1,7 +1,8 @@
 package core.sparql.compiler.analyser
 
-import core.sparql.compiler.Pattern
-import core.sparql.compiler.Token
+import core.sparql.compiler.types.Token
+import core.sparql.compiler.types.Pattern
+import core.sparql.compiler.types.Pattern.Companion.asBinding
 
 class SelectQueryProcessor: Analyser<SelectQueryProcessor.IntermediateResult>() {
 

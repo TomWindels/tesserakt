@@ -1,6 +1,6 @@
 package core.sparql.compiler.lexer
 
-import core.sparql.compiler.Token
+import core.sparql.compiler.types.Token
 
 class StringLexer(private val input: String): Lexer() {
 
@@ -22,9 +22,9 @@ class StringLexer(private val input: String): Lexer() {
         return current
     }
 
-    override fun position() = "$start"
+    override fun position() = start
 
-    override fun stacktrace(description: String): String {
+    override fun stacktrace(message: String): String {
         // finding the index of the last newline before `start`
         val newline = input.indexOfLast('\n', start - 1)
         val prefix = "$lineIndex "
@@ -37,10 +37,10 @@ class StringLexer(private val input: String): Lexer() {
         }
         return if (newline == -1) buildString {
             append("$prefix| ${input.substringBefore('\n')}\n")
-            append("${" ".repeat(prefix.length)}| ${" ".repeat(end - marker.length)}$marker - $description")
+            append("${" ".repeat(prefix.length)}| ${" ".repeat(end - marker.length)}$marker - $message")
         } else buildString {
             append("$prefix| ${input.substringFromUntil(newline + 1, '\n')}\n")
-            append("${" ".repeat(prefix.length)}| ${" ".repeat(end - newline - 1 - marker.length)}$marker - $description")
+            append("${" ".repeat(prefix.length)}| ${" ".repeat(end - newline - 1 - marker.length)}$marker - $message")
         }
     }
 

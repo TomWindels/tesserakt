@@ -1,6 +1,6 @@
 package core.sparql.compiler.lexer
 
-import core.sparql.compiler.Token
+import core.sparql.compiler.types.Token
 
 /**
  * Lexer capable of processing larger inputs (e.g. from multiple files) not requiring them to be read
@@ -16,11 +16,11 @@ class SequenceLexer: Lexer() {
         TODO("SequenceLexer is currently not yet supported!")
     }
 
-    override fun stacktrace(description: String): String {
+    override fun stacktrace(message: String): String {
         TODO("SequenceLexer is currently not yet supported!")
     }
 
-    override fun position(): String {
+    override fun position(): Int {
         TODO("SequenceLexer is currently not yet supported!")
     }
 

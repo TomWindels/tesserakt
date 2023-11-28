@@ -1,27 +1,10 @@
 package core.sparql.compiler.analyser
 
-import core.sparql.compiler.Pattern
 import core.sparql.compiler.StructuralError
-import core.sparql.compiler.Token
+import core.sparql.compiler.types.Token
 import core.sparql.compiler.lexer.Lexer
-import kotlin.jvm.JvmStatic
 
 abstract class Analyser<T> {
-
-    protected companion object {
-
-        /* helper extensions */
-
-        @JvmStatic
-        protected fun Token.Term.asBinding(): Pattern.Binding? {
-            return if (value[0] == '?') {
-                Pattern.Binding(value.substring(1))
-            } else {
-                null
-            }
-        }
-
-    }
 
     /** current token, actually kept here so `peek` does not actively `consume()` **/
     protected lateinit var token: Token
@@ -101,8 +84,8 @@ abstract class Analyser<T> {
         bail(msg)
     }
 
-    protected fun bail(reason: String = "Internal compiler error"): Nothing {
-        throw StructuralError(problem = "Failed at index ${lexer.position()}", description = reason)
+    protected fun bail(message: String = "Internal compiler error"): Nothing {
+        throw StructuralError(message = "Failed at index ${lexer.position() - token.syntax.length}", stacktrace = lexer.stacktrace(message))
     }
 
 }

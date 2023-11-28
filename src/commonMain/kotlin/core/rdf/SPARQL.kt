@@ -15,7 +15,7 @@ class SPARQL {
                 val result = SelectQueryProcessor().process(lexer)
                 println(result)
             } catch (e: CompilerError) {
-                printerrln("${e::class.simpleName}: ${e.problem}\n${lexer.stacktrace(e.description)}")
+                printerrln("${e::class.simpleName}: ${e.message}\n${e.stacktrace}")
                 throw e
             }
         }

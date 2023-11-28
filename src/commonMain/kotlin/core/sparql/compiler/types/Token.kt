@@ -1,6 +1,4 @@
-package core.sparql.compiler
-
-import core.rdf.Triple
+package core.sparql.compiler.types
 
 sealed interface Token {
 
@@ -15,6 +13,7 @@ sealed interface Token {
         PredicateOr("|"),
         PredicateChain("/"),
         Star("*"),
+        ExclamationMark("!"),
         /* in-pattern only structural tokens */
         ObjectEnd(","),
         PredicateEnd(";"),

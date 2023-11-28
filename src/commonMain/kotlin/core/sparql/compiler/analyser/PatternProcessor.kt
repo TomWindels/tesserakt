@@ -1,8 +1,9 @@
 package core.sparql.compiler.analyser
 
 import core.rdf.Triple
-import core.sparql.compiler.Pattern
-import core.sparql.compiler.Token
+import core.sparql.compiler.types.Token
+import core.sparql.compiler.types.Pattern
+import core.sparql.compiler.types.Pattern.Companion.asBinding
 
 class PatternProcessor(
     private val prefixes: Map<String, String>
@@ -24,7 +25,7 @@ class PatternProcessor(
         if (token !is Token.Term) {
             return
         }
-        subject = (token as Token.Term).asSubject()
+        subject = (token as Token.Term).asPatternElement()
         // consuming the next token and going to the predicate section no matter what
         consumeOrBail()
         processPatternPredicate()
@@ -54,10 +55,37 @@ class PatternProcessor(
     }
 
 
-    /** Processes [(]<predicate>[)][*] **/
-    private fun processPatternPredicateNext() = when (token) {
-        Token.Syntax.RoundBracketStart -> processPatternPredicateGroup()
-        is Token.Term -> (token as Token.Term).asPredicate()
+    /** Processes [!][(]<predicate>[)][*] **/
+    private fun processPatternPredicateNext(): Pattern.Predicate {
+        return if (token == Token.Syntax.ExclamationMark) {
+            consumeOrBail()
+            Pattern.Not(processPatternPredicateContent())
+        } else {
+            processPatternPredicateContent()
+        }
+    }
+
+    /** Processes [(]<predicate>[/|<predicate>][)][*] **/
+    private fun processPatternPredicateContent() = when (token) {
+        is Token.Term -> (token as Token.Term).asPatternElement()
+        Token.Syntax.RoundBracketStart -> {
+            // token should be `(`, so consuming and continuing
+            consumeOrBail()
+            var result = processPatternPredicateNext()
+            while (true) {
+                result = when (token) {
+                    Token.Syntax.RoundBracketEnd -> break
+                    Token.Syntax.PredicateOr -> processPatternPredicateOr(result)
+                    Token.Syntax.PredicateChain -> processPatternPredicateChain(result)
+                    else -> expectedToken(
+                        Token.Syntax.RoundBracketEnd,
+                        Token.Syntax.PredicateOr,
+                        Token.Syntax.PredicateChain
+                    )
+                }
+            }
+            result
+        }
         else -> expectedPatternElementOrToken(Token.Syntax.RoundBracketStart)
     }.let { current ->
         // consuming the last token from the currently processed predicate
@@ -71,36 +99,18 @@ class PatternProcessor(
         }
     }
 
-    private fun processPatternPredicateGroup(): Pattern.Predicate {
-        // token should be `(`, so consuming and continuing
-        consumeOrBail()
-        var result = processPatternPredicateNext()
-        while (true) {
-            result = when (token) {
-                Token.Syntax.RoundBracketEnd -> return result
-                Token.Syntax.PredicateOr -> processPatternPredicateOr(result)
-                Token.Syntax.PredicateChain -> processPatternPredicateChain(result)
-                else -> expectedToken(
-                    Token.Syntax.RoundBracketEnd,
-                    Token.Syntax.PredicateOr,
-                    Token.Syntax.PredicateChain
-                )
-            }
-        }
-    }
-
     private fun processPatternPredicateChain(prior: Pattern.Predicate): Pattern.Predicate {
         // should currently be pointing to /, so consuming it
         consumeOrBail()
         val next = processPatternPredicateNext()
-        return Pattern.Chain(listOf(prior, next))
+        return Pattern.Chain(prior, next)
     }
 
     private fun processPatternPredicateOr(prior: Pattern.Predicate): Pattern.Predicate {
         // should currently be pointing to |, so consuming it
         consumeOrBail()
         val next = processPatternPredicateNext()
-        return Pattern.Constrained(listOf(prior, next))
+        return Pattern.Constrained(prior, next)
     }
 
     private fun processPatternObject() {
@@ -108,7 +118,7 @@ class PatternProcessor(
             Pattern(
                 s = subject,
                 p = predicate,
-                o = (token as Token.Term).asObject()
+                o = (token as Token.Term).asPatternElement()
             )
         )
         consumeOrBail()
@@ -138,13 +148,7 @@ class PatternProcessor(
 
     /* helper extensions */
 
-    private fun Token.Term.asSubject(): Pattern.Subject =
-        asBinding() ?: Pattern.Exact(asNamedTerm())
-
-    private fun Token.Term.asPredicate(): Pattern.Predicate =
-        asBinding() ?: Pattern.Exact(asNamedTerm())
-
-    private fun Token.Term.asObject(): Pattern.Object =
+    private fun Token.Term.asPatternElement() =
         asBinding() ?: Pattern.Exact(asNamedTerm())
 
     private fun Token.Term.asNamedTerm(): Triple.NamedTerm {

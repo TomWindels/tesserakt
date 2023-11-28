@@ -21,7 +21,7 @@ class Compiler {
             PREFIX ex: <http://example.com/rdf-schema#> # ah yes mah ontology
             SELECT * WHERE { # replace TEST with * again !
                 ?s a ?type ;
-                   <contains>/(<prop1>|<prop2>)* ?o2 # not closing with trailing `.` as this is apparently also valid
+                   <contains>/(<prop1>|!<prop2>)* ?o2 # not closing with trailing `.` as this is apparently also valid
             }"""
         private const val VALID_4 = "CONSTRUCT { <test> <containsObject> ?o . } WHERE { ?s ?p ?o . }"
 
