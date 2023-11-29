@@ -4,6 +4,7 @@ import core.rdf.ontology.XSD
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmStatic
 
+@Suppress("unused")
 data class Triple(
     /** named or blank **/
     val s: Term,
@@ -34,7 +35,7 @@ data class Triple(
     companion object {
 
         @JvmStatic
-        fun String.asNamedNode() = NamedTerm(this)
+        fun String.asNamedTerm() = NamedTerm(this)
 
         @JvmStatic
         fun String.asLiteral() = Literal(this, type = XSD.string)

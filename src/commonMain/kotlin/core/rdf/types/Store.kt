@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package core.rdf.types
 
 import kotlin.jvm.JvmStatic
@@ -18,6 +20,9 @@ class Store: TripleSource() {
 
     // TODO: actually performant implementation
     private val triples = mutableListOf<Triple>()
+
+    val size: Int
+        get() = triples.size
 
     fun addAll(triple: Iterable<Triple>) {
         triples.addAll(triple)

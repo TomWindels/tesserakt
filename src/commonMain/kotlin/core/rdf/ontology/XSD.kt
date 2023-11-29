@@ -1,21 +1,23 @@
+@file:Suppress("unused")
+
 package core.rdf.ontology
 
-import core.rdf.types.Triple.Companion.asNamedNode
+import core.rdf.types.Triple.Companion.asNamedTerm
 
 object XSD: Ontology {
 
     override val prefix = "xsd"
     override val base_uri = "https://www.w3.org/2001/XMLSchema#"
 
-    val string = "${base_uri}string".asNamedNode()
-    val boolean = "${base_uri}boolean".asNamedNode()
-    val int = "${base_uri}int".asNamedNode()
-    val long = "${base_uri}long".asNamedNode()
-    val float = "${base_uri}float".asNamedNode()
-    val double = "${base_uri}double".asNamedNode()
-    val duration = "${base_uri}duration".asNamedNode()
-    val dateTime = "${base_uri}dateTime".asNamedNode()
-    val time = "${base_uri}time".asNamedNode()
-    val date = "${base_uri}date".asNamedNode()
+    val string = "${base_uri}string".asNamedTerm()
+    val boolean = "${base_uri}boolean".asNamedTerm()
+    val int = "${base_uri}int".asNamedTerm()
+    val long = "${base_uri}long".asNamedTerm()
+    val float = "${base_uri}float".asNamedTerm()
+    val double = "${base_uri}double".asNamedTerm()
+    val duration = "${base_uri}duration".asNamedTerm()
+    val dateTime = "${base_uri}dateTime".asNamedTerm()
+    val time = "${base_uri}time".asNamedTerm()
+    val date = "${base_uri}date".asNamedTerm()
 
 }
