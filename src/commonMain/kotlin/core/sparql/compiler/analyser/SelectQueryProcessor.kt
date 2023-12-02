@@ -1,6 +1,6 @@
 package core.sparql.compiler.analyser
 
-import core.sparql.compiler.types.Pattern.Companion.asBinding
+import core.sparql.compiler.types.Pattern
 import core.sparql.compiler.types.Patterns
 import core.sparql.compiler.types.SelectQueryAST
 import core.sparql.compiler.types.Token
@@ -17,19 +17,26 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
     }
 
     private fun processSelectQueryStart() {
-        // consuming the previous token (SELECT, old binding, prefix, ...)
+        // consuming the SELECT token
         consumeOrBail()
         // now expecting either binding name, star or the WHERE clause
-        return when (token) {
+        when (token) {
             is Token.Binding -> {
-                builder.bindings.add(token.asBinding() ?: bail("Expected binding, got $token"))
-                // still processing the start
-                processSelectQueryStart()
+                builder.bindings.add(Pattern.Binding(token as Token.Binding))
+                // continuing only accepting bindings or the start of the query
+                processSelectQueryBindingOrBody()
             }
             Token.Syntax.Star -> {
                 builder.grabAllBindings = true
-                // still processing the start
-                processSelectQueryStart()
+                // only optionally `WHERE` is allowed
+                consumeOrBail()
+                expectToken(Token.Syntax.Where, Token.Syntax.CurlyBracketStart)
+                if (token == Token.Syntax.Where) {
+                    consumeOrBail()
+                }
+                expectToken(Token.Syntax.CurlyBracketStart)
+                // processing the body now
+                processQueryBody()
             }
             Token.Syntax.Where -> {
                 consumeOrBail()
@@ -41,7 +48,32 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
         }
     }
 
+    private tailrec fun processSelectQueryBindingOrBody() {
+        // consuming the previous token (can only be an old binding)
+        consumeOrBail()
+        // now expecting either binding name, star or the WHERE clause
+        when (token) {
+            is Token.Binding -> {
+                builder.bindings.add(Pattern.Binding(token as Token.Binding))
+                // still processing the start
+                processSelectQueryBindingOrBody()
+            }
+            Token.Syntax.Where -> {
+                consumeOrBail()
+                expectToken(Token.Syntax.CurlyBracketStart)
+                // actually processing the query body now
+                processQueryBody()
+            }
+            Token.Syntax.CurlyBracketStart -> {
+                // actually processing the query body now
+                processQueryBody()
+            }
+            else -> expectedBindingOrToken(Token.Syntax.Where, Token.Syntax.CurlyBracketStart)
+        }
+    }
+
     private fun processQueryBody() {
+        // consuming the starting `{`
         consumeOrBail()
         when (token) {
             // binding or term, so the start of a block is happening here

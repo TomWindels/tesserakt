@@ -85,8 +85,8 @@ class StringLexer(private val input: String): Lexer() {
      */
     private inline fun extractAnyTokenOrBail(): Token {
         // first attempting to find a syntax type
-        lut[input[start]]?.forEach { (syntax, token) ->
-            if (input.startsWith(syntax, start)) {
+        lut[input[start].lowercaseChar()]?.forEach { (syntax, token) ->
+            if (input.startsWith(syntax, start, ignoreCase = true)) {
                 return token
             }
         }
@@ -108,7 +108,7 @@ class StringLexer(private val input: String): Lexer() {
         } else if (input.has(':')) {
             // two types of pattern elements possible: `prefix:` declarations and `prefix:name` pattern elements
             // remainder of the string should be valid, as only spaces or < ends a pattern element using a prefix
-            val terminator = input.indexOf('<', '?', startIndex = start + 1, endIndex = end)
+            val terminator = input.endOfBindingOrPrefixedTerm()
             if (terminator == -1) {
                 Token.Term(input.substring(start, end))
             } else {
@@ -117,7 +117,7 @@ class StringLexer(private val input: String): Lexer() {
         } else if (input[start] == '?') {
             // remainder of the string should be valid, as only spaces or < ends a binding name
             // omitting the `?` in the front, so start + 1
-            val terminator = input.indexOf('<', '?', '.', ';', ',', startIndex = start + 1, endIndex = end)
+            val terminator = input.endOfBindingOrPrefixedTerm()
             // manually advancing start, as we additionally consumed the `?`, but don't have this in the syntax length
             //  used to move `start` along
             ++start
@@ -143,5 +143,16 @@ class StringLexer(private val input: String): Lexer() {
         }
         return false
     }
+
+    /**
+     * Finds the end index (if any) in the currently considered character range terminating the binding / prefixed
+     *  term. These two types of "string inputs" are terminated quicker than regular `<...>` terms
+     */
+    private fun String.endOfBindingOrPrefixedTerm() = indexOf(
+        // a fair number of characters can terminate a binding / prefixed term
+        '<', '?', '.', ';', ',', '{', '}', '(', ')', '|', '/',
+        startIndex = start + 1,
+        endIndex = end
+    )
 
 }

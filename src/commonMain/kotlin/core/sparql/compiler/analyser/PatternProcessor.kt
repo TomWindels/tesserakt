@@ -164,7 +164,9 @@ class PatternProcessor: Analyser<Patterns>() {
     private fun Token.Term.asExactPatternElement() =
         Pattern.Exact(
             if (value.contains(':')) {
-                val name = prefixes[value.substringBefore(':')]!! + value.substringAfter(':')
+                val prefix = value.substringBefore(':')
+                val uri = prefixes[prefix] ?: bail("Unknown prefix: `$prefix`")
+                val name = uri + value.substringAfter(':')
                 Triple.NamedTerm(value = name)
             } else {
                 // removing the `<`, `>`

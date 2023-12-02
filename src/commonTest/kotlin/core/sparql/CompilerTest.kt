@@ -78,7 +78,7 @@ class CompilerTest {
                 }
             }
             failures.forEach { (i, t) ->
-                printerrln("Query $i failed: `${tests[i].input}`")
+                printerrln("Query ${i + 1} failed: `${tests[i].input}`")
                 if (t is CompilerError) {
                     printerrln(t.stacktrace)
                 }
@@ -102,7 +102,12 @@ class CompilerTest {
                 o = Pattern.Binding("o")
             )
             body.patterns.size == 1 && body.patterns.first() == pattern
-
+        }
+        "select*{?s?p?o}".satisfies {
+            body.patterns.size == 1
+        }
+        "prefix ex: <http://example.org/> select*{?s ex:prop ?o}".satisfies {
+            body.patterns.size == 1
         }
         "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }".satisfies {
             body.patterns.first().p is Pattern.Chain
@@ -132,6 +137,8 @@ class CompilerTest {
         "SELECT TEST WHERE { ?s a TEST . }".shouldFail()
         "SELECT * WHERE { ?s <predicate2>/(<predicate3> ?o2.}".shouldFail()
         "SELECT * WHERE { ?s a ?type , }".shouldFail()
+        "PREFIX ex: <http://example.org> SELECT * WHERE { ?s ex:prop/other ?o }".shouldFail()
+        "prefix ex: <http://example.org> select*{?s dc:title ?o}".shouldFail()
     }
 
 }

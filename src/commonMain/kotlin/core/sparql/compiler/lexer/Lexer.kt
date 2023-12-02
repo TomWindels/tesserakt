@@ -13,7 +13,7 @@ abstract class Lexer: Iterator<Token> {
         @JvmField
         internal val lut = Token.syntax
             .toList()
-            .groupBy { (syntax) -> syntax.first() }
+            .groupBy { (syntax) -> syntax.first().lowercaseChar() }
             .mapValues { (_, list) -> list.sortedByDescending { it.first.length } }
 
         @JvmStatic
