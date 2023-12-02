@@ -2,20 +2,18 @@ package core.sparql.compiler.analyser
 
 import core.rdf.ontology.RDF
 import core.rdf.types.Triple
-import core.sparql.compiler.types.Token
 import core.sparql.compiler.types.Pattern
-import core.sparql.compiler.types.Pattern.Companion.asBinding
+import core.sparql.compiler.types.Patterns
+import core.sparql.compiler.types.Token
 
-class PatternProcessor(
-    private val prefixes: Map<String, String>
-): Analyser<List<Pattern>>() {
+class PatternProcessor: Analyser<Patterns>() {
 
     private lateinit var subject: Pattern.Subject
     private lateinit var predicate: Pattern.Predicate
 
     private val result = mutableListOf<Pattern>()
 
-    override fun _process(): List<Pattern> {
+    override fun _process(): Patterns {
         result.clear()
         processPatternSubject()
         return result
@@ -23,13 +21,20 @@ class PatternProcessor(
 
     private fun processPatternSubject() {
         // either has a term as token, or we have to bail
-        if (token !is Token.Term) {
+        if (token is Token.Syntax) {
             return
         }
-        subject = (token as Token.Term).asPatternElement()
+        subject = token.asPatternElement()
         // consuming the next token and going to the predicate section no matter what
         consumeOrBail()
         processPatternPredicate()
+    }
+
+    private fun processPatternPredicateOrBail() {
+        // continuing if the end of the query block hasn't been reached yet
+        if (token != Token.Syntax.CurlyBracketEnd) {
+            processPatternPredicate()
+        }
     }
 
     private fun processPatternPredicate() {
@@ -42,19 +47,18 @@ class PatternProcessor(
                 Token.Syntax.PredicateChain -> {
                     predicate = processPatternPredicateChain(predicate)
                 }
-                is Token.Term -> {
+                !is Token.Syntax -> {
                     // object, so not setting anything and returning instead
                     processPatternObject()
                     return
                 }
-                else -> expectedPatternElementOrToken(
+                else -> expectedPatternElementOrBindingOrToken(
                     Token.Syntax.PredicateOr,
                     Token.Syntax.PredicateChain
                 )
             }
         }
     }
-
 
     /** Processes [!][(]<predicate>[)][*] **/
     private fun processPatternPredicateNext(): Pattern.Predicate {
@@ -68,7 +72,7 @@ class PatternProcessor(
 
     /** Processes [(]<predicate>[/|<predicate>][)][*] **/
     private fun processPatternPredicateContent() = when (token) {
-        is Token.Term -> (token as Token.Term).asPatternElement()
+        !is Token.Syntax, Token.Syntax.TypePredicate -> token.asPatternElement()
         Token.Syntax.RoundBracketStart -> {
             // token should be `(`, so consuming and continuing
             consumeOrBail()
@@ -115,11 +119,12 @@ class PatternProcessor(
     }
 
     private fun processPatternObject() {
+        expectPatternElementOrBinding()
         result.add(
             Pattern(
                 s = subject,
                 p = predicate,
-                o = (token as Token.Term).asPatternElement()
+                o = token.asPatternElement()
             )
         )
         consumeOrBail()
@@ -134,7 +139,7 @@ class PatternProcessor(
             }
             Token.Syntax.PredicateEnd -> {
                 consumeOrBail()
-                processPatternPredicate()
+                processPatternPredicateOrBail()
             }
             Token.Syntax.PatternEnd -> {
                 consumeOrBail()
@@ -149,22 +154,22 @@ class PatternProcessor(
 
     /* helper extensions */
 
-    private fun Token.Term.asPatternElement() =
-        asBinding() ?: Pattern.Exact(asNamedTerm())
-
-    private fun Token.Term.asNamedTerm(): Triple.NamedTerm {
-        return if (value == "a") {
-            RDF.type
-        } else if (value.contains(':')) {
-            Triple.NamedTerm(
-                value = prefixes[value.substringBefore(':')]!! + value.substringAfter(':')
-            )
-        } else {
-            // removing the `<`, `>`
-            Triple.NamedTerm(
-                value = value.substring(1, value.length - 1)
-            )
-        }
+    private fun Token.asPatternElement(): Pattern.Element = when (this) {
+        is Token.Binding -> Pattern.Binding(this)
+        is Token.Term -> asExactPatternElement()
+        Token.Syntax.TypePredicate -> Pattern.Exact(RDF.type)
+        else -> expectedPatternElementOrBindingOrToken(Token.Syntax.TypePredicate)
     }
+
+    private fun Token.Term.asExactPatternElement() =
+        Pattern.Exact(
+            if (value.contains(':')) {
+                val name = prefixes[value.substringBefore(':')]!! + value.substringAfter(':')
+                Triple.NamedTerm(value = name)
+            } else {
+                // removing the `<`, `>`
+                Triple.NamedTerm(value = value.substring(1, value.length - 1))
+            }
+        )
 
 }

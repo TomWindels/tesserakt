@@ -1,49 +1,19 @@
 package core.sparql.compiler.analyser
 
-import core.sparql.compiler.types.Token
-import core.sparql.compiler.types.Pattern
 import core.sparql.compiler.types.Pattern.Companion.asBinding
+import core.sparql.compiler.types.Patterns
+import core.sparql.compiler.types.SelectQueryAST
+import core.sparql.compiler.types.Token
 
-class SelectQueryProcessor: Analyser<SelectQueryProcessor.IntermediateResult>() {
+@Suppress("SpellCheckingInspection")
+class SelectQueryProcessor: Analyser<SelectQueryAST>() {
 
-    data class IntermediateResult(
-        val prefixes: MutableMap<String, String> = mutableMapOf(),
-        val bindings: MutableSet<Pattern.Binding> = mutableSetOf(),
-        var grabAllBindings: Boolean = false,
-        val patterns: MutableList<Pattern> = mutableListOf()
-    )
+    private lateinit var builder: SelectQueryAST.Builder
 
-    private lateinit var result: IntermediateResult
-
-    override fun _process(): IntermediateResult {
-        result = IntermediateResult()
-        processQueryStart()
-        return result
-    }
-
-    private fun processQueryStart() = when (token) {
-        Token.Syntax.Prefix -> processPrefix()
-        Token.Syntax.Select -> processSelectQueryStart()
-        Token.Syntax.Construct -> bail("Construct queries are currently not supported.")
-        else -> expectedToken(
-            Token.Syntax.Prefix,
-            Token.Syntax.Select,
-            Token.Syntax.Construct
-        )
-    }
-
-    private fun processPrefix() {
-        // current token should be `PREFIX`, so consuming the next two tokens for the actual prefix
-        consumeOrBail()
-        val name = (token as Token.Term).value
-        consumeOrBail()
-        val value = (token as Token.Term).value
-        // adding it to the table of prefixes, without the surrounding `<`, `>`
-        result.prefixes[name.substring(0, name.length - 1)] = value.substring(1, value.length - 1)
-        // advancing the rest of the query
-        consumeOrBail()
-        // will either go back processing another prefix, or
-        return processQueryStart()
+    override fun _process(): SelectQueryAST {
+        builder = SelectQueryAST.Builder()
+        processSelectQueryStart()
+        return builder.build()
     }
 
     private fun processSelectQueryStart() {
@@ -51,14 +21,13 @@ class SelectQueryProcessor: Analyser<SelectQueryProcessor.IntermediateResult>() 
         consumeOrBail()
         // now expecting either binding name, star or the WHERE clause
         return when (token) {
-            is Token.Term -> {
-                // has to be a binding
-                result.bindings.add((token as? Token.Term)?.asBinding() ?: bail("Expected binding, got $token"))
+            is Token.Binding -> {
+                builder.bindings.add(token.asBinding() ?: bail("Expected binding, got $token"))
                 // still processing the start
                 processSelectQueryStart()
             }
             Token.Syntax.Star -> {
-                result.grabAllBindings = true
+                builder.grabAllBindings = true
                 // still processing the start
                 processSelectQueryStart()
             }
@@ -68,23 +37,52 @@ class SelectQueryProcessor: Analyser<SelectQueryProcessor.IntermediateResult>() 
                 // actually processing the query body now
                 processQueryBody()
             }
-            else -> expectedPatternElementOrToken(Token.Syntax.Star, Token.Syntax.Where)
+            else -> expectedBindingOrToken(Token.Syntax.Star, Token.Syntax.Where)
         }
     }
 
     private fun processQueryBody() {
         consumeOrBail()
         when (token) {
-            is Token.Term -> {
-                result.patterns.addAll(PatternProcessor(prefixes = result.prefixes).chain(this))
+            // binding or term, so the start of a block is happening here
+            !is Token.Syntax -> {
+                builder.body.addPatterns(use(PatternProcessor()))
             }
-            Token.Syntax.CurlyBracketStart -> {
-                // either starts a subquery or a new pattern for use in UNION
-                bail("Subqueries are currently not supported!")
-            }
-            else -> expectedPatternElementOrToken(
+            Token.Syntax.CurlyBracketStart -> processSubqueryBody()
+            else -> expectedPatternElementOrBindingOrToken(
                 Token.Syntax.CurlyBracketStart
             )
+        }
+    }
+
+    private fun processSubqueryBody() {
+        // should be a `{`
+        consumeOrBail()
+        when (token) {
+            // binding or term, so the start of a block is happening here
+            !is Token.Syntax -> processUnion()
+            else -> bail("Complex subqueries are currently not supported!")
+        }
+    }
+
+    private fun processUnion() {
+        val patterns = mutableListOf<Patterns>()
+        while (true) {
+            patterns.add(use(PatternProcessor()))
+            expectToken(Token.Syntax.CurlyBracketEnd)
+            consumeOrBail()
+            if (token == Token.Syntax.Union) {
+                // continuing
+                consumeOrBail()
+                expectToken(Token.Syntax.CurlyBracketStart)
+                consumeOrBail()
+                expectPatternElementOrBinding()
+                // looping back up top
+            } else {
+                // inserting all patterns and exiting
+                builder.body.addUnion(patterns)
+                return
+            }
         }
     }
 

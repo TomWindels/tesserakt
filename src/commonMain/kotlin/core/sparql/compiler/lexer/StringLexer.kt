@@ -2,6 +2,7 @@ package core.sparql.compiler.lexer
 
 import core.sparql.compiler.types.Token
 
+@Suppress("NOTHING_TO_INLINE")
 class StringLexer(private val input: String): Lexer() {
 
     // range of the currently observed set of characters in the input string
@@ -26,7 +27,7 @@ class StringLexer(private val input: String): Lexer() {
 
     override fun stacktrace(message: String): String {
         // finding the index of the last newline before `start`
-        val newline = input.indexOfLast('\n', start - 1)
+        val newline = input.indexOfLast('\n', startIndex = start - 1)
         val prefix = "$lineIndex "
         // if start equals end, token parsing went wrong, so last token information has to be used;
         // otherwise, last token can be highlighted
@@ -90,10 +91,10 @@ class StringLexer(private val input: String): Lexer() {
             }
         }
         // falling back to pattern element
-        return extractPatternElementOrBail()
+        return extractPatternElementOrBindingOrBail()
     }
 
-    private inline fun extractPatternElementOrBail(): Token {
+    private inline fun extractPatternElementOrBindingOrBail(): Token {
         // the `<...>` & `?...` structures cannot be split apart using whitespace, so looking for these
         // `(...)` & `...|...` can be split apart using whitespace, and are hence part of the token syntax looked
         //  up before
@@ -107,7 +108,7 @@ class StringLexer(private val input: String): Lexer() {
         } else if (input.has(':')) {
             // two types of pattern elements possible: `prefix:` declarations and `prefix:name` pattern elements
             // remainder of the string should be valid, as only spaces or < ends a pattern element using a prefix
-            val terminator = input.indexOf('<', startIndex = start, endIndex = end)
+            val terminator = input.indexOf('<', '?', startIndex = start + 1, endIndex = end)
             if (terminator == -1) {
                 Token.Term(input.substring(start, end))
             } else {
@@ -115,15 +116,18 @@ class StringLexer(private val input: String): Lexer() {
             }
         } else if (input[start] == '?') {
             // remainder of the string should be valid, as only spaces or < ends a binding name
-            val terminator = input.indexOf('<', startIndex = start, endIndex = end)
+            // omitting the `?` in the front, so start + 1
+            val terminator = input.indexOf('<', '?', '.', ';', ',', startIndex = start + 1, endIndex = end)
+            // manually advancing start, as we additionally consumed the `?`, but don't have this in the syntax length
+            //  used to move `start` along
+            ++start
+            // the use of start below doesn't include the `?` anymore, but adding the binding's length to start
+            //  will create the appropriate shifting behaviour
             if (terminator == -1) {
-                Token.Term(input.substring(start, end))
+                Token.Binding(input.substring(start, end))
             } else {
-                Token.Term(input.substring(start, terminator))
+                Token.Binding(input.substring(start, terminator))
             }
-        } else if (input[start] == 'a' && (start == end - 1 || input[start + 1] == '<')) {
-            // have to submit an 'a' manually, as the length of this token is used to advance the input
-            Token.Term("a")
         } else {
             bail("Unrecognized token `${input.substring(start, end)}`")
         }

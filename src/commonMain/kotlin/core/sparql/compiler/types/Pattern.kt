@@ -20,7 +20,9 @@ data class Pattern(
 
     /** reused binding (either within the corresponding pattern, or inside the (sub)query's exports **/
     @JvmInline
-    value class Binding(val name: String): Element
+    value class Binding(val name: String): Element {
+        constructor(token: Token.Binding): this(name = token.name)
+    }
     /** "exact" value, e.g. `<predicate>` **/
     @JvmInline
     value class Exact(val value: Triple.Term): Element
@@ -47,13 +49,8 @@ data class Pattern(
     companion object {
 
         @JvmStatic
-        internal fun Token.Term.asBinding(): Binding? {
-            return if (value[0] == '?') {
-                Binding(value.substring(1))
-            } else {
-                null
-            }
-        }
+        internal fun Token.asBinding(): Binding? =
+            (this as? Token.Binding)?.let { Binding(it) }
 
     }
 

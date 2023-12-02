@@ -17,10 +17,10 @@ abstract class Lexer: Iterator<Token> {
             .mapValues { (_, list) -> list.sortedByDescending { it.first.length } }
 
         @JvmStatic
-        internal fun String.indexOf(char: Char, startIndex: Int, endIndex: Int): Int {
+        internal fun String.indexOf(vararg char: Char, startIndex: Int, endIndex: Int): Int {
             var i = startIndex
             while (i < endIndex) {
-                if (this[i] == char) {
+                if (char.any { it == this[i]}) {
                     return i
                 }
                 ++i
@@ -29,10 +29,10 @@ abstract class Lexer: Iterator<Token> {
         }
 
         @JvmStatic
-        internal fun String.indexOfLast(char: Char, startIndex: Int, endIndex: Int = 0): Int {
+        internal fun String.indexOfLast(vararg char: Char, startIndex: Int, endIndex: Int = 0): Int {
             var i = startIndex
             while (i > endIndex - 1) {
-                if (this[i] == char) {
+                if (char.any { it == this[i]}) {
                     return i
                 }
                 --i

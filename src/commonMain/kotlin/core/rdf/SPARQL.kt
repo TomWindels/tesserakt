@@ -1,23 +1,20 @@
 package core.rdf
 
-import core.sparql.compiler.CompilerError
-import core.sparql.compiler.analyser.SelectQueryProcessor
+import core.sparql.compiler.analyser.QueryProcessor
 import core.sparql.compiler.lexer.StringLexer
-import util.printerrln
+import core.sparql.compiler.types.QueryAST
 
 class SPARQL {
 
     companion object {
 
         fun parse(raw: String) {
-            val lexer = StringLexer(raw)
-            try {
-                val result = SelectQueryProcessor().process(lexer)
-                println(result)
-            } catch (e: CompilerError) {
-                printerrln("${e::class.simpleName}: ${e.message}\n${e.stacktrace}")
-                throw e
-            }
+            process(raw)
+            // chain it with the optimiser and a final usable query type (that can employ planning on data sources)
+        }
+
+        fun process(raw: String): QueryAST {
+            return QueryProcessor().process(StringLexer(raw))
         }
 
     }

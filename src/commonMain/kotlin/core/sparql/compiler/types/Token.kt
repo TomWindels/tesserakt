@@ -20,6 +20,7 @@ sealed interface Token {
         PatternEnd("."),
         BlankStart("["),
         BlankEnd("]"),
+        TypePredicate("a"),
         /* keywords */
         Prefix("PREFIX"),
         Select("SELECT"),
@@ -36,11 +37,19 @@ sealed interface Token {
     }
 
     data class Term(
-        /** The value of the term from the query, either `a`, `<term>` or `ex:term` **/
+        /** The value of the term from the query, either `<term>` or `ex:term` **/
         val value: String
     ): Token {
         override fun toString() = "term `$value`"
         override val syntax = value
+    }
+
+    data class Binding(
+        /** The value of a binding from the query, minus the `?` **/
+        val name: String
+    ): Token {
+        override fun toString() = "binding `$name`"
+        override val syntax = name
     }
 
     companion object {
