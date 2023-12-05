@@ -1,5 +1,6 @@
 package core.sparql.compiler.lexer
 
+import core.sparql.compiler.CompilerError
 import core.sparql.compiler.types.Token
 
 @Suppress("NOTHING_TO_INLINE")
@@ -25,17 +26,23 @@ class StringLexer(private val input: String): Lexer() {
 
     override fun position() = start
 
-    override fun stacktrace(message: String): String {
+    override fun stacktrace(type: CompilerError.Type, message: String): String {
+        return when (type) {
+            CompilerError.Type.SyntaxError -> syntaxErrorStacktrace(message = message)
+            CompilerError.Type.StructuralError -> analyserStacktrace(message = message)
+        }
+    }
+
+    /* helper methods */
+
+    // version of the stacktrace using the current `start .. end` interval to highlight the problem
+    private fun syntaxErrorStacktrace(message: String): String {
         // finding the index of the last newline before `start`
         val newline = input.indexOfLast('\n', startIndex = start - 1)
         val prefix = "$lineIndex "
         // if start equals end, token parsing went wrong, so last token information has to be used;
         // otherwise, last token can be highlighted
-        val marker = if (start != end && start < input.length) {
-            "^".repeat(end - start)
-        } else {
-            "^".repeat(current.syntax.length)
-        }
+        val marker = "^".repeat(end - start)
         return if (newline == -1) buildString {
             append("$prefix| ${input.substringBefore('\n')}\n")
             append("${" ".repeat(prefix.length)}| ${" ".repeat(end - marker.length)}$marker - $message")
@@ -45,7 +52,22 @@ class StringLexer(private val input: String): Lexer() {
         }
     }
 
-    /* helper methods */
+    // version of the stacktrace using the current `token` to highlight the problem
+    private fun analyserStacktrace(message: String): String {
+        // finding the index of the last newline before `start`
+        val newline = input.indexOfLast('\n', startIndex = start - 1)
+        val prefix = "$lineIndex "
+        // if start equals end, token parsing went wrong, so last token information has to be used;
+        // otherwise, last token can be highlighted
+        val marker = "^".repeat(current.syntax.length)
+        return if (newline == -1) buildString {
+            append("$prefix| ${input.substringBefore('\n')}\n")
+            append("${" ".repeat(prefix.length)}| ${" ".repeat(start - marker.length)}$marker - $message")
+        } else buildString {
+            append("$prefix| ${input.substringFromUntil(newline + 1, '\n')}\n")
+            append("${" ".repeat(prefix.length)}| ${" ".repeat(start - newline - 1 - marker.length)}$marker - $message")
+        }
+    }
 
     /**
      * Advances the current `start`, `end` range of observed characters for tokenization. Returns `false` if the end
@@ -128,6 +150,22 @@ class StringLexer(private val input: String): Lexer() {
             } else {
                 Token.Binding(input.substring(start, terminator))
             }
+        } else if (input[start] == '"') {
+            val terminator = input.indexOf('"', startIndex = start + 1, endIndex = end)
+            if (terminator == -1) {
+                bail("""Expected `"` at the end: `${input.substring(start, end)}`""")
+            }
+            Token.StringLiteral(input.substring(start + 1, terminator))
+        } else if (input[start].representsNumber()) {
+            var terminator = start + 1
+            while (input[terminator].representsNumber()) { ++terminator }
+            val substring = input.substring(start, terminator)
+            return substring
+                .toLongOrNull()
+                ?.let { return Token.NumericLiteral(it) }
+                ?: run {
+                    Token.NumericLiteral(substring.toDouble())
+                }
         } else {
             bail("Unrecognized token `${input.substring(start, end)}`")
         }
@@ -154,5 +192,10 @@ class StringLexer(private val input: String): Lexer() {
         startIndex = start + 1,
         endIndex = end
     )
+
+    /**
+     * Simply checks if the character can represent a digit (so either `isDigit()` or `.`)
+     */
+    private fun Char.representsNumber() = isDigit() || this == '.'
 
 }

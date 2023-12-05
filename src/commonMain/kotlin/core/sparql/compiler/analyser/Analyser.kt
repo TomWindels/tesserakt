@@ -1,6 +1,6 @@
 package core.sparql.compiler.analyser
 
-import core.sparql.compiler.StructuralError
+import core.sparql.compiler.CompilerError
 import core.sparql.compiler.lexer.Lexer
 import core.sparql.compiler.types.Token
 
@@ -131,6 +131,15 @@ abstract class Analyser<AST> {
         bail(msg)
     }
 
+    protected fun expectedLiteralOrToken(vararg tokens: Token): Nothing {
+        val msg = when (tokens.size) {
+            0 -> "Unexpected $token, expected literal"
+            1 -> "Unexpected $token, expected literal or ${tokens.first().syntax}"
+            else -> "Unexpected $token, expected literal or any of ${tokens.joinToString { it.syntax }}"
+        }
+        bail(msg)
+    }
+
     protected fun expectedPatternElementOrBindingOrToken(vararg tokens: Token): Nothing {
         val msg = when (tokens.size) {
             0 -> "Unexpected $token, expected pattern element or binding"
@@ -140,8 +149,21 @@ abstract class Analyser<AST> {
         bail(msg)
     }
 
+    protected fun expectedBindingOrLiteralOrToken(vararg tokens: Token): Nothing {
+        val msg = when (tokens.size) {
+            0 -> "Unexpected $token, expected binding or literal"
+            1 -> "Unexpected $token, expected binding, literal or ${tokens.first().syntax}"
+            else -> "Unexpected $token, expected binding, literal or any of ${tokens.joinToString { it.syntax }}"
+        }
+        bail(msg)
+    }
+
     protected fun bail(message: String = "Internal compiler error"): Nothing {
-        throw StructuralError(message = "Failed at index ${lexer.position() - token.syntax.length}", stacktrace = lexer.stacktrace(message))
+        throw CompilerError(
+            message = "Failed during the execution of `${this::class.simpleName!!}`",
+            type = CompilerError.Type.StructuralError,
+            stacktrace = lexer.stacktrace(message = message, type = CompilerError.Type.StructuralError)
+        )
     }
 
 }

@@ -11,8 +11,8 @@ sealed interface Token {
         RoundBracketStart("("),
         RoundBracketEnd(")"),
         PredicateOr("|"),
-        PredicateChain("/"),
-        Star("*"),
+        ForwardSlash("/"),
+        Asterisk("*"),
         ExclamationMark("!"),
         /* in-pattern only structural tokens */
         ObjectEnd(","),
@@ -30,7 +30,19 @@ sealed interface Token {
         Bind("BIND"),
         Filter("FILTER"),
         Limit("LIMIT"),
-        Union("UNION");
+        Union("UNION"),
+        Distinct("DISTINCT"),
+        Optional("OPTIONAL"),
+        /* functional keywords */
+        FunCount("COUNT"),
+        FunMin("MIN"),
+        FunMax("MAX"),
+        FunAvg("AVG"),
+        /* operators */
+        OpMinus("-"),
+        OpPlus("+"),
+        // times `*` & division `/` are known as `Asterisk` and `ForwardSlash`
+        /* end of syntax tokens */;
 
         override fun toString() = "reserved character `$syntax`"
 
@@ -51,6 +63,25 @@ sealed interface Token {
         override fun toString() = "binding `$name`"
         override val syntax = name
     }
+
+    data class NumericLiteral(
+        /** The value of a binding from the query, minus the `?` **/
+        val value: Number
+    ): Token {
+        override fun toString() = "numeric literal `$value`"
+        override val syntax = value.toString()
+    }
+
+    data class StringLiteral(
+        /** The value of a binding from the query, minus the `?` **/
+        val value: String
+    ): Token {
+        override fun toString() = "string literal `$value`"
+        override val syntax = value
+    }
+
+    // TODO: custom dtype literals
+    // TODO: string literals w/ lang tags
 
     companion object {
 

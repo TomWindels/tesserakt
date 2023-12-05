@@ -1,6 +1,6 @@
 package core.sparql.compiler.lexer
 
-import core.sparql.compiler.SyntaxError
+import core.sparql.compiler.CompilerError
 import core.sparql.compiler.types.Token
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
@@ -52,12 +52,16 @@ abstract class Lexer: Iterator<Token> {
      * Returns a visual overview for the current line being processed and a line indicating the currently observed
      *  range
      */
-    internal abstract fun stacktrace(message: String): String
+    internal abstract fun stacktrace(type: CompilerError.Type, message: String): String
 
     internal abstract fun position(): Int
 
     protected fun bail(message: String = "Internal compiler error"): Nothing {
-        throw SyntaxError(message = "Syntax error at index ${position()}", stacktrace = stacktrace(message))
+        throw CompilerError(
+            message = "Syntax error at index ${position()}",
+            type = CompilerError.Type.SyntaxError,
+            stacktrace = stacktrace(CompilerError.Type.SyntaxError, message)
+        )
     }
 
 }

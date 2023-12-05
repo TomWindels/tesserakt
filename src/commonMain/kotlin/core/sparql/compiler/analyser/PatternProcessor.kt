@@ -44,7 +44,7 @@ class PatternProcessor: Analyser<Patterns>() {
                 Token.Syntax.PredicateOr -> {
                     predicate = processPatternPredicateOr(predicate)
                 }
-                Token.Syntax.PredicateChain -> {
+                Token.Syntax.ForwardSlash -> {
                     predicate = processPatternPredicateChain(predicate)
                 }
                 !is Token.Syntax -> {
@@ -54,7 +54,7 @@ class PatternProcessor: Analyser<Patterns>() {
                 }
                 else -> expectedPatternElementOrBindingOrToken(
                     Token.Syntax.PredicateOr,
-                    Token.Syntax.PredicateChain
+                    Token.Syntax.ForwardSlash
                 )
             }
         }
@@ -81,11 +81,11 @@ class PatternProcessor: Analyser<Patterns>() {
                 result = when (token) {
                     Token.Syntax.RoundBracketEnd -> break
                     Token.Syntax.PredicateOr -> processPatternPredicateOr(result)
-                    Token.Syntax.PredicateChain -> processPatternPredicateChain(result)
+                    Token.Syntax.ForwardSlash -> processPatternPredicateChain(result)
                     else -> expectedToken(
                         Token.Syntax.RoundBracketEnd,
                         Token.Syntax.PredicateOr,
-                        Token.Syntax.PredicateChain
+                        Token.Syntax.ForwardSlash
                     )
                 }
             }
@@ -96,7 +96,7 @@ class PatternProcessor: Analyser<Patterns>() {
         // consuming the last token from the currently processed predicate
         consumeOrBail()
         // consuming the star if possible
-        if (token == Token.Syntax.Star) {
+        if (token == Token.Syntax.Asterisk) {
             consumeOrBail()
             Pattern.Repeating(current)
         } else {

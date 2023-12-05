@@ -1,7 +1,14 @@
 package core.sparql.compiler
 
-open class CompilerError(message: String, val stacktrace: String): RuntimeException(message)
+class CompilerError(
+    message: String,
+    val type: Type,
+    val stacktrace: String
+): RuntimeException("$type: $message") {
 
-class SyntaxError(message: String, stacktrace: String): CompilerError(message, stacktrace)
+    enum class Type {
+        SyntaxError,
+        StructuralError,
+    }
 
-class StructuralError(message: String, stacktrace: String): CompilerError(message, stacktrace)
+}
