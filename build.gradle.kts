@@ -1,8 +1,8 @@
 plugins {
-    kotlin("multiplatform") version "2.0.0-Beta1"
+    kotlin("multiplatform")
 }
 
-group = "be.tomw"
+group = "dev.tesserakt"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -31,8 +31,6 @@ kotlin {
             }
         }
         val jvmMain by getting
-        val jvmTest by getting
         val jsMain by getting
-        val jsTest by getting
     }
 }
