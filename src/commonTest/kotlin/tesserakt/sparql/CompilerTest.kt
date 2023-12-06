@@ -85,6 +85,7 @@ class CompilerTest {
             failures.forEach { (i, t) ->
                 printerrln("Query ${i + 1} failed: `${tests[i].input}`")
                 if (t is CompilerError) {
+                    printerrln(t.message!!)
                     printerrln(t.stacktrace)
                 } else {
                     t.printStackTrace()
@@ -114,6 +115,11 @@ class CompilerTest {
         }
         "prefix ex: <http://example.org/> select*{?s ex:prop ?o}".satisfies<SelectQueryAST> {
             body.patterns.size == 1
+        }
+        "prefix select: <http://example.org/> select*{?s select:prop ?o ; <prop> select:test}".satisfies<SelectQueryAST> {
+            body.patterns.size == 2
+                && body.patterns[0].p == Pattern.Exact(Triple.NamedTerm("http://example.org/prop"))
+                && body.patterns[1].o == Pattern.Exact(Triple.NamedTerm("http://example.org/test"))
         }
         "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }".satisfies<SelectQueryAST> {
             body.patterns.first().p is Pattern.Chain

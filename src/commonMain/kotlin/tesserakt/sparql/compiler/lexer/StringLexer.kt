@@ -105,18 +105,17 @@ class StringLexer(private val input: String): Lexer() {
      * Attempts to find any token (syntax or pattern) starting at the given index. Bails if no token is starting
      *  at the given index (syntax error)
      */
-    private inline fun extractAnyTokenOrBail(): Token {
-        // first attempting to find a syntax type
-        lut[input[start].lowercaseChar()]?.forEach { (syntax, token) ->
-            if (input.startsWith(syntax, start, ignoreCase = true)) {
-                return token
-            }
-        }
-        // falling back to pattern element
-        return extractPatternElementOrBindingOrBail()
-    }
+    // first attempting to find a pattern-like element, then falling back to a syntax type
+    private inline fun extractAnyTokenOrBail(): Token =
+         extractPatternElementOrBinding() ?: extractSyntacticToken()
+        ?: bail("Unrecognized token `${input.substring(start, end)}`")
 
-    private inline fun extractPatternElementOrBindingOrBail(): Token {
+    private inline fun extractSyntacticToken(): Token? =
+        lut[input[start].lowercaseChar()]
+            ?.firstOrNull { (syntax, _) -> input.startsWith(syntax, start, ignoreCase = true) }
+            ?.second
+
+    private inline fun extractPatternElementOrBinding(): Token? {
         // the `<...>` & `?...` structures cannot be split apart using whitespace, so looking for these
         // `(...)` & `...|...` can be split apart using whitespace, and are hence part of the token syntax looked
         //  up before
@@ -160,14 +159,11 @@ class StringLexer(private val input: String): Lexer() {
             var terminator = start + 1
             while (input[terminator].representsNumber()) { ++terminator }
             val substring = input.substring(start, terminator)
-            return substring
-                .toLongOrNull()
-                ?.let { return Token.NumericLiteral(it) }
-                ?: run {
-                    Token.NumericLiteral(substring.toDouble())
-                }
+            return substring.toLongOrNull()?.let { Token.NumericLiteral(it) }
+                ?: substring.toDoubleOrNull()?.let { Token.NumericLiteral(it) }
         } else {
-            bail("Unrecognized token `${input.substring(start, end)}`")
+            // nothing found
+            null
         }
     }
 
