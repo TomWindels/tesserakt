@@ -11,6 +11,8 @@ data class SelectQueryAST(
     @JvmInline
     value class Output internal constructor(val entries: Map<String, Entry>) {
 
+        val names get() = entries.keys
+
         // TODO "distinct" ?
 
         internal constructor(

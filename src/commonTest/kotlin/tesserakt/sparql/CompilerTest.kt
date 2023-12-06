@@ -118,6 +118,11 @@ class CompilerTest {
         "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }".satisfies<SelectQueryAST> {
             body.patterns.first().p is Pattern.Chain
         }
+        "SELECT * WHERE { ?s a/?p1*/?p2?o. }".satisfies<SelectQueryAST> {
+            body.patterns.first().p is Pattern.Chain
+                && output.names == setOf("s", "p1", "p2", "o")
+                && output.entries.all { it.value is SelectQueryAST.Output.BindingEntry }
+        }
         "SELECT * WHERE { ?s (<predicate2>|<predicate3>)?o. }".satisfies<SelectQueryAST> {
             body.patterns.first().p is Pattern.Constrained
         }
