@@ -27,7 +27,7 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
                 processSelectQueryBindingOrBody()
             }
             Token.Syntax.RoundBracketStart -> {
-                builder.addToOutput(use(AggregatorProcessor()))
+                builder.addToOutput(use(AggregationProcessor()))
                 // continuing only accepting bindings, aggregations/operations or the start of the query
                 processSelectQueryBindingOrBody()
             }
@@ -64,7 +64,7 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
                 processSelectQueryBindingOrBody()
             }
             Token.Syntax.RoundBracketStart -> {
-                builder.addToOutput(use(AggregatorProcessor()))
+                builder.addToOutput(use(AggregationProcessor()))
                 // still processing the start
                 processSelectQueryBindingOrBody()
             }

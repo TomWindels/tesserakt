@@ -87,6 +87,12 @@ sealed interface Token {
 
         val syntax = Syntax.entries.associateBy { it.syntax }
 
+        /* series of helper accessors */
+
+        val Token.literalNumericValue get() = (this as NumericLiteral).value
+        val Token.literalTextValue get() = (this as StringLiteral).value
+        val Token.bindingName get() = (this as Binding).name
+
     }
 
 }

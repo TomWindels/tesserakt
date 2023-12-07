@@ -2,52 +2,62 @@ package tesserakt.sparql.compiler.analyser
 
 import tesserakt.sparql.compiler.types.Aggregation
 import tesserakt.sparql.compiler.types.Token
+import tesserakt.sparql.compiler.types.Token.Companion.bindingName
+import tesserakt.sparql.compiler.types.Token.Companion.literalNumericValue
 
-class AggregatorProcessor: Analyser<Aggregation>() {
+/**
+ * Processes structures like `MIN(?s)`, `AVG(?s) - MIN(?p)`, `COUNT(DISTINCT ?s)`
+ */
+class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
 
-    override fun _process(): Aggregation {
-        // consuming the first `(`
-        consumeOrBail()
-        val aggregation = processAggregationOperation()
-        // should now be pointing to `AS`, with as next token a binding for the output
-        expectToken(Token.Syntax.As)
-        consumeOrBail()
-        expectBinding()
-        val result = Aggregation(
-            root = aggregation,
-            output = token as Token.Binding
-        )
-        // consuming it as it is part of the result
-        consumeOrBail()
-        // also consuming the closing `)`
-        expectToken(Token.Syntax.RoundBracketEnd)
-        consumeOrBail()
-        return result
+    private var continuing = true
+
+    override fun _process(): Aggregation.Aggregator {
+        return processAggregationStatement()
+    }
+
+    // processes & consumes structures like `max(?s) - avg(?p)`
+    private fun processAggregationStatement(): Aggregation.Aggregator {
+        val builder = Aggregation.MathOp.Builder(nextAggregationOrBindingOrLiteral())
+        var operator = token.operator
+        while (continuing && operator != null) {
+            consumeOrBail()
+            builder.add(
+                operator = operator,
+                operand = nextAggregationOrBindingOrLiteral()
+            )
+            operator = token.operator
+        }
+        return builder.build()
     }
 
     private fun nextAggregationOrBindingOrLiteral(): Aggregation.Aggregator = when (token) {
         Token.Syntax.Distinct -> {
             consumeOrBail()
             expectBinding()
-            Aggregation.DistinctBindingValues(token as Token.Binding)
+            Aggregation.DistinctBindingValues(token.bindingName)
                 .also { consumeOrBail() }
         }
         is Token.Binding -> {
-            Aggregation.BindingValues(token as Token.Binding)
+            Aggregation.BindingValues(token.bindingName)
                 .also { consumeOrBail() }
         }
         Token.Syntax.FunCount,
         Token.Syntax.FunMin,
         Token.Syntax.FunMax,
-        Token.Syntax.FunAvg, -> {
+        Token.Syntax.FunAvg -> {
             processAggregationFunction()
         }
         Token.Syntax.RoundBracketStart -> {
             processAggregationGroup()
         }
+        Token.Syntax.OpMinus -> {
+            consumeOrBail()
+            Aggregation.MathOp.Negative(nextAggregationOrBindingOrLiteral())
+        }
         is Token.NumericLiteral -> {
-            Aggregation.LiteralValue(token as Token.NumericLiteral)
-                .also { consumeOrBail() }
+            Aggregation.LiteralValue(token.literalNumericValue)
+                .also { continuing = consumeAttempt() }
         }
         else -> expectedBindingOrLiteralOrToken(
             Token.Syntax.Distinct,
@@ -63,12 +73,12 @@ class AggregatorProcessor: Analyser<Aggregation>() {
         Token.Syntax.Distinct -> {
             consumeOrBail()
             expectBinding()
-            Aggregation.DistinctBindingValues(token as Token.Binding)
-                .also { consumeOrBail() }
+            Aggregation.DistinctBindingValues(token.bindingName)
+                .also { continuing = consumeAttempt() }
         }
         is Token.Binding -> {
-            Aggregation.BindingValues(token as Token.Binding)
-                .also { consumeOrBail() }
+            Aggregation.BindingValues(token.bindingName)
+                .also { continuing = consumeAttempt() }
         }
         Token.Syntax.FunCount,
         Token.Syntax.FunMin,
@@ -89,37 +99,23 @@ class AggregatorProcessor: Analyser<Aggregation>() {
         )
     }
 
-    // processes & consumes structures like `max(?s) - avg(?p)`
-    private fun processAggregationOperation(): Aggregation.Aggregator {
-        val builder = Aggregation.MathOperation.Builder(nextAggregationOrBindingOrLiteral())
-        var operator = token.operator
-        while (operator != null) {
-            consumeOrBail()
-            builder.add(
-                operator = operator,
-                aggregator = nextAggregationOrBindingOrLiteral()
-            )
-            operator = token.operator
-        }
-        return builder.build()
-    }
-
-    private val Token.operator: Aggregation.MathOperation.Operator?
+    private val Token.operator: Aggregation.MathOp.Operator?
         get() = when (this) {
-            Token.Syntax.OpPlus -> Aggregation.MathOperation.Operator.SUM
-            Token.Syntax.OpMinus -> Aggregation.MathOperation.Operator.DIFFERENCE
-            Token.Syntax.ForwardSlash -> Aggregation.MathOperation.Operator.DIVISION
-            Token.Syntax.Asterisk -> Aggregation.MathOperation.Operator.PRODUCT
+            Token.Syntax.OpPlus -> Aggregation.MathOp.Operator.SUM
+            Token.Syntax.OpMinus -> Aggregation.MathOp.Operator.DIFFERENCE
+            Token.Syntax.ForwardSlash -> Aggregation.MathOp.Operator.DIVISION
+            Token.Syntax.Asterisk -> Aggregation.MathOp.Operator.PRODUCT
             else -> null
         }
 
     // processes & consumes structures like `(max(?s) - avg(?p))`
     private fun processAggregationGroup(): Aggregation.Aggregator {
         // simply calling the `processAggregationStatement` again, level of recursion depth = number of parentheses
+        // consuming the '('
         consumeOrBail()
-        return processAggregationOperation().also {
+        return processAggregationStatement().also {
             expectToken(Token.Syntax.RoundBracketEnd)
-            consumeOrBail()
+            continuing = consumeAttempt()
         }
     }
 
@@ -137,7 +133,7 @@ class AggregatorProcessor: Analyser<Aggregation>() {
         consumeOrBail()
         val input = nextAggregationOrBinding()
         expectToken(Token.Syntax.RoundBracketEnd)
-        consumeOrBail()
+        continuing = consumeAttempt()
         return Aggregation.Builtin(type = type, input = input)
     }
 

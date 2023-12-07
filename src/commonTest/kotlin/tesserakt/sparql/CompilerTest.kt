@@ -4,6 +4,11 @@ import tesserakt.rdf.SPARQL
 import tesserakt.rdf.types.Triple
 import tesserakt.sparql.CompilerTest.Environment.Companion.test
 import tesserakt.sparql.compiler.CompilerError
+import tesserakt.sparql.compiler.analyser.AggregatorProcessor
+import tesserakt.sparql.compiler.processed
+import tesserakt.sparql.compiler.types.Aggregation
+import tesserakt.sparql.compiler.types.Aggregation.Companion.builtin
+import tesserakt.sparql.compiler.types.Aggregation.Companion.distinctBindings
 import tesserakt.sparql.compiler.types.Pattern
 import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.sparql.compiler.types.SelectQueryAST
@@ -17,6 +22,8 @@ class CompilerTest {
     class Environment private constructor() {
 
         companion object {
+
+            val compilerPackageName = CompilerError::class.qualifiedName!!.removeSuffix(CompilerError::class.simpleName!!)
 
             fun test(block: Environment.() -> Unit) {
                 Environment().apply(block).test()
@@ -85,9 +92,19 @@ class CompilerTest {
             failures.forEach { (i, t) ->
                 printerrln("Query ${i + 1} failed: `${tests[i].input}`")
                 if (t is CompilerError) {
+                    printerrln("=== compiler error ===")
                     printerrln(t.message!!)
                     printerrln(t.stacktrace)
+                    printerrln("=== shortened stacktrace ===")
+                    printerrln(
+                        message = t
+                            .stackTraceToString()
+                            .lineSequence()
+                            .takeWhile { it.contains(compilerPackageName) }
+                            .joinToString("\n")
+                    )
                 } else {
+                    printerrln("=== stacktrace ===")
                     t.printStackTrace()
                 }
             }
@@ -150,17 +167,21 @@ class CompilerTest {
             body.unions.size == 1 && body.unions.first().size == 3
         }
         "select(count(distinct ?s) as ?count){?s?p?o}".satisfies<SelectQueryAST> {
-            // fixme check aggregators
-            true
+            val func = output.aggregate("count")!!.root.builtin
+            func.type == Aggregation.Builtin.Type.COUNT &&
+            func.input.distinctBindings == Aggregation.DistinctBindingValues("s")
         }
         "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}".satisfies<SelectQueryAST> {
-            // fixme check aggregators
-            true
+            output.aggregate("count")!!.root ==
+                    "(${1 / 3.0} * min(?s)) + avg(?s)".processed(AggregatorProcessor())
         }
         "select(avg(?s) + min(?s)/3*4+3-5.5*10 as ?count_long){?s?p?o}".satisfies<SelectQueryAST> {
-            println(output.aggregate("count_long")!!.root)
-            // fixme check aggregators
-            true
+            output.aggregate("count_long")!!.root ==
+                    "4 * (min(?s)) / 3 + avg(?s) - 52".processed(AggregatorProcessor())
+        }
+        "select(-min(?s) + max(?s) as ?reversed_diff){?s?p?o}".satisfies<SelectQueryAST> {
+            output.aggregate("reversed_diff")!!.root ==
+                    "max(?s) - min(?s)".processed(AggregatorProcessor())
         }
         """
             PREFIX : <http://example.com/data/#>
@@ -175,7 +196,10 @@ class CompilerTest {
                 p = Pattern.Exact(Triple.NamedTerm("http://example.com/data/#p")),
                 o = Pattern.Binding("p")
             )
-            body.patterns.size == 1 && body.patterns.first() == pattern
+            body.patterns.size == 1 &&
+            body.patterns.first() == pattern &&
+            output.aggregate("avg")!!.root.builtin.type == Aggregation.Builtin.Type.AVG &&
+            output.aggregate("c")!!.root == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor())
         }
         /* expected failure cases */
         "SELECT TEST WHERE { ?s a TEST . }".shouldFail(CompilerError.Type.SyntaxError)

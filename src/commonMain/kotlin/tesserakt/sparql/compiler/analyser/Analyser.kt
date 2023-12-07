@@ -18,7 +18,7 @@ abstract class Analyser<AST> {
      * Processes starting from the input's current position and consumes every related item to its specific
      *  type T
      */
-    protected fun configureAndUse(input: Lexer): AST {
+    fun configureAndUse(input: Lexer): AST {
         lexer = input
         consumeOrBail()
         return _process()
@@ -39,13 +39,25 @@ abstract class Analyser<AST> {
 
     protected abstract fun _process(): AST
 
+    /**
+     * Consumes the next token if possible but does not bail, making it possible for the token to be "stuck".
+     *  Only use this method at the end of an analyser, so they can be used standalone if less-then-complete queries
+     *  can be partially processed properly. Returns `true` if the token was successfully consumed, false if the end
+     *  has been reached.
+     */
+    protected fun consumeAttempt(): Boolean {
+        if (lexer.hasNext()) {
+            token = lexer.next()
+            return true
+        }
+        return false
+    }
+
     /** Consumes the next token. Bails if no other token is available **/
     protected fun consumeOrBail() {
         if (!lexer.hasNext()) {
             bail("Unexpected end of input (last token is $token)")
         } else {
-            // simplified version of `singleOrNull()` that does not check if there are tokens remaining, removing
-            //  the additional `take(1)` call
             token = lexer.next()
         }
     }

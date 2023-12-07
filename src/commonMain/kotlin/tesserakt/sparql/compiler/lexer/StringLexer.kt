@@ -157,7 +157,7 @@ class StringLexer(private val input: String): Lexer() {
             Token.StringLiteral(input.substring(start + 1, terminator))
         } else if (input[start].representsNumber()) {
             var terminator = start + 1
-            while (input[terminator].representsNumber()) { ++terminator }
+            while (terminator < end && input[terminator].representsNumber()) { ++terminator }
             val substring = input.substring(start, terminator)
             return substring.toLongOrNull()?.let { Token.NumericLiteral(it) }
                 ?: substring.toDoubleOrNull()?.let { Token.NumericLiteral(it) }

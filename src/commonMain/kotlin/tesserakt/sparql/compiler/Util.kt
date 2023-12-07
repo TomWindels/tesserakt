@@ -1,5 +1,7 @@
 package tesserakt.sparql.compiler
 
+import tesserakt.sparql.compiler.analyser.Analyser
+import tesserakt.sparql.compiler.lexer.StringLexer
 import tesserakt.sparql.compiler.types.Pattern
 
 fun Pattern.bindings(): List<Pattern.Binding> {
@@ -28,4 +30,9 @@ private fun Pattern.Predicate.bindings(): List<Pattern.Binding> {
         is Pattern.Not -> predicate.bindings()
         is Pattern.Repeating -> value.bindings()
     }
+}
+
+fun <AST> String.processed(analyser: Analyser<AST>): AST {
+    val lexer = StringLexer(this)
+    return analyser.configureAndUse(lexer)
 }
