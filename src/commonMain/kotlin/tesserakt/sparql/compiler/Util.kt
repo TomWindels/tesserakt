@@ -4,14 +4,23 @@ import tesserakt.sparql.compiler.analyser.Analyser
 import tesserakt.sparql.compiler.lexer.Lexer
 import tesserakt.sparql.compiler.lexer.StringLexer
 import tesserakt.sparql.compiler.types.Pattern
+import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.sparql.compiler.types.Token
 
-fun Pattern.bindings(): List<Pattern.Binding> {
+
+internal fun QueryAST.QueryBodyAST.extractAllBindings() =
+    (
+        patterns.flatMap { pattern -> pattern.extractAllBindings() } +
+        unions.flatMap { union -> union.flatMap { block -> block.flatMap { pattern -> pattern.extractAllBindings() } } } +
+        optional.flatMap { optional -> optional.flatMap { pattern -> pattern.extractAllBindings() } }
+    ).distinct()
+
+fun Pattern.extractAllBindings(): List<Pattern.Binding> {
     val result = mutableListOf<Pattern.Binding>()
     if (s is Pattern.Binding) {
         result.add(s)
     }
-    result.addAll(p.bindings())
+    result.addAll(p.extractAllBindings())
     if (o is Pattern.Binding) {
         result.add(o)
     }
@@ -23,14 +32,14 @@ fun Pattern.bindings(): List<Pattern.Binding> {
 
 // helper for the helper
 
-private fun Pattern.Predicate.bindings(): List<Pattern.Binding> {
+private fun Pattern.Predicate.extractAllBindings(): List<Pattern.Binding> {
     return when (this) {
-        is Pattern.Chain -> list.flatMap { it.bindings() }
-        is Pattern.Constrained -> allowed.flatMap { it.bindings() }
+        is Pattern.Chain -> list.flatMap { it.extractAllBindings() }
+        is Pattern.Constrained -> allowed.flatMap { it.extractAllBindings() }
         is Pattern.Binding -> listOf(this)
         is Pattern.Exact -> emptyList()
-        is Pattern.Not -> predicate.bindings()
-        is Pattern.Repeating -> value.bindings()
+        is Pattern.Not -> predicate.extractAllBindings()
+        is Pattern.Repeating -> value.extractAllBindings()
     }
 }
 

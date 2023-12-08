@@ -1,6 +1,6 @@
 package tesserakt.sparql.compiler.types
 
-import tesserakt.sparql.compiler.bindings
+import tesserakt.sparql.compiler.extractAllBindings
 import kotlin.jvm.JvmInline
 
 data class SelectQueryAST(
@@ -61,14 +61,7 @@ data class SelectQueryAST(
 
         fun build(): SelectQueryAST {
             val outputs = if (everything) {
-                (
-                    body.patterns
-                        .flatMap { pattern -> pattern.bindings() } +
-                    body.unions
-                        .flatMap { union -> union.flatMap { block -> block.flatMap { pattern -> pattern.bindings() } } } +
-                    body.optional
-                        .flatMap { optional -> optional.flatMap { pattern -> pattern.bindings() } }
-                ).distinct().map { Output.BindingEntry(it) }
+                body.extractAllBindings().map { Output.BindingEntry(it) }
             } else {
                 entries
             }
