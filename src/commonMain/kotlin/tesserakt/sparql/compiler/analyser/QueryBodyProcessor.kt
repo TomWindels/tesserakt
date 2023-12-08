@@ -25,7 +25,8 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 is Token.NumericLiteral -> {
                     builder.addPatterns(use(PatternProcessor()))
                 }
-                Token.Syntax.CurlyBracketStart -> processSubqueryBody()
+                Token.Syntax.Optional -> processOptional()
+                Token.Syntax.CurlyBracketStart -> processSubsectionBody()
                 Token.Syntax.CurlyBracketEnd -> return
                 else -> expectedPatternElementOrBindingOrToken(
                     Token.Syntax.CurlyBracketStart,
@@ -38,14 +39,29 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
         bail("Unexpected end of input, expected '}'")
     }
 
-    private fun processSubqueryBody() {
+    private fun processSubsectionBody() {
         // should be a `{`
         consume()
         when (token) {
             // binding or term, so the start of a block is happening here
-            !is Token.Syntax -> processUnion()
+            is Token.Term,
+            is Token.StringLiteral,
+            is Token.Binding,
+            is Token.NumericLiteral -> processUnion()
             else -> bail("Complex subqueries are currently not supported!")
         }
+    }
+
+    private fun processOptional() {
+        // consuming the "optional {"
+        consume()
+        expectToken(Token.Syntax.CurlyBracketStart)
+        consume()
+        // extracting all patterns and inserting them
+        builder.addOptional(use(PatternProcessor()))
+        // consuming the final part
+        expectToken(Token.Syntax.CurlyBracketEnd)
+        consume()
     }
 
     private fun processUnion() {
@@ -62,10 +78,16 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 expectPatternElementOrBinding()
                 // looping back up top
             } else {
-                // inserting all patterns and exiting
-                builder.addUnion(patterns)
-                return
+                break
             }
+        }
+        if (patterns.size == 1) {
+            // the processed structure looks like `{ patterns }`, no union keyword was ever used, so adding them
+            //  outright
+            builder.addPatterns(patterns.first())
+        } else if (patterns.size > 1) {
+            // inserting all patterns and exiting
+            builder.addUnion(patterns)
         }
     }
 

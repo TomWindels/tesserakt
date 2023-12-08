@@ -180,6 +180,18 @@ class CompilerTest {
         """.satisfies<SelectQueryAST> {
             body.patterns.size == 1 && body.unions.size == 1 && body.unions.first().size == 3
         }
+        """
+            SELECT * WHERE {
+                ?s a <type>
+                OPTIONAL { ?s <has> ?content }
+                { ?s <prop> ?value1 } UNION { ?s <prop2> <value2> } UNION { ?s <prop3> <value3> }
+            }
+        """.satisfies<SelectQueryAST> {
+            body.patterns.size == 1 &&
+            body.optional.size == 1 &&
+            body.unions.size == 1 &&
+            output.names == setOf("s", "content", "value1")
+        }
         "select(count(distinct ?s) as ?count){?s?p?o}".satisfies<SelectQueryAST> {
             val func = output.aggregate("count")!!.root.builtin
             func.type == Aggregation.Builtin.Type.COUNT &&
