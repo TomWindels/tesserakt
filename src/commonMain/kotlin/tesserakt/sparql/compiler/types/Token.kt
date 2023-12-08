@@ -80,6 +80,10 @@ sealed interface Token {
         override val syntax = value
     }
 
+    data object EOF: Token {
+        override val syntax: String = "EOF"
+    }
+
     // TODO: custom dtype literals
     // TODO: string literals w/ lang tags
 

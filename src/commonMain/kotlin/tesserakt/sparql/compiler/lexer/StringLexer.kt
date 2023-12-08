@@ -11,17 +11,16 @@ class StringLexer(private val input: String): Lexer() {
     private var end = 0
     // extra helpers for logging purposes
     private var lineIndex = 0
-    private lateinit var current: Token
+    override lateinit var current: Token
+        private set
 
-    override fun hasNext(): Boolean {
-        return start < end || nextSegment()
-    }
-
-    override fun next(): Token {
-        current = extractAnyTokenOrBail()
-        start += current.syntax.length
-        // `current` now points to the next token requested
-        return current
+    override fun advance() {
+        current = if (start >= end && !nextSegment()) {
+            Token.EOF
+        } else {
+            extractAnyTokenOrBail()
+                .also { new -> start += new.syntax.length }
+        }
     }
 
     override fun position() = start

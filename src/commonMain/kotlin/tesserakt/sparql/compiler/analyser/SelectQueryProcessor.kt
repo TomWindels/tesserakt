@@ -16,13 +16,13 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
 
     private fun processSelectQueryStart() {
         // consuming the SELECT token
-        consumeOrBail()
+        consume()
         // now expecting either binding name, star or the WHERE clause
         when (token) {
             is Token.Binding -> {
                 builder.addToOutput(Pattern.Binding(token as Token.Binding))
                 // consuming it
-                consumeOrBail()
+                consume()
                 // continuing only accepting bindings, aggregations/operations or the start of the query
                 processSelectQueryBindingOrBody()
             }
@@ -34,17 +34,17 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
             Token.Syntax.Asterisk -> {
                 builder.setEverythingAsOutput()
                 // only optionally `WHERE` is allowed
-                consumeOrBail()
+                consume()
                 expectToken(Token.Syntax.Where, Token.Syntax.CurlyBracketStart)
                 if (token == Token.Syntax.Where) {
-                    consumeOrBail()
+                    consume()
                 }
                 expectToken(Token.Syntax.CurlyBracketStart)
                 // processing the body now
                 builder.body = use(QueryBodyProcessor())
             }
             Token.Syntax.Where -> {
-                consumeOrBail()
+                consume()
                 expectToken(Token.Syntax.CurlyBracketStart)
                 // actually processing the query body now
                 builder.body = use(QueryBodyProcessor())
@@ -59,7 +59,7 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
             is Token.Binding -> {
                 builder.addToOutput(Pattern.Binding(token as Token.Binding))
                 // consuming it
-                consumeOrBail()
+                consume()
                 // still processing the start
                 processSelectQueryBindingOrBody()
             }
@@ -69,7 +69,7 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
                 processSelectQueryBindingOrBody()
             }
             Token.Syntax.Where -> {
-                consumeOrBail()
+                consume()
                 expectToken(Token.Syntax.CurlyBracketStart)
                 // actually processing the query body now
                 builder.body = use(QueryBodyProcessor())

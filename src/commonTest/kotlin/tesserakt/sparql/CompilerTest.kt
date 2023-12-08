@@ -166,6 +166,20 @@ class CompilerTest {
         "SELECT ?s WHERE{{?s<prop><value>}UNION{?s<prop2><value2>}UNION{?s<prop3><value3>}}".satisfies<SelectQueryAST> {
             body.unions.size == 1 && body.unions.first().size == 3
         }
+        """
+            SELECT * WHERE {
+                ?s a <type>
+                {
+                    ?s <prop> <value> 
+                } UNION {
+                    ?s <prop2> <value2>
+                } UNION {
+                    ?s <prop3> <value3>
+                }
+            }
+        """.satisfies<SelectQueryAST> {
+            body.patterns.size == 1 && body.unions.size == 1 && body.unions.first().size == 3
+        }
         "select(count(distinct ?s) as ?count){?s?p?o}".satisfies<SelectQueryAST> {
             val func = output.aggregate("count")!!.root.builtin
             func.type == Aggregation.Builtin.Type.COUNT &&
@@ -173,15 +187,15 @@ class CompilerTest {
         }
         "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}".satisfies<SelectQueryAST> {
             output.aggregate("count")!!.root ==
-                    "(${1 / 3.0} * min(?s)) + avg(?s)".processed(AggregatorProcessor())
+                    "(${1 / 3.0} * min(?s)) + avg(?s)".processed(AggregatorProcessor()).getOrThrow()
         }
         "select(avg(?s) + min(?s)/3*4+3-5.5*10 as ?count_long){?s?p?o}".satisfies<SelectQueryAST> {
             output.aggregate("count_long")!!.root ==
-                    "4 * (min(?s)) / 3 + avg(?s) - 52".processed(AggregatorProcessor())
+                    "4 * (min(?s)) / 3 + avg(?s) - 52".processed(AggregatorProcessor()).getOrThrow()
         }
         "select(-min(?s) + max(?s) as ?reversed_diff){?s?p?o}".satisfies<SelectQueryAST> {
             output.aggregate("reversed_diff")!!.root ==
-                    "max(?s) - min(?s)".processed(AggregatorProcessor())
+                    "max(?s) - min(?s)".processed(AggregatorProcessor()).getOrThrow()
         }
         """
             PREFIX : <http://example.com/data/#>
@@ -199,7 +213,7 @@ class CompilerTest {
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
             output.aggregate("avg")!!.root.builtin.type == Aggregation.Builtin.Type.AVG &&
-            output.aggregate("c")!!.root == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor())
+            output.aggregate("c")!!.root == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor()).getOrThrow()
         }
         /* expected failure cases */
         "SELECT TEST WHERE { ?s a TEST . }".shouldFail(CompilerError.Type.SyntaxError)

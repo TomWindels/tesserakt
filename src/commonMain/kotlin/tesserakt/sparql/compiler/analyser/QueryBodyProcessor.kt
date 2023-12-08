@@ -15,22 +15,32 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
 
     private fun processQueryBody() {
         // consuming the starting `{`
-        consumeOrBail()
-        when (token) {
-            // binding or term, so the start of a block is happening here
-            !is Token.Syntax -> {
-                builder.addPatterns(use(PatternProcessor()))
+        consume()
+        while (token != Token.EOF) {
+            when (token) {
+                // binding or term, so the start of a block is happening here
+                is Token.Term,
+                is Token.StringLiteral,
+                is Token.Binding,
+                is Token.NumericLiteral -> {
+                    builder.addPatterns(use(PatternProcessor()))
+                }
+                Token.Syntax.CurlyBracketStart -> processSubqueryBody()
+                Token.Syntax.CurlyBracketEnd -> return
+                else -> expectedPatternElementOrBindingOrToken(
+                    Token.Syntax.CurlyBracketStart,
+                    Token.Syntax.CurlyBracketEnd,
+                )
             }
-            Token.Syntax.CurlyBracketStart -> processSubqueryBody()
-            else -> expectedPatternElementOrBindingOrToken(
-                Token.Syntax.CurlyBracketStart
-            )
         }
+        // if this has been reached, the `while` block above hasn't returned, and has thus not been completely
+        //  processed
+        bail("Unexpected end of input, expected '}'")
     }
 
     private fun processSubqueryBody() {
         // should be a `{`
-        consumeOrBail()
+        consume()
         when (token) {
             // binding or term, so the start of a block is happening here
             !is Token.Syntax -> processUnion()
@@ -43,12 +53,12 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
         while (true) {
             patterns.add(use(PatternProcessor()))
             expectToken(Token.Syntax.CurlyBracketEnd)
-            consumeOrBail()
+            consume()
             if (token == Token.Syntax.Union) {
                 // continuing
-                consumeOrBail()
+                consume()
                 expectToken(Token.Syntax.CurlyBracketStart)
-                consumeOrBail()
+                consume()
                 expectPatternElementOrBinding()
                 // looping back up top
             } else {

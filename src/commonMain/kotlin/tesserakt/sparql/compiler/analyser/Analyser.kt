@@ -8,11 +8,10 @@ abstract class Analyser<AST> {
 
     /** available set of predicates, set according to the currently processed query **/
     protected lateinit var prefixes: MutableMap<String, String>
-    /** current token, actually kept here so `peek` does not actively `consume()` **/
-    protected lateinit var token: Token
-        private set
     /** lexer used for processing, responsible for receiving the next token **/
     private lateinit var lexer: Lexer
+    /** current token being observed from the lexer **/
+    protected val token: Token get() = lexer.current
 
     /**
      * Processes starting from the input's current position and consumes every related item to its specific
@@ -20,7 +19,7 @@ abstract class Analyser<AST> {
      */
     fun configureAndUse(input: Lexer): AST {
         lexer = input
-        consumeOrBail()
+        consume()
         return _process()
     }
 
@@ -29,37 +28,15 @@ abstract class Analyser<AST> {
      */
     protected fun <O> use(other: Analyser<O>): O {
         other.lexer = lexer
-        other.token = token
         other.prefixes = prefixes
-        val result = other._process()
-        // resetting our current token back
-        token = other.token
-        return result
+        return other._process()
     }
 
     protected abstract fun _process(): AST
 
-    /**
-     * Consumes the next token if possible but does not bail, making it possible for the token to be "stuck".
-     *  Only use this method at the end of an analyser, so they can be used standalone if less-then-complete queries
-     *  can be partially processed properly. Returns `true` if the token was successfully consumed, false if the end
-     *  has been reached.
-     */
-    protected fun consumeAttempt(): Boolean {
-        if (lexer.hasNext()) {
-            token = lexer.next()
-            return true
-        }
-        return false
-    }
-
-    /** Consumes the next token. Bails if no other token is available **/
-    protected fun consumeOrBail() {
-        if (!lexer.hasNext()) {
-            bail("Unexpected end of input (last token is $token)")
-        } else {
-            token = lexer.next()
-        }
+    /** Consumes the next token. The next token can be `EOF` if the end has been reached **/
+    protected fun consume() {
+        lexer.advance()
     }
 
     protected fun expectToken(vararg tokens: Token) {

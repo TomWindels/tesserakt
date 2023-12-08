@@ -5,7 +5,13 @@ import tesserakt.sparql.compiler.types.Token
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
-abstract class Lexer: Iterator<Token> {
+abstract class Lexer {
+
+    /** The currently processed token **/
+    abstract val current: Token
+
+    /** Advances the current token **/
+    abstract fun advance()
 
     internal companion object {
 

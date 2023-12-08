@@ -26,7 +26,7 @@ class PatternProcessor: Analyser<Patterns>() {
         }
         subject = token.asPatternElement()
         // consuming the next token and going to the predicate section no matter what
-        consumeOrBail()
+        consume()
         processPatternPredicate()
     }
 
@@ -63,7 +63,7 @@ class PatternProcessor: Analyser<Patterns>() {
     /** Processes [!][(]<predicate>[)][*] **/
     private fun processPatternPredicateNext(): Pattern.Predicate {
         return if (token == Token.Syntax.ExclamationMark) {
-            consumeOrBail()
+            consume()
             Pattern.Not(processPatternPredicateContent())
         } else {
             processPatternPredicateContent()
@@ -75,7 +75,7 @@ class PatternProcessor: Analyser<Patterns>() {
         !is Token.Syntax, Token.Syntax.TypePredicate -> token.asPatternElement()
         Token.Syntax.RoundBracketStart -> {
             // token should be `(`, so consuming and continuing
-            consumeOrBail()
+            consume()
             var result = processPatternPredicateNext()
             while (true) {
                 result = when (token) {
@@ -94,10 +94,10 @@ class PatternProcessor: Analyser<Patterns>() {
         else -> expectedPatternElementOrToken(Token.Syntax.RoundBracketStart)
     }.let { current ->
         // consuming the last token from the currently processed predicate
-        consumeOrBail()
+        consume()
         // consuming the star if possible
         if (token == Token.Syntax.Asterisk) {
-            consumeOrBail()
+            consume()
             Pattern.Repeating(current)
         } else {
             current
@@ -106,14 +106,14 @@ class PatternProcessor: Analyser<Patterns>() {
 
     private fun processPatternPredicateChain(prior: Pattern.Predicate): Pattern.Predicate {
         // should currently be pointing to /, so consuming it
-        consumeOrBail()
+        consume()
         val next = processPatternPredicateNext()
         return Pattern.Chain(prior, next)
     }
 
     private fun processPatternPredicateOr(prior: Pattern.Predicate): Pattern.Predicate {
         // should currently be pointing to |, so consuming it
-        consumeOrBail()
+        consume()
         val next = processPatternPredicateNext()
         return Pattern.Constrained(prior, next)
     }
@@ -127,22 +127,22 @@ class PatternProcessor: Analyser<Patterns>() {
                 o = token.asPatternElement()
             )
         )
-        consumeOrBail()
+        consume()
         processPatternEnd()
     }
 
     private fun processPatternEnd() {
         when (token) {
             Token.Syntax.ObjectEnd -> {
-                consumeOrBail()
+                consume()
                 processPatternObject()
             }
             Token.Syntax.PredicateEnd -> {
-                consumeOrBail()
+                consume()
                 processPatternPredicateOrBail()
             }
             Token.Syntax.PatternEnd -> {
-                consumeOrBail()
+                consume()
                 processPatternSubject()
             }
             else -> {
