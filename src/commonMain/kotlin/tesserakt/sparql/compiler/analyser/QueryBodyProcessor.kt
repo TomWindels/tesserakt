@@ -27,7 +27,10 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 }
                 Token.Syntax.Optional -> processOptional()
                 Token.Syntax.CurlyBracketStart -> processSubsectionBody()
-                Token.Syntax.CurlyBracketEnd -> return
+                Token.Syntax.CurlyBracketEnd -> {
+                    consume()
+                    return
+                }
                 else -> expectedPatternElementOrBindingOrToken(
                     Token.Syntax.CurlyBracketStart,
                     Token.Syntax.CurlyBracketEnd,

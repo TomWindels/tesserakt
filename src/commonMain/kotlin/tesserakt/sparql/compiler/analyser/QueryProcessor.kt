@@ -21,6 +21,7 @@ class QueryProcessor: Analyser<QueryAST>() {
 
     override fun _process(): QueryAST {
         processQuery()
+        expectToken(Token.EOF)
         return result
     }
 

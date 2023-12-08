@@ -90,7 +90,7 @@ class CompilerTest {
                 }
             }
             failures.forEach { (i, t) ->
-                printerrln("Query ${i + 1} failed: `${tests[i].input}`")
+                printerrln("Query ${i + 1} failed: `${tests[i].input.replace(Regex("\\s+"), " ").trim()}`")
                 if (t is CompilerError) {
                     printerrln("=== compiler error ===")
                     printerrln(t.message!!)
@@ -191,6 +191,38 @@ class CompilerTest {
             body.optional.size == 1 &&
             body.unions.size == 1 &&
             output.names == setOf("s", "content", "value1")
+        }
+        """
+            SELECT * WHERE {
+                ?s <name> ?name .
+                # see: https://jena.apache.org/tutorials/sparql_filters.html
+                FILTER regex(?name, "test", "i")
+            }
+        """.satisfies<SelectQueryAST> {
+            // TODO: check filter
+            true
+        }
+        """
+            SELECT * WHERE {
+                ?s <has> ?value .
+                # see: https://jena.apache.org/tutorials/sparql_filters.html
+                FILTER(?value > 5)
+            }
+        """.satisfies<SelectQueryAST> {
+            // TODO: check filter
+            true
+        }
+        """
+            SELECT * WHERE {
+                ?s a <type>
+                # see: https://jena.apache.org/tutorials/sparql_optionals.html
+                OPTIONAL { ?s <has> ?value . FILTER(?value > 5) }
+            }
+        """.satisfies<SelectQueryAST> {
+            body.patterns.size == 1 &&
+            body.optional.size == 1 &&
+            output.names == setOf("s", "value")
+            // TODO: also check the optional's condition
         }
         "select(count(distinct ?s) as ?count){?s?p?o}".satisfies<SelectQueryAST> {
             val func = output.aggregate("count")!!.root.builtin
