@@ -1,18 +1,20 @@
 package tesserakt.sparql.runtime.query
 
-import tesserakt.rdf.types.TripleSource
+import tesserakt.rdf.types.Triple
 import tesserakt.sparql.compiler.types.QueryAST
+import tesserakt.sparql.runtime.patterns.PatternSearch
+import tesserakt.sparql.runtime.patterns.RuleSet
 import tesserakt.sparql.runtime.types.Bindings
 
 sealed class Query<ResultType, AST: QueryAST>(
     protected val ast: AST
 ) {
 
-    private val queryPlan = QueryPlan(ast.body.patterns)
+    private val ruleSet = RuleSet.from(ast.body.patterns)
 
     companion object {
 
-        fun <RT> TripleSource.query(query: Query<RT, *>, callback: (RT) -> Unit) {
+        fun <RT> Iterable<Triple>.query(query: Query<RT, *>, callback: (RT) -> Unit) {
             val processor = with(query) { Processor(this@query) }
             var bindings = processor.next()
             while (bindings != null) {
@@ -21,7 +23,7 @@ sealed class Query<ResultType, AST: QueryAST>(
             }
         }
 
-        fun <RT> TripleSource.queryAsSequence(query: Query<RT, *>): Sequence<RT> = sequence {
+        fun <RT> Iterable<Triple>.queryAsSequence(query: Query<RT, *>): Sequence<RT> = sequence {
             val processor = with(query) { Processor(this@queryAsSequence) }
             var bindings = processor.next()
             while (bindings != null) {
@@ -30,7 +32,7 @@ sealed class Query<ResultType, AST: QueryAST>(
             }
         }
 
-        fun <RT> TripleSource.queryAsList(query: Query<RT, *>): List<RT> = buildList {
+        fun <RT> Iterable<Triple>.queryAsList(query: Query<RT, *>): List<RT> = buildList {
             val processor = with(query) { Processor(this@queryAsList) }
             var bindings = processor.next()
             while (bindings != null) {
@@ -42,10 +44,10 @@ sealed class Query<ResultType, AST: QueryAST>(
     }
 
     protected inner class Processor(
-        source: TripleSource
+        source: Iterable<Triple>
     ) {
 
-        private val queryState = queryPlan.newState()
+        private val search = PatternSearch(ruleSet)
         private val iterator = source.iterator()
         // pending results that have been yielded since last `iterator.next` call, but not yet
         //  processed through `next()`
@@ -57,7 +59,7 @@ sealed class Query<ResultType, AST: QueryAST>(
             }
             while (iterator.hasNext()) {
                 val triple = iterator.next()
-                val results = queryPlan.process(queryState, triple)
+                val results = search.process(triple)
                 return when (results.size) {
                     // continuing looping
                     0 -> continue

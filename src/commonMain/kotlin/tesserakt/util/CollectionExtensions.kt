@@ -20,9 +20,9 @@ inline fun <T, K, V> Array<T>.associateIndexedNotNull(
     }
 }
 
-//inline fun <K, V> Iterable<Map<K, V>>.merge() =
-//    buildMap { this@merge.forEach { putAll(it) } }
-//
+inline fun <K, V> Iterable<Map<K, V>>.merge() =
+    buildMap { this@merge.forEach { putAll(it) } }
+
 //inline fun <K, V> Iterable<Map<K, V>>.mergeIfMatching(): Map<K, V>? = buildMap {
 //    this@mergeIfMatching.forEach { map ->
 //        // checking if it is inside it first, so `null == null` doesn't happen
