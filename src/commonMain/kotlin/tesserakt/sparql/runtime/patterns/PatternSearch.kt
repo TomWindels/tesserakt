@@ -3,6 +3,7 @@ package tesserakt.sparql.runtime.patterns
 import tesserakt.rdf.types.Triple
 import tesserakt.sparql.runtime.types.Bindings
 import tesserakt.util.associateIndexedNotNull
+import tesserakt.util.expandCompatibleWith
 import tesserakt.util.merge
 
 internal class PatternSearch(
@@ -10,11 +11,7 @@ internal class PatternSearch(
 ) {
 
     // contains for every rule [dim 0] a growing collection [dim 1] of bindings [dim 2] that have satisfied that rule
-    private val patternData = Array<MutableList<Bindings>>(ruleSet.rules.size) { mutableListOf() }
-    // an accompanying collection (same dims) representing the triple index, so duplicate paths are avoided during
-    //  answer discovery
-    private val patternSources = Array<MutableList<Int>>(ruleSet.rules.size) { mutableListOf() }
-    private var tripleIndex = 0
+    private val data = Array<MutableList<Bindings>>(ruleSet.rules.size) { mutableListOf() }
 
     /**
      * Processes the given triple using the given `state`, returns any valid bindings created since processing
@@ -46,20 +43,16 @@ internal class PatternSearch(
             results.add(constraints)
         } else {
             // not all constraints are satisfied, so finding remaining values until they are
-            results.addAll(getResultsFor(constraints = constraints, pending = ruleSet.rules.indices.toSet() - satisfied))
+            results.addAll(getResultsFor(constraints = constraints, rules = ruleSet.rules.indices - satisfied))
         }
         // with the results finalized, the triple bindings can be added to the bindings
         // TODO: this can be optimised by reusing stuff from the logic above
         for (i in ruleSet.rules.indices) {
             val match = matches[i] ?: continue
-            patternData[i].add(
+            data[i].add(
                 ruleSet.rules[i].bindings.associateIndexedNotNull { j, name -> name?.let { it to match[j]!! } }
             )
-            // also marking it as the source in the accompanying sources collection
-            patternSources[i].add(tripleIndex)
         }
-        // incrementing triple index for next use
-        ++tripleIndex
         return results
     }
 
@@ -75,38 +68,20 @@ internal class PatternSearch(
      */
     private fun getResultsFor(
         constraints: Bindings,
-        pending: Set<Int>,
+        rules: List<Int>
     ): List<Bindings> {
-        // FIXME double firing for the `chain` case
-        // going through all options
-        val result = mutableListOf<Bindings>()
-        // if only a single rule is required, the matches for this single rule get sent back directly
-        if (pending.size == 1) {
-            val results = patternData[pending.first()].matching(constraints)
-            // end has been reached, so these new constraints are the results
-            results.forEach { c ->
-                result.add(c + constraints)
-            }
-            return result
-        }
-        // otherwise, multiple rules are still required, so iteratively going through them (as taking a different
-        //  order of applying rules might create new results) and recursing through the remaining set of rules
-        for (ruleId in pending) {
-            val results = patternData[ruleId].matching(constraints)
-            if (results.isEmpty()) {
-                continue
-            }
-            val newRules = pending - ruleId
-            results.forEach { c ->
-                // merging the resulting constraint with the initial set of constraints, and recursively
-                //  continuing with these new constraints
-                result.addAll(getResultsFor(c + constraints, newRules))
+        // TODO: this can be optimised by making every `flatMap` in place, and reusing a bigger `ArrayList`
+        //  outside of this scope, ideally in a separate class responsible for the actual search process
+        var r = listOf(constraints)
+        for (current in rules) {
+            val values = data[current]
+            // finding all values for the current rule index that match with the constraints
+            r = r.flatMap { c -> values.expandCompatibleWith(c) }
+            if (r.isEmpty()) {
+                return emptyList()
             }
         }
-        return result
+        return r
     }
-
-    private inline fun Iterable<Bindings>.matching(constraints: Bindings) =
-        filter { source -> constraints.all { (key, value) -> key !in source || source[key] == value } }
 
 }
