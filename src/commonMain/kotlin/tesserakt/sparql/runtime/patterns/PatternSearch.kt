@@ -1,29 +1,20 @@
 package tesserakt.sparql.runtime.patterns
 
 import tesserakt.rdf.types.Triple
-import tesserakt.sparql.runtime.patterns.PatternSearch.State.Companion.newState
 import tesserakt.sparql.runtime.types.Bindings
 import tesserakt.util.associateIndexedNotNull
 import tesserakt.util.merge
-import kotlin.jvm.JvmInline
 
 internal class PatternSearch(
-    private val ruleSet: RuleSet,
-    private val state: State = ruleSet.newState()
+    private val ruleSet: RuleSet
 ) {
 
-    @JvmInline
-    value class State internal constructor(
-        // collection [dim 1] of bindings [dim 2] that have satisfied rule at the given index [dim 0]
-        val data: List<MutableList<Bindings>>
-    ) {
-
-        companion object {
-            // all results associated per rule; rules.size == candidates.size
-            fun RuleSet.newState() = State(data = List(rules.size) { mutableListOf() })
-        }
-
-    }
+    // contains for every rule [dim 0] a growing collection [dim 1] of bindings [dim 2] that have satisfied that rule
+    private val patternData = Array<MutableList<Bindings>>(ruleSet.rules.size) { mutableListOf() }
+    // an accompanying collection (same dims) representing the triple index, so duplicate paths are avoided during
+    //  answer discovery
+    private val patternSources = Array<MutableList<Int>>(ruleSet.rules.size) { mutableListOf() }
+    private var tripleIndex = 0
 
     /**
      * Processes the given triple using the given `state`, returns any valid bindings created since processing
@@ -55,16 +46,20 @@ internal class PatternSearch(
             results.add(constraints)
         } else {
             // not all constraints are satisfied, so finding remaining values until they are
-            results.addAll(findAllResultsInCacheWithConstraints(constraints = constraints, skipRules = satisfied))
+            results.addAll(getResultsFor(constraints = constraints, pending = ruleSet.rules.indices.toSet() - satisfied))
         }
         // with the results finalized, the triple bindings can be added to the bindings
         // TODO: this can be optimised by reusing stuff from the logic above
         for (i in ruleSet.rules.indices) {
             val match = matches[i] ?: continue
-            state.data[i].add(
+            patternData[i].add(
                 ruleSet.rules[i].bindings.associateIndexedNotNull { j, name -> name?.let { it to match[j]!! } }
             )
+            // also marking it as the source in the accompanying sources collection
+            patternSources[i].add(tripleIndex)
         }
+        // incrementing triple index for next use
+        ++tripleIndex
         return results
     }
 
@@ -75,29 +70,37 @@ internal class PatternSearch(
     private fun Triple.extractRuleBindings(): Array<Array<Triple.Term?>?> =
         Array(ruleSet.rules.size) { ruleSet.rules[it].process(this) }
 
-    // finds all results with the given constraints for binding values, skipping the provided `skipRule` in the search
-    private fun findAllResultsInCacheWithConstraints(
+    /**
+     * Finds all results with the given constraints for binding values, enforcing the provided set of rules
+     */
+    private fun getResultsFor(
         constraints: Bindings,
-        skipRules: Set<Int>
+        pending: Set<Int>,
     ): List<Bindings> {
         // FIXME double firing for the `chain` case
         // going through all options
         val result = mutableListOf<Bindings>()
-        for (ruleId in ruleSet.rules.indices - skipRules) {
-            val results = state.data[ruleId].matching(constraints)
+        // if only a single rule is required, the matches for this single rule get sent back directly
+        if (pending.size == 1) {
+            val results = patternData[pending.first()].matching(constraints)
+            // end has been reached, so these new constraints are the results
+            results.forEach { c ->
+                result.add(c + constraints)
+            }
+            return result
+        }
+        // otherwise, multiple rules are still required, so iteratively going through them (as taking a different
+        //  order of applying rules might create new results) and recursing through the remaining set of rules
+        for (ruleId in pending) {
+            val results = patternData[ruleId].matching(constraints)
             if (results.isEmpty()) {
                 continue
             }
-            if (skipRules.size == ruleSet.rules.size - 1) {
-                // end has been reached, so these new constraints are the results
-                result.addAll(results.map { c -> c + constraints })
-            } else {
-                // creating new constrains for every item in the result
-                val newConstraints = results.map { c -> c + constraints }
-                // recursively going through them
-                newConstraints.forEach { c ->
-                    result.addAll(findAllResultsInCacheWithConstraints(c, skipRules + ruleId))
-                }
+            val newRules = pending - ruleId
+            results.forEach { c ->
+                // merging the resulting constraint with the initial set of constraints, and recursively
+                //  continuing with these new constraints
+                result.addAll(getResultsFor(c + constraints, newRules))
             }
         }
         return result

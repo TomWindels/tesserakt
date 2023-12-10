@@ -64,7 +64,7 @@ value class RuleSet(
     companion object {
 
         fun from(patterns: Patterns) =
-            RuleSet(rules = patterns.toFilterRules().also { println(it) })
+            RuleSet(rules = patterns.toFilterRules())
 
         /* helpers */
 
