@@ -1,8 +1,7 @@
 package tesserakt.sparql
 
-import tesserakt.rdf.SPARQL
+import tesserakt.TestEnvironment.Companion.test
 import tesserakt.rdf.types.Triple
-import tesserakt.sparql.CompilerTest.Environment.Companion.test
 import tesserakt.sparql.compiler.CompilerError
 import tesserakt.sparql.compiler.analyser.AggregatorProcessor
 import tesserakt.sparql.compiler.processed
@@ -10,111 +9,10 @@ import tesserakt.sparql.compiler.types.Aggregation
 import tesserakt.sparql.compiler.types.Aggregation.Companion.builtin
 import tesserakt.sparql.compiler.types.Aggregation.Companion.distinctBindings
 import tesserakt.sparql.compiler.types.Pattern
-import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.sparql.compiler.types.SelectQueryAST
-import tesserakt.util.printerrln
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class CompilerTest {
-
-    class Environment private constructor() {
-
-        companion object {
-
-            val compilerPackageName = CompilerError::class.qualifiedName!!.removeSuffix(CompilerError::class.simpleName!!)
-
-            fun test(block: Environment.() -> Unit) {
-                Environment().apply(block).test()
-            }
-
-        }
-
-        sealed class Test {
-
-            abstract val input: String
-
-            abstract operator fun invoke()
-
-        }
-
-        data class ASTTest <Q: QueryAST> (
-            override val input: String,
-            val test: Q.() -> Boolean
-        ): Test() {
-
-            override operator fun invoke() {
-                @Suppress("UNCHECKED_CAST")
-                val ast = SPARQL.process(input) as Q
-                assertTrue(test(ast), "Validation did not succeed! Got AST $ast")
-            }
-
-        }
-
-        data class CompilationFailureTest(
-            override val input: String,
-            val type: CompilerError.Type
-        ): Test() {
-
-            override operator fun invoke() {
-                try {
-                    SPARQL.process(input)
-                    throw AssertionError("Compilation succeeded unexpectedly!")
-                } catch (c: CompilerError) {
-                    // exactly what is expected, so not throwing anything
-                    assertEquals(c.type, type, "Compilation failed for a different reason!")
-                }
-                // all other exceptions are still being thrown
-            }
-
-        }
-
-        private val tests = mutableListOf<Test>()
-
-        fun <Q: QueryAST> String.satisfies(validation: Q.() -> Boolean) {
-            tests.add(ASTTest(input = this, test = validation))
-        }
-
-        fun String.shouldFail(error: CompilerError.Type) {
-            tests.add(CompilationFailureTest(input = this, type = error))
-        }
-
-        private fun test() {
-            val failures = mutableListOf<Pair<Int, Throwable>>()
-            tests.forEachIndexed { i, test ->
-                try {
-                    test()
-                } catch (t: Throwable) {
-                    failures.add(i to t)
-                }
-            }
-            failures.forEach { (i, t) ->
-                printerrln("Query ${i + 1} failed: `${tests[i].input.replace(Regex("\\s+"), " ").trim()}`")
-                if (t is CompilerError) {
-                    printerrln("=== compiler error ===")
-                    printerrln(t.message!!)
-                    printerrln(t.stacktrace)
-                    printerrln("=== shortened stacktrace ===")
-                    printerrln(
-                        message = t
-                            .stackTraceToString()
-                            .lineSequence()
-                            .takeWhile { it.contains(compilerPackageName) }
-                            .joinToString("\n")
-                    )
-                } else {
-                    printerrln("=== stacktrace ===")
-                    t.printStackTrace()
-                }
-            }
-            println("${tests.size - failures.size} / ${tests.size} tests succeeded")
-            if (failures.isNotEmpty()) {
-                throw AssertionError("Not all tests succeeded")
-            }
-        }
-
-    }
 
     @Test
     fun select() = test {

@@ -1,36 +1,14 @@
 package tesserakt.rdf
 
-import tesserakt.rdf.dsl.RdfContext.Companion.buildStore
+import tesserakt.createTestStore
 import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Store
 import tesserakt.rdf.types.Triple
-import tesserakt.rdf.types.Triple.Companion.asLiteral
 import tesserakt.rdf.types.Triple.Companion.asNamedTerm
 import kotlin.test.Test
 import kotlin.test.assertSame
 
 class StoreTest {
-
-    companion object {
-
-        fun createTestStore(): Store = buildStore {
-            val person = local("person1")
-            person has RDF.type being "person".asNamedTerm()
-            person has "age".asNamedTerm() being 23
-            person has "friend".asNamedTerm() being multiple(
-                local("person2"), local("person3"), local("person4")
-            )
-            person has "address".asNamedTerm() being blank {
-                "street".asNamedTerm() being "unknown".asLiteral()
-                "number".asNamedTerm() being (-1).asLiteral()
-            }
-            person has "notes".asNamedTerm() being list (
-                "first-note".asNamedTerm(), "second-note".asNamedTerm()
-            )
-        }
-
-    }
-
 
     @Test
     fun basicStoreUsage() {

@@ -5,14 +5,26 @@ import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmStatic
 
 @Suppress("unused")
-data class Triple(
-    /** named or blank **/
-    val s: Term,
-    /** named **/
-    val p: NamedTerm,
-    /** named, literal or blank **/
-    val o: Term
+class Triple(
+    s: Term,
+    p: NamedTerm,
+    o: Term
 ) {
+
+    private val data = arrayOf(s, p, o)
+
+    /** named or blank **/
+    val s: Term get() = data[0]
+
+    /** named **/
+    val p: Term get() = data[1]
+
+    /** named, literal or blank **/
+    val o: Term get() = data[2]
+
+    operator fun get(index: Int) = data[index]
+
+    override fun toString() = "Triple <$s $p $o>"
 
     sealed interface Term {
         val value: String
@@ -21,7 +33,9 @@ data class Triple(
     @JvmInline
     value class BlankTerm(override val value: String): Term
     @JvmInline
+
     value class NamedTerm(override val value: String): Term
+
     data class Literal<T>(
         val literal: T,
         val type: NamedTerm,

@@ -21,6 +21,8 @@ class Store: TripleSource() {
     // TODO: actually performant implementation
     private val triples = mutableListOf<Triple>()
 
+    override fun iterator() = triples.iterator()
+
     val size: Int
         get() = triples.size
 
