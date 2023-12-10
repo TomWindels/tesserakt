@@ -55,7 +55,7 @@ inline fun <K: Any, V: Any> Collection<Map<K, V>>.filterCompatibleWith(reference
 inline fun <K: Any, V: Any> Collection<Map<K, V>>.expandCompatibleWith(reference: Map<K, V>): List<Map<K, V>> {
     val result = ArrayList<Map<K, V>>(size)
     forEach { element ->
-        if (reference.compatibleWith(reference)) {
+        if (reference.compatibleWith(element)) {
             result.add(element + reference)
         }
     }

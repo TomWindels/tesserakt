@@ -3,6 +3,7 @@ package tesserakt.sparql.runtime.patterns
 import tesserakt.rdf.types.Triple
 import tesserakt.sparql.compiler.types.Pattern
 import tesserakt.sparql.compiler.types.Patterns
+import tesserakt.util.Bitmask
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -18,18 +19,32 @@ value class RuleSet(
 
         sealed interface Element {
 
-            @JvmInline
-            value class Exact(val term: Triple.Term): Element
+            fun fits(term: Triple.Term): Boolean
 
             @JvmInline
-            value class Binding(val name: String): Element
+            value class Exact(val term: Triple.Term): Element {
+                override fun fits(term: Triple.Term) = this.term == term
+            }
+
+            @JvmInline
+            value class Binding(val name: String): Element {
+                override fun fits(term: Triple.Term) = true
+            }
+
+            @JvmInline
+            // `List<Exact>` is assumed instead of `List<Element>` (see validators); if support for constrained incl
+            //  bindings are required later, then a new method will be required to validate whether this binding gets
+            //  the result, or another element of the constrained types made the fit possible
+            value class AnyOf(val candidates: List<Element>): Element {
+                override fun fits(term: Triple.Term) = candidates.any { it.fits(term) }
+            }
 
         }
 
-        private val constraints = listOf(
-            (s as? Element.Exact)?.term,
-            (p as? Element.Exact)?.term,
-            (o as? Element.Exact)?.term
+        internal val capturemask = Bitmask.from(
+            s is Element.Binding,
+            p is Element.Binding,
+            o is Element.Binding
         )
 
         internal val bindings = listOf(
@@ -46,19 +61,12 @@ value class RuleSet(
             if (!fits(triple)) {
                 return null
             }
-            // FIXME: bindings is currently only used here, so can be optimised
-            return Array(3) { i -> triple[i].takeIf { bindings[i] != null } }
+            return Array(3) { i -> triple[i].takeIf { capturemask[i] } }
         }
 
         /** Checks if any `Exact` matches aren't satisfied (meaning the triple doesn't apply here) **/
-        internal fun fits(triple: Triple): Boolean {
-            constraints.forEachIndexed { i, constraint ->
-                if (constraint != null && constraint != triple[i]) {
-                    return false
-                }
-            }
-            return true
-        }
+        internal fun fits(triple: Triple): Boolean =
+            s.fits(triple.s) && p.fits(triple.p) && o.fits(triple.o)
     }
 
     companion object {
@@ -115,7 +123,7 @@ value class RuleSet(
                 is Pattern.Binding -> add(QueryRule.Element.Binding(name))
                 is Pattern.Exact -> add(QueryRule.Element.Exact(value))
                 is Pattern.Chain -> list.forEach { addAll(it.extractFilterElements()) }
-                is Pattern.Constrained -> TODO()
+                is Pattern.Constrained -> add(QueryRule.Element.AnyOf(candidates = allowed.flatMap { it.extractFilterElements() }))
                 is Pattern.Not -> TODO()
                 is Pattern.Repeating -> TODO()
             }

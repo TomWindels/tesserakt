@@ -27,4 +27,19 @@ class QueryTest {
         }
     }
 
+    @Test
+    fun medium() {
+        val store = createTestStore()
+
+        val random = "SELECT ?data { ?s a|<age>|<friend> ?data }".asSPARQLSelectQuery()
+        store.query(random) {
+            println("Found `random` binding:\n$it")
+        }
+
+        val address = "SELECT ?street { ?s (a|<address>)/<street> ?street }".asSPARQLSelectQuery()
+        store.query(address) {
+            println("Found `address` binding:\n$it")
+        }
+    }
+
 }
