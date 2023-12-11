@@ -1,9 +1,10 @@
 package tesserakt
 
-import tesserakt.sparql.SPARQL
+import tesserakt.sparql.Compiler.Default.toAST
 import tesserakt.sparql.compiler.CompilerError
 import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.util.printerrln
+import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -28,6 +29,10 @@ class TestEnvironment private constructor() {
     }
 
     private val tests = mutableListOf<Test>()
+
+    fun addTest(test: Test) {
+        tests.add(test)
+    }
 
     private fun test() {
         val failures = mutableListOf<Pair<Int, Throwable>>()
@@ -61,19 +66,23 @@ class TestEnvironment private constructor() {
         }
         println("${tests.size - failures.size} / ${tests.size} tests succeeded")
         if (failures.isNotEmpty()) {
-            throw AssertionError("Not all tests succeeded")
+            val err = AssertionError("Not all tests succeeded")
+            failures.forEach { (_, t) -> err.addSuppressed(t) }
+            throw err
         }
     }
 
     data class ASTTest <Q: QueryAST> (
         override val input: String,
-        val test: Q.() -> Boolean
-    ): TestEnvironment.Test() {
+        val test: Q.() -> Boolean,
+        val clazz: KClass<Q>
+    ): Test() {
 
         override operator fun invoke() {
+            val ast = input.toAST()
+            require(clazz.isInstance(ast))
             @Suppress("UNCHECKED_CAST")
-            val ast = SPARQL.process(input) as Q
-            assertTrue(test(ast), "Validation did not succeed! Got AST $ast")
+            assertTrue(test(ast as Q), "Validation did not succeed! Got AST $ast")
         }
 
     }
@@ -81,11 +90,11 @@ class TestEnvironment private constructor() {
     data class CompilationFailureTest(
         override val input: String,
         val type: CompilerError.Type
-    ): TestEnvironment.Test() {
+    ): Test() {
 
         override operator fun invoke() {
             try {
-                SPARQL.process(input)
+                input.toAST()
                 throw AssertionError("Compilation succeeded unexpectedly!")
             } catch (c: CompilerError) {
                 // exactly what is expected, so not throwing anything
@@ -96,12 +105,12 @@ class TestEnvironment private constructor() {
 
     }
 
-    fun <Q: QueryAST> String.satisfies(validation: Q.() -> Boolean) {
-        tests.add(ASTTest(input = this, test = validation))
+    inline fun <reified Q: QueryAST> String.satisfies(noinline validation: Q.() -> Boolean) {
+        addTest(ASTTest(input = this, test = validation, clazz = Q::class))
     }
 
     fun String.shouldFail(error: CompilerError.Type) {
-        tests.add(CompilationFailureTest(input = this, type = error))
+        addTest(CompilationFailureTest(input = this, type = error))
     }
 
 }

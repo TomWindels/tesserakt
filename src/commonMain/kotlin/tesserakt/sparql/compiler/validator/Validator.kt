@@ -10,4 +10,15 @@ abstract class Validator<AST: QueryAST>(private val clazz: KClass<AST>) {
 
     protected abstract fun _validate(ast: AST): Boolean
 
+    companion object {
+
+        fun Iterable<Validator<*>>.validate(ast: QueryAST) = forEach { validator ->
+            if (!validator.validate(ast)) {
+                // TODO: improve exception
+                throw IllegalStateException("Validator `${validator::class.simpleName}` failed!")
+            }
+        }
+
+    }
+
 }

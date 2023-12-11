@@ -27,6 +27,11 @@ value class RuleSet(
             }
 
             @JvmInline
+            value class Inverse(val value: Element): Element {
+                override fun fits(term: Triple.Term) = !this.value.fits(term)
+            }
+
+            @JvmInline
             value class Binding(val name: String): Element {
                 override fun fits(term: Triple.Term) = true
             }
@@ -124,7 +129,7 @@ value class RuleSet(
                 is Pattern.Exact -> add(QueryRule.Element.Exact(value))
                 is Pattern.Chain -> list.forEach { addAll(it.extractFilterElements()) }
                 is Pattern.Constrained -> add(QueryRule.Element.AnyOf(candidates = allowed.flatMap { it.extractFilterElements() }))
-                is Pattern.Not -> TODO()
+                is Pattern.Not -> add(QueryRule.Element.Inverse(predicate.extractFilterElements().first()))
                 is Pattern.Repeating -> TODO()
             }
         }

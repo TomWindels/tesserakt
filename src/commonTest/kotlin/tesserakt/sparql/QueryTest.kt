@@ -1,7 +1,7 @@
 package tesserakt.sparql
 
 import tesserakt.createTestStore
-import tesserakt.sparql.SPARQL.asSPARQLSelectQuery
+import tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import tesserakt.sparql.runtime.query.Query.Companion.query
 import tesserakt.sparql.runtime.query.Query.Companion.queryAsList
 import kotlin.test.Test
@@ -39,6 +39,15 @@ class QueryTest {
         val address = "SELECT ?street { ?s (a|<address>)/<street> ?street }".asSPARQLSelectQuery()
         store.query(address) {
             println("Found `address` binding:\n$it")
+        }
+
+        val any = "SELECT ?s ?o { ?s (<>|!<>) ?o }".asSPARQLSelectQuery()
+        val result = store.queryAsList(any)
+        println("Found ${result.size} elements for the `any` query, expected ${store.size}")
+
+        val info = "SELECT ?s ?o { ?s !(<friend>|<notes>|<address>) ?o }".asSPARQLSelectQuery()
+        store.query(info) {
+            println("Found `info` binding:\n$it")
         }
     }
 
