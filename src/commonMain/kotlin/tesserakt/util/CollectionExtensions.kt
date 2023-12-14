@@ -64,3 +64,20 @@ inline fun <K: Any, V: Any> Collection<Map<K, V>>.expandCompatibleWith(reference
 
 inline fun <K: Any, V: Any> Map<K, V>.compatibleWith(reference: Map<K, V>) =
     reference.all { (refKey, refValue) -> val data = this[refKey]; data == null || data == refValue}
+
+/**
+ * Modifies the receiver list **in place** using the modifier `block`. Returns `this` list for consistency
+ */
+inline fun <T> MutableList<T>.modify(block: (T) -> T): MutableList<T> {
+    for (i in indices) {
+        set(i, block(this[i]))
+    }
+    return this
+}
+
+inline fun <T> Collection<T>.addFront(vararg element: T): List<T> {
+    val result = ArrayList<T>(size + element.size)
+    result.addAll(element)
+    result.addAll(this)
+    return result
+}

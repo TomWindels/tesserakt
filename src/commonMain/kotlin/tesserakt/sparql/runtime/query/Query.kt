@@ -2,7 +2,6 @@ package tesserakt.sparql.runtime.query
 
 import tesserakt.rdf.types.Triple
 import tesserakt.sparql.compiler.types.QueryAST
-import tesserakt.sparql.runtime.patterns.PatternSearch
 import tesserakt.sparql.runtime.patterns.RuleSet
 import tesserakt.sparql.runtime.types.Bindings
 
@@ -47,11 +46,11 @@ sealed class Query<ResultType, AST: QueryAST>(
         source: Iterable<Triple>
     ) {
 
-        private val search = PatternSearch(ruleSet)
+        private val state = ruleSet.State()
         private val iterator = source.iterator()
         // pending results that have been yielded since last `iterator.next` call, but not yet
         //  processed through `next()`
-        private val pending = mutableListOf<Bindings>()
+        private val pending = ArrayList<Bindings>(10)
 
         fun next(): Bindings? {
             if (pending.isNotEmpty()) {
@@ -59,14 +58,16 @@ sealed class Query<ResultType, AST: QueryAST>(
             }
             while (iterator.hasNext()) {
                 val triple = iterator.next()
-                val results = search.process(triple)
+                val results = state.process(triple)
                 return when (results.size) {
                     // continuing looping
                     0 -> continue
                     // only one result, so yielding that and leaving the pending list alone
                     1 -> results.first()
                     // yielding the first one, adding all other ones to pending
-                    else -> results.removeFirst().also { pending.addAll(results) }
+                    else -> results.first().also {
+                        for (r in 1 ..< results.size) { pending.add(results[r]) }
+                    }
                 }
             }
             return null

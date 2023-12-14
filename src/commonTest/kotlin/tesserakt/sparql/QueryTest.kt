@@ -1,6 +1,9 @@
 package tesserakt.sparql
 
 import tesserakt.createTestStore
+import tesserakt.rdf.dsl.RdfContext.Companion.buildStore
+import tesserakt.rdf.ontology.RDF
+import tesserakt.rdf.types.Triple.Companion.asNamedTerm
 import tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import tesserakt.sparql.runtime.query.Query.Companion.query
 import tesserakt.sparql.runtime.query.Query.Companion.queryAsList
@@ -49,6 +52,49 @@ class QueryTest {
         store.query(info) {
             println("Found `info` binding:\n$it")
         }
+    }
+
+    @Test
+    fun advanced() {
+        val store = buildStore {
+            val person = local("person1")
+            person has RDF.type being "person".asNamedTerm()
+            person has "age".asNamedTerm() being 23
+            person has "notes".asNamedTerm() being list(
+                "first-note".asNamedTerm(),
+                "second-note".asNamedTerm(),
+                "third-note".asNamedTerm(),
+                "fourth-note".asNamedTerm(),
+                "another-note".asNamedTerm(),
+                "last-note".asNamedTerm(),
+            )
+            person has "decoy".asNamedTerm() being list(
+                "wrong-1".asNamedTerm(),
+                "wrong-2".asNamedTerm(),
+                "wrong-3".asNamedTerm(),
+            )
+        }
+
+        val nodes = """
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            SELECT ?node {
+                ?node rdf:rest* ?blank .
+                ?blank rdf:rest rdf:nil .
+            }
+        """.asSPARQLSelectQuery()
+        val test1 = store.queryAsList(nodes)
+        // expected result: blank1, blank2, blank3, blank...
+        println("Found blank nodes:\n$test1")
+
+        val list = """
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            SELECT ?person ?note {
+                ?person a <person> ; <notes>/rdf:rest*/rdf:first ?note
+            }
+        """.asSPARQLSelectQuery()
+        val entries = store.queryAsList(list)
+        // expected: [person, first-note], [person, second-note] ...
+        println("Found list entries:\n$entries")
     }
 
 }

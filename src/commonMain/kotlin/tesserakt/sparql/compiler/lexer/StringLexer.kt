@@ -125,7 +125,7 @@ class StringLexer(private val input: String): Lexer() {
             }
             // + 1 as the `>` is part of this pattern element
             Token.Term(input.substring(start, terminator + 1))
-        } else if (input.has(':')) {
+        } else if (input[start] == ':' || input[start].isLetterOrDigit() && input.has(':')) {
             // two types of pattern elements possible: `prefix:` declarations and `prefix:name` pattern elements
             // remainder of the string should be valid, as only spaces or < ends a pattern element using a prefix
             val terminator = input.endOfBindingOrPrefixedTerm()

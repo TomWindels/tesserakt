@@ -3,75 +3,69 @@ package tesserakt.sparql.runtime.patterns
 import tesserakt.rdf.types.Triple
 import tesserakt.sparql.compiler.types.Pattern
 import tesserakt.sparql.compiler.types.Patterns
-import tesserakt.util.Bitmask
-import kotlin.jvm.JvmInline
+import tesserakt.sparql.runtime.types.Bindings
 
-@JvmInline
-value class RuleSet(
-    val rules: List<QueryRule>
+internal class RuleSet(
+    val regular: List<RegularRule>,
+    val repeating: List<RepeatingRule>
 ) {
 
-    data class QueryRule(
-        val s: Element,
-        val p: Element,
-        val o: Element
-    ) {
+    constructor(rules: List<QueryRule<*>>): this(
+        regular = rules.filterIsInstance<RegularRule>(),
+        repeating = rules.filterIsInstance<RepeatingRule>()
+    )
 
-        sealed interface Element {
+    inner class State {
 
-            fun fits(term: Triple.Term): Boolean
+        private val regularData = Array(regular.size) { regular[it].newState() }
+        private val repeatingData = Array(repeating.size) { repeating[it].newState() }
 
-            @JvmInline
-            value class Exact(val term: Triple.Term): Element {
-                override fun fits(term: Triple.Term) = this.term == term
+        fun process(triple: Triple): List<Bindings> {
+            // checking all regular rules to see which match with this triple exactly
+            val regularSatisfied = mutableSetOf<Int>()
+            val repeatingSatisfied = mutableSetOf<Int>()
+            val constraints = mutableMapOf<String, Triple.Term>()
+            regular.forEachIndexed { i, rule ->
+                val match = rule.matchAndInsert(triple, regularData[i]) ?: return@forEachIndexed
+                regularSatisfied.add(i)
+                constraints += match
             }
-
-            @JvmInline
-            value class Inverse(val value: Element): Element {
-                override fun fits(term: Triple.Term) = !this.value.fits(term)
+            var results = if (constraints.isEmpty()) {
+                val repeatingResults = mutableListOf<Bindings>()
+                repeating.forEachIndexed { i, rule ->
+                    val new = rule.insertAndReturnNewPaths(triple, repeatingData[i])
+                    if (new.isNotEmpty()) {
+                        // rule has been satisfied, so marking it as such
+                        repeatingSatisfied.add(i)
+                        repeatingResults.addAll(new)
+                    }
+                }
+                repeatingResults
+            } else {
+                // simply adding the resulting new paths, if any
+                repeating.forEachIndexed { i, rule -> rule.quickInsert(triple, repeatingData[i]) }
+                listOf(constraints)
             }
-
-            @JvmInline
-            value class Binding(val name: String): Element {
-                override fun fits(term: Triple.Term) = true
+            if (constraints.isEmpty() && results.isEmpty()) {
+                return emptyList()
             }
-
-            @JvmInline
-            // `List<Exact>` is assumed instead of `List<Element>` (see validators); if support for constrained incl
-            //  bindings are required later, then a new method will be required to validate whether this binding gets
-            //  the result, or another element of the constrained types made the fit possible
-            value class AnyOf(val candidates: List<Element>): Element {
-                override fun fits(term: Triple.Term) = candidates.any { it.fits(term) }
+            // now all possible versions through repetitions are created
+            for (ruleId in repeating.indices - repeatingSatisfied) {
+                results = repeating[ruleId].expand(results, repeatingData[ruleId])
+                if (results.isEmpty()) {
+                    return emptyList()
+                }
             }
-
+            // now all intermediate results can get filtered with the other rules
+            for (ruleId in regular.indices - regularSatisfied) {
+                results = results.flatMap { c -> regular[ruleId].expand(c, regularData[ruleId]) }
+                if (results.isEmpty()) {
+                    return emptyList()
+                }
+            }
+            return results
         }
 
-        internal val capturemask = Bitmask.from(
-            s is Element.Binding,
-            p is Element.Binding,
-            o is Element.Binding
-        )
-
-        internal val bindings = listOf(
-            (s as? Element.Binding)?.name,
-            (p as? Element.Binding)?.name,
-            (o as? Element.Binding)?.name
-        )
-
-        /**
-         * Processes the incoming triple, returns `null` if no match is found, otherwise an array of size 3
-         *  with the bounded values (if any)
-         */
-        internal fun process(triple: Triple): Array<Triple.Term?>? {
-            if (!fits(triple)) {
-                return null
-            }
-            return Array(3) { i -> triple[i].takeIf { capturemask[i] } }
-        }
-
-        /** Checks if any `Exact` matches aren't satisfied (meaning the triple doesn't apply here) **/
-        internal fun fits(triple: Triple): Boolean =
-            s.fits(triple.s) && p.fits(triple.p) && o.fits(triple.o)
     }
 
     companion object {
@@ -81,33 +75,18 @@ value class RuleSet(
 
         /* helpers */
 
-        private fun Patterns.toFilterRules(): List<QueryRule> = buildList {
+        private fun Patterns.toFilterRules(): List<QueryRule<*>> = buildList {
             // always incrementing the blank id with the number of new pattern id's to make sure there's no
             //  incorrect overlap happening between rules
             var blankId = 0
             this@toFilterRules.forEach { pattern ->
-                val new = pattern.toFilterRules(blankId = blankId)
+                val new = pattern.toFilterRules(id = blankId)
                 blankId += new.size
                 addAll(new)
             }
         }.distinct()
 
-        private fun Pattern.toFilterRules(blankId: Int): List<QueryRule> = buildList {
-            var subject = s.asFilterElement()
-            var `object`: QueryRule.Element
-            var blank = blankId
-            val predicates = p.extractFilterElements()
-            for (i in 0 until predicates.size - 1) {
-                // setting the intermediate object
-                `object` = QueryRule.Element.Binding("q_b${blank++}")
-                // adding the current iteration
-                add(QueryRule(subject, predicates[i], `object`))
-                // moving the subject
-                subject = `object`
-            }
-            // adding the final one, pointing to the object
-            add(QueryRule(subject, predicates.last(), o.asFilterElement()))
-        }
+        private fun Pattern.toFilterRules(id: Int) = p.toFilterRules(s.asFilterElement(), o.asFilterElement(), id)
 
         private fun Pattern.Subject.asFilterElement(): QueryRule.Element {
             return when (this) {
@@ -123,15 +102,46 @@ value class RuleSet(
             }
         }
 
-        private fun Pattern.Predicate.extractFilterElements(): List<QueryRule.Element> = buildList {
-            when (this@extractFilterElements) {
-                is Pattern.Binding -> add(QueryRule.Element.Binding(name))
-                is Pattern.Exact -> add(QueryRule.Element.Exact(value))
-                is Pattern.Chain -> list.forEach { addAll(it.extractFilterElements()) }
-                is Pattern.Constrained -> add(QueryRule.Element.AnyOf(candidates = allowed.flatMap { it.extractFilterElements() }))
-                is Pattern.Not -> add(QueryRule.Element.Inverse(predicate.extractFilterElements().first()))
-                is Pattern.Repeating -> TODO()
+        private fun Pattern.Predicate.toFilterRules(
+            s: QueryRule.Element,
+            o: QueryRule.Element,
+            id: Int
+        ): List<QueryRule<*>> = when (this@toFilterRules) {
+            is Pattern.Binding -> listOf(RegularRule(s, toFilterElement(), o))
+            is Pattern.Exact -> listOf(RegularRule(s, toFilterElement(), o))
+            is Pattern.Not -> listOf(RegularRule(s, toFilterElement(), o))
+            is Pattern.Repeating -> listOf(RepeatingRule(s as QueryRule.Element.Binding, value.toFilterElement() as QueryRule.Element.Exact, o as QueryRule.Element.Binding, optional = true /*FIXME*/ ))
+            is Pattern.Chain -> generateRules(s, o, id)
+            is Pattern.Constrained -> listOf(RegularRule(s, QueryRule.Element.Either(allowed.map { it.toFilterElement() as QueryRule.Element.Exact }), o))
+        }
+
+        private fun Pattern.Predicate.toFilterElement(): QueryRule.Element.Predicate = when (this@toFilterElement) {
+            is Pattern.Binding -> QueryRule.Element.Binding(name)
+            is Pattern.Exact -> QueryRule.Element.Exact(value)
+            is Pattern.Not -> QueryRule.Element.Inverse((predicate as Pattern.Exact).value)
+            is Pattern.Repeating -> throw IllegalStateException()
+            // illegal, as these represent multiple rules or should be split up into unions
+            is Pattern.Constrained -> throw IllegalStateException()
+            is Pattern.Chain -> throw IllegalStateException()
+        }
+
+        private fun Pattern.Chain.generateRules(
+            s: QueryRule.Element,
+            o: QueryRule.Element,
+            id: Int
+        ): List<QueryRule<*>> = buildList {
+            var start = s
+            var blank = id
+            for (i in 0 ..< (list.size - 1)) {
+                // setting the intermediate object
+                val end = QueryRule.Element.Binding("q_b${blank++}")
+                // adding the current iteration
+                addAll(list[i].toFilterRules(start, end, id + size))
+                // moving the subject
+                start = end
             }
+            // adding the final one, pointing to the object
+            add(RegularRule(start, list.last().toFilterElement(), o))
         }
 
     }
