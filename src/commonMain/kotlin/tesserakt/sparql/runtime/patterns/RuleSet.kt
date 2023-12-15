@@ -5,8 +5,10 @@ import tesserakt.sparql.compiler.types.Pattern
 import tesserakt.sparql.compiler.types.Patterns
 import tesserakt.sparql.runtime.patterns.rules.QueryRule
 import tesserakt.sparql.runtime.patterns.rules.RegularRule
+import tesserakt.sparql.runtime.patterns.rules.repeating.BindingPredicateRepeatingRule
 import tesserakt.sparql.runtime.patterns.rules.repeating.FixedPredicateRepeatingRule
-import tesserakt.sparql.runtime.patterns.rules.repeating.ZeroOrMoreFixedPredicateRepeatingRule
+import tesserakt.sparql.runtime.patterns.rules.repeating.oneOrMoreRepeatingOf
+import tesserakt.sparql.runtime.patterns.rules.repeating.zeroOrMoreRepeatingOf
 import tesserakt.sparql.runtime.types.Bindings
 
 internal class RuleSet (rules: List<QueryRule<*>>) {
@@ -15,16 +17,19 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
     //  rule types can be done in separate collections for more optimal V-Table usage
     private val regular = rules.filterIsInstance<RegularRule>()
     private val exactRepeating = rules.filterIsInstance<FixedPredicateRepeatingRule>()
+    private val bindingRepeating = rules.filterIsInstance<BindingPredicateRepeatingRule>()
 
     inner class State {
 
         private val regularData = Array(regular.size) { regular[it].newState() }
         private val exactRepeatingData = Array(exactRepeating.size) { exactRepeating[it].newState() }
+        private val bindingRepeatingData = Array(bindingRepeating.size) { bindingRepeating[it].newState() }
 
         fun process(triple: Triple): List<Bindings> {
             // checking all regular rules to see which match with this triple exactly
             val regularSatisfied = mutableSetOf<Int>()
-            val repeatingSatisfied = mutableSetOf<Int>()
+            val exactRepeatingSatisfied = mutableSetOf<Int>()
+            val bindingRepeatingSatisfied = mutableSetOf<Int>()
             val constraints = mutableMapOf<String, Triple.Term>()
             regular.forEachIndexed { i, rule ->
                 val match = rule.matchAndInsert(triple, regularData[i]) ?: return@forEachIndexed
@@ -37,7 +42,15 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
                     val new = rule.insertAndReturnNewPaths(triple, exactRepeatingData[i])
                     if (new.isNotEmpty()) {
                         // rule has been satisfied, so marking it as such
-                        repeatingSatisfied.add(i)
+                        exactRepeatingSatisfied.add(i)
+                        repeatingResults.addAll(new)
+                    }
+                }
+                bindingRepeating.forEachIndexed { i, rule ->
+                    val new = rule.insertAndReturnNewPaths(triple, bindingRepeatingData[i])
+                    if (new.isNotEmpty()) {
+                        // rule has been satisfied, so marking it as such
+                        bindingRepeatingSatisfied.add(i)
                         repeatingResults.addAll(new)
                     }
                 }
@@ -45,14 +58,21 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
             } else {
                 // simply adding the resulting new paths, if any
                 exactRepeating.forEachIndexed { i, rule -> rule.quickInsert(triple, exactRepeatingData[i]) }
+                bindingRepeating.forEachIndexed { i, rule -> rule.quickInsert(triple, bindingRepeatingData[i]) }
                 listOf(constraints)
             }
             if (constraints.isEmpty() && results.isEmpty()) {
                 return emptyList()
             }
             // now all possible versions through repetitions are created
-            for (ruleId in exactRepeating.indices - repeatingSatisfied) {
+            for (ruleId in exactRepeating.indices - exactRepeatingSatisfied) {
                 results = exactRepeating[ruleId].expand(results, exactRepeatingData[ruleId])
+                if (results.isEmpty()) {
+                    return emptyList()
+                }
+            }
+            for (ruleId in bindingRepeating.indices - bindingRepeatingSatisfied) {
+                results = bindingRepeating[ruleId].expand(results, bindingRepeatingData[ruleId])
                 if (results.isEmpty()) {
                     return emptyList()
                 }
@@ -111,7 +131,8 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
             is Pattern.Binding -> listOf(RegularRule(s, QueryRule.Binding(name), o))
             is Pattern.Exact -> listOf(RegularRule(s, QueryRule.Exact(value), o))
             is Pattern.Not -> listOf(RegularRule(s, QueryRule.Inverse(predicate.toFilterElement() as QueryRule.FixedPredicate), o))
-            is Pattern.ZeroOrMore -> listOf(ZeroOrMoreFixedPredicateRepeatingRule(s as QueryRule.Binding, value.toFilterElement() as QueryRule.FixedPredicate, o as QueryRule.Binding))
+            is Pattern.ZeroOrMore -> listOf(zeroOrMoreRepeatingOf(s, value.toFilterElement(), o))
+            is Pattern.OneOrMore -> listOf(oneOrMoreRepeatingOf(s, value.toFilterElement(), o))
             is Pattern.Chain -> generateRules(s, o, id)
             is Pattern.Constrained -> listOf(RegularRule(s, QueryRule.Either(allowed.map { it.toFilterElement() as QueryRule.FixedPredicate }), o))
         }
@@ -124,6 +145,7 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
             // illegal, these cannot be used in regular query rules
             is Pattern.Chain -> throw IllegalStateException()
             is Pattern.ZeroOrMore -> throw IllegalStateException()
+            is Pattern.OneOrMore -> throw IllegalStateException()
         }
 
         private fun Pattern.Chain.generateRules(
@@ -142,7 +164,7 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
                 start = end
             }
             // adding the final one, pointing to the object
-            add(RegularRule(start, list.last().toFilterElement(), o))
+            addAll(list.last().toFilterRules(start, o, id + size))
         }
 
     }

@@ -22,8 +22,8 @@ sealed class Query<ResultType, AST: QueryAST>(
             }
         }
 
-        fun <RT> Iterable<Triple>.queryAsSequence(query: Query<RT, *>): Sequence<RT> = sequence {
-            val processor = with(query) { Processor(this@queryAsSequence) }
+        fun <RT> Sequence<Triple>.query(query: Query<RT, *>): Sequence<RT> = sequence {
+            val processor = with(query) { Processor(this@query.iterator()) }
             var bindings = processor.next()
             while (bindings != null) {
                 yield(query.process(bindings))
@@ -31,8 +31,8 @@ sealed class Query<ResultType, AST: QueryAST>(
             }
         }
 
-        fun <RT> Iterable<Triple>.queryAsList(query: Query<RT, *>): List<RT> = buildList {
-            val processor = with(query) { Processor(this@queryAsList) }
+        fun <RT> Iterable<Triple>.query(query: Query<RT, *>): List<RT> = buildList {
+            val processor = with(query) { Processor(this@query) }
             var bindings = processor.next()
             while (bindings != null) {
                 add(query.process(bindings))
@@ -43,11 +43,12 @@ sealed class Query<ResultType, AST: QueryAST>(
     }
 
     protected inner class Processor(
-        source: Iterable<Triple>
+        private val iterator: Iterator<Triple>
     ) {
 
+        constructor(source: Iterable<Triple>): this(iterator = source.iterator())
+
         private val state = ruleSet.State()
-        private val iterator = source.iterator()
         // pending results that have been yielded since last `iterator.next` call, but not yet
         //  processed through `next()`
         private val pending = ArrayList<Bindings>(10)

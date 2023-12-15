@@ -6,7 +6,7 @@ import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Triple.Companion.asNamedTerm
 import tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import tesserakt.sparql.runtime.query.Query.Companion.query
-import tesserakt.sparql.runtime.query.Query.Companion.queryAsList
+import tesserakt.util.BindingsTable.Companion.tabulate
 import kotlin.test.Test
 
 class QueryTest {
@@ -16,7 +16,7 @@ class QueryTest {
         val store = createTestStore()
 
         val simple = "SELECT * WHERE { ?s ?p ?o }".asSPARQLSelectQuery()
-        val spo = store.queryAsList(simple)
+        val spo = store.query(simple)
         println("Found ${spo.size} bindings for the spo-query. Expected ${store.size}")
 
         val chain = "SELECT * WHERE { ?person <address>/<number> ?number ; <address>/<street> ?street }".asSPARQLSelectQuery()
@@ -45,7 +45,7 @@ class QueryTest {
         }
 
         val any = "SELECT ?s ?o { ?s (<>|!<>) ?o }".asSPARQLSelectQuery()
-        val result = store.queryAsList(any)
+        val result = store.query(any)
         println("Found ${result.size} elements for the `any` query, expected ${store.size}")
 
         val info = "SELECT ?s ?o { ?s !(<friend>|<notes>|<address>) ?o }".asSPARQLSelectQuery()
@@ -85,9 +85,8 @@ class QueryTest {
                 ?blank rdf:rest rdf:nil .
             }
         """.asSPARQLSelectQuery()
-        val test1 = store.queryAsList(nodes)
         // expected result: blank1, blank2, blank3, blank...
-        println("Found blank nodes:\n$test1")
+        println("Found blank nodes:\n${store.query(nodes).tabulate()}")
 
         val list = """
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -95,9 +94,8 @@ class QueryTest {
                 ?person a <person> ; <notes>/rdf:rest*/rdf:first ?note
             }
         """.asSPARQLSelectQuery()
-        val entries = store.queryAsList(list)
         // expected: [person, first-note], [person, second-note] ...
-        println("Found list entries:\n$entries")
+        println("Found list entries:\n${store.query(list).tabulate()}")
 
         val any = """
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -106,7 +104,15 @@ class QueryTest {
             }
         """.asSPARQLSelectQuery()
         // expecting a lot of results
-        println("Found \"any\" entries:\n${store.queryAsList(any)}")
+        println("Found \"any\" entries:\n${store.query(any).tabulate()}")
+
+        val traversal = """
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            SELECT ?person ?p ?result {
+                ?person <notes>/?p+ ?result .
+            }
+        """.asSPARQLSelectQuery()
+        println("Found \"traversal\" entries:\n${store.query(traversal).tabulate().order("person", "p", "result")}")
     }
 
 }

@@ -2,6 +2,16 @@
 
 package tesserakt.util
 
+inline fun <T, K, V> Iterable<T>.associateIndexed(
+    mapper: (Int, T) -> Pair<K, V>
+): Map<K, V> = buildMap {
+    var i = 0
+    for (element in this@associateIndexed) {
+        val (k, v) = mapper(i++, element)
+        this[k] = v
+    }
+}
+
 inline fun <T, K, V> Iterable<T>.associateIndexedNotNull(
     mapper: (Int, T) -> Pair<K, V>?
 ): Map<K, V> = buildMap {
@@ -80,4 +90,13 @@ inline fun <T> Collection<T>.addFront(vararg element: T): List<T> {
     result.addAll(element)
     result.addAll(this)
     return result
+}
+
+/**
+ * Sorts `this` list in place according to their `weights` in the provided list. Stable sorting, meaning that
+ *  two identical `weights` will preserve their original order
+ */
+inline fun <T> MutableList<T>.weightedSort(weights: List<Int>) {
+    val associations = this.associateIndexed { i, t -> t to weights[i] }
+    this.sortBy { associations[it] }
 }

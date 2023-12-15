@@ -40,8 +40,11 @@ data class Pattern(
     value class Chain(val list: List<Predicate>): Predicate {
         constructor(vararg predicates: Predicate): this(predicates.flatMap { if (it is Chain) it.list else listOf(it) })
     }
-    /** regular predicate, but repeated an arbitrary amount of times (`<predicate>*`) **/
+    /** regular predicate being repeated, zero or more relationship(s) present (`<predicate>+`) **/
     @JvmInline
     value class ZeroOrMore(val value: Predicate): Predicate
+    /** regular predicate being repeated, at least one relationship present (`<predicate>+`) **/
+    @JvmInline
+    value class OneOrMore(val value: Predicate): Predicate
 
 }

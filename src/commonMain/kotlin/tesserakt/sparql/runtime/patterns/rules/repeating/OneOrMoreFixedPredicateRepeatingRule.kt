@@ -12,30 +12,24 @@ internal class OneOrMoreFixedPredicateRepeatingRule(
 ) : FixedPredicateRepeatingRule(s = s, p = p, o = o) {
 
     override fun expand(input: List<Bindings>, data: Connections): List<Bindings> {
-        val variations = data.getAllPaths()
         return input.flatMap { bindings ->
             val start = bindings[s.name]
             val end = bindings[o.name]
             when {
                 start != null && end != null -> {
-                    // counting the amount of paths lead up to our required start - to - end destination
-                    val count = variations
-                        .count { s -> s.start == start && s.end == end }
-                    // resulting `count` instances of the same binding, no additional data required
-                    List(count) { bindings }
+                    // resulting count no. of paths of the same binding are returned, no additional data required
+                    List(data.countAllConnectionsBetween(start, end)) { bindings }
                 }
                 start != null -> {
-                    variations
-                        .filter { it.start == start }
+                    data.getAllPathsStartingFrom(start)
                         .map { it.asBindings() + bindings }
                 }
                 end != null -> {
-                    variations
-                        .filter { it.end == end }
+                    data.getAllPathsEndingAt(end)
                         .map { it.asBindings() + bindings }
                 }
                 else -> {
-                    variations
+                    data.getAllPaths()
                         .map { it.asBindings() + bindings }
                 }
             }

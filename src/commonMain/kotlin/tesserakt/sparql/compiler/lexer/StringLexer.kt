@@ -183,7 +183,7 @@ class StringLexer(private val input: String): Lexer() {
      */
     private fun String.endOfBindingOrPrefixedTerm() = indexOf(
         // a fair number of characters can terminate a binding / prefixed term
-        '<', '?', '.', ';', ',', '{', '}', '(', ')', '|', '/', '*',
+        '<', '?', '.', ';', ',', '{', '}', '(', ')', '|', '/', '*', '+',
         startIndex = start + 1,
         endIndex = end
     )

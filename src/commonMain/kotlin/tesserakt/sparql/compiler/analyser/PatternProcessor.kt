@@ -96,11 +96,18 @@ class PatternProcessor: Analyser<Patterns>() {
         // consuming the last token from the currently processed predicate
         consume()
         // consuming the star if possible
-        if (token == Token.Syntax.Asterisk) {
-            consume()
-            Pattern.ZeroOrMore(current)
-        } else {
-            current
+        when (token) {
+            Token.Syntax.Asterisk -> {
+                consume()
+                Pattern.ZeroOrMore(current)
+            }
+            Token.Syntax.OpPlus -> {
+                consume()
+                Pattern.OneOrMore(current)
+            }
+            else -> {
+                current
+            }
         }
     }
 

@@ -28,9 +28,18 @@ internal abstract class RepeatingRule<DT: Any>(
         // important: not a set, as double exact paths should also double the amount of results!
         private val variations = mutableListOf<Segment>()
 
-        fun getAllPaths(): List<Segment> {
-            return variations
-        }
+        fun getAllPaths() = variations
+
+        fun countAllConnectionsBetween(from: Triple.Term, to: Triple.Term): Int =
+            variations.count { it.start == from && it.end == to }
+
+        // TODO: later, the return type can safely be altered to just contain all end points
+        fun getAllPathsStartingFrom(term: Triple.Term): List<Segment> =
+            variations.filter { it.start == term }
+
+        // TODO: later, the return type can safely be altered to just contain all starting points
+        fun getAllPathsEndingAt(term: Triple.Term): List<Segment> =
+            variations.filter { it.end == term }
 
         /**
          * Creates a list of all segments that become valid by inserting this triple, and inserts the triple
