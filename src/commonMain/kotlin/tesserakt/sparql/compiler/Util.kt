@@ -39,7 +39,7 @@ private fun Pattern.Predicate.extractAllBindings(): List<Pattern.Binding> {
         is Pattern.Binding -> listOf(this)
         is Pattern.Exact -> emptyList()
         is Pattern.Not -> predicate.extractAllBindings()
-        is Pattern.Repeating -> value.extractAllBindings()
+        is Pattern.ZeroOrMore -> value.extractAllBindings()
     }
 }
 

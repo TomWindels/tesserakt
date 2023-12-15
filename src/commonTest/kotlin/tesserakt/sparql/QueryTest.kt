@@ -68,6 +68,9 @@ class QueryTest {
                 "another-note".asNamedTerm(),
                 "last-note".asNamedTerm(),
             )
+            person has "notes".asNamedTerm() being list(
+                "even-more-notes".asNamedTerm()
+            )
             person has "decoy".asNamedTerm() being list(
                 "wrong-1".asNamedTerm(),
                 "wrong-2".asNamedTerm(),
@@ -95,6 +98,15 @@ class QueryTest {
         val entries = store.queryAsList(list)
         // expected: [person, first-note], [person, second-note] ...
         println("Found list entries:\n$entries")
+
+        val any = """
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            SELECT * {
+                ?s (<>|!<>)* ?o
+            }
+        """.asSPARQLSelectQuery()
+        // expecting a lot of results
+        println("Found \"any\" entries:\n${store.queryAsList(any)}")
     }
 
 }

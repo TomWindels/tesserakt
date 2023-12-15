@@ -1,0 +1,55 @@
+package tesserakt.sparql.runtime.patterns.rules.repeating
+
+import tesserakt.sparql.runtime.types.Bindings
+import tesserakt.util.addFront
+
+internal class ZeroOrMoreFixedPredicateRepeatingRule(
+    s: Binding,
+    p: FixedPredicate,
+    o: Binding,
+) : FixedPredicateRepeatingRule(s = s, p = p, o = o) {
+
+    override fun expand(input: List<Bindings>, data: Connections): List<Bindings> {
+        val variations = data.getAllPaths()
+        return input.flatMap { bindings ->
+            val start = bindings[s.name]
+            val end = bindings[o.name]
+            when {
+                start != null && end != null -> {
+                    // counting the amount of paths lead up to our required start - to - end destination
+                    val count = variations
+                        .count { s -> s.start == start && s.end == end }
+                    // resulting `count` instances of the same binding, no additional data required
+                    List(count) { bindings }
+                }
+                start != null -> {
+                    variations
+                        .filter { it.start == start }
+                        .map { it.asBindings() + bindings }
+                        // adding a null-length relation, meaning end == start
+                        .addFront(bindings + (o.name to start))
+                }
+                end != null -> {
+                    variations
+                        .filter { it.end == end }
+                        .map { it.asBindings() + bindings }
+                        // adding a null-length relation, meaning end == start
+                        .addFront(bindings + (s.name to end))
+                }
+                else -> {
+                    variations
+                        .map { it.asBindings() + bindings }
+                }
+            }
+        }
+    }
+
+    // FIXME: possibly unwanted double firing when this is the only predicate of a pattern, requires investigation of
+    //  behaviour from other engines to see what is preferred (see `nodes` test query)
+//    override fun insertAndReturnNewPaths(triple: Triple, data: Connections): List<Bindings> =
+//        super.insertAndReturnNewPaths(triple = triple, data = data) +
+//        // as this is "zero or more", the start and end are already linked to each other
+//        Connections.Segment(start = triple.s, end = triple.s).asBindings() +
+//        Connections.Segment(start = triple.o, end = triple.o).asBindings()
+
+}

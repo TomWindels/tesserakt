@@ -42,6 +42,6 @@ data class Pattern(
     }
     /** regular predicate, but repeated an arbitrary amount of times (`<predicate>*`) **/
     @JvmInline
-    value class Repeating(val value: Predicate): Predicate
+    value class ZeroOrMore(val value: Predicate): Predicate
 
 }

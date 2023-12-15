@@ -1,15 +1,13 @@
-package tesserakt.sparql.runtime.patterns
+package tesserakt.sparql.runtime.patterns.rules
 
 import tesserakt.rdf.types.Triple
-import tesserakt.sparql.runtime.patterns.QueryRule.Element.Companion.insert
-import tesserakt.sparql.runtime.patterns.QueryRule.Element.Companion.matches
 import tesserakt.sparql.runtime.types.Bindings
 import tesserakt.util.compatibleWith
 
 // TODO: make 4 versions of this rule, alternating between exact and binding types for `s`, `o`
 internal data class RegularRule(
     private val s: Element,
-    private val p: Element.Predicate,
+    private val p: Predicate,
     private val o: Element
 ) : QueryRule<MutableList<Bindings>>() {
 
@@ -25,13 +23,15 @@ internal data class RegularRule(
         return match
     }
 
-    fun expand(input: Bindings, data: MutableList<Bindings>): List<Bindings> {
-        return data.mapNotNull { previous ->
-            // checking to see if there's any incompatibility in the input constraints
-            if (input.compatibleWith(previous)) {
-                input + previous
-            } else {
-                null
+    fun expand(input: List<Bindings>, data: MutableList<Bindings>): List<Bindings> {
+        return input.flatMap { bindings ->
+            data.mapNotNull { previous ->
+                // checking to see if there's any incompatibility in the input constraints
+                if (bindings.compatibleWith(previous)) {
+                    bindings + previous
+                } else {
+                    null
+                }
             }
         }
     }
@@ -51,9 +51,9 @@ internal data class RegularRule(
             null
         } else {
             val result = mutableMapOf<String, Triple.Term>()
-            result.insert(s, triple.s)
-            result.insert(p, triple.p)
-            result.insert(o, triple.o)
+            s.bindingName?.let { name -> result.put(name, triple.s) }
+            p.bindingName?.let { name -> result.put(name, triple.p) }
+            o.bindingName?.let { name -> result.put(name, triple.o) }
             return result
         }
     }

@@ -98,7 +98,7 @@ class PatternProcessor: Analyser<Patterns>() {
         // consuming the star if possible
         if (token == Token.Syntax.Asterisk) {
             consume()
-            Pattern.Repeating(current)
+            Pattern.ZeroOrMore(current)
         } else {
             current
         }

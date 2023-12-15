@@ -17,7 +17,7 @@ object PatternPredicateConstrainedValidator: Validator<QueryAST>(QueryAST::class
         is Pattern.Constrained -> allowed.all { item -> item is Pattern.Exact || item is Pattern.Not }
         is Pattern.Chain -> list.all { item -> item.validate() }
         is Pattern.Not -> predicate is Pattern.Constrained || predicate is Pattern.Exact
-        is Pattern.Repeating -> value.validate()
+        is Pattern.ZeroOrMore -> value.validate()
         is Pattern.Binding -> true
         is Pattern.Exact -> true
     }

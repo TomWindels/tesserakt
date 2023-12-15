@@ -48,7 +48,7 @@ class CompilerTest {
             body.patterns.first().p is Pattern.Constrained
         }
         "SELECT * WHERE { ?s <contains>/(<prop1>|!<prop2>)* ?o2 }".satisfies<SelectQueryAST> {
-            body.patterns.first().p.let { p -> p is Pattern.Chain && p.list[1] is Pattern.Repeating }
+            body.patterns.first().p.let { p -> p is Pattern.Chain && p.list[1] is Pattern.ZeroOrMore }
         }
         "SELECT ?s?p?o WHERE {?s?p?o2;?p2?o.}".satisfies<SelectQueryAST> {
             body.patterns.size == 2 && body.patterns[1].p == Pattern.Binding("p2")
