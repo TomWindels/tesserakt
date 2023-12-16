@@ -31,10 +31,15 @@ class Triple(
     }
 
     @JvmInline
-    value class BlankTerm(override val value: String): Term
-    @JvmInline
+    value class BlankTerm(val id: Int): Term {
+        override val value: String
+            get() = "blank_$id"
+    }
 
-    value class NamedTerm(override val value: String): Term
+    @JvmInline
+    value class NamedTerm(override val value: String): Term {
+        override fun toString() = value
+    }
 
     data class Literal<T>(
         val literal: T,

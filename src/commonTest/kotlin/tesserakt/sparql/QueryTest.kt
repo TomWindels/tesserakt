@@ -7,6 +7,7 @@ import tesserakt.rdf.types.Triple.Companion.asNamedTerm
 import tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import tesserakt.sparql.runtime.query.Query.Companion.query
 import tesserakt.util.BindingsTable.Companion.tabulate
+import tesserakt.util.console.toStylisedString
 import kotlin.test.Test
 
 class QueryTest {
@@ -112,7 +113,7 @@ class QueryTest {
                 ?person <notes>/?p+ ?result .
             }
         """.asSPARQLSelectQuery()
-        println("Found \"traversal\" entries:\n${store.query(traversal).tabulate().order("person", "p", "result")}")
+        println("Found \"traversal\" entries:\n${store.query(traversal).tabulate().apply { order("person", "p", "result")}.toStylisedString() }")
     }
 
 }

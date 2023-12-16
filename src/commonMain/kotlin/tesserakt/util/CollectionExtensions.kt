@@ -100,3 +100,5 @@ inline fun <T> MutableList<T>.weightedSort(weights: List<Int>) {
     val associations = this.associateIndexed { i, t -> t to weights[i] }
     this.sortBy { associations[it] }
 }
+
+inline infix fun IntRange.shifted(shift: Int): IntRange = (first + shift) .. (last + shift)

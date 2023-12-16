@@ -173,7 +173,7 @@ class RdfContext internal constructor(
         return Blank(genBlankNodeId()).apply(block)._name
     }
 
-    inline fun genBlankNodeId() = Triple.BlankTerm("_b_${_blank_index++}")
+    inline fun genBlankNodeId() = Triple.BlankTerm(_blank_index++)
 
     fun list(data: Collection<Triple.Term>) = List(data = data.toTypedArray())
 
