@@ -15,12 +15,12 @@ sealed interface Token {
         Asterisk("*"),
         ExclamationMark("!"),
         /* in-pattern only structural tokens */
-        ObjectEnd(","),
-        PredicateEnd(";"),
-        PatternEnd("."),
+        Comma(","),
+        SemiColon(";"),
+        Period("."),
         BlankStart("["),
         BlankEnd("]"),
-        TypePredicate("a"),
+        RdfTypePredicate("a"),
         /* keywords */
         Prefix("PREFIX"),
         Select("SELECT"),

@@ -26,6 +26,12 @@ data class Pattern(
     @JvmInline
     value class Exact(val value: Triple.Term): Element
 
+    /** simple blank object only constrained by a series of properties (sub-patterns) **/
+    @JvmInline
+    value class BlankObject(val properties: List<BlankPattern>): Object {
+        data class BlankPattern(val p: Predicate, val o: Object)
+    }
+
     /** inverse of "exact" value, e.g. `(!<predicate>)` **/
     @JvmInline
     value class Not(val predicate: Predicate): Predicate

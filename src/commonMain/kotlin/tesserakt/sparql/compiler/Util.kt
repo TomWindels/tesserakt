@@ -17,13 +17,12 @@ internal fun QueryAST.QueryBodyAST.extractAllBindings() =
 
 fun Pattern.extractAllBindings(): List<Pattern.Binding> {
     val result = mutableListOf<Pattern.Binding>()
-    if (s is Pattern.Binding) {
-        result.add(s)
+    when (s) {
+        is Pattern.Binding -> result.add(s)
+        is Pattern.Exact -> { /* nothing to do */ }
     }
     result.addAll(p.extractAllBindings())
-    if (o is Pattern.Binding) {
-        result.add(o)
-    }
+    result.addAll(o.extractAllBindings())
     return when (result.size) {
         0 -> emptyList()
         else -> result
@@ -41,6 +40,22 @@ private fun Pattern.Predicate.extractAllBindings(): List<Pattern.Binding> {
         is Pattern.Not -> predicate.extractAllBindings()
         is Pattern.ZeroOrMore -> value.extractAllBindings()
         is Pattern.OneOrMore -> value.extractAllBindings()
+    }
+}
+
+private fun Pattern.Object.extractAllBindings(): List<Pattern.Binding> = when (this) {
+    is Pattern.BlankObject -> properties.flatMap { it.extractAllBindings() }
+    is Pattern.Binding -> listOf(this)
+    is Pattern.Exact -> { emptyList() }
+}
+
+private fun Pattern.BlankObject.BlankPattern.extractAllBindings(): List<Pattern.Binding> {
+    val first = p.extractAllBindings()
+    val second = o.extractAllBindings()
+    return if (first.isEmpty() && second.isEmpty()) {
+        emptyList()
+    } else {
+        first + second
     }
 }
 

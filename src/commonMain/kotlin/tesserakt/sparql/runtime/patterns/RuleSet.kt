@@ -120,6 +120,8 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
             return when (this) {
                 is Pattern.Binding -> QueryRule.Binding(name)
                 is Pattern.Exact -> QueryRule.Exact(value)
+                // FIXME
+                else -> throw UnsupportedOperationException()
             }
         }
 
@@ -156,8 +158,8 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
             var start = s
             var blank = id
             for (i in 0 ..< (list.size - 1)) {
-                // setting the intermediate object
-                val end = QueryRule.Binding("_q_b${blank++}")
+                // setting the intermediate object using an impossible-to-request blank name
+                val end = QueryRule.Binding(" b${blank++}")
                 // adding the current iteration
                 addAll(list[i].toFilterRules(start, end, id + size))
                 // moving the subject

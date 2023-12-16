@@ -1,7 +1,9 @@
 package tesserakt.sparql
 
 import tesserakt.TestEnvironment.Companion.test
+import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Triple
+import tesserakt.rdf.types.Triple.Companion.asNamedTerm
 import tesserakt.sparql.compiler.CompilerError
 import tesserakt.sparql.compiler.analyser.AggregatorProcessor
 import tesserakt.sparql.compiler.processed
@@ -17,7 +19,7 @@ class CompilerTest {
     @Test
     fun select() = test {
         /* content tests */
-        "SELECT ?s ?p ?o WHERE { ?s ?p ?o ; }".satisfies<SelectQueryAST> {
+        "SELECT ?s ?p ?o WHERE { ?s ?p ?o ; }" satisfies {
             val pattern = Pattern(
                 s = Pattern.Binding("s"),
                 p = Pattern.Binding("p"),
@@ -25,35 +27,36 @@ class CompilerTest {
             )
             body.patterns.size == 1 && body.patterns.first() == pattern
         }
-        "select*{?s?p?o}".satisfies<SelectQueryAST> {
+        "select*{?s?p?o}" satisfies {
             body.patterns.size == 1
         }
-        "prefix ex: <http://example.org/> select*{?s ex:prop ?o}".satisfies<SelectQueryAST> {
+        "prefix ex: <http://example.org/> select*{?s ex:prop ?o}" satisfies {
             body.patterns.size == 1
         }
-        "prefix select: <http://example.org/> select*{?s select:prop ?o ; <prop> select:test}".satisfies<SelectQueryAST> {
+        "prefix select: <http://example.org/> select*{?s select:prop ?o ; <prop> select:test}" satisfies {
             body.patterns.size == 2
                 && body.patterns[0].p == Pattern.Exact(Triple.NamedTerm("http://example.org/prop"))
                 && body.patterns[1].o == Pattern.Exact(Triple.NamedTerm("http://example.org/test"))
         }
-        "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }".satisfies<SelectQueryAST> {
+        "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }" satisfies {
             body.patterns.first().p is Pattern.Chain
         }
-        "SELECT * WHERE { ?s a/?p1*/?p2?o. }".satisfies<SelectQueryAST> {
+        "SELECT * WHERE { ?s a/?p1*/?p2?o. }" satisfies {
+            require(this is SelectQueryAST)
             body.patterns.first().p is Pattern.Chain
                 && output.names == setOf("s", "p1", "p2", "o")
                 && output.entries.all { it.value is SelectQueryAST.Output.BindingEntry }
         }
-        "SELECT * WHERE { ?s (<predicate2>|<predicate3>)?o. }".satisfies<SelectQueryAST> {
+        "SELECT * WHERE { ?s (<predicate2>|<predicate3>)?o. }" satisfies {
             body.patterns.first().p is Pattern.Constrained
         }
-        "SELECT * WHERE { ?s <contains>/(<prop1>|!<prop2>)* ?o2 }".satisfies<SelectQueryAST> {
+        "SELECT * WHERE { ?s <contains>/(<prop1>|!<prop2>)* ?o2 }" satisfies {
             body.patterns.first().p.let { p -> p is Pattern.Chain && p.list[1] is Pattern.ZeroOrMore }
         }
-        "SELECT ?s?p?o WHERE {?s?p?o2;?p2?o.}".satisfies<SelectQueryAST> {
+        "SELECT ?s?p?o WHERE {?s?p?o2;?p2?o.}" satisfies {
             body.patterns.size == 2 && body.patterns[1].p == Pattern.Binding("p2")
         }
-        "SELECT ?s WHERE {?s<prop><value>}".satisfies<SelectQueryAST> {
+        "SELECT ?s WHERE {?s<prop><value>}" satisfies {
             val pattern = Pattern(
                 s = Pattern.Binding("s"),
                 p = Pattern.Exact(Triple.NamedTerm("prop")),
@@ -61,7 +64,7 @@ class CompilerTest {
             )
             body.patterns.size == 1 && body.patterns.first() == pattern
         }
-        "SELECT ?s WHERE{{?s<prop><value>}UNION{?s<prop2><value2>}UNION{?s<prop3><value3>}}".satisfies<SelectQueryAST> {
+        "SELECT ?s WHERE{{?s<prop><value>}UNION{?s<prop2><value2>}UNION{?s<prop3><value3>}}" satisfies {
             body.unions.size == 1 && body.unions.first().size == 3
         }
         """
@@ -75,7 +78,7 @@ class CompilerTest {
                     ?s <prop3> <value3>
                 }
             }
-        """.satisfies<SelectQueryAST> {
+        """ satisfies {
             body.patterns.size == 1 && body.unions.size == 1 && body.unions.first().size == 3
         }
         """
@@ -84,7 +87,8 @@ class CompilerTest {
                 OPTIONAL { ?s <has> ?content }
                 { ?s <prop> ?value1 } UNION { ?s <prop2> <value2> } UNION { ?s <prop3> <value3> }
             }
-        """.satisfies<SelectQueryAST> {
+        """ satisfies {
+            require(this is SelectQueryAST)
             body.patterns.size == 1 &&
             body.optional.size == 1 &&
             body.unions.size == 1 &&
@@ -96,7 +100,7 @@ class CompilerTest {
                 # see: https://jena.apache.org/tutorials/sparql_filters.html
                 FILTER regex(?name, "test", "i")
             }
-        """.satisfies<SelectQueryAST> {
+        """ satisfies {
             // TODO: check filter
             true
         }
@@ -106,7 +110,7 @@ class CompilerTest {
                 # see: https://jena.apache.org/tutorials/sparql_filters.html
                 FILTER(?value > 5)
             }
-        """.satisfies<SelectQueryAST> {
+        """ satisfies {
             // TODO: check filter
             true
         }
@@ -116,26 +120,31 @@ class CompilerTest {
                 # see: https://jena.apache.org/tutorials/sparql_optionals.html
                 OPTIONAL { ?s <has> ?value . FILTER(?value > 5) }
             }
-        """.satisfies<SelectQueryAST> {
+        """ satisfies {
+            require(this is SelectQueryAST)
             body.patterns.size == 1 &&
             body.optional.size == 1 &&
             output.names == setOf("s", "value")
             // TODO: also check the optional's condition
         }
-        "select(count(distinct ?s) as ?count){?s?p?o}".satisfies<SelectQueryAST> {
+        "select(count(distinct ?s) as ?count){?s?p?o}" satisfies {
+            require(this is SelectQueryAST)
             val func = output.aggregate("count")!!.root.builtin
             func.type == Aggregation.Builtin.Type.COUNT &&
             func.input.distinctBindings == Aggregation.DistinctBindingValues("s")
         }
-        "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}".satisfies<SelectQueryAST> {
+        "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}" satisfies {
+            require(this is SelectQueryAST)
             output.aggregate("count")!!.root ==
                     "(${1 / 3.0} * min(?s)) + avg(?s)".processed(AggregatorProcessor()).getOrThrow()
         }
-        "select(avg(?s) + min(?s)/3*4+3-5.5*10 as ?count_long){?s?p?o}".satisfies<SelectQueryAST> {
+        "select(avg(?s) + min(?s)/3*4+3-5.5*10 as ?count_long){?s?p?o}" satisfies {
+            require(this is SelectQueryAST)
             output.aggregate("count_long")!!.root ==
                     "4 * (min(?s)) / 3 + avg(?s) - 52".processed(AggregatorProcessor()).getOrThrow()
         }
-        "select(-min(?s) + max(?s) as ?reversed_diff){?s?p?o}".satisfies<SelectQueryAST> {
+        "select(-min(?s) + max(?s) as ?reversed_diff){?s?p?o}" satisfies {
+            require(this is SelectQueryAST)
             output.aggregate("reversed_diff")!!.root ==
                     "max(?s) - min(?s)".processed(AggregatorProcessor()).getOrThrow()
         }
@@ -146,7 +155,8 @@ class CompilerTest {
               ?g :p ?p .
             }
             GROUP BY ?g
-        """.satisfies<SelectQueryAST> {
+        """ satisfies {
+            require(this is SelectQueryAST)
             val pattern = Pattern(
                 s = Pattern.Binding("g"),
                 p = Pattern.Exact(Triple.NamedTerm("http://example.com/data/#p")),
@@ -157,14 +167,67 @@ class CompilerTest {
             output.aggregate("avg")!!.root.builtin.type == Aggregation.Builtin.Type.AVG &&
             output.aggregate("c")!!.root == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor()).getOrThrow()
         }
+        """
+            SELECT * WHERE {
+                ?s ?p [ a <type> ; ]
+            }
+        """ satisfies {
+            val blankPatterns = body.patterns.firstOrNull()?.o as? Pattern.BlankObject ?: return@satisfies false
+
+            body.patterns.size == 1 &&
+            blankPatterns.properties.size == 1 &&
+            blankPatterns.properties.first() == Pattern.BlankObject.BlankPattern(
+                p = Pattern.Exact(RDF.type),
+                o = Pattern.Exact("type".asNamedTerm())
+            )
+        }
+        """
+            SELECT * WHERE {
+                ?s ?p [ <contains> [ <data> ?values ] ; ]
+            }
+        """ satisfies {
+            require(this is SelectQueryAST)
+            val first = body.patterns.firstOrNull()?.o as? Pattern.BlankObject ?: return@satisfies false
+            val second = first.properties.firstOrNull()?.o as? Pattern.BlankObject ?: return@satisfies false
+
+            body.patterns.size == 1 &&
+            first.properties.size == 1 &&
+            second.properties.size == 1 &&
+            second.properties.first() == Pattern.BlankObject.BlankPattern(
+                p = Pattern.Exact("data".asNamedTerm()),
+                o = Pattern.Binding("values")
+            ) &&
+            "values" in output.names
+        }
+        """
+            SELECT * WHERE {
+                ?s ?p [
+                    a <type> ;
+                    <contains> ?data1, ?data2, ?data3
+                ], [
+                    a <other-type> ;
+                ]
+            }
+        """ satisfies {
+            val first = body.patterns.getOrNull(0)?.o as? Pattern.BlankObject ?: return@satisfies false
+            val second = body.patterns.getOrNull(1)?.o as? Pattern.BlankObject ?: return@satisfies false
+
+            body.patterns.size == 2 &&
+            first.properties.size == 4 &&
+            second.properties.size == 1 &&
+            second.properties.first() == Pattern.BlankObject.BlankPattern(
+                p = Pattern.Exact(RDF.type),
+                o = Pattern.Exact("other-type".asNamedTerm())
+            )
+        }
         /* expected failure cases */
-        "SELECT TEST WHERE { ?s a TEST . }".shouldFail(CompilerError.Type.SyntaxError)
-        "SELECT * WHERE { ?s a ?test ".shouldFail(CompilerError.Type.StructuralError)
-        "SELECT * WHERE { ?s <predicate2>/(<predicate3> ?o2.}".shouldFail(CompilerError.Type.StructuralError)
-        "SELECT * WHERE { ?s a ?type , }".shouldFail(CompilerError.Type.StructuralError)
-        "PREFIX ex: <http://example.org> SELECT * WHERE { ?s ex:prop/other ?o }".shouldFail(CompilerError.Type.SyntaxError)
-        "prefix ex: <http://example.org> select*{?s dc:title ?o}".shouldFail(CompilerError.Type.StructuralError)
-        "select(count(distinct ?s as ?count){?s?p?o}".shouldFail(CompilerError.Type.StructuralError)
+        "SELECT TEST WHERE { ?s a TEST . }" causes CompilerError.Type.SyntaxError
+        "SELECT * WHERE { ?s a ?test " causes CompilerError.Type.StructuralError
+        "SELECT * WHERE { ?s <predicate2>/(<predicate3> ?o2.}" causes CompilerError.Type.StructuralError
+        "SELECT * WHERE { ?s a ?type , }" causes CompilerError.Type.StructuralError
+        "PREFIX ex: <http://example.org> SELECT * WHERE { ?s ex:prop/other ?o }" causes CompilerError.Type.SyntaxError
+        "prefix ex: <http://example.org> select*{?s dc:title ?o}" causes CompilerError.Type.StructuralError
+        "select(count(distinct ?s as ?count){?s?p?o}" causes CompilerError.Type.StructuralError
     }
 
 }

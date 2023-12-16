@@ -15,148 +15,113 @@ class PatternProcessor: Analyser<Patterns>() {
 
     override fun _process(): Patterns {
         result.clear()
-        processPatternSubject()
+        processStartingFromPatternSubject()
         return result
     }
 
-    private fun processPatternSubject() {
+    private fun processStartingFromPatternSubject() {
         // either has a term as token, or we have to bail
         if (token is Token.Syntax) {
             return
         }
+        // consuming the token as well
         subject = token.asPatternElement()
         // consuming the next token and going to the predicate section no matter what
         consume()
-        processPatternPredicate()
+        processStartingFromPatternPredicate()
     }
 
-    private fun processPatternPredicateOrBail() {
-        // continuing if the end of the query block hasn't been reached yet
-        if (token != Token.Syntax.CurlyBracketEnd) {
-            processPatternPredicate()
-        }
+    private fun processStartingFromPatternPredicate() {
+        predicate = use(PatternPredicateProcessor()) ?: bail("Unexpected end of pattern statement")
+        processStartingFromPatternObject()
     }
 
-    private fun processPatternPredicate() {
-        predicate = processPatternPredicateNext()
-        while (true) {
-            when (token) {
-                Token.Syntax.PredicateOr -> {
-                    predicate = processPatternPredicateOr(predicate)
-                }
-                Token.Syntax.ForwardSlash -> {
-                    predicate = processPatternPredicateChain(predicate)
-                }
-                !is Token.Syntax -> {
-                    // object, so not setting anything and returning instead
-                    processPatternObject()
-                    return
-                }
-                else -> expectedPatternElementOrBindingOrToken(
-                    Token.Syntax.PredicateOr,
-                    Token.Syntax.ForwardSlash
-                )
-            }
-        }
+    /**
+     * Same version as `processStartingFromPatternPredicate`, but stops execution if no predicate is found instead of
+     *  bailing
+     */
+    private fun tryProcessStartingFromPatternPredicate() {
+        predicate = use(PatternPredicateProcessor()) ?: return
+        processStartingFromPatternObject()
     }
 
-    /** Processes [!][(]<predicate>[)][*] **/
-    private fun processPatternPredicateNext(): Pattern.Predicate {
-        return if (token == Token.Syntax.ExclamationMark) {
-            consume()
-            Pattern.Not(processPatternPredicateContent())
-        } else {
-            processPatternPredicateContent()
-        }
-    }
-
-    /** Processes [(]<predicate>[/|<predicate>][)][*] **/
-    private fun processPatternPredicateContent() = when (token) {
-        !is Token.Syntax, Token.Syntax.TypePredicate -> token.asPatternElement()
-        Token.Syntax.RoundBracketStart -> {
-            // token should be `(`, so consuming and continuing
-            consume()
-            var result = processPatternPredicateNext()
-            while (true) {
-                result = when (token) {
-                    Token.Syntax.RoundBracketEnd -> break
-                    Token.Syntax.PredicateOr -> processPatternPredicateOr(result)
-                    Token.Syntax.ForwardSlash -> processPatternPredicateChain(result)
-                    else -> expectedToken(
-                        Token.Syntax.RoundBracketEnd,
-                        Token.Syntax.PredicateOr,
-                        Token.Syntax.ForwardSlash
-                    )
-                }
-            }
-            result
-        }
-        else -> expectedPatternElementOrToken(Token.Syntax.RoundBracketStart)
-    }.let { current ->
-        // consuming the last token from the currently processed predicate
-        consume()
-        // consuming the star if possible
+    private tailrec fun processStartingFromPatternObject() {
+        val o = processPatternObject()
+        result.add(Pattern(subject, predicate, o))
         when (token) {
-            Token.Syntax.Asterisk -> {
+            Token.Syntax.Comma -> {
                 consume()
-                Pattern.ZeroOrMore(current)
+                processStartingFromPatternObject()
             }
-            Token.Syntax.OpPlus -> {
+            Token.Syntax.SemiColon -> {
                 consume()
-                Pattern.OneOrMore(current)
+                tryProcessStartingFromPatternPredicate()
             }
+            Token.Syntax.Period -> {
+                consume()
+                processStartingFromPatternSubject()
+            }
+            !is Token.Syntax -> bail("Invalid pattern structure")
             else -> {
-                current
-            }
-        }
-    }
-
-    private fun processPatternPredicateChain(prior: Pattern.Predicate): Pattern.Predicate {
-        // should currently be pointing to /, so consuming it
-        consume()
-        val next = processPatternPredicateNext()
-        return Pattern.Chain(prior, next)
-    }
-
-    private fun processPatternPredicateOr(prior: Pattern.Predicate): Pattern.Predicate {
-        // should currently be pointing to |, so consuming it
-        consume()
-        val next = processPatternPredicateNext()
-        return Pattern.Constrained(prior, next)
-    }
-
-    private fun processPatternObject() {
-        expectPatternElementOrBinding()
-        result.add(
-            Pattern(
-                s = subject,
-                p = predicate,
-                o = token.asPatternElement()
-            )
-        )
-        consume()
-        processPatternEnd()
-    }
-
-    private fun processPatternEnd() {
-        when (token) {
-            Token.Syntax.ObjectEnd -> {
-                consume()
-                processPatternObject()
-            }
-            Token.Syntax.PredicateEnd -> {
-                consume()
-                processPatternPredicateOrBail()
-            }
-            Token.Syntax.PatternEnd -> {
-                consume()
-                processPatternSubject()
-            }
-            else -> {
-                // don't know what to do, so considering this to be finished
+                // actual end reached probably, e.g. FILTER/BIND/... expression, UNION, ..., so returning
                 return
             }
         }
+    }
+
+    private fun processPatternObject(): Pattern.Object {
+        return when (token) {
+            Token.Syntax.BlankStart ->
+                processBlankObject()
+            is Token.Term, is Token.Binding, is Token.StringLiteral, is Token.NumericLiteral ->
+                token.asPatternElement().also { consume() }
+            else -> expectedPatternElementOrBindingOrToken(Token.Syntax.BlankStart)
+        }
+    }
+
+
+    private fun processBlankObject(): Pattern.BlankObject {
+        // consuming the `[`
+        consume()
+        if (token == Token.Syntax.BlankEnd) {
+            consume()
+            return Pattern.BlankObject(emptyList())
+        }
+        // looping through the inputs until all have been processed
+        val statements = mutableListOf<Pattern.BlankObject.BlankPattern>()
+        // consuming until matching `]` has been reached
+        var p: Pattern.Predicate? = use(PatternPredicateProcessor()) ?: bail("Unexpected token $token")
+        var o = processPatternObject()
+        while (true) {
+            statements.add(Pattern.BlankObject.BlankPattern(p = p!!, o = o))
+            when (token) {
+                Token.Syntax.SemiColon -> {
+                    consume()
+                    // both have to be re-read, or the content has finished
+                    p = use(PatternPredicateProcessor())
+                    if (p == null) {
+                        expectToken(Token.Syntax.BlankEnd)
+                        // removing the `]`
+                        consume()
+                        break
+                    }
+                    o = processPatternObject()
+                }
+                Token.Syntax.Comma -> {
+                    consume()
+                    // only the object changes
+                    o = processPatternObject()
+                }
+                // end reached
+                Token.Syntax.BlankEnd -> {
+                    // removing the `]`
+                    consume()
+                    break
+                }
+                else -> expectedToken(Token.Syntax.SemiColon, Token.Syntax.Period, Token.Syntax.BlankEnd)
+            }
+        }
+        return Pattern.BlankObject(statements)
     }
 
     /* helper extensions */
@@ -164,8 +129,8 @@ class PatternProcessor: Analyser<Patterns>() {
     private fun Token.asPatternElement(): Pattern.Element = when (this) {
         is Token.Binding -> Pattern.Binding(this)
         is Token.Term -> asExactPatternElement()
-        Token.Syntax.TypePredicate -> Pattern.Exact(RDF.type)
-        else -> expectedPatternElementOrBindingOrToken(Token.Syntax.TypePredicate)
+        Token.Syntax.RdfTypePredicate -> Pattern.Exact(RDF.type)
+        else -> expectedPatternElementOrBindingOrToken(Token.Syntax.RdfTypePredicate)
     }
 
     private fun Token.Term.asExactPatternElement() =

@@ -4,15 +4,12 @@ import tesserakt.sparql.Compiler.Default.toAST
 import tesserakt.sparql.compiler.CompilerError
 import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.util.printerrln
-import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TestEnvironment private constructor() {
 
     companion object {
-
-        val compilerPackageName = CompilerError::class.qualifiedName!!.removeSuffix(CompilerError::class.simpleName!!)
 
         fun test(block: TestEnvironment.() -> Unit) {
             TestEnvironment().apply(block).test()
@@ -44,24 +41,14 @@ class TestEnvironment private constructor() {
             }
         }
         failures.forEach { (i, t) ->
-            printerrln(
-                "Query ${i + 1} failed: `${tests[i].input.replace(Regex("\\s+"), " ").trim()}`"
-            )
+            val compact = tests[i].input
+                .replace(Regex("#.*+\\n?"), "")
+                .replace(Regex("\\s+"), " ")
+                .trim()
             if (t is CompilerError) {
-                printerrln("=== compiler error ===")
-                printerrln(t.message!!)
-                printerrln(t.stacktrace)
-                printerrln("=== shortened stacktrace ===")
-                printerrln(
-                    message = t
-                        .stackTraceToString()
-                        .lineSequence()
-                        .takeWhile { it.contains(compilerPackageName) }
-                        .joinToString("\n")
-                )
+                printerrln("Query ${i + 1} failed due to a compiler error: `${compact}`\n${t.message}")
             } else {
-                printerrln("=== stacktrace ===")
-                t.printStackTrace()
+                printerrln("Query ${i + 1} failed due to an unexpected error: `${compact}`\n${t.message}")
             }
         }
         println("${tests.size - failures.size} / ${tests.size} tests succeeded")
@@ -72,17 +59,14 @@ class TestEnvironment private constructor() {
         }
     }
 
-    data class ASTTest <Q: QueryAST> (
+    data class ASTTest (
         override val input: String,
-        val test: Q.() -> Boolean,
-        val clazz: KClass<Q>
+        val test: QueryAST.() -> Boolean
     ): Test() {
 
         override operator fun invoke() {
             val ast = input.toAST()
-            require(clazz.isInstance(ast))
-            @Suppress("UNCHECKED_CAST")
-            assertTrue(test(ast as Q), "Validation did not succeed! Got AST $ast")
+            assertTrue(test(ast), "Validation did not succeed! Got AST $ast")
         }
 
     }
@@ -105,11 +89,11 @@ class TestEnvironment private constructor() {
 
     }
 
-    inline fun <reified Q: QueryAST> String.satisfies(noinline validation: Q.() -> Boolean) {
-        addTest(ASTTest(input = this, test = validation, clazz = Q::class))
+    infix fun String.satisfies(validation: QueryAST.() -> Boolean) {
+        addTest(ASTTest(input = this, test = validation))
     }
 
-    fun String.shouldFail(error: CompilerError.Type) {
+    infix fun String.causes(error: CompilerError.Type) {
         addTest(CompilationFailureTest(input = this, type = error))
     }
 

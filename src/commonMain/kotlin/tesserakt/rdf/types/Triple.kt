@@ -34,6 +34,7 @@ class Triple(
     value class BlankTerm(val id: Int): Term {
         override val value: String
             get() = "blank_$id"
+        override fun toString() = value
     }
 
     @JvmInline
