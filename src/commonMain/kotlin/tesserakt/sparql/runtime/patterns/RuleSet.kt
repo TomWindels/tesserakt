@@ -1,23 +1,22 @@
 package tesserakt.sparql.runtime.patterns
 
 import tesserakt.rdf.types.Triple
-import tesserakt.sparql.compiler.types.Pattern
-import tesserakt.sparql.compiler.types.Patterns
 import tesserakt.sparql.runtime.patterns.rules.QueryRule
 import tesserakt.sparql.runtime.patterns.rules.RegularRule
-import tesserakt.sparql.runtime.patterns.rules.repeating.BindingPredicateRepeatingRule
-import tesserakt.sparql.runtime.patterns.rules.repeating.FixedPredicateRepeatingRule
-import tesserakt.sparql.runtime.patterns.rules.repeating.oneOrMoreRepeatingOf
-import tesserakt.sparql.runtime.patterns.rules.repeating.zeroOrMoreRepeatingOf
+import tesserakt.sparql.runtime.patterns.rules.repeating.BindingPredicateRule
+import tesserakt.sparql.runtime.patterns.rules.repeating.FixedPredicateRule
+import tesserakt.sparql.runtime.patterns.rules.repeating.RepeatingRule.Companion.repeatingOf
 import tesserakt.sparql.runtime.types.Bindings
+import tesserakt.sparql.runtime.types.PatternASTr
+import tesserakt.sparql.runtime.types.PatternsASTr
 
 internal class RuleSet (rules: List<QueryRule<*>>) {
 
     // TODO: make processing these rules in state their own separate type, so further specializing the various
     //  rule types can be done in separate collections for more optimal V-Table usage
     private val regular = rules.filterIsInstance<RegularRule>()
-    private val exactRepeating = rules.filterIsInstance<FixedPredicateRepeatingRule>()
-    private val bindingRepeating = rules.filterIsInstance<BindingPredicateRepeatingRule>()
+    private val exactRepeating = rules.filterIsInstance<FixedPredicateRule>()
+    private val bindingRepeating = rules.filterIsInstance<BindingPredicateRule>()
 
     inner class State {
 
@@ -91,82 +90,16 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
 
     companion object {
 
-        fun from(patterns: Patterns) =
+        fun from(patterns: PatternsASTr) =
             RuleSet(rules = patterns.toFilterRules())
 
         /* helpers */
 
-        private fun Patterns.toFilterRules(): List<QueryRule<*>> = buildList {
-            // always incrementing the blank id with the number of new pattern id's to make sure there's no
-            //  incorrect overlap happening between rules
-            var blankId = 0
-            this@toFilterRules.forEach { pattern ->
-                val new = pattern.toFilterRules(id = blankId)
-                blankId += new.size
-                addAll(new)
+        private fun PatternsASTr.toFilterRules(): List<QueryRule<*>> = map { (s, p, o) ->
+            when (p) {
+                is PatternASTr.RepeatingPredicate -> repeatingOf(s, p, o)
+                is PatternASTr.NonRepeatingPredicate -> RegularRule(s, p, o)
             }
-        }.distinct()
-
-        private fun Pattern.toFilterRules(id: Int) = p.toFilterRules(s.asFilterElement(), o.asFilterElement(), id)
-
-        private fun Pattern.Subject.asFilterElement(): QueryRule.Element {
-            return when (this) {
-                is Pattern.Binding -> QueryRule.Binding(name)
-                is Pattern.Exact -> QueryRule.Exact(value)
-            }
-        }
-
-        private fun Pattern.Object.asFilterElement(): QueryRule.Element {
-            return when (this) {
-                is Pattern.Binding -> QueryRule.Binding(name)
-                is Pattern.Exact -> QueryRule.Exact(value)
-                // FIXME
-                else -> throw UnsupportedOperationException()
-            }
-        }
-
-        private fun Pattern.Predicate.toFilterRules(
-            s: QueryRule.Element,
-            o: QueryRule.Element,
-            id: Int
-        ): List<QueryRule<*>> = when (this@toFilterRules) {
-            is Pattern.Binding -> listOf(RegularRule(s, QueryRule.Binding(name), o))
-            is Pattern.Exact -> listOf(RegularRule(s, QueryRule.Exact(value), o))
-            is Pattern.Not -> listOf(RegularRule(s, QueryRule.Inverse(predicate.toFilterElement() as QueryRule.FixedPredicate), o))
-            is Pattern.ZeroOrMore -> listOf(zeroOrMoreRepeatingOf(s, value.toFilterElement(), o))
-            is Pattern.OneOrMore -> listOf(oneOrMoreRepeatingOf(s, value.toFilterElement(), o))
-            is Pattern.Chain -> generateRules(s, o, id)
-            is Pattern.Constrained -> listOf(RegularRule(s, QueryRule.Either(allowed.map { it.toFilterElement() as QueryRule.FixedPredicate }), o))
-        }
-
-        private fun Pattern.Predicate.toFilterElement(): QueryRule.Predicate = when (this@toFilterElement) {
-            is Pattern.Binding -> QueryRule.Binding(name)
-            is Pattern.Exact -> QueryRule.Exact(value)
-            is Pattern.Not -> QueryRule.Inverse(predicate.toFilterElement() as QueryRule.FixedPredicate)
-            is Pattern.Constrained -> QueryRule.Either(allowed.map { it.toFilterElement() as QueryRule.FixedPredicate })
-            // illegal, these cannot be used in regular query rules
-            is Pattern.Chain -> throw IllegalStateException()
-            is Pattern.ZeroOrMore -> throw IllegalStateException()
-            is Pattern.OneOrMore -> throw IllegalStateException()
-        }
-
-        private fun Pattern.Chain.generateRules(
-            s: QueryRule.Element,
-            o: QueryRule.Element,
-            id: Int
-        ): List<QueryRule<*>> = buildList {
-            var start = s
-            var blank = id
-            for (i in 0 ..< (list.size - 1)) {
-                // setting the intermediate object using an impossible-to-request blank name
-                val end = QueryRule.Binding(" b${blank++}")
-                // adding the current iteration
-                addAll(list[i].toFilterRules(start, end, id + size))
-                // moving the subject
-                start = end
-            }
-            // adding the final one, pointing to the object
-            addAll(list.last().toFilterRules(start, o, id + size))
         }
 
     }

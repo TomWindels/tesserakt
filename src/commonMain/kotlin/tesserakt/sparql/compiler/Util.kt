@@ -3,7 +3,8 @@ package tesserakt.sparql.compiler
 import tesserakt.sparql.compiler.analyser.Analyser
 import tesserakt.sparql.compiler.lexer.Lexer
 import tesserakt.sparql.compiler.lexer.StringLexer
-import tesserakt.sparql.compiler.types.Pattern
+import tesserakt.sparql.compiler.types.AST
+import tesserakt.sparql.compiler.types.PatternAST
 import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.sparql.compiler.types.Token
 
@@ -15,11 +16,11 @@ internal fun QueryAST.QueryBodyAST.extractAllBindings() =
         optional.flatMap { optional -> optional.flatMap { pattern -> pattern.extractAllBindings() } }
     ).distinct()
 
-fun Pattern.extractAllBindings(): List<Pattern.Binding> {
-    val result = mutableListOf<Pattern.Binding>()
+fun PatternAST.extractAllBindings(): List<PatternAST.Binding> {
+    val result = mutableListOf<PatternAST.Binding>()
     when (s) {
-        is Pattern.Binding -> result.add(s)
-        is Pattern.Exact -> { /* nothing to do */ }
+        is PatternAST.Binding -> result.add(s)
+        is PatternAST.Exact -> { /* nothing to do */ }
     }
     result.addAll(p.extractAllBindings())
     result.addAll(o.extractAllBindings())
@@ -31,25 +32,25 @@ fun Pattern.extractAllBindings(): List<Pattern.Binding> {
 
 // helper for the helper
 
-private fun Pattern.Predicate.extractAllBindings(): List<Pattern.Binding> {
+private fun PatternAST.Predicate.extractAllBindings(): List<PatternAST.Binding> {
     return when (this) {
-        is Pattern.Chain -> list.flatMap { it.extractAllBindings() }
-        is Pattern.Constrained -> allowed.flatMap { it.extractAllBindings() }
-        is Pattern.Binding -> listOf(this)
-        is Pattern.Exact -> emptyList()
-        is Pattern.Not -> predicate.extractAllBindings()
-        is Pattern.ZeroOrMore -> value.extractAllBindings()
-        is Pattern.OneOrMore -> value.extractAllBindings()
+        is PatternAST.Chain -> chain.flatMap { it.extractAllBindings() }
+        is PatternAST.Alts -> allowed.flatMap { it.extractAllBindings() }
+        is PatternAST.Binding -> listOf(this)
+        is PatternAST.Exact -> emptyList()
+        is PatternAST.Not -> predicate.extractAllBindings()
+        is PatternAST.ZeroOrMore -> value.extractAllBindings()
+        is PatternAST.OneOrMore -> value.extractAllBindings()
     }
 }
 
-private fun Pattern.Object.extractAllBindings(): List<Pattern.Binding> = when (this) {
-    is Pattern.BlankObject -> properties.flatMap { it.extractAllBindings() }
-    is Pattern.Binding -> listOf(this)
-    is Pattern.Exact -> { emptyList() }
+private fun PatternAST.Object.extractAllBindings(): List<PatternAST.Binding> = when (this) {
+    is PatternAST.BlankObject -> properties.flatMap { it.extractAllBindings() }
+    is PatternAST.Binding -> listOf(this)
+    is PatternAST.Exact -> { emptyList() }
 }
 
-private fun Pattern.BlankObject.BlankPattern.extractAllBindings(): List<Pattern.Binding> {
+private fun PatternAST.BlankObject.BlankPattern.extractAllBindings(): List<PatternAST.Binding> {
     val first = p.extractAllBindings()
     val second = o.extractAllBindings()
     return if (first.isEmpty() && second.isEmpty()) {
@@ -64,7 +65,7 @@ private fun Pattern.BlankObject.BlankPattern.extractAllBindings(): List<Pattern.
  *  a result type containing the corresponding AST if the processing was successful, or a result type containing the
  *  compilation error.
  */
-fun <AST> String.processed(analyser: Analyser<AST>): Result<AST> {
+fun <RT: AST> String.processed(analyser: Analyser<RT>): Result<RT> {
     return try {
         val lexer = StringLexer(this)
         val ast = analyser.configureAndUse(lexer)

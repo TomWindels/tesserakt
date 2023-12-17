@@ -2,13 +2,14 @@ package tesserakt.sparql.runtime.patterns.rules
 
 import tesserakt.rdf.types.Triple
 import tesserakt.sparql.runtime.types.Bindings
+import tesserakt.sparql.runtime.types.PatternASTr
 import tesserakt.util.compatibleWith
 
 // TODO: make 4 versions of this rule, alternating between exact and binding types for `s`, `o`
 internal data class RegularRule(
-    private val s: Element,
-    private val p: Predicate,
-    private val o: Element
+    private val s: PatternASTr.Subject,
+    private val p: PatternASTr.NonRepeatingPredicate,
+    private val o: PatternASTr.Object
 ) : QueryRule<MutableList<Bindings>>() {
 
     /**

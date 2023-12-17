@@ -6,9 +6,9 @@ import kotlin.math.absoluteValue
 data class Aggregation(
     val root: Aggregator,
     val output: Token.Binding
-) {
+): AST {
 
-    sealed interface Aggregator
+    sealed interface Aggregator: AST
 
     // TODO: these require grouping for non-aggregated bindings in the select statement (see compile test case `GROUP BY ?g`)
     data class Builtin(

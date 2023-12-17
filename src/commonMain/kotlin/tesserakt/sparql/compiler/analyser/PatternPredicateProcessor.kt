@@ -2,16 +2,16 @@ package tesserakt.sparql.compiler.analyser
 
 import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Triple
-import tesserakt.sparql.compiler.types.Pattern
+import tesserakt.sparql.compiler.types.PatternAST
 import tesserakt.sparql.compiler.types.Token
 
-class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
+class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
 
-    override fun _process(): Pattern.Predicate? {
+    override fun _process(): PatternAST.Predicate? {
         return processPatternPredicate()
     }
 
-    private fun processPatternPredicate(): Pattern.Predicate? {
+    private fun processPatternPredicate(): PatternAST.Predicate? {
         var predicate = processPatternPredicateNext() ?: return null
         while (true) {
             when (token) {
@@ -39,10 +39,10 @@ class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
     }
 
     /** Processes [!][(]<predicate>[)][*] **/
-    private fun processPatternPredicateNext(): Pattern.Predicate? {
+    private fun processPatternPredicateNext(): PatternAST.Predicate? {
         return if (token == Token.Syntax.ExclamationMark) {
             consume()
-            Pattern.Not(
+            PatternAST.Not(
                 predicate = processPatternPredicateContent() ?: bail("Unexpected end of `!...` statement")
             )
         } else {
@@ -78,11 +78,11 @@ class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
         when (token) {
             Token.Syntax.Asterisk -> {
                 consume()
-                Pattern.ZeroOrMore(current)
+                PatternAST.ZeroOrMore(current)
             }
             Token.Syntax.OpPlus -> {
                 consume()
-                Pattern.OneOrMore(current)
+                PatternAST.OneOrMore(current)
             }
             else -> {
                 current
@@ -90,31 +90,31 @@ class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
         }
     }
 
-    private fun processPatternPredicateChain(prior: Pattern.Predicate): Pattern.Predicate {
+    private fun processPatternPredicateChain(prior: PatternAST.Predicate): PatternAST.Predicate {
         // should currently be pointing to /, so consuming it
         consume()
         val next = processPatternPredicateNext() ?: bail("Unexpected end of `.../...` statement")
-        return Pattern.Chain(prior, next)
+        return PatternAST.Chain(prior, next)
     }
 
-    private fun processPatternPredicateOr(prior: Pattern.Predicate): Pattern.Predicate {
+    private fun processPatternPredicateOr(prior: PatternAST.Predicate): PatternAST.Predicate {
         // should currently be pointing to |, so consuming it
         consume()
         val next = processPatternPredicateNext() ?: bail("Unexpected end of `...|...` statement")
-        return Pattern.Constrained(prior, next)
+        return PatternAST.Alts(prior, next)
     }
 
     /* helper extensions */
 
-    private fun Token.asPatternElement(): Pattern.Element = when (this) {
-        is Token.Binding -> Pattern.Binding(this)
+    private fun Token.asPatternElement(): PatternAST.Element = when (this) {
+        is Token.Binding -> PatternAST.Binding(this)
         is Token.Term -> asExactPatternElement()
-        Token.Syntax.RdfTypePredicate -> Pattern.Exact(RDF.type)
+        Token.Syntax.RdfTypePredicate -> PatternAST.Exact(RDF.type)
         else -> expectedPatternElementOrBindingOrToken(Token.Syntax.RdfTypePredicate)
     }
 
     private fun Token.Term.asExactPatternElement() =
-        Pattern.Exact(
+        PatternAST.Exact(
             if (value.contains(':')) {
                 val prefix = value.substringBefore(':')
                 val uri = prefixes[prefix] ?: bail("Unknown prefix: `$prefix`")

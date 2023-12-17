@@ -1,11 +1,11 @@
 package tesserakt.sparql.runtime.query
 
 import tesserakt.rdf.types.Triple
-import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.sparql.runtime.patterns.RuleSet
 import tesserakt.sparql.runtime.types.Bindings
+import tesserakt.sparql.runtime.types.QueryASTr
 
-sealed class Query<ResultType, AST: QueryAST>(
+sealed class Query<ResultType, AST: QueryASTr>(
     protected val ast: AST
 ) {
 

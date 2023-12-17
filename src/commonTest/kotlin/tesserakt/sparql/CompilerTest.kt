@@ -10,7 +10,7 @@ import tesserakt.sparql.compiler.processed
 import tesserakt.sparql.compiler.types.Aggregation
 import tesserakt.sparql.compiler.types.Aggregation.Companion.builtin
 import tesserakt.sparql.compiler.types.Aggregation.Companion.distinctBindings
-import tesserakt.sparql.compiler.types.Pattern
+import tesserakt.sparql.compiler.types.PatternAST
 import tesserakt.sparql.compiler.types.SelectQueryAST
 import kotlin.test.Test
 
@@ -20,10 +20,10 @@ class CompilerTest {
     fun select() = test {
         /* content tests */
         "SELECT ?s ?p ?o WHERE { ?s ?p ?o ; }" satisfies {
-            val pattern = Pattern(
-                s = Pattern.Binding("s"),
-                p = Pattern.Binding("p"),
-                o = Pattern.Binding("o")
+            val pattern = PatternAST(
+                s = PatternAST.Binding("s"),
+                p = PatternAST.Binding("p"),
+                o = PatternAST.Binding("o")
             )
             body.patterns.size == 1 && body.patterns.first() == pattern
         }
@@ -35,32 +35,32 @@ class CompilerTest {
         }
         "prefix select: <http://example.org/> select*{?s select:prop ?o ; <prop> select:test}" satisfies {
             body.patterns.size == 2
-                && body.patterns[0].p == Pattern.Exact(Triple.NamedTerm("http://example.org/prop"))
-                && body.patterns[1].o == Pattern.Exact(Triple.NamedTerm("http://example.org/test"))
+                && body.patterns[0].p == PatternAST.Exact(Triple.NamedTerm("http://example.org/prop"))
+                && body.patterns[1].o == PatternAST.Exact(Triple.NamedTerm("http://example.org/test"))
         }
         "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }" satisfies {
-            body.patterns.first().p is Pattern.Chain
+            body.patterns.first().p is PatternAST.Chain
         }
         "SELECT * WHERE { ?s a/?p1*/?p2?o. }" satisfies {
             require(this is SelectQueryAST)
-            body.patterns.first().p is Pattern.Chain
+            body.patterns.first().p is PatternAST.Chain
                 && output.names == setOf("s", "p1", "p2", "o")
                 && output.entries.all { it.value is SelectQueryAST.Output.BindingEntry }
         }
         "SELECT * WHERE { ?s (<predicate2>|<predicate3>)?o. }" satisfies {
-            body.patterns.first().p is Pattern.Constrained
+            body.patterns.first().p is PatternAST.Alts
         }
         "SELECT * WHERE { ?s <contains>/(<prop1>|!<prop2>)* ?o2 }" satisfies {
-            body.patterns.first().p.let { p -> p is Pattern.Chain && p.list[1] is Pattern.ZeroOrMore }
+            body.patterns.first().p.let { p -> p is PatternAST.Chain && p.chain[1] is PatternAST.ZeroOrMore }
         }
         "SELECT ?s?p?o WHERE {?s?p?o2;?p2?o.}" satisfies {
-            body.patterns.size == 2 && body.patterns[1].p == Pattern.Binding("p2")
+            body.patterns.size == 2 && body.patterns[1].p == PatternAST.Binding("p2")
         }
         "SELECT ?s WHERE {?s<prop><value>}" satisfies {
-            val pattern = Pattern(
-                s = Pattern.Binding("s"),
-                p = Pattern.Exact(Triple.NamedTerm("prop")),
-                o = Pattern.Exact(Triple.NamedTerm("value"))
+            val pattern = PatternAST(
+                s = PatternAST.Binding("s"),
+                p = PatternAST.Exact(Triple.NamedTerm("prop")),
+                o = PatternAST.Exact(Triple.NamedTerm("value"))
             )
             body.patterns.size == 1 && body.patterns.first() == pattern
         }
@@ -157,10 +157,10 @@ class CompilerTest {
             GROUP BY ?g
         """ satisfies {
             require(this is SelectQueryAST)
-            val pattern = Pattern(
-                s = Pattern.Binding("g"),
-                p = Pattern.Exact(Triple.NamedTerm("http://example.com/data/#p")),
-                o = Pattern.Binding("p")
+            val pattern = PatternAST(
+                s = PatternAST.Binding("g"),
+                p = PatternAST.Exact(Triple.NamedTerm("http://example.com/data/#p")),
+                o = PatternAST.Binding("p")
             )
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
@@ -172,13 +172,13 @@ class CompilerTest {
                 ?s ?p [ a <type> ; ]
             }
         """ satisfies {
-            val blankPatterns = body.patterns.firstOrNull()?.o as? Pattern.BlankObject ?: return@satisfies false
+            val blankPatterns = body.patterns.firstOrNull()?.o as? PatternAST.BlankObject ?: return@satisfies false
 
             body.patterns.size == 1 &&
             blankPatterns.properties.size == 1 &&
-            blankPatterns.properties.first() == Pattern.BlankObject.BlankPattern(
-                p = Pattern.Exact(RDF.type),
-                o = Pattern.Exact("type".asNamedTerm())
+            blankPatterns.properties.first() == PatternAST.BlankObject.BlankPattern(
+                p = PatternAST.Exact(RDF.type),
+                o = PatternAST.Exact("type".asNamedTerm())
             )
         }
         """
@@ -187,15 +187,15 @@ class CompilerTest {
             }
         """ satisfies {
             require(this is SelectQueryAST)
-            val first = body.patterns.firstOrNull()?.o as? Pattern.BlankObject ?: return@satisfies false
-            val second = first.properties.firstOrNull()?.o as? Pattern.BlankObject ?: return@satisfies false
+            val first = body.patterns.firstOrNull()?.o as? PatternAST.BlankObject ?: return@satisfies false
+            val second = first.properties.firstOrNull()?.o as? PatternAST.BlankObject ?: return@satisfies false
 
             body.patterns.size == 1 &&
             first.properties.size == 1 &&
             second.properties.size == 1 &&
-            second.properties.first() == Pattern.BlankObject.BlankPattern(
-                p = Pattern.Exact("data".asNamedTerm()),
-                o = Pattern.Binding("values")
+            second.properties.first() == PatternAST.BlankObject.BlankPattern(
+                p = PatternAST.Exact("data".asNamedTerm()),
+                o = PatternAST.Binding("values")
             ) &&
             "values" in output.names
         }
@@ -209,15 +209,15 @@ class CompilerTest {
                 ]
             }
         """ satisfies {
-            val first = body.patterns.getOrNull(0)?.o as? Pattern.BlankObject ?: return@satisfies false
-            val second = body.patterns.getOrNull(1)?.o as? Pattern.BlankObject ?: return@satisfies false
+            val first = body.patterns.getOrNull(0)?.o as? PatternAST.BlankObject ?: return@satisfies false
+            val second = body.patterns.getOrNull(1)?.o as? PatternAST.BlankObject ?: return@satisfies false
 
             body.patterns.size == 2 &&
             first.properties.size == 4 &&
             second.properties.size == 1 &&
-            second.properties.first() == Pattern.BlankObject.BlankPattern(
-                p = Pattern.Exact(RDF.type),
-                o = Pattern.Exact("other-type".asNamedTerm())
+            second.properties.first() == PatternAST.BlankObject.BlankPattern(
+                p = PatternAST.Exact(RDF.type),
+                o = PatternAST.Exact("other-type".asNamedTerm())
             )
         }
         /* expected failure cases */

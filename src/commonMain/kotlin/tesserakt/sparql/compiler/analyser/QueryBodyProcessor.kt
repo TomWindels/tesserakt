@@ -1,6 +1,6 @@
 package tesserakt.sparql.compiler.analyser
 
-import tesserakt.sparql.compiler.types.Patterns
+import tesserakt.sparql.compiler.types.PatternsAST
 import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.sparql.compiler.types.Token
 
@@ -68,7 +68,7 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
     }
 
     private fun processUnion() {
-        val patterns = mutableListOf<Patterns>()
+        val patterns = mutableListOf<PatternsAST>()
         while (true) {
             patterns.add(use(PatternProcessor()))
             expectToken(Token.Syntax.CurlyBracketEnd)

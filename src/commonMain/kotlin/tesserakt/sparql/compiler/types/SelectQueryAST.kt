@@ -9,7 +9,7 @@ data class SelectQueryAST(
 ): QueryAST() {
 
     @JvmInline
-    value class Output internal constructor(val entries: Map<String, Entry>) {
+    value class Output internal constructor(val entries: Map<String, Entry>): AST {
 
         val names get() = entries.keys
 
@@ -30,7 +30,7 @@ data class SelectQueryAST(
         }
 
         @JvmInline
-        value class BindingEntry(val binding: Pattern.Binding): Entry {
+        value class BindingEntry(val binding: PatternAST.Binding): Entry {
             override val name: String get() = binding.name
         }
 
@@ -47,7 +47,7 @@ data class SelectQueryAST(
         private val entries = mutableListOf<Output.Entry>()
         lateinit var body: QueryBodyAST
 
-        fun addToOutput(binding: Pattern.Binding) {
+        fun addToOutput(binding: PatternAST.Binding) {
             entries.add(Output.BindingEntry(binding))
         }
 

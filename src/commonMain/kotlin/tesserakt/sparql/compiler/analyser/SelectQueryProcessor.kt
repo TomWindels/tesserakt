@@ -1,6 +1,6 @@
 package tesserakt.sparql.compiler.analyser
 
-import tesserakt.sparql.compiler.types.Pattern
+import tesserakt.sparql.compiler.types.PatternAST
 import tesserakt.sparql.compiler.types.SelectQueryAST
 import tesserakt.sparql.compiler.types.Token
 
@@ -20,7 +20,7 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
         // now expecting either binding name, star or the WHERE clause
         when (token) {
             is Token.Binding -> {
-                builder.addToOutput(Pattern.Binding(token as Token.Binding))
+                builder.addToOutput(PatternAST.Binding(token as Token.Binding))
                 // consuming it
                 consume()
                 // continuing only accepting bindings, aggregations/operations or the start of the query
@@ -57,7 +57,7 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
         // now expecting either binding name, star or the WHERE clause
         when (token) {
             is Token.Binding -> {
-                builder.addToOutput(Pattern.Binding(token as Token.Binding))
+                builder.addToOutput(PatternAST.Binding(token as Token.Binding))
                 // consuming it
                 consume()
                 // still processing the start

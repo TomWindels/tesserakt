@@ -3,14 +3,15 @@ package tesserakt.sparql.runtime.patterns.rules.repeating
 import tesserakt.rdf.types.Triple
 import tesserakt.sparql.runtime.patterns.rules.QueryRule
 import tesserakt.sparql.runtime.types.Bindings
+import tesserakt.sparql.runtime.types.PatternASTr
 
 // TODO: make helper method for when repeating with a specific term as s & o, making those additional regular rules
 //  (should be equivalent)
 internal abstract class RepeatingRule<DT: Any>(
     // the intended start element
-    protected val s: Binding,
+    protected val s: PatternASTr.Binding,
     // the intended final result
-    protected val o: Binding,
+    protected val o: PatternASTr.Binding,
     // TODO make the DT for the bind predicate a map, key being the bound predicate
 ) : QueryRule<DT>() {
 
@@ -103,5 +104,23 @@ internal abstract class RepeatingRule<DT: Any>(
     abstract fun expand(input: List<Bindings>, data: DT): List<Bindings>
 
     protected fun Connections.Segment.asBindings() = mapOf(s.name to start, o.name to end)
+
+    companion object {
+
+        fun repeatingOf(
+            s: PatternASTr.Subject,
+            p: PatternASTr.RepeatingPredicate,
+            o: PatternASTr.Object
+        ): RepeatingRule<*> = when {
+            s is PatternASTr.Binding && o is PatternASTr.Binding -> when (p) {
+                is PatternASTr.ZeroOrMoreBound -> ZeroOrMoreBindingPredicateRule(s, p.predicate, o)
+                is PatternASTr.ZeroOrMoreFixed -> ZeroOrMoreFixedPredicateRule(s, p.predicate, o)
+                is PatternASTr.OneOrMoreBound -> OneOrMoreBindingPredicateRule(s, p.predicate, o)
+                is PatternASTr.OneOrMoreFixed -> OneOrMoreFixedPredicateRule(s, p.predicate, o)
+            }
+            else -> throw UnsupportedOperationException("Using fixed s/o terms in repeating rules is currently unsupported!")
+        }
+
+    }
 
 }

@@ -2,21 +2,21 @@ package tesserakt.sparql.compiler.analyser
 
 import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Triple
-import tesserakt.sparql.compiler.types.Pattern
-import tesserakt.sparql.compiler.types.Patterns
+import tesserakt.sparql.compiler.types.PatternAST
+import tesserakt.sparql.compiler.types.PatternsAST
 import tesserakt.sparql.compiler.types.Token
 
-class PatternProcessor: Analyser<Patterns>() {
+class PatternProcessor: Analyser<PatternsAST>() {
 
-    private lateinit var subject: Pattern.Subject
-    private lateinit var predicate: Pattern.Predicate
+    private lateinit var subject: PatternAST.Subject
+    private lateinit var predicate: PatternAST.Predicate
 
-    private val result = mutableListOf<Pattern>()
+    private val result = mutableListOf<PatternAST>()
 
-    override fun _process(): Patterns {
+    override fun _process(): PatternsAST {
         result.clear()
         processStartingFromPatternSubject()
-        return result
+        return PatternsAST(result)
     }
 
     private fun processStartingFromPatternSubject() {
@@ -47,7 +47,7 @@ class PatternProcessor: Analyser<Patterns>() {
 
     private tailrec fun processStartingFromPatternObject() {
         val o = processPatternObject()
-        result.add(Pattern(subject, predicate, o))
+        result.add(PatternAST(subject, predicate, o))
         when (token) {
             Token.Syntax.Comma -> {
                 consume()
@@ -69,7 +69,7 @@ class PatternProcessor: Analyser<Patterns>() {
         }
     }
 
-    private fun processPatternObject(): Pattern.Object {
+    private fun processPatternObject(): PatternAST.Object {
         return when (token) {
             Token.Syntax.BlankStart ->
                 processBlankObject()
@@ -80,20 +80,20 @@ class PatternProcessor: Analyser<Patterns>() {
     }
 
 
-    private fun processBlankObject(): Pattern.BlankObject {
+    private fun processBlankObject(): PatternAST.BlankObject {
         // consuming the `[`
         consume()
         if (token == Token.Syntax.BlankEnd) {
             consume()
-            return Pattern.BlankObject(emptyList())
+            return PatternAST.BlankObject(emptyList())
         }
         // looping through the inputs until all have been processed
-        val statements = mutableListOf<Pattern.BlankObject.BlankPattern>()
+        val statements = mutableListOf<PatternAST.BlankObject.BlankPattern>()
         // consuming until matching `]` has been reached
-        var p: Pattern.Predicate? = use(PatternPredicateProcessor()) ?: bail("Unexpected token $token")
+        var p: PatternAST.Predicate? = use(PatternPredicateProcessor()) ?: bail("Unexpected token $token")
         var o = processPatternObject()
         while (true) {
-            statements.add(Pattern.BlankObject.BlankPattern(p = p!!, o = o))
+            statements.add(PatternAST.BlankObject.BlankPattern(p = p!!, o = o))
             when (token) {
                 Token.Syntax.SemiColon -> {
                     consume()
@@ -121,20 +121,20 @@ class PatternProcessor: Analyser<Patterns>() {
                 else -> expectedToken(Token.Syntax.SemiColon, Token.Syntax.Period, Token.Syntax.BlankEnd)
             }
         }
-        return Pattern.BlankObject(statements)
+        return PatternAST.BlankObject(statements)
     }
 
     /* helper extensions */
 
-    private fun Token.asPatternElement(): Pattern.Element = when (this) {
-        is Token.Binding -> Pattern.Binding(this)
+    private fun Token.asPatternElement(): PatternAST.Element = when (this) {
+        is Token.Binding -> PatternAST.Binding(this)
         is Token.Term -> asExactPatternElement()
-        Token.Syntax.RdfTypePredicate -> Pattern.Exact(RDF.type)
+        Token.Syntax.RdfTypePredicate -> PatternAST.Exact(RDF.type)
         else -> expectedPatternElementOrBindingOrToken(Token.Syntax.RdfTypePredicate)
     }
 
     private fun Token.Term.asExactPatternElement() =
-        Pattern.Exact(
+        PatternAST.Exact(
             if (value.contains(':')) {
                 val prefix = value.substringBefore(':')
                 val uri = prefixes[prefix] ?: bail("Unknown prefix: `$prefix`")

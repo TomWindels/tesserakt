@@ -2,9 +2,10 @@ package tesserakt.sparql.compiler.analyser
 
 import tesserakt.sparql.compiler.CompilerError
 import tesserakt.sparql.compiler.lexer.Lexer
+import tesserakt.sparql.compiler.types.AST
 import tesserakt.sparql.compiler.types.Token
 
-abstract class Analyser<AST> {
+abstract class Analyser<RT: AST?> {
 
     /** available set of predicates, set according to the currently processed query **/
     protected lateinit var prefixes: MutableMap<String, String>
@@ -17,7 +18,7 @@ abstract class Analyser<AST> {
      * Processes starting from the input's current position and consumes every related item to its specific
      *  type T
      */
-    fun configureAndUse(input: Lexer): AST {
+    fun configureAndUse(input: Lexer): RT {
         lexer = input
         consume()
         return _process()
@@ -26,13 +27,13 @@ abstract class Analyser<AST> {
     /**
      * Processes starting from the calling analyzer's last token, reusing that position (so starting at "lexer - 1")
      */
-    protected fun <O> use(other: Analyser<O>): O {
+    protected fun <O: AST?> use(other: Analyser<O>): O {
         other.lexer = lexer
         other.prefixes = prefixes
         return other._process()
     }
 
-    protected abstract fun _process(): AST
+    protected abstract fun _process(): RT
 
     /** Consumes the next token. The next token can be `EOF` if the end has been reached **/
     protected fun consume() {

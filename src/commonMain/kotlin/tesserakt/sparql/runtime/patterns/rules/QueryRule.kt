@@ -1,7 +1,7 @@
 package tesserakt.sparql.runtime.patterns.rules
 
 import tesserakt.rdf.types.Triple
-import kotlin.jvm.JvmInline
+import tesserakt.sparql.runtime.types.PatternASTr
 
 internal abstract class QueryRule<DT: Any> {
 
@@ -10,46 +10,34 @@ internal abstract class QueryRule<DT: Any> {
      */
     abstract fun newState(): DT
 
-    sealed interface Element
-
-    sealed interface Predicate
-
-    // all predicates not representing a binding
-    sealed interface FixedPredicate
-
-    @JvmInline
-    value class Binding(val name: String) : Element, Predicate
-
-    @JvmInline
-    value class Exact(val term: Triple.Term) : Element, FixedPredicate, Predicate
-
-    @JvmInline
-    value class Inverse(val term: FixedPredicate) : FixedPredicate, Predicate
-
-    @JvmInline
-    value class Either(val elements: List<FixedPredicate>) : FixedPredicate, Predicate
-
     companion object {
 
-        /* helpers for using these element types */
+        /* helpers for using the pattern element types */
 
-        val Element.bindingName: String?
-            get() = (this as? Binding)?.name
+        val PatternASTr.Subject.bindingName: String?
+            get() = (this as? PatternASTr.Binding)?.name
 
-        val Predicate.bindingName: String?
-            get() = (this as? Binding)?.name
+        val PatternASTr.Object.bindingName: String?
+            get() = (this as? PatternASTr.Binding)?.name
 
-        fun Element.matches(term: Triple.Term): Boolean =
-            (this !is Exact || this.term == term)
+        val PatternASTr.Predicate.bindingName: String?
+            get() = (this as? PatternASTr.Binding)?.name
 
-        fun Predicate.matches(term: Triple.Term): Boolean =
-            this is Binding || (this as FixedPredicate).matches(term)
+        fun PatternASTr.Subject.matches(term: Triple.Term): Boolean =
+            (this !is PatternASTr.Exact || this.term == term)
 
-        fun FixedPredicate.matches(term: Triple.Term): Boolean = when (this) {
-            is Exact -> this.term == term
-            is Inverse -> !this.term.matches(term)
-            is Either -> elements.any { it.matches(term) }
-        }
+        fun PatternASTr.Object.matches(term: Triple.Term): Boolean =
+            (this !is PatternASTr.Exact || this.term == term)
+
+        fun PatternASTr.Predicate.matches(term: Triple.Term): Boolean =
+            this is PatternASTr.RegularBinding || (this as PatternASTr.FixedPredicate).matches(term)
+
+        fun PatternASTr.FixedPredicate.matches(term: Triple.Term): Boolean =
+            when (this) {
+                is PatternASTr.Alts -> allowed.any { it.matches(term) }
+                is PatternASTr.Exact -> this.term == term
+                is PatternASTr.Inverse -> this.predicate != term
+            }
 
     }
 

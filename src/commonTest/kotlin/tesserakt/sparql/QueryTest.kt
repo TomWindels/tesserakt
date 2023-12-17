@@ -2,6 +2,8 @@ package tesserakt.sparql
 
 import tesserakt.createTestStore
 import tesserakt.rdf.dsl.RdfContext.Companion.buildStore
+import tesserakt.rdf.lt
+import tesserakt.rdf.nt
 import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Triple.Companion.asNamedTerm
 import tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
@@ -114,6 +116,46 @@ class QueryTest {
             }
         """.asSPARQLSelectQuery()
         println("Found \"traversal\" entries:\n${store.query(traversal).tabulate().apply { order("person", "p", "result")}.toStylisedString() }")
+    }
+
+    @Test
+    fun blank() {
+        val store = buildStore {
+            "person1".nt has "domicile".nt being blank {
+                "address".nt being blank {
+                    "street".nt being "Person St.".lt
+                    "city".nt being blank {
+                        "inhabitants".nt being 5000
+                    }
+                }
+            }
+            "person2".nt has "domicile".nt being "house2".nt
+            "house2".nt has "address".nt being "address2".nt
+            "address2".nt has "street".nt being "Person II St.".lt
+            "address2".nt has "city".nt being blank {
+                "inhabitants".nt being 7500
+            }
+            "incomplete".nt has "domicile".nt being blank {
+                "address".nt being blank {
+                    "street".nt being "unknown".nt
+                    "city".nt being "unknown".nt
+                }
+            }
+        }
+
+        val blank = """
+            SELECT * {
+                ?person <domicile> [
+                    <address> [
+                        <street> ?street ;
+                        <city> [
+                            <inhabitants> ?count
+                        ]
+                    ]
+                ] .
+            }
+        """.asSPARQLSelectQuery()
+        println("Found address:\n${store.query(blank).tabulate()}")
     }
 
 }

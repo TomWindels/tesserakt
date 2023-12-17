@@ -2,14 +2,15 @@ package tesserakt.sparql.runtime.patterns.rules.repeating
 
 import tesserakt.rdf.types.Triple
 import tesserakt.sparql.runtime.types.Bindings
+import tesserakt.sparql.runtime.types.PatternASTr
 
-internal abstract class BindingPredicateRepeatingRule(
+internal abstract class BindingPredicateRule(
     // the intended start element
-    s: Binding,
+    s: PatternASTr.Binding,
     // the repeating element
-    protected val p: Binding,
+    protected val p: PatternASTr.Binding,
     // the intended final result
-    o: Binding
+    o: PatternASTr.Binding
 ) : RepeatingRule<MutableMap<Triple.Term, RepeatingRule.Connections>>(s = s, o = o) {
 
     open fun insertAndReturnNewPaths(triple: Triple, data: MutableMap<Triple.Term, Connections>): List<Bindings> {

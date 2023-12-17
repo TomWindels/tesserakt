@@ -1,15 +1,16 @@
 package tesserakt.sparql.runtime.patterns.rules.repeating
 
 import tesserakt.sparql.runtime.types.Bindings
+import tesserakt.sparql.runtime.types.PatternASTr
 
-internal class OneOrMoreFixedPredicateRepeatingRule(
+internal class OneOrMoreFixedPredicateRule(
     // the intended start element
-    s: Binding,
+    s: PatternASTr.Binding,
     // the repeating element
-    p: FixedPredicate,
+    p: PatternASTr.FixedPredicate,
     // the intended final result
-    o: Binding
-) : FixedPredicateRepeatingRule(s = s, p = p, o = o) {
+    o: PatternASTr.Binding
+) : FixedPredicateRule(s = s, p = p, o = o) {
 
     override fun expand(input: List<Bindings>, data: Connections): List<Bindings> {
         return input.flatMap { bindings ->
