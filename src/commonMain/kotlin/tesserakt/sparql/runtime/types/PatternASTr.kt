@@ -36,8 +36,8 @@ data class PatternASTr(
      *  presented back to the user in string form
      */
     @JvmInline
-    value class GeneratedBinding private constructor(override val name: String): Binding {
-        constructor(id: Int): this(name = " b${id}")
+    value class GeneratedBinding(val id: Int): Binding {
+        override val name: String get() = " b${id}"
     }
 
     @JvmInline

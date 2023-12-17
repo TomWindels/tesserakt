@@ -123,16 +123,25 @@ class StringLexer(private val input: String): Lexer() {
             if (terminator == -1) {
                 bail("Term started at index $start is not properly terminated, `>` expected")
             }
-            // + 1 as the `>` is part of this pattern element
-            Token.Term(input.substring(start, terminator + 1))
+            // summing two extra to the start, same logic as `?...` bindings
+            start += 2
+            // temporarily minus 1 for the substring
+            Token.Term(input.substring(start - 1, terminator))
         } else if (input[start] == ':' || input[start].isLetterOrDigit() && input.has(':')) {
+            val colon = input.indexOf(':', startIndex = start, endIndex = end)
             // two types of pattern elements possible: `prefix:` declarations and `prefix:name` pattern elements
             // remainder of the string should be valid, as only spaces or < ends a pattern element using a prefix
             val terminator = input.endOfBindingOrPrefixedTerm()
             if (terminator == -1) {
-                Token.Term(input.substring(start, end))
+                Token.PrefixedTerm(
+                    namespace = input.substring(start, colon),
+                    value = input.substring(colon + 1, end)
+                )
             } else {
-                Token.Term(input.substring(start, terminator))
+                Token.PrefixedTerm(
+                    namespace = input.substring(start, colon),
+                    value = input.substring(colon + 1, terminator)
+                )
             }
         } else if (input[start] == '?') {
             // remainder of the string should be valid, as only spaces or < ends a binding name

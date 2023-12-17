@@ -22,6 +22,7 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
                     predicate = processPatternPredicateChain(predicate)
                 }
                 is Token.Term,
+                is Token.PrefixedTerm,
                 is Token.Binding,
                 is Token.NumericLiteral,
                 is Token.StringLiteral,
@@ -52,7 +53,7 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
 
     /** Processes [(]<predicate>[/|<predicate>][)][*|+] **/
     private fun processPatternPredicateContent() = when (token) {
-        is Token.Term, is Token.Binding, Token.Syntax.RdfTypePredicate -> token.asPatternElement()
+        is Token.Term, is Token.PrefixedTerm, is Token.Binding, Token.Syntax.RdfTypePredicate -> token.asPatternElement()
         Token.Syntax.RoundBracketStart -> {
             consume()
             var result = processPatternPredicateNext() ?: bail("Unexpected end of `(...)` statement")
@@ -108,22 +109,15 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
 
     private fun Token.asPatternElement(): PatternAST.Element = when (this) {
         is Token.Binding -> PatternAST.Binding(this)
-        is Token.Term -> asExactPatternElement()
+        is Token.Term -> PatternAST.Exact(Triple.NamedTerm(value = value))
+        is Token.PrefixedTerm -> PatternAST.Exact(Triple.NamedTerm(value = resolve()))
         Token.Syntax.RdfTypePredicate -> PatternAST.Exact(RDF.type)
         else -> expectedPatternElementOrBindingOrToken(Token.Syntax.RdfTypePredicate)
     }
 
-    private fun Token.Term.asExactPatternElement() =
-        PatternAST.Exact(
-            if (value.contains(':')) {
-                val prefix = value.substringBefore(':')
-                val uri = prefixes[prefix] ?: bail("Unknown prefix: `$prefix`")
-                val name = uri + value.substringAfter(':')
-                Triple.NamedTerm(value = name)
-            } else {
-                // removing the `<`, `>`
-                Triple.NamedTerm(value = value.substring(1, value.length - 1))
-            }
-        )
+    private fun Token.PrefixedTerm.resolve(): String {
+        val uri = prefixes[namespace] ?: bail("Unknown prefix: `$namespace`")
+        return uri + value
+    }
 
 }

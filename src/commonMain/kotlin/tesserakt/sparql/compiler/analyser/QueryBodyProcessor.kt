@@ -20,6 +20,7 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
             when (token) {
                 // binding or term, so the start of a block is happening here
                 is Token.Term,
+                is Token.PrefixedTerm,
                 is Token.StringLiteral,
                 is Token.Binding,
                 is Token.NumericLiteral -> {
@@ -48,6 +49,7 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
         when (token) {
             // binding or term, so the start of a block is happening here
             is Token.Term,
+            is Token.PrefixedTerm,
             is Token.StringLiteral,
             is Token.Binding,
             is Token.NumericLiteral -> processUnion()
@@ -78,7 +80,6 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 consume()
                 expectToken(Token.Syntax.CurlyBracketStart)
                 consume()
-                expectPatternElementOrBinding()
                 // looping back up top
             } else {
                 break

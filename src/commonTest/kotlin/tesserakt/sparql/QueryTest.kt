@@ -6,7 +6,6 @@ import tesserakt.rdf.lt
 import tesserakt.rdf.nt
 import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Triple.Companion.asNamedTerm
-import tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import tesserakt.sparql.runtime.query.Query.Companion.query
 import tesserakt.util.BindingsTable.Companion.tabulate
 import tesserakt.util.console.toStylisedString
@@ -14,8 +13,31 @@ import kotlin.test.Test
 
 class QueryTest {
 
+    private fun buildAddressesStore() = buildStore {
+        "person1".nt has "domicile".nt being blank {
+            "address".nt being blank {
+                "street".nt being "Person St.".lt
+                "city".nt being blank {
+                    "inhabitants".nt being 5000
+                }
+            }
+        }
+        "person2".nt has "domicile".nt being "house2".nt
+        "house2".nt has "address".nt being "address2".nt
+        "address2".nt has "street".nt being "Person II St.".lt
+        "address2".nt has "city".nt being blank {
+            "inhabitants".nt being 7500
+        }
+        "incomplete".nt has "domicile".nt being blank {
+            "address".nt being blank {
+                "street".nt being "unknown".nt
+                "city".nt being "unknown".nt
+            }
+        }
+    }
+
     @Test
-    fun simple() {
+    fun simple() = with (VerboseCompiler) {
         val store = createTestStore()
 
         val simple = "SELECT * WHERE { ?s ?p ?o }".asSPARQLSelectQuery()
@@ -34,13 +56,11 @@ class QueryTest {
     }
 
     @Test
-    fun medium() {
+    fun medium() = with (VerboseCompiler) {
         val store = createTestStore()
 
         val random = "SELECT ?data { ?s a|<age>|<friend> ?data }".asSPARQLSelectQuery()
-        store.query(random) {
-            println("Found `random` binding:\n$it")
-        }
+        println("Found `random` bindings:\n${store.query(random).tabulate()}")
 
         val address = "SELECT ?street { ?s (a|<address>)/<street> ?street }".asSPARQLSelectQuery()
         store.query(address) {
@@ -52,13 +72,11 @@ class QueryTest {
         println("Found ${result.size} elements for the `any` query, expected ${store.size}")
 
         val info = "SELECT ?s ?o { ?s !(<friend>|<notes>|<address>) ?o }".asSPARQLSelectQuery()
-        store.query(info) {
-            println("Found `info` binding:\n$it")
-        }
+        println("Found `info` data:\n${store.query(info).tabulate()}")
     }
 
     @Test
-    fun advanced() {
+    fun advanced() = with (VerboseCompiler) {
         val store = buildStore {
             val person = local("person1")
             person has RDF.type being "person".asNamedTerm()
@@ -119,29 +137,8 @@ class QueryTest {
     }
 
     @Test
-    fun blank() {
-        val store = buildStore {
-            "person1".nt has "domicile".nt being blank {
-                "address".nt being blank {
-                    "street".nt being "Person St.".lt
-                    "city".nt being blank {
-                        "inhabitants".nt being 5000
-                    }
-                }
-            }
-            "person2".nt has "domicile".nt being "house2".nt
-            "house2".nt has "address".nt being "address2".nt
-            "address2".nt has "street".nt being "Person II St.".lt
-            "address2".nt has "city".nt being blank {
-                "inhabitants".nt being 7500
-            }
-            "incomplete".nt has "domicile".nt being blank {
-                "address".nt being blank {
-                    "street".nt being "unknown".nt
-                    "city".nt being "unknown".nt
-                }
-            }
-        }
+    fun blank() = with (VerboseCompiler) {
+        val store = buildAddressesStore()
 
         val blank = """
             SELECT * {
@@ -156,6 +153,52 @@ class QueryTest {
             }
         """.asSPARQLSelectQuery()
         println("Found address:\n${store.query(blank).tabulate()}")
+    }
+
+    @Test
+    fun optional() = with (VerboseCompiler) {
+        val store = buildAddressesStore()
+
+        val optional = """
+            SELECT * {
+                ?person <domicile>/<address> ?place .
+                ?place <street> ?street .
+                OPTIONAL {
+                    ?place <city>/<inhabitants> ?count .
+                }
+            }
+        """.asSPARQLSelectQuery()
+        println("Found optional:\n${store.query(optional).tabulate()}")
+    }
+
+    @Test
+    fun union() = with(VerboseCompiler) {
+        val store = buildAddressesStore()
+
+        val union = """
+            SELECT * {
+                ?person <domicile>/<address> ?place .
+                ?place <street> ?street .
+                {
+                    ?place <city>/<inhabitants> ?count .
+                } UNION {
+                    ?place <city> <unknown> .
+                }
+            }
+        """.asSPARQLSelectQuery()
+        println("Found union:\n${store.query(union).tabulate()}")
+    }
+
+    @Test
+    fun altPath() = with(VerboseCompiler) {
+        val store = buildAddressesStore()
+
+        val alt = """
+            SELECT * {
+                ?a (<domicile>/<address>)|(<city>/<inhabitants>) ?b .
+            }
+        """.asSPARQLSelectQuery()
+        println("Found alt path:\n${store.query(alt).tabulate()}")
     }
 
 }

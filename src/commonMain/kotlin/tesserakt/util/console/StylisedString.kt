@@ -67,6 +67,12 @@ class StylisedString private constructor(
         return this
     }
 
+    fun clear() {
+        builder.clear()
+        length = 0
+        styles.clear()
+    }
+
     operator fun plus(text: String) = add(text)
 
     operator fun plus(char: Char) = add(char)

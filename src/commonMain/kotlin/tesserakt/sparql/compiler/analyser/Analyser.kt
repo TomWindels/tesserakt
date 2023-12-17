@@ -46,12 +46,6 @@ abstract class Analyser<RT: AST?> {
         }
     }
 
-    protected fun expectPatternElement() {
-        if (token !is Token.Term) {
-            expectedPatternElement()
-        }
-    }
-
     protected fun expectBinding() {
         if (token !is Token.Binding) {
             expectedBinding()
@@ -61,18 +55,6 @@ abstract class Analyser<RT: AST?> {
     protected fun expectPatternElementOrBinding() {
         if (token is Token.Syntax) {
             expectedPatternElementOrBinding()
-        }
-    }
-
-    protected fun expectPatternElementOrToken(vararg tokens: Token) {
-        if (token !is Token.Term && token !in tokens) {
-            expectedPatternElementOrToken(*tokens)
-        }
-    }
-
-    protected fun expectBindingOrToken(vararg tokens: Token) {
-        if (token !is Token.Term && token !in tokens) {
-            expectedBindingOrToken(*tokens)
         }
     }
 

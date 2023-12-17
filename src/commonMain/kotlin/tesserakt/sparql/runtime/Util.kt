@@ -2,6 +2,14 @@ package tesserakt.sparql.runtime
 
 import tesserakt.sparql.runtime.types.PatternASTr
 import tesserakt.sparql.runtime.types.PatternsASTr
+import tesserakt.sparql.runtime.types.QueryASTr
+
+fun QueryASTr.QueryBodyASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> =
+    buildSet {
+        addAll(patterns.getAllNamedBindings())
+        optional.forEach { pattern -> addAll(pattern.getAllNamedBindings()) }
+        unions.forEach { union -> union.forEach { pattern -> addAll(pattern.getAllNamedBindings()) } }
+    }
 
 /**
  * Extracts all named bindings from the original query (excluding generated ones from the AST)

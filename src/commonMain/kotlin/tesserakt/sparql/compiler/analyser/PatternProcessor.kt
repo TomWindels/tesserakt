@@ -73,8 +73,14 @@ class PatternProcessor: Analyser<PatternsAST>() {
         return when (token) {
             Token.Syntax.BlankStart ->
                 processBlankObject()
-            is Token.Term, is Token.Binding, is Token.StringLiteral, is Token.NumericLiteral ->
+
+            is Token.Term,
+            is Token.PrefixedTerm,
+            is Token.Binding,
+            is Token.StringLiteral,
+            is Token.NumericLiteral ->
                 token.asPatternElement().also { consume() }
+
             else -> expectedPatternElementOrBindingOrToken(Token.Syntax.BlankStart)
         }
     }
@@ -128,22 +134,15 @@ class PatternProcessor: Analyser<PatternsAST>() {
 
     private fun Token.asPatternElement(): PatternAST.Element = when (this) {
         is Token.Binding -> PatternAST.Binding(this)
-        is Token.Term -> asExactPatternElement()
+        is Token.Term -> PatternAST.Exact(Triple.NamedTerm(value = value))
+        is Token.PrefixedTerm -> PatternAST.Exact(Triple.NamedTerm(value = resolve()))
         Token.Syntax.RdfTypePredicate -> PatternAST.Exact(RDF.type)
         else -> expectedPatternElementOrBindingOrToken(Token.Syntax.RdfTypePredicate)
     }
 
-    private fun Token.Term.asExactPatternElement() =
-        PatternAST.Exact(
-            if (value.contains(':')) {
-                val prefix = value.substringBefore(':')
-                val uri = prefixes[prefix] ?: bail("Unknown prefix: `$prefix`")
-                val name = uri + value.substringAfter(':')
-                Triple.NamedTerm(value = name)
-            } else {
-                // removing the `<`, `>`
-                Triple.NamedTerm(value = value.substring(1, value.length - 1))
-            }
-        )
+    private fun Token.PrefixedTerm.resolve(): String {
+        val uri = prefixes[namespace] ?: bail("Unknown prefix: `$namespace`")
+        return uri + value
+    }
 
 }

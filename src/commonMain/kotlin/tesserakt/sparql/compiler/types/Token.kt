@@ -48,8 +48,18 @@ sealed interface Token {
 
     }
 
+    data class PrefixedTerm(
+        /** The value of the term before the colon **/
+        val namespace: String,
+        /** The value of the term after the colon **/
+        val value: String
+    ): Token {
+        override fun toString() = "term `$value`"
+        override val syntax = "$namespace:$value"
+    }
+
     data class Term(
-        /** The value of the term from the query, either `<term>` or `ex:term` **/
+        /** The value of the term from the query, without the `<`, `>` **/
         val value: String
     ): Token {
         override fun toString() = "term `$value`"

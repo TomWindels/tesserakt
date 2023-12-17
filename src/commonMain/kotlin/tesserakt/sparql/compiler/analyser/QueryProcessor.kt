@@ -39,11 +39,11 @@ class QueryProcessor: Analyser<QueryAST>() {
     private fun processPrefix() {
         // current token should be `PREFIX`, so consuming the next two tokens for the actual prefix
         consume()
-        val name = (token as Token.Term).value
+        val namespace = (token as Token.PrefixedTerm).namespace
         consume()
         val value = (token as Token.Term).value
-        // adding it to the table of prefixes, without the surrounding `<`, `>`
-        prefixes[name.substring(0, name.length - 1)] = value.substring(1, value.length - 1)
+        // adding it to the table of prefixes
+        prefixes[namespace] = value
         // advancing the rest of the query
         consume()
         // will either go back processing another prefix, or
