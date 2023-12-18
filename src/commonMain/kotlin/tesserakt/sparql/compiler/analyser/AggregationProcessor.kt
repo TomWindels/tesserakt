@@ -13,7 +13,7 @@ class AggregationProcessor: Analyser<Aggregation>() {
         consume()
         val aggregation = use(AggregatorProcessor())
         // should now be pointing to `AS`, with as next token a binding for the output
-        expectToken(Token.Syntax.As)
+        expectToken(Token.Keyword.As)
         consume()
         expectBinding()
         val result = Aggregation(
@@ -23,7 +23,7 @@ class AggregationProcessor: Analyser<Aggregation>() {
         // consuming it as it is part of the result
         consume()
         // also consuming the closing `)` so the calling processor doesn't interfere with it
-        expectToken(Token.Syntax.RoundBracketEnd)
+        expectToken(Token.Symbol.RoundBracketEnd)
         consume()
         return result
     }

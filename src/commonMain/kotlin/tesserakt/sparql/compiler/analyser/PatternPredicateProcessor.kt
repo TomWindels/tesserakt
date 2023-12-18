@@ -15,10 +15,10 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
         var predicate = processPatternPredicateNext() ?: return null
         while (true) {
             when (token) {
-                Token.Syntax.PredicateOr -> {
+                Token.Symbol.PredicateOr -> {
                     predicate = processPatternPredicateOr(predicate)
                 }
-                Token.Syntax.ForwardSlash -> {
+                Token.Symbol.ForwardSlash -> {
                     predicate = processPatternPredicateChain(predicate)
                 }
                 is Token.Term,
@@ -26,14 +26,14 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
                 is Token.Binding,
                 is Token.NumericLiteral,
                 is Token.StringLiteral,
-                Token.Syntax.BlankStart -> {
+                Token.Symbol.BlankStart -> {
                     // object, so not setting anything and returning instead
                     return predicate
                 }
                 else -> expectedPatternElementOrBindingOrToken(
-                    Token.Syntax.PredicateOr,
-                    Token.Syntax.ForwardSlash,
-                    Token.Syntax.BlankStart
+                    Token.Symbol.PredicateOr,
+                    Token.Symbol.ForwardSlash,
+                    Token.Symbol.BlankStart
                 )
             }
         }
@@ -41,7 +41,7 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
 
     /** Processes [!][(]<predicate>[)][*] **/
     private fun processPatternPredicateNext(): PatternAST.Predicate? {
-        return if (token == Token.Syntax.ExclamationMark) {
+        return if (token == Token.Symbol.ExclamationMark) {
             consume()
             PatternAST.Not(
                 predicate = processPatternPredicateContent() ?: bail("Unexpected end of `!...` statement")
@@ -53,19 +53,19 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
 
     /** Processes [(]<predicate>[/|<predicate>][)][*|+] **/
     private fun processPatternPredicateContent() = when (token) {
-        is Token.Term, is Token.PrefixedTerm, is Token.Binding, Token.Syntax.RdfTypePredicate -> token.asPatternElement()
-        Token.Syntax.RoundBracketStart -> {
+        is Token.Term, is Token.PrefixedTerm, is Token.Binding, Token.Keyword.RdfTypePredicate -> token.asPatternElement()
+        Token.Symbol.RoundBracketStart -> {
             consume()
             var result = processPatternPredicateNext() ?: bail("Unexpected end of `(...)` statement")
             while (true) {
                 result = when (token) {
-                    Token.Syntax.RoundBracketEnd -> break
-                    Token.Syntax.PredicateOr -> processPatternPredicateOr(result)
-                    Token.Syntax.ForwardSlash -> processPatternPredicateChain(result)
+                    Token.Symbol.RoundBracketEnd -> break
+                    Token.Symbol.PredicateOr -> processPatternPredicateOr(result)
+                    Token.Symbol.ForwardSlash -> processPatternPredicateChain(result)
                     else -> expectedToken(
-                        Token.Syntax.RoundBracketEnd,
-                        Token.Syntax.PredicateOr,
-                        Token.Syntax.ForwardSlash
+                        Token.Symbol.RoundBracketEnd,
+                        Token.Symbol.PredicateOr,
+                        Token.Symbol.ForwardSlash
                     )
                 }
             }
@@ -77,11 +77,11 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
         consume()
         // consuming the star if possible
         when (token) {
-            Token.Syntax.Asterisk -> {
+            Token.Symbol.Asterisk -> {
                 consume()
                 PatternAST.ZeroOrMore(current)
             }
-            Token.Syntax.OpPlus -> {
+            Token.Symbol.OpPlus -> {
                 consume()
                 PatternAST.OneOrMore(current)
             }
@@ -111,8 +111,8 @@ class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {
         is Token.Binding -> PatternAST.Binding(this)
         is Token.Term -> PatternAST.Exact(Triple.NamedTerm(value = value))
         is Token.PrefixedTerm -> PatternAST.Exact(Triple.NamedTerm(value = resolve()))
-        Token.Syntax.RdfTypePredicate -> PatternAST.Exact(RDF.type)
-        else -> expectedPatternElementOrBindingOrToken(Token.Syntax.RdfTypePredicate)
+        Token.Keyword.RdfTypePredicate -> PatternAST.Exact(RDF.type)
+        else -> expectedPatternElementOrBindingOrToken(Token.Keyword.RdfTypePredicate)
     }
 
     private fun Token.PrefixedTerm.resolve(): String {

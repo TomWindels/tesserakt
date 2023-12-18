@@ -21,7 +21,7 @@ class PatternProcessor: Analyser<PatternsAST>() {
 
     private fun processStartingFromPatternSubject() {
         // either has a term as token, or we have to bail
-        if (token is Token.Syntax) {
+        if (token is Token.Symbol) {
             return
         }
         // consuming the token as well
@@ -49,19 +49,23 @@ class PatternProcessor: Analyser<PatternsAST>() {
         val o = processPatternObject()
         result.add(PatternAST(subject, predicate, o))
         when (token) {
-            Token.Syntax.Comma -> {
+            Token.Symbol.Comma -> {
                 consume()
                 processStartingFromPatternObject()
             }
-            Token.Syntax.SemiColon -> {
+            Token.Symbol.SemiColon -> {
                 consume()
                 tryProcessStartingFromPatternPredicate()
             }
-            Token.Syntax.Period -> {
+            Token.Symbol.Period -> {
                 consume()
                 processStartingFromPatternSubject()
             }
-            !is Token.Syntax -> bail("Invalid pattern structure")
+            is Token.Term,
+            is Token.PrefixedTerm,
+            is Token.NumericLiteral,
+            is Token.StringLiteral,
+            is Token.Binding -> bail("Invalid pattern structure")
             else -> {
                 // actual end reached probably, e.g. FILTER/BIND/... expression, UNION, ..., so returning
                 return
@@ -71,7 +75,7 @@ class PatternProcessor: Analyser<PatternsAST>() {
 
     private fun processPatternObject(): PatternAST.Object {
         return when (token) {
-            Token.Syntax.BlankStart ->
+            Token.Symbol.BlankStart ->
                 processBlankObject()
 
             is Token.Term,
@@ -81,7 +85,7 @@ class PatternProcessor: Analyser<PatternsAST>() {
             is Token.NumericLiteral ->
                 token.asPatternElement().also { consume() }
 
-            else -> expectedPatternElementOrBindingOrToken(Token.Syntax.BlankStart)
+            else -> expectedPatternElementOrBindingOrToken(Token.Symbol.BlankStart)
         }
     }
 
@@ -89,7 +93,7 @@ class PatternProcessor: Analyser<PatternsAST>() {
     private fun processBlankObject(): PatternAST.BlankObject {
         // consuming the `[`
         consume()
-        if (token == Token.Syntax.BlankEnd) {
+        if (token == Token.Symbol.BlankEnd) {
             consume()
             return PatternAST.BlankObject(emptyList())
         }
@@ -101,30 +105,30 @@ class PatternProcessor: Analyser<PatternsAST>() {
         while (true) {
             statements.add(PatternAST.BlankObject.BlankPattern(p = p!!, o = o))
             when (token) {
-                Token.Syntax.SemiColon -> {
+                Token.Symbol.SemiColon -> {
                     consume()
                     // both have to be re-read, or the content has finished
                     p = use(PatternPredicateProcessor())
                     if (p == null) {
-                        expectToken(Token.Syntax.BlankEnd)
+                        expectToken(Token.Symbol.BlankEnd)
                         // removing the `]`
                         consume()
                         break
                     }
                     o = processPatternObject()
                 }
-                Token.Syntax.Comma -> {
+                Token.Symbol.Comma -> {
                     consume()
                     // only the object changes
                     o = processPatternObject()
                 }
                 // end reached
-                Token.Syntax.BlankEnd -> {
+                Token.Symbol.BlankEnd -> {
                     // removing the `]`
                     consume()
                     break
                 }
-                else -> expectedToken(Token.Syntax.SemiColon, Token.Syntax.Period, Token.Syntax.BlankEnd)
+                else -> expectedToken(Token.Symbol.SemiColon, Token.Symbol.Period, Token.Symbol.BlankEnd)
             }
         }
         return PatternAST.BlankObject(statements)
@@ -136,8 +140,8 @@ class PatternProcessor: Analyser<PatternsAST>() {
         is Token.Binding -> PatternAST.Binding(this)
         is Token.Term -> PatternAST.Exact(Triple.NamedTerm(value = value))
         is Token.PrefixedTerm -> PatternAST.Exact(Triple.NamedTerm(value = resolve()))
-        Token.Syntax.RdfTypePredicate -> PatternAST.Exact(RDF.type)
-        else -> expectedPatternElementOrBindingOrToken(Token.Syntax.RdfTypePredicate)
+        Token.Keyword.RdfTypePredicate -> PatternAST.Exact(RDF.type)
+        else -> expectedPatternElementOrBindingOrToken(Token.Keyword.RdfTypePredicate)
     }
 
     private fun Token.PrefixedTerm.resolve(): String {

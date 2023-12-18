@@ -26,15 +26,16 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 is Token.NumericLiteral -> {
                     builder.addPatterns(use(PatternProcessor()))
                 }
-                Token.Syntax.Optional -> processOptional()
-                Token.Syntax.CurlyBracketStart -> processSubsectionBody()
-                Token.Syntax.CurlyBracketEnd -> {
+                Token.Keyword.Optional -> processOptional()
+                Token.Symbol.CurlyBracketStart -> processSubsectionBody()
+                Token.Symbol.CurlyBracketEnd -> {
                     consume()
                     return
                 }
                 else -> expectedPatternElementOrBindingOrToken(
-                    Token.Syntax.CurlyBracketStart,
-                    Token.Syntax.CurlyBracketEnd,
+                    Token.Keyword.Optional,
+                    Token.Symbol.CurlyBracketStart,
+                    Token.Symbol.CurlyBracketEnd,
                 )
             }
         }
@@ -60,12 +61,12 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
     private fun processOptional() {
         // consuming the "optional {"
         consume()
-        expectToken(Token.Syntax.CurlyBracketStart)
+        expectToken(Token.Symbol.CurlyBracketStart)
         consume()
         // extracting all patterns and inserting them
         builder.addOptional(use(PatternProcessor()))
         // consuming the final part
-        expectToken(Token.Syntax.CurlyBracketEnd)
+        expectToken(Token.Symbol.CurlyBracketEnd)
         consume()
     }
 
@@ -73,12 +74,12 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
         val patterns = mutableListOf<PatternsAST>()
         while (true) {
             patterns.add(use(PatternProcessor()))
-            expectToken(Token.Syntax.CurlyBracketEnd)
+            expectToken(Token.Symbol.CurlyBracketEnd)
             consume()
-            if (token == Token.Syntax.Union) {
+            if (token == Token.Keyword.Union) {
                 // continuing
                 consume()
-                expectToken(Token.Syntax.CurlyBracketStart)
+                expectToken(Token.Symbol.CurlyBracketStart)
                 consume()
                 // looping back up top
             } else {

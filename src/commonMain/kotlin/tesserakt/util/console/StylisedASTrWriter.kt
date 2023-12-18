@@ -63,8 +63,11 @@ object StylisedASTrWriter: ASTrWriter<String>() {
             is Token.StringLiteral -> {
                 add(value, Color.GREEN)
             }
-            is Token.Syntax -> {
+            is Token.Symbol -> {
                 add(syntax, Color.WHITE)
+            }
+            is Token.Keyword -> {
+                add(syntax, Color.MAGENTA)
             }
             Token.EOF -> { /* not expected to happen */ }
         }

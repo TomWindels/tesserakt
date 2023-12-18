@@ -53,13 +53,13 @@ abstract class Analyser<RT: AST?> {
     }
 
     protected fun expectPatternElementOrBinding() {
-        if (token is Token.Syntax) {
+        if (token is Token.Symbol) {
             expectedPatternElementOrBinding()
         }
     }
 
     protected fun expectPatternElementOrBindingOrToken(vararg tokens: Token) {
-        if (token is Token.Syntax && token !in tokens) {
+        if (token is Token.Symbol && token !in tokens) {
             expectedPatternElementOrBindingOrToken(*tokens)
         }
     }

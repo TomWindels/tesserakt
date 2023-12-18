@@ -26,30 +26,30 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
                 // continuing only accepting bindings, aggregations/operations or the start of the query
                 processSelectQueryBindingOrBody()
             }
-            Token.Syntax.RoundBracketStart -> {
+            Token.Symbol.RoundBracketStart -> {
                 builder.addToOutput(use(AggregationProcessor()))
                 // continuing only accepting bindings, aggregations/operations or the start of the query
                 processSelectQueryBindingOrBody()
             }
-            Token.Syntax.Asterisk -> {
+            Token.Symbol.Asterisk -> {
                 builder.setEverythingAsOutput()
                 // only optionally `WHERE` is allowed
                 consume()
-                expectToken(Token.Syntax.Where, Token.Syntax.CurlyBracketStart)
-                if (token == Token.Syntax.Where) {
+                expectToken(Token.Keyword.Where, Token.Symbol.CurlyBracketStart)
+                if (token == Token.Keyword.Where) {
                     consume()
                 }
-                expectToken(Token.Syntax.CurlyBracketStart)
+                expectToken(Token.Symbol.CurlyBracketStart)
                 // processing the body now
                 builder.body = use(QueryBodyProcessor())
             }
-            Token.Syntax.Where -> {
+            Token.Keyword.Where -> {
                 consume()
-                expectToken(Token.Syntax.CurlyBracketStart)
+                expectToken(Token.Symbol.CurlyBracketStart)
                 // actually processing the query body now
                 builder.body = use(QueryBodyProcessor())
             }
-            else -> expectedBindingOrToken(Token.Syntax.Asterisk, Token.Syntax.Where, Token.Syntax.RoundBracketStart)
+            else -> expectedBindingOrToken(Token.Symbol.Asterisk, Token.Keyword.Where, Token.Symbol.RoundBracketStart)
         }
     }
 
@@ -63,25 +63,25 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
                 // still processing the start
                 processSelectQueryBindingOrBody()
             }
-            Token.Syntax.RoundBracketStart -> {
+            Token.Symbol.RoundBracketStart -> {
                 builder.addToOutput(use(AggregationProcessor()))
                 // still processing the start
                 processSelectQueryBindingOrBody()
             }
-            Token.Syntax.Where -> {
+            Token.Keyword.Where -> {
                 consume()
-                expectToken(Token.Syntax.CurlyBracketStart)
+                expectToken(Token.Symbol.CurlyBracketStart)
                 // actually processing the query body now
                 builder.body = use(QueryBodyProcessor())
             }
-            Token.Syntax.CurlyBracketStart -> {
+            Token.Symbol.CurlyBracketStart -> {
                 // actually processing the query body now
                 builder.body = use(QueryBodyProcessor())
             }
             else -> expectedBindingOrToken(
-                Token.Syntax.Where,
-                Token.Syntax.CurlyBracketStart,
-                Token.Syntax.RoundBracketStart
+                Token.Keyword.Where,
+                Token.Symbol.CurlyBracketStart,
+                Token.Symbol.RoundBracketStart
             )
         }
     }

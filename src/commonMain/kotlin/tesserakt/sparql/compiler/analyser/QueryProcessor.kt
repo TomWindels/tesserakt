@@ -26,13 +26,13 @@ class QueryProcessor: Analyser<QueryAST>() {
     }
 
     private fun processQuery() = when (token) {
-        Token.Syntax.Prefix -> processPrefix()
-        Token.Syntax.Select -> use(SelectQueryProcessor()).let { result = it }
-        Token.Syntax.Construct -> bail("Construct queries are currently not supported.")
+        Token.Keyword.Prefix -> processPrefix()
+        Token.Keyword.Select -> use(SelectQueryProcessor()).let { result = it }
+        Token.Keyword.Construct -> bail("Construct queries are currently not supported.")
         else -> expectedToken(
-            Token.Syntax.Prefix,
-            Token.Syntax.Select,
-            Token.Syntax.Construct
+            Token.Keyword.Prefix,
+            Token.Keyword.Select,
+            Token.Keyword.Construct
         )
     }
 

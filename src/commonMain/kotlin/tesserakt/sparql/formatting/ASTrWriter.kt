@@ -52,7 +52,8 @@ abstract class ASTrWriter<RT> {
             is Token.PrefixedTerm -> "$namespace:$value"
             is Token.StringLiteral -> value
             is Token.Term -> "<$value>"
-            is Token.Syntax -> syntax
+            is Token.Symbol -> syntax
+            is Token.Keyword -> syntax
             Token.EOF -> "" // not expected to happen
         }
 
@@ -91,45 +92,45 @@ abstract class ASTrWriter<RT> {
             }
 
             is PatternASTr.Alts -> {
-                add(Token.Syntax.RoundBracketStart)
+                add(Token.Symbol.RoundBracketStart)
                 for (i in 0 ..< symbol.allowed.size - 1) {
                     process(symbol.allowed[i])
-                    add(Token.Syntax.PredicateOr)
+                    add(Token.Symbol.PredicateOr)
                 }
                 process(symbol.allowed.last())
-                add(Token.Syntax.RoundBracketEnd)
+                add(Token.Symbol.RoundBracketEnd)
             }
 
             is PatternASTr.Inverse -> {
-                add(Token.Syntax.ExclamationMark)
+                add(Token.Symbol.ExclamationMark)
                 process(symbol.predicate)
             }
 
             is PatternASTr.OneOrMoreBound -> {
                 process(symbol.predicate)
-                add(Token.Syntax.OpPlus)
+                add(Token.Symbol.OpPlus)
             }
 
             is PatternASTr.OneOrMoreFixed -> {
                 process(symbol.predicate)
-                add(Token.Syntax.OpPlus)
+                add(Token.Symbol.OpPlus)
             }
 
             is PatternASTr.ZeroOrMoreBound -> {
                 process(symbol.predicate)
-                add(Token.Syntax.Asterisk)
+                add(Token.Symbol.Asterisk)
             }
 
             is PatternASTr.ZeroOrMoreFixed -> {
                 process(symbol.predicate)
-                add(Token.Syntax.Asterisk)
+                add(Token.Symbol.Asterisk)
             }
 
             is PatternASTr -> {
                 process(symbol.s)
                 process(symbol.p)
                 process(symbol.o)
-                add(Token.Syntax.Period)
+                add(Token.Symbol.Period)
             }
 
             is PatternsASTr -> {
@@ -142,33 +143,33 @@ abstract class ASTrWriter<RT> {
             is UnionASTr -> {
                 newline()
                 for (i in 0 ..< symbol.size - 1) {
-                    add(Token.Syntax.CurlyBracketStart)
+                    add(Token.Symbol.CurlyBracketStart)
                     indent()
                     process(symbol[i])
                     unindent()
                     newline()
-                    add(Token.Syntax.CurlyBracketEnd)
-                    add(Token.Syntax.Union)
+                    add(Token.Symbol.CurlyBracketEnd)
+                    add(Token.Keyword.Union)
                 }
-                add(Token.Syntax.CurlyBracketStart)
+                add(Token.Symbol.CurlyBracketStart)
                 indent()
                 process(symbol.last())
                 unindent()
                 newline()
-                add(Token.Syntax.CurlyBracketEnd)
+                add(Token.Symbol.CurlyBracketEnd)
             }
 
             is QueryASTr.QueryBodyASTr -> {
                 process(symbol.patterns)
                 symbol.optional.forEach { optional ->
                     newline()
-                    add(Token.Syntax.Optional)
-                    add(Token.Syntax.CurlyBracketStart)
+                    add(Token.Keyword.Optional)
+                    add(Token.Symbol.CurlyBracketStart)
                     indent()
                     process(optional)
                     unindent()
                     newline()
-                    add(Token.Syntax.CurlyBracketEnd)
+                    add(Token.Symbol.CurlyBracketEnd)
                 }
                 symbol.unions.forEach { union ->
                     process(union)
@@ -176,17 +177,17 @@ abstract class ASTrWriter<RT> {
             }
 
             is SelectQueryASTr -> {
-                add(Token.Syntax.Select)
+                add(Token.Keyword.Select)
                 symbol.output.forEach { name ->
                     add(Token.Binding(name))
                 }
-                add(Token.Syntax.Where)
-                add(Token.Syntax.CurlyBracketStart)
+                add(Token.Keyword.Where)
+                add(Token.Symbol.CurlyBracketStart)
                 indent()
                 process(symbol.body)
                 unindent()
                 newline()
-                add(Token.Syntax.CurlyBracketEnd)
+                add(Token.Symbol.CurlyBracketEnd)
             }
         }
 

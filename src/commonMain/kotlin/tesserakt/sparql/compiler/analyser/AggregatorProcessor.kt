@@ -30,7 +30,7 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
     }
 
     private fun nextAggregationOrBindingOrLiteral(): Aggregation.Aggregator = when (token) {
-        Token.Syntax.Distinct -> {
+        Token.Keyword.Distinct -> {
             consume()
             expectBinding()
             Aggregation.DistinctBindingValues(token.bindingName)
@@ -40,16 +40,16 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
             Aggregation.BindingValues(token.bindingName)
                 .also { consume() }
         }
-        Token.Syntax.FunCount,
-        Token.Syntax.FunMin,
-        Token.Syntax.FunMax,
-        Token.Syntax.FunAvg -> {
+        Token.Keyword.FunCount,
+        Token.Keyword.FunMin,
+        Token.Keyword.FunMax,
+        Token.Keyword.FunAvg -> {
             processAggregationFunction()
         }
-        Token.Syntax.RoundBracketStart -> {
+        Token.Symbol.RoundBracketStart -> {
             processAggregationGroup()
         }
-        Token.Syntax.OpMinus -> {
+        Token.Symbol.OpMinus -> {
             consume()
             Aggregation.MathOp.Negative.of(nextAggregationOrBindingOrLiteral())
         }
@@ -58,17 +58,17 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
                 .also { consume() }
         }
         else -> expectedBindingOrLiteralOrToken(
-            Token.Syntax.Distinct,
-            Token.Syntax.FunCount,
-            Token.Syntax.FunMin,
-            Token.Syntax.FunMax,
-            Token.Syntax.FunAvg,
-            Token.Syntax.RoundBracketStart
+            Token.Keyword.Distinct,
+            Token.Keyword.FunCount,
+            Token.Keyword.FunMin,
+            Token.Keyword.FunMax,
+            Token.Keyword.FunAvg,
+            Token.Symbol.RoundBracketStart
         )
     }
 
     private fun nextAggregationOrBinding(): Aggregation.Aggregator = when (token) {
-        Token.Syntax.Distinct -> {
+        Token.Keyword.Distinct -> {
             consume()
             expectBinding()
             Aggregation.DistinctBindingValues(token.bindingName)
@@ -78,31 +78,31 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
             Aggregation.BindingValues(token.bindingName)
                 .also { consume() }
         }
-        Token.Syntax.FunCount,
-        Token.Syntax.FunMin,
-        Token.Syntax.FunMax,
-        Token.Syntax.FunAvg, -> {
+        Token.Keyword.FunCount,
+        Token.Keyword.FunMin,
+        Token.Keyword.FunMax,
+        Token.Keyword.FunAvg, -> {
             processAggregationFunction()
         }
-        Token.Syntax.RoundBracketStart -> {
+        Token.Symbol.RoundBracketStart -> {
             processAggregationGroup()
         }
         else -> expectedBindingOrToken(
-            Token.Syntax.Distinct,
-            Token.Syntax.FunCount,
-            Token.Syntax.FunMin,
-            Token.Syntax.FunMax,
-            Token.Syntax.FunAvg,
-            Token.Syntax.RoundBracketStart
+            Token.Keyword.Distinct,
+            Token.Keyword.FunCount,
+            Token.Keyword.FunMin,
+            Token.Keyword.FunMax,
+            Token.Keyword.FunAvg,
+            Token.Symbol.RoundBracketStart
         )
     }
 
     private val Token.operator: Aggregation.MathOp.Operator?
         get() = when (this) {
-            Token.Syntax.OpPlus -> Aggregation.MathOp.Operator.SUM
-            Token.Syntax.OpMinus -> Aggregation.MathOp.Operator.DIFFERENCE
-            Token.Syntax.ForwardSlash -> Aggregation.MathOp.Operator.DIVISION
-            Token.Syntax.Asterisk -> Aggregation.MathOp.Operator.PRODUCT
+            Token.Symbol.OpPlus -> Aggregation.MathOp.Operator.SUM
+            Token.Symbol.OpMinus -> Aggregation.MathOp.Operator.DIFFERENCE
+            Token.Symbol.ForwardSlash -> Aggregation.MathOp.Operator.DIVISION
+            Token.Symbol.Asterisk -> Aggregation.MathOp.Operator.PRODUCT
             else -> null
         }
 
@@ -112,7 +112,7 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
         // consuming the '('
         consume()
         return processAggregationStatement().also {
-            expectToken(Token.Syntax.RoundBracketEnd)
+            expectToken(Token.Symbol.RoundBracketEnd)
             consume()
         }
     }
@@ -120,17 +120,17 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
     // processes & consumes structures like `max(?s)`
     private fun processAggregationFunction(): Aggregation.Builtin {
         val type = when (token) {
-            Token.Syntax.FunCount -> Aggregation.Builtin.Type.COUNT
-            Token.Syntax.FunMin -> Aggregation.Builtin.Type.MIN
-            Token.Syntax.FunMax -> Aggregation.Builtin.Type.MAX
-            Token.Syntax.FunAvg -> Aggregation.Builtin.Type.AVG
+            Token.Keyword.FunCount -> Aggregation.Builtin.Type.COUNT
+            Token.Keyword.FunMin -> Aggregation.Builtin.Type.MIN
+            Token.Keyword.FunMax -> Aggregation.Builtin.Type.MAX
+            Token.Keyword.FunAvg -> Aggregation.Builtin.Type.AVG
             else -> bail()
         }
         consume()
-        expectToken(Token.Syntax.RoundBracketStart)
+        expectToken(Token.Symbol.RoundBracketStart)
         consume()
         val input = nextAggregationOrBinding()
-        expectToken(Token.Syntax.RoundBracketEnd)
+        expectToken(Token.Symbol.RoundBracketEnd)
         consume()
         return Aggregation.Builtin(type = type, input = input)
     }

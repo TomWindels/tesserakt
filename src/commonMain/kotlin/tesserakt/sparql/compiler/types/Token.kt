@@ -4,7 +4,7 @@ sealed interface Token {
 
     val syntax: String
 
-    enum class Syntax(override val syntax: String): Token {
+    enum class Symbol(override val syntax: String): Token {
         /* structural tokens */
         CurlyBracketStart("{"),
         CurlyBracketEnd("}"),
@@ -14,14 +14,23 @@ sealed interface Token {
         ForwardSlash("/"),
         Asterisk("*"),
         ExclamationMark("!"),
+        /* operators */
+        OpMinus("-"),
+        OpPlus("+"),
         /* in-pattern only structural tokens */
         Comma(","),
         SemiColon(";"),
         Period("."),
         BlankStart("["),
-        BlankEnd("]"),
+        BlankEnd("]")
+        /* end of (supported) (structural) symbols */;
+
+        override fun toString() = "symbol `$syntax`"
+
+    }
+
+    enum class Keyword(override val syntax: String): Token {
         RdfTypePredicate("a"),
-        /* keywords */
         Prefix("PREFIX"),
         Select("SELECT"),
         Construct("CONSTRUCT"),
@@ -33,18 +42,13 @@ sealed interface Token {
         Union("UNION"),
         Distinct("DISTINCT"),
         Optional("OPTIONAL"),
-        /* functional keywords */
         FunCount("COUNT"),
         FunMin("MIN"),
         FunMax("MAX"),
         FunAvg("AVG"),
-        /* operators */
-        OpMinus("-"),
-        OpPlus("+"),
-        // times `*` & division `/` are known as `Asterisk` and `ForwardSlash`
-        /* end of syntax tokens */;
+        /* end of (supported) keywords */;
 
-        override fun toString() = "reserved character `$syntax`"
+        override fun toString() = "keyword `$syntax`"
 
     }
 
@@ -99,7 +103,7 @@ sealed interface Token {
 
     companion object {
 
-        val syntax = Syntax.entries.associateBy { it.syntax }
+        val syntax = ((Symbol.entries + Keyword.entries) as List<Token>).associateBy { it.syntax }
 
         /* series of helper accessors */
 
