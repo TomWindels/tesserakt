@@ -3,18 +3,22 @@ package tesserakt.sparql.compiler
 import tesserakt.sparql.compiler.analyser.Analyser
 import tesserakt.sparql.compiler.lexer.Lexer
 import tesserakt.sparql.compiler.lexer.StringLexer
-import tesserakt.sparql.compiler.types.AST
-import tesserakt.sparql.compiler.types.PatternAST
-import tesserakt.sparql.compiler.types.QueryAST
-import tesserakt.sparql.compiler.types.Token
+import tesserakt.sparql.compiler.types.*
 
 
-internal fun QueryAST.QueryBodyAST.extractAllBindings() =
+internal fun QueryAST.QueryBodyAST.extractAllBindings(): List<PatternAST.Binding> =
     (
         patterns.flatMap { pattern -> pattern.extractAllBindings() } +
-        unions.flatMap { union -> union.flatMap { block -> block.flatMap { pattern -> pattern.extractAllBindings() } } } +
+        unions.flatMap { union -> union.flatMap { it.extractAllBindings() } } +
         optional.flatMap { optional -> optional.flatMap { pattern -> pattern.extractAllBindings() } }
     ).distinct()
+
+fun UnionAST.Segment.extractAllBindings() = when (this) {
+    is UnionAST.SelectQuerySegment -> query.extractAllOutputsAsBindings()
+    is UnionAST.StatementsSegment -> statements.extractAllBindings()
+}
+
+fun SelectQueryAST.extractAllOutputsAsBindings() = output.names.map { PatternAST.Binding(it) }
 
 fun PatternAST.extractAllBindings(): List<PatternAST.Binding> {
     val result = mutableListOf<PatternAST.Binding>()

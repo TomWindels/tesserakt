@@ -180,7 +180,10 @@ class QueryTest {
                 ?person <domicile>/<address> ?place .
                 ?place <street> ?street .
                 {
-                    ?place <city>/<inhabitants> ?count .
+                    ?place <city> ?city .
+                     OPTIONAL {
+                        ?city <inhabitants> ?count .
+                     }
                 } UNION {
                     ?place <city> <unknown> .
                 }
@@ -199,6 +202,22 @@ class QueryTest {
             }
         """.asSPARQLSelectQuery()
         println("Found alt path:\n${store.query(alt).tabulate()}")
+    }
+
+    @Test
+    fun subquery() = with(VerboseCompiler) {
+        val store = buildAddressesStore()
+
+        val union = """
+            SELECT * {
+                ?person <domicile>/<address> ?place .
+                ?place <street> ?street .
+                {
+                    SELECT * { ?s ?p ?o }
+                }
+            }
+        """.asSPARQLSelectQuery()
+        println("Found alt path:\n${store.query(union).tabulate()}")
     }
 
 }

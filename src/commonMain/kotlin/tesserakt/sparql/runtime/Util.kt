@@ -3,12 +3,23 @@ package tesserakt.sparql.runtime
 import tesserakt.sparql.runtime.types.PatternASTr
 import tesserakt.sparql.runtime.types.PatternsASTr
 import tesserakt.sparql.runtime.types.QueryASTr
+import tesserakt.sparql.runtime.types.UnionASTr
 
 fun QueryASTr.QueryBodyASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> =
     buildSet {
         addAll(patterns.getAllNamedBindings())
         optional.forEach { pattern -> addAll(pattern.getAllNamedBindings()) }
-        unions.forEach { union -> union.forEach { pattern -> addAll(pattern.getAllNamedBindings()) } }
+        unions.forEach { union ->
+            union.forEach { segment ->
+                when (segment) {
+                    is UnionASTr.SelectQuerySegment ->
+                        addAll(segment.query.output.map { name -> PatternASTr.RegularBinding(name) })
+
+                    is UnionASTr.StatementsSegment ->
+                        addAll(segment.statements.getAllNamedBindings())
+                }
+            }
+        }
     }
 
 /**

@@ -220,6 +220,32 @@ class CompilerTest {
                 o = PatternAST.Exact("other-type".asNamedTerm())
             )
         }
+        """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+            SELECT * WHERE
+            { 
+                {
+                    SELECT ?page ("A" AS ?type) WHERE 
+                    {
+                         ?s rdfs:label "Microsoft"@en;
+                            foaf:page ?page
+                    }
+                }
+                UNION
+                {
+                    SELECT ?page ("B" AS ?type) WHERE 
+                    {
+                         ?s rdfs:label "Apple"@en;
+                            foaf:page ?page
+                    }
+                }
+            }
+        """ satisfies {
+            require(this is SelectQueryAST)
+            output.names.containsAll(listOf("page, type"))
+        }
         /* expected failure cases */
         "SELECT TEST WHERE { ?s a TEST . }" causes CompilerError.Type.SyntaxError
         "SELECT * WHERE { ?s a ?test " causes CompilerError.Type.StructuralError

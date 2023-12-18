@@ -145,7 +145,14 @@ abstract class ASTrWriter<RT> {
                 for (i in 0 ..< symbol.size - 1) {
                     add(Token.Symbol.CurlyBracketStart)
                     indent()
-                    process(symbol[i])
+                    when (val segment = symbol[i]) {
+                        is UnionASTr.SelectQuerySegment -> {
+                            newline()
+                            process(segment.query)
+                        }
+                        is UnionASTr.StatementsSegment ->
+                            process(segment.statements)
+                    }
                     unindent()
                     newline()
                     add(Token.Symbol.CurlyBracketEnd)
@@ -153,7 +160,14 @@ abstract class ASTrWriter<RT> {
                 }
                 add(Token.Symbol.CurlyBracketStart)
                 indent()
-                process(symbol.last())
+                when (val segment = symbol.last()) {
+                    is UnionASTr.SelectQuerySegment -> {
+                        newline()
+                        process(segment.query)
+                    }
+                    is UnionASTr.StatementsSegment ->
+                        process(segment.statements)
+                }
                 unindent()
                 newline()
                 add(Token.Symbol.CurlyBracketEnd)

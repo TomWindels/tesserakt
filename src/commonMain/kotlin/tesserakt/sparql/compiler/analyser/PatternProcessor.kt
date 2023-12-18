@@ -2,6 +2,7 @@ package tesserakt.sparql.compiler.analyser
 
 import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Triple
+import tesserakt.rdf.types.Triple.Companion.asLiteral
 import tesserakt.sparql.compiler.types.PatternAST
 import tesserakt.sparql.compiler.types.PatternsAST
 import tesserakt.sparql.compiler.types.Token
@@ -20,12 +21,8 @@ class PatternProcessor: Analyser<PatternsAST>() {
     }
 
     private fun processStartingFromPatternSubject() {
-        // either has a term as token, or we have to bail
-        if (token is Token.Symbol) {
-            return
-        }
-        // consuming the token as well
-        subject = token.asPatternElement()
+        // either has a term as token, or we have to bail, consuming the token if possible
+        subject = token.asPatternElement() ?: return
         // consuming the next token and going to the predicate section no matter what
         consume()
         processStartingFromPatternPredicate()
@@ -77,15 +74,9 @@ class PatternProcessor: Analyser<PatternsAST>() {
         return when (token) {
             Token.Symbol.BlankStart ->
                 processBlankObject()
-
-            is Token.Term,
-            is Token.PrefixedTerm,
-            is Token.Binding,
-            is Token.StringLiteral,
-            is Token.NumericLiteral ->
-                token.asPatternElement().also { consume() }
-
-            else -> expectedPatternElementOrBindingOrToken(Token.Symbol.BlankStart)
+            else ->
+                token.asPatternElement()?.also { consume() }
+                    ?: expectedPatternElementOrBindingOrToken(Token.Symbol.BlankStart)
         }
     }
 
@@ -136,12 +127,14 @@ class PatternProcessor: Analyser<PatternsAST>() {
 
     /* helper extensions */
 
-    private fun Token.asPatternElement(): PatternAST.Element = when (this) {
+    private fun Token.asPatternElement(): PatternAST.Element? = when (this) {
         is Token.Binding -> PatternAST.Binding(this)
         is Token.Term -> PatternAST.Exact(Triple.NamedTerm(value = value))
         is Token.PrefixedTerm -> PatternAST.Exact(Triple.NamedTerm(value = resolve()))
+        is Token.StringLiteral -> PatternAST.Exact(value.asLiteral())
+        is Token.NumericLiteral -> PatternAST.Exact(value.asLiteral())
         Token.Keyword.RdfTypePredicate -> PatternAST.Exact(RDF.type)
-        else -> expectedPatternElementOrBindingOrToken(Token.Keyword.RdfTypePredicate)
+        else -> null
     }
 
     private fun Token.PrefixedTerm.resolve(): String {

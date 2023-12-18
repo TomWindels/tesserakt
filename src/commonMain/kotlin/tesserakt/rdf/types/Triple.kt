@@ -75,6 +75,15 @@ class Triple(
         @JvmStatic
         fun Boolean.asLiteral() = Literal(this, type = XSD.boolean)
 
+        @JvmStatic
+        fun Number.asLiteral() = when (this) {
+            is Int -> asLiteral()
+            is Long -> asLiteral()
+            is Float -> asLiteral()
+            /* TODO: byte char & short  */
+            else -> toDouble().asLiteral()
+        }
+
     }
 
 }

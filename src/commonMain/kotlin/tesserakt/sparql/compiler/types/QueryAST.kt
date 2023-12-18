@@ -2,7 +2,6 @@ package tesserakt.sparql.compiler.types
 
 sealed class QueryAST: AST {
 
-    abstract val subqueries: List<QueryAST>
     abstract val body: QueryBodyAST
 
     class QueryBodyASTBuilder {
@@ -12,13 +11,13 @@ sealed class QueryAST: AST {
         // collections of pattern blocks not required to be being present (`OPTIONAL {}`)
         private val _optionals = mutableListOf<PatternsAST>()
         // collections of patterns where one or the other has to be present (`{} UNION {}`)
-        private val _unions = mutableListOf<List<List<PatternAST>>>()
+        private val _unions = mutableListOf<List<UnionAST.Segment>>()
 
         /** Constructs the `QueryBodyAST` using all combinations of patterns that are checked for **/
         fun build(): QueryBodyAST {
             return QueryBodyAST(
                 patterns = PatternsAST(_globals),
-                unions = _unions.map { union -> UnionAST(union.map { patterns -> PatternsAST(patterns) }) },
+                unions = _unions.map { union -> UnionAST(union) },
                 optional = _optionals
             )
         }
@@ -32,7 +31,7 @@ sealed class QueryAST: AST {
          * Appends a new union to the body. `blocks` represents
          * `{ A } UNION { B } UNION { C } ...` => `listOf(A, B, C, ...)`
          */
-        fun addUnion(blocks: List<List<PatternAST>>) {
+        fun addUnion(blocks: List<UnionAST.Segment>) {
             _unions.add(blocks)
         }
 

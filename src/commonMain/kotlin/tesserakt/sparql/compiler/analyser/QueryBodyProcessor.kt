@@ -1,6 +1,5 @@
 package tesserakt.sparql.compiler.analyser
 
-import tesserakt.sparql.compiler.types.PatternsAST
 import tesserakt.sparql.compiler.types.QueryAST
 import tesserakt.sparql.compiler.types.Token
 
@@ -14,8 +13,7 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
     }
 
     private fun processQueryBody() {
-        // consuming the starting `{`
-        consume()
+        // assuming the starting `{` has been consumed already
         while (token != Token.EOF) {
             when (token) {
                 // binding or term, so the start of a block is happening here
@@ -27,9 +25,11 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                     builder.addPatterns(use(PatternProcessor()))
                 }
                 Token.Keyword.Optional -> processOptional()
-                Token.Symbol.CurlyBracketStart -> processSubsectionBody()
+                Token.Symbol.CurlyBracketStart -> {
+                    builder.addUnion(use(UnionProcessor()))
+                }
                 Token.Symbol.CurlyBracketEnd -> {
-                    consume()
+                    // done, leaving the `}` alone
                     return
                 }
                 else -> expectedPatternElementOrBindingOrToken(
@@ -44,20 +44,6 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
         bail("Unexpected end of input, expected '}'")
     }
 
-    private fun processSubsectionBody() {
-        // should be a `{`
-        consume()
-        when (token) {
-            // binding or term, so the start of a block is happening here
-            is Token.Term,
-            is Token.PrefixedTerm,
-            is Token.StringLiteral,
-            is Token.Binding,
-            is Token.NumericLiteral -> processUnion()
-            else -> bail("Complex subqueries are currently not supported!")
-        }
-    }
-
     private fun processOptional() {
         // consuming the "optional {"
         consume()
@@ -68,32 +54,6 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
         // consuming the final part
         expectToken(Token.Symbol.CurlyBracketEnd)
         consume()
-    }
-
-    private fun processUnion() {
-        val patterns = mutableListOf<PatternsAST>()
-        while (true) {
-            patterns.add(use(PatternProcessor()))
-            expectToken(Token.Symbol.CurlyBracketEnd)
-            consume()
-            if (token == Token.Keyword.Union) {
-                // continuing
-                consume()
-                expectToken(Token.Symbol.CurlyBracketStart)
-                consume()
-                // looping back up top
-            } else {
-                break
-            }
-        }
-        if (patterns.size == 1) {
-            // the processed structure looks like `{ patterns }`, no union keyword was ever used, so adding them
-            //  outright
-            builder.addPatterns(patterns.first())
-        } else if (patterns.size > 1) {
-            // inserting all patterns and exiting
-            builder.addUnion(patterns)
-        }
     }
 
 }

@@ -25,7 +25,7 @@ sealed interface Token {
         BlankEnd("]")
         /* end of (supported) (structural) symbols */;
 
-        override fun toString() = "symbol `$syntax`"
+        override fun toString() = "symbol $syntax"
 
     }
 
@@ -79,7 +79,6 @@ sealed interface Token {
     }
 
     data class NumericLiteral(
-        /** The value of a binding from the query, minus the `?` **/
         val value: Number
     ): Token {
         override fun toString() = "numeric literal `$value`"
@@ -87,11 +86,10 @@ sealed interface Token {
     }
 
     data class StringLiteral(
-        /** The value of a binding from the query, minus the `?` **/
         val value: String
     ): Token {
-        override fun toString() = "string literal `$value`"
-        override val syntax = value
+        override fun toString() = "string literal $syntax"
+        override val syntax = "\"$value\""
     }
 
     data object EOF: Token {

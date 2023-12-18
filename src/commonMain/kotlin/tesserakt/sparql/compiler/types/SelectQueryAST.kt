@@ -73,8 +73,4 @@ data class SelectQueryAST(
 
     }
 
-    override val subqueries: List<QueryAST>
-        // FIXME when subqueries are supported
-        get() = emptyList()
-
 }

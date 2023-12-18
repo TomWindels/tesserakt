@@ -40,14 +40,14 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
                     consume()
                 }
                 expectToken(Token.Symbol.CurlyBracketStart)
-                // processing the body now
-                builder.body = use(QueryBodyProcessor())
+                // actually processing the query body now
+                processBody()
             }
             Token.Keyword.Where -> {
                 consume()
                 expectToken(Token.Symbol.CurlyBracketStart)
                 // actually processing the query body now
-                builder.body = use(QueryBodyProcessor())
+                processBody()
             }
             else -> expectedBindingOrToken(Token.Symbol.Asterisk, Token.Keyword.Where, Token.Symbol.RoundBracketStart)
         }
@@ -72,11 +72,10 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
                 consume()
                 expectToken(Token.Symbol.CurlyBracketStart)
                 // actually processing the query body now
-                builder.body = use(QueryBodyProcessor())
+                processBody()
             }
             Token.Symbol.CurlyBracketStart -> {
-                // actually processing the query body now
-                builder.body = use(QueryBodyProcessor())
+                processBody()
             }
             else -> expectedBindingOrToken(
                 Token.Keyword.Where,
@@ -84,6 +83,16 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
                 Token.Symbol.RoundBracketStart
             )
         }
+    }
+
+    private fun processBody() {
+        // consuming the starting `{`
+        consume()
+        // actually processing the query body now
+        builder.body = use(QueryBodyProcessor())
+        // if the body has been processed correctly, `}` should be the current token
+        expectToken(Token.Symbol.CurlyBracketEnd)
+        consume()
     }
 
 }
