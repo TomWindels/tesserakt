@@ -248,6 +248,7 @@ class CompilerTest {
         }
         /* expected failure cases */
         "SELECT TEST WHERE { ?s a TEST . }" causes CompilerError.Type.SyntaxError
+        "SELECT * WHERE { ?s () TEST . }" causes CompilerError.Type.StructuralError
         "SELECT * WHERE { ?s a ?test " causes CompilerError.Type.StructuralError
         "SELECT * WHERE { ?s <predicate2>/(<predicate3> ?o2.}" causes CompilerError.Type.StructuralError
         "SELECT * WHERE { ?s a ?type , }" causes CompilerError.Type.StructuralError

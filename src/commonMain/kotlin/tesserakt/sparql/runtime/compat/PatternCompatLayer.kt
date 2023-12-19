@@ -5,10 +5,9 @@ import tesserakt.sparql.compiler.types.PatternsAST
 import tesserakt.sparql.runtime.types.PatternASTr
 import tesserakt.sparql.runtime.types.PatternsASTr
 
-class PatternCompatLayer: CompatLayer<PatternsAST, PatternsASTr>() {
-
-    // TODO: have a "split up" interface lateinit var available for when more complex groups are formed, so
-    //  union's can be created of the various more-complex groups instead of bailing
+class PatternCompatLayer(
+    val onUnionCreated: (blocks: List<PatternsASTr>) -> Unit
+): CompatLayer<PatternsAST, PatternsASTr>() {
 
     override fun convert(source: PatternsAST): PatternsASTr = PatternsASTr(
         buildList { source.forEach { it.insert(this) } }
@@ -46,7 +45,22 @@ class PatternCompatLayer: CompatLayer<PatternsAST, PatternsASTr>() {
                 results.add(element)
             }
 
-            is PatternAST.Alts,
+            is PatternAST.Alts -> {
+                val splitUp = split()
+                if (splitUp.size == 1) {
+                    splitUp.first().insert(results, start, end)
+                } else {
+                    // inserting them all as unions
+                    val blocks = mutableListOf<PatternsASTr>()
+                    splitUp.forEach { path ->
+                        val content = mutableListOf<PatternASTr>()
+                        path.insert(content, start, end)
+                        blocks.add(PatternsASTr(content))
+                    }
+                    onUnionCreated(blocks)
+                }
+            }
+
             is PatternAST.Binding,
             is PatternAST.Exact,
             is PatternAST.Not,
@@ -55,6 +69,54 @@ class PatternCompatLayer: CompatLayer<PatternsAST, PatternsASTr>() {
                 PatternASTr(s = start, p = convertToSinglePredicate() ?: bail("Input is incompatible"), o = end)
             )
         }
+    }
+
+    /**
+     * Splits up the incoming alternative paths into different segments. The returned list is at least of size 1. If
+     *  the input consists contains alternatives that are paths or repeating segments, they are split up into multiple
+     *  predicates inside the returned list, so they can be split up into unions for runtime compatibility.
+     */
+    private fun PatternAST.Alts.split(): List<PatternAST.Predicate> {
+        // total amount of predicates
+        val result = mutableListOf<PatternAST.Predicate>()
+        // collection of "normal" alt paths that are allowed in the ASTr representation (can be mapped to fixed
+        //  predicate in subsequent steps)
+        val regular = mutableListOf<PatternAST.Predicate>()
+        allowed.forEach { predicate ->
+            when (predicate) {
+                is PatternAST.Alts ->
+                    predicate.split().let { processed ->
+                        // if the last is of type alts, then it can be directly added here, otherwise, they are all
+                        //  part of the regular split up
+                        val alts = processed.last()
+                        if (alts is PatternAST.Alts) {
+                            // adding its contents to the regular list
+                            regular.addAll(alts.allowed)
+                            // only adding the others
+                            result.addAll(processed.subList(0, processed.size - 1))
+                        } else {
+                            // adding them all instead
+                            result.addAll(processed)
+                        }
+                    }
+
+                is PatternAST.Chain ->
+                    result.add(predicate)
+
+                is PatternAST.Exact,
+                is PatternAST.Not ->
+                    regular.add(predicate)
+
+                is PatternAST.OneOrMore,
+                is PatternAST.ZeroOrMore,
+                is PatternAST.Binding ->
+                    result.add(predicate)
+            }
+        }
+        if (regular.isNotEmpty()) {
+            result.add(PatternAST.Alts(regular))
+        }
+        return result
     }
 
     private fun PatternAST.Object.nameOrInsert(results: MutableList<PatternASTr>): PatternASTr.Object =

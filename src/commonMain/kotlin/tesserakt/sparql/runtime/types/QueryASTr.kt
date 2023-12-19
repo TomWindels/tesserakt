@@ -10,7 +10,7 @@ sealed class QueryASTr: ASTr {
         /** All requested unions, not yet flattened to allow for easier optimisation **/
         val unions: List<UnionASTr>,
         /** Collection of pattern blocks that are optional **/
-        val optional: List<PatternsASTr>
+        val optional: List<OptionalASTr>
     ): ASTr
 
 }

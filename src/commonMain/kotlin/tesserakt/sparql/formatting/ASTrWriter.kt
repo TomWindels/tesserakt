@@ -140,18 +140,30 @@ abstract class ASTrWriter<RT> {
                 }
             }
 
+            is SegmentASTr.SelectQuery -> {
+                newline()
+                process(symbol.query)
+            }
+
+            is SegmentASTr.Statements -> {
+                process(symbol.statements)
+            }
+
+            is OptionalASTr -> {
+                when (symbol.segment) {
+                    is SegmentASTr.SelectQuery -> { process(symbol.segment) }
+                    is SegmentASTr.Statements -> { process(symbol.segment) }
+                }
+            }
+
             is UnionASTr -> {
                 newline()
                 for (i in 0 ..< symbol.size - 1) {
                     add(Token.Symbol.CurlyBracketStart)
                     indent()
                     when (val segment = symbol[i]) {
-                        is UnionASTr.SelectQuerySegment -> {
-                            newline()
-                            process(segment.query)
-                        }
-                        is UnionASTr.StatementsSegment ->
-                            process(segment.statements)
+                        is SegmentASTr.SelectQuery -> { process(segment) }
+                        is SegmentASTr.Statements -> { process(segment) }
                     }
                     unindent()
                     newline()
@@ -161,12 +173,8 @@ abstract class ASTrWriter<RT> {
                 add(Token.Symbol.CurlyBracketStart)
                 indent()
                 when (val segment = symbol.last()) {
-                    is UnionASTr.SelectQuerySegment -> {
-                        newline()
-                        process(segment.query)
-                    }
-                    is UnionASTr.StatementsSegment ->
-                        process(segment.statements)
+                    is SegmentASTr.SelectQuery -> { process(segment) }
+                    is SegmentASTr.Statements -> { process(segment) }
                 }
                 unindent()
                 newline()

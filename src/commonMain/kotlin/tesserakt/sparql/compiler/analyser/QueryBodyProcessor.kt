@@ -24,7 +24,12 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 is Token.NumericLiteral -> {
                     builder.addPatterns(use(PatternProcessor()))
                 }
-                Token.Keyword.Optional -> processOptional()
+                Token.Keyword.Optional -> {
+                    // consuming the "OPTIONAL" keyword before extracting the segment
+                    consume()
+                    // extracting the segment and inserting it
+                    builder.addOptional(use(SegmentProcessor()))
+                }
                 Token.Symbol.CurlyBracketStart -> {
                     builder.addUnion(use(UnionProcessor()))
                 }
@@ -42,18 +47,6 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
         // if this has been reached, the `while` block above hasn't returned, and has thus not been completely
         //  processed
         bail("Unexpected end of input, expected '}'")
-    }
-
-    private fun processOptional() {
-        // consuming the "optional {"
-        consume()
-        expectToken(Token.Symbol.CurlyBracketStart)
-        consume()
-        // extracting all patterns and inserting them
-        builder.addOptional(use(PatternProcessor()))
-        // consuming the final part
-        expectToken(Token.Symbol.CurlyBracketEnd)
-        consume()
     }
 
 }

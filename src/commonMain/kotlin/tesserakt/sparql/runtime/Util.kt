@@ -3,23 +3,13 @@ package tesserakt.sparql.runtime
 import tesserakt.sparql.runtime.types.PatternASTr
 import tesserakt.sparql.runtime.types.PatternsASTr
 import tesserakt.sparql.runtime.types.QueryASTr
-import tesserakt.sparql.runtime.types.UnionASTr
+import tesserakt.sparql.runtime.types.SegmentASTr
 
 fun QueryASTr.QueryBodyASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> =
     buildSet {
         addAll(patterns.getAllNamedBindings())
-        optional.forEach { pattern -> addAll(pattern.getAllNamedBindings()) }
-        unions.forEach { union ->
-            union.forEach { segment ->
-                when (segment) {
-                    is UnionASTr.SelectQuerySegment ->
-                        addAll(segment.query.output.map { name -> PatternASTr.RegularBinding(name) })
-
-                    is UnionASTr.StatementsSegment ->
-                        addAll(segment.statements.getAllNamedBindings())
-                }
-            }
-        }
+        optional.forEach { optional -> addAll(optional.segment.getAllNamedBindings()) }
+        unions.forEach { union -> union.forEach { segment -> addAll(segment.getAllNamedBindings()) } }
     }
 
 /**
@@ -43,6 +33,16 @@ fun PatternASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> {
         (s as? PatternASTr.RegularBinding)?.let { add(it) }
         p.getNamedBinding()?.let { add(it) }
         (o as? PatternASTr.RegularBinding)?.let { add(it) }
+    }
+}
+
+private fun SegmentASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> {
+    return when (this) {
+        is SegmentASTr.SelectQuery ->
+            query.output.map { name -> PatternASTr.RegularBinding(name) }.toSet()
+
+        is SegmentASTr.Statements ->
+            statements.getAllNamedBindings()
     }
 }
 

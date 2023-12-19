@@ -10,12 +10,12 @@ internal fun QueryAST.QueryBodyAST.extractAllBindings(): List<PatternAST.Binding
     (
         patterns.flatMap { pattern -> pattern.extractAllBindings() } +
         unions.flatMap { union -> union.flatMap { it.extractAllBindings() } } +
-        optional.flatMap { optional -> optional.flatMap { pattern -> pattern.extractAllBindings() } }
+        optional.flatMap { optional -> optional.segment.extractAllBindings() }
     ).distinct()
 
-fun UnionAST.Segment.extractAllBindings() = when (this) {
-    is UnionAST.SelectQuerySegment -> query.extractAllOutputsAsBindings()
-    is UnionAST.StatementsSegment -> statements.extractAllBindings()
+fun SegmentAST.extractAllBindings() = when (this) {
+    is SegmentAST.SelectQuery -> query.extractAllOutputsAsBindings()
+    is SegmentAST.Statements -> statements.extractAllBindings()
 }
 
 fun SelectQueryAST.extractAllOutputsAsBindings() = output.names.map { PatternAST.Binding(it) }
