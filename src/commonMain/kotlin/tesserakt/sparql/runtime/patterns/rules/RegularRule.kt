@@ -17,8 +17,15 @@ internal data class RegularRule(
      *  in expanding binding searches
      */
     fun matchAndInsert(triple: Triple, data: MutableList<Bindings>): Bindings? {
+        if (!s.matches(triple.s) || !p.matches(triple.p) || !o.matches(triple.o)) {
+            return null
+        }
         // checking to see if there's any matches with the given triple
-        val match = process(triple) ?: return null
+        val match = buildMap {
+            s.bindingName?.let { name -> put(name, triple.s) }
+            p.bindingName?.let { name -> put(name, triple.p) }
+            o.bindingName?.let { name -> put(name, triple.o) }
+        }
         // adding it to the growing collection of data
         data.add(match)
         return match
@@ -38,25 +45,5 @@ internal data class RegularRule(
     }
 
     override fun newState(): MutableList<Bindings> = mutableListOf()
-
-    /**
-     * Processes the incoming triple, returns `null` if no match is found, otherwise a map containing
-     *  all pairs of binding name and binding value
-     */
-    private fun process(triple: Triple): Bindings? {
-        return if (
-            !s.matches(triple.s) ||
-            !p.matches(triple.p) ||
-            !o.matches(triple.o)
-        ) {
-            null
-        } else {
-            val result = mutableMapOf<String, Triple.Term>()
-            s.bindingName?.let { name -> result.put(name, triple.s) }
-            p.bindingName?.let { name -> result.put(name, triple.p) }
-            o.bindingName?.let { name -> result.put(name, triple.o) }
-            return result
-        }
-    }
 
 }

@@ -1,5 +1,6 @@
 package tesserakt.rdf
 
+import tesserakt.FOAF
 import tesserakt.createTestStore
 import tesserakt.rdf.ontology.RDF
 import tesserakt.rdf.types.Store
@@ -22,7 +23,7 @@ class StoreTest {
         var age = -1
         filter(
             subject = "person1".asNamedTerm(),
-            predicate = "age".asNamedTerm(),
+            predicate = FOAF.age,
             `object` = null
         ).forEach {
             ((it.o as? Triple.Literal<*>)?.literal as? Int)?.let { age = it }
