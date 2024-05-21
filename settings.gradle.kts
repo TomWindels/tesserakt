@@ -1,13 +1,14 @@
-pluginManagement {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-    }
-    plugins {
-        val kotlinVersion = extra["kotlin.version"] as String
+apply(from = "./buildSrc/settings.gradle.kts")
 
-        kotlin("multiplatform") version kotlinVersion
-    }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
 }
 
 rootProject.name = "tesserakt"
+include("rdf")
+include("extra")
+include("rdf-dsl")
+include("sparql")
+include("serialization")
+include("common")
+include("tests")

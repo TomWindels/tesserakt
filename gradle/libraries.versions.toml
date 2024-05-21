@@ -1,0 +1,14 @@
+[versions]
+
+compileSdk = "33"
+android-plugin = "8.2.1"
+kotlin = "1.9.21"
+
+[libraries]
+
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "android-plugin" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+
+[plugins]
+
+android-library = { id = "com.android.library", version.ref = "android-plugin" }
