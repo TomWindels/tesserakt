@@ -1,15 +1,13 @@
-package dev.tesserakt.sparql.runtime.patterns.rules.repeating
+package dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating
 
 import dev.tesserakt.sparql.runtime.types.Bindings
 import dev.tesserakt.sparql.runtime.types.PatternASTr
+import dev.tesserakt.util.addFront
 
-internal class OneOrMoreFixedPredicateRule(
-    // the intended start element
+internal class ZeroOrMoreFixedPredicateRule(
     s: PatternASTr.Binding,
-    // the repeating element
     p: PatternASTr.FixedPredicate,
-    // the intended final result
-    o: PatternASTr.Binding
+    o: PatternASTr.Binding,
 ) : FixedPredicateRule(s = s, p = p, o = o) {
 
     override fun expand(input: List<Bindings>, data: Connections): List<Bindings> {
@@ -24,10 +22,14 @@ internal class OneOrMoreFixedPredicateRule(
                 start != null -> {
                     data.getAllPathsStartingFrom(start)
                         .map { it.asBindings() + bindings }
+                        // adding a null-length relation, meaning end == start
+                        .addFront(bindings + (o.name to start))
                 }
                 end != null -> {
                     data.getAllPathsEndingAt(end)
                         .map { it.asBindings() + bindings }
+                        // adding a null-length relation, meaning end == start
+                        .addFront(bindings + (s.name to end))
                 }
                 else -> {
                     data.getAllPaths()
@@ -36,5 +38,13 @@ internal class OneOrMoreFixedPredicateRule(
             }
         }
     }
+
+    // FIXME: possibly unwanted double firing when this is the only predicate of a pattern, requires investigation of
+    //  behaviour from other engines to see what is preferred (see `nodes` test query)
+//    override fun insertAndReturnNewPaths(triple: Quad, data: Connections): List<Bindings> =
+//        super.insertAndReturnNewPaths(triple = triple, data = data) +
+//        // as this is "zero or more", the start and end are already linked to each other
+//        Connections.Segment(start = triple.s, end = triple.s).asBindings() +
+//        Connections.Segment(start = triple.o, end = triple.o).asBindings()
 
 }

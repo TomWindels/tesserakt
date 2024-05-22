@@ -2,8 +2,8 @@ package sparql
 
 import createTestStore
 import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
-import dev.tesserakt.rdf.lt
-import dev.tesserakt.rdf.nt
+import dev.tesserakt.rdf.literalTerm
+import dev.tesserakt.rdf.namedTerm
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.BindingsTable.Companion.tabulate
@@ -14,24 +14,24 @@ import kotlin.test.Test
 class QueryTest {
 
     private fun buildAddressesStore() = buildStore {
-        "person1".nt has "domicile".nt being blank {
-            "address".nt being blank {
-                "street".nt being "Person St.".lt
-                "city".nt being blank {
-                    "inhabitants".nt being 5000
+        "person1".namedTerm has "domicile".namedTerm being blank {
+            "address".namedTerm being blank {
+                "street".namedTerm being "Person St.".literalTerm
+                "city".namedTerm being blank {
+                    "inhabitants".namedTerm being 5000
                 }
             }
         }
-        "person2".nt has "domicile".nt being "house2".nt
-        "house2".nt has "address".nt being "address2".nt
-        "address2".nt has "street".nt being "Person II St.".lt
-        "address2".nt has "city".nt being blank {
-            "inhabitants".nt being 7500
+        "person2".namedTerm has "domicile".namedTerm being "house2".namedTerm
+        "house2".namedTerm has "address".namedTerm being "address2".namedTerm
+        "address2".namedTerm has "street".namedTerm being "Person II St.".literalTerm
+        "address2".namedTerm has "city".namedTerm being blank {
+            "inhabitants".namedTerm being 7500
         }
-        "incomplete".nt has "domicile".nt being blank {
-            "address".nt being blank {
-                "street".nt being "unknown".nt
-                "city".nt being "unknown".nt
+        "incomplete".namedTerm has "domicile".namedTerm being blank {
+            "address".namedTerm being blank {
+                "street".namedTerm being "unknown".namedTerm
+                "city".namedTerm being "unknown".namedTerm
             }
         }
     }

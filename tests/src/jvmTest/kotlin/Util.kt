@@ -1,5 +1,5 @@
 import dev.tesserakt.rdf.dsl.RdfContext
-import dev.tesserakt.rdf.nt
+import dev.tesserakt.rdf.namedTerm
 import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Store
@@ -10,10 +10,10 @@ object FOAF: Ontology {
     override val prefix = "foaf"
     override val base_uri = "http://xmlns.com/foaf/0.1/"
 
-    val Person = "${base_uri}Person".nt
-    val age = "${base_uri}age".nt
-    val knows = "${base_uri}knows".nt
-    val based_near = "${base_uri}based_near".nt
+    val Person = "${base_uri}Person".namedTerm
+    val age = "${base_uri}age".namedTerm
+    val knows = "${base_uri}knows".namedTerm
+    val based_near = "${base_uri}based_near".namedTerm
 
 }
 
@@ -26,10 +26,10 @@ fun createTestStore(): Store = RdfContext.buildStore {
         local("person2"), local("person3"), local("person4")
     )
     person has FOAF.based_near being blank {
-        "street".nt being "unknown".asLiteral()
-        "number".nt being (-1).asLiteral()
+        "street".namedTerm being "unknown".asLiteral()
+        "number".namedTerm being (-1).asLiteral()
     }
-    person has "notes".nt being list(
-        "first-note".nt, "second-note".nt
+    person has "notes".namedTerm being list(
+        "first-note".namedTerm, "second-note".namedTerm
     )
 }

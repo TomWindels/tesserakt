@@ -4,23 +4,23 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteral
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 
-val String.nt: Quad.NamedTerm
+val String.namedTerm: Quad.NamedTerm
     get() = asNamedTerm()
 
-val String.lt: Quad.Literal<String>
+val String.literalTerm: Quad.Literal<String>
     get() = asLiteral()
 
-val Int.lt: Quad.Literal<Int>
+val Int.literalTerm: Quad.Literal<Int>
     get() = asLiteral()
 
-val Long.lt: Quad.Literal<Long>
+val Long.literalTerm: Quad.Literal<Long>
     get() = asLiteral()
 
-val Float.lt: Quad.Literal<Float>
+val Float.literalTerm: Quad.Literal<Float>
     get() = asLiteral()
 
-val Double.lt: Quad.Literal<Double>
+val Double.literalTerm: Quad.Literal<Double>
     get() = asLiteral()
 
-val Boolean.lt: Quad.Literal<Boolean>
+val Boolean.literalTerm: Quad.Literal<Boolean>
     get() = asLiteral()

@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.patterns.RuleSet
+import dev.tesserakt.sparql.runtime.incremental.patterns.IncrementalRuleSet
 import dev.tesserakt.sparql.runtime.types.Bindings
 import dev.tesserakt.sparql.runtime.types.QueryASTr
 
@@ -9,7 +9,7 @@ sealed class Query<ResultType, AST: QueryASTr>(
     protected val ast: AST
 ) {
 
-    private val ruleSet = RuleSet.from(ast.body.patterns)
+    private val incrementalRuleSet = IncrementalRuleSet.from(ast.body.patterns)
 
     companion object {
 
@@ -48,7 +48,7 @@ sealed class Query<ResultType, AST: QueryASTr>(
 
         constructor(source: Iterable<Quad>): this(iterator = source.iterator())
 
-        private val state = ruleSet.State()
+        private val state = incrementalRuleSet.State()
         // pending results that have been yielded since last `iterator.next` call, but not yet
         //  processed through `next()`
         private val pending = ArrayList<Bindings>(10)

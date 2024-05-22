@@ -1,16 +1,16 @@
-package dev.tesserakt.sparql.runtime.patterns
+package dev.tesserakt.sparql.runtime.incremental.patterns
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.patterns.rules.QueryRule
-import dev.tesserakt.sparql.runtime.patterns.rules.RegularRule
-import dev.tesserakt.sparql.runtime.patterns.rules.repeating.BindingPredicateRule
-import dev.tesserakt.sparql.runtime.patterns.rules.repeating.FixedPredicateRule
-import dev.tesserakt.sparql.runtime.patterns.rules.repeating.RepeatingRule.Companion.repeatingOf
+import dev.tesserakt.sparql.runtime.incremental.patterns.rules.QueryRule
+import dev.tesserakt.sparql.runtime.incremental.patterns.rules.RegularRule
+import dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating.BindingPredicateRule
+import dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating.FixedPredicateRule
+import dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating.RepeatingRule.Companion.repeatingOf
 import dev.tesserakt.sparql.runtime.types.Bindings
 import dev.tesserakt.sparql.runtime.types.PatternASTr
 import dev.tesserakt.sparql.runtime.types.PatternsASTr
 
-internal class RuleSet (rules: List<QueryRule<*>>) {
+internal class IncrementalRuleSet (rules: List<QueryRule<*>>) {
 
     // TODO: make processing these rules in state their own separate type, so further specializing the various
     //  rule types can be done in separate collections for more optimal V-Table usage
@@ -91,7 +91,7 @@ internal class RuleSet (rules: List<QueryRule<*>>) {
     companion object {
 
         fun from(patterns: PatternsASTr) =
-            RuleSet(rules = patterns.toFilterRules())
+            IncrementalRuleSet(rules = patterns.toFilterRules())
 
         /* helpers */
 

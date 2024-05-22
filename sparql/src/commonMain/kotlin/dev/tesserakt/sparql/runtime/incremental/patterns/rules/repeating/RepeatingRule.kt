@@ -1,7 +1,7 @@
-package dev.tesserakt.sparql.runtime.patterns.rules.repeating
+package dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.patterns.rules.QueryRule
+import dev.tesserakt.sparql.runtime.incremental.patterns.rules.QueryRule
 import dev.tesserakt.sparql.runtime.types.Bindings
 import dev.tesserakt.sparql.runtime.types.PatternASTr
 

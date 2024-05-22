@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql.runtime.patterns.rules
+package dev.tesserakt.sparql.runtime.incremental.patterns.rules
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.types.Bindings

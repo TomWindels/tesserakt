@@ -1,10 +1,11 @@
-package dev.tesserakt.sparql.runtime.patterns.rules.repeating
+package dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.types.Bindings
 import dev.tesserakt.sparql.runtime.types.PatternASTr
+import dev.tesserakt.util.addFront
 
-internal class OneOrMoreBindingPredicateRule(
+internal class ZeroOrMoreBindingPredicateRule(
     s: PatternASTr.Binding,
     p: PatternASTr.Binding,
     o: PatternASTr.Binding,
@@ -25,10 +26,14 @@ internal class OneOrMoreBindingPredicateRule(
                     start != null -> {
                         connections.getAllPathsStartingFrom(start)
                             .map { it.asBindings() + bindings }
+                            // adding a null-length relation, meaning end == start
+                            .addFront(bindings + (o.name to start))
                     }
                     end != null -> {
                         connections.getAllPathsEndingAt(end)
                             .map { it.asBindings() + bindings }
+                            // adding a null-length relation, meaning end == start
+                            .addFront(bindings + (s.name to end))
                     }
                     else -> {
                         connections.getAllPaths()
@@ -46,10 +51,14 @@ internal class OneOrMoreBindingPredicateRule(
                         start != null -> {
                             connections.getAllPathsStartingFrom(start)
                                 .map { it.asBindings() + bindings + (p.name to predicate) }
+                                // adding a null-length relation, meaning end == start
+                                .addFront(bindings + mapOf(o.name to start, p.name to predicate))
                         }
                         end != null -> {
                             connections.getAllPathsEndingAt(end)
                                 .map { it.asBindings() + bindings + (p.name to predicate) }
+                                // adding a null-length relation, meaning end == start
+                                .addFront(bindings + mapOf(s.name to end, p.name to predicate))
                         }
                         else -> {
                             connections.getAllPaths()
@@ -60,5 +69,13 @@ internal class OneOrMoreBindingPredicateRule(
             }
         }
     }
+
+    // FIXME: possibly unwanted double firing when this is the only predicate of a pattern, requires investigation of
+    //  behaviour from other engines to see what is preferred (see `nodes` test query)
+//    override fun insertAndReturnNewPaths(triple: Quad, data: Connections): List<Bindings> =
+//        super.insertAndReturnNewPaths(triple = triple, data = data) +
+//        // as this is "zero or more", the start and end are already linked to each other
+//        Connections.Segment(start = triple.s, end = triple.s).asBindings() +
+//        Connections.Segment(start = triple.o, end = triple.o).asBindings()
 
 }
