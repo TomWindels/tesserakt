@@ -44,12 +44,12 @@ class QueryTest {
         val spo = store.query(simple)
         println("Found ${spo.size} bindings for the spo-query. Expected ${store.size}")
 
-        val chain = "SELECT * WHERE { ?person <address>/<number> ?number ; <address>/<street> ?street }".asSPARQLSelectQuery()
+        val chain = "SELECT * WHERE { ?person <${FOAF.based_near}>/<number> ?number ; <${FOAF.based_near}>/<street> ?street }".asSPARQLSelectQuery()
         store.query(chain) {
             println("Found `chain` binding\n$it")
         }
 
-        val multiple = "SELECT ?friend WHERE { ?person <friend> ?friend ; a <person> }".asSPARQLSelectQuery()
+        val multiple = "SELECT ?friend WHERE { ?person <${FOAF.knows}> ?friend ; a <${FOAF.Person}> }".asSPARQLSelectQuery()
         store.query(multiple) {
             println("Found `multiple` binding\n$it")
         }
