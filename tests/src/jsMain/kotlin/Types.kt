@@ -18,8 +18,8 @@ external interface Term {
  * A query engine handler.
  */
 external interface QueryEngine {
-    fun parse(queryString: String, options: dynamic): Promise<Unit>
-    fun query(data: Array<Quad>, queryString: String, options: dynamic): Promise<QueryResult<*>>
+    fun parse(queryString: String, options: Map<String, dynamic>): Promise<Unit>
+    fun query(data: Array<Quad>, queryString: String, options: Map<String, dynamic>): Promise<QueryResult<*>>
 }
 
 /**

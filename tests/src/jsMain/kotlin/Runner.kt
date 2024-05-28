@@ -5,23 +5,32 @@ import kotlin.js.Promise
 //  exported module (they live in a matching namespace)
 
 // see https://github.com/comunica/comunica/blob/v1.22.3/packages/actor-init-sparql/spec/sparql-engine-base.js
-//  for an example of the available functions to export and their signatures
+//  for an example of the available functions to export and their signatures ; adheres to the `QueryEngine` interface
 
+// not adhering to the promise type as this causes odd printing behavior
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-// incorrect warning
-@Suppress("NON_EXPORTABLE_TYPE")
-fun parse(queryString: String, options: dynamic): Promise<Unit> {
-    console.log("== Incoming `parse` query:\n$queryString")
+fun parse(queryString: String, options: Map<String, dynamic>) {
     runCatching { with (Compiler.Default) { queryString.asSPARQLQuery() } }
-        .onSuccess { console.log("Compiled (I think)") }
+        .onSuccess {
+            val msg = buildString {
+                appendLine("== Incoming `parse` query")
+                appendLine(queryString)
+                appendLine("Compiled!")
+            }
+            console.log(msg)
+        }
         .onFailure {
-            console.error("Did not compile!")
-            console.error(it.stackTraceToString())
+            val msg = buildString {
+                appendLine("== Incoming `parse` query")
+                appendLine(queryString)
+                appendLine("Did not compile!")
+                append(it.stackTraceToString())
+            }
+            console.error(msg)
             // making sure the test suite is aware of our happy little accident
             throw it
         }
-    return Promise.resolve(Unit)
 }
 
 @OptIn(ExperimentalJsExport::class)
