@@ -91,8 +91,14 @@ class StringLexer(private val input: String): Lexer() {
                 // going back to the top `while (true)`
             } else {
                 end = start
-                // continuing until the next whitespace
-                while (end < input.length && !input[end].isWhitespace()) { ++end }
+                // continuing until the next whitespace in a non-escaped context
+                var canStop = true
+                while (end < input.length && (!input[end].isWhitespace() || !canStop)) {
+                    if (input[end] == '"' || input[end] == '\'') {
+                        canStop = !canStop
+                    }
+                    ++end
+                }
                 // allowing it to be used
                 return true
             }

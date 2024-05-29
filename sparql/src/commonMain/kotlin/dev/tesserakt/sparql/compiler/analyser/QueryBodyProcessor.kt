@@ -34,7 +34,8 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                     builder.addUnion(use(UnionProcessor()))
                 }
                 Token.Symbol.CurlyBracketEnd -> {
-                    // done, leaving the `}` alone
+                    // done, consuming it and returning
+                    consume()
                     return
                 }
                 else -> expectedPatternElementOrBindingOrToken(

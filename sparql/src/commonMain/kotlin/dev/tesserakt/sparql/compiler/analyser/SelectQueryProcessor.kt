@@ -91,18 +91,16 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
         consume()
         // actually processing the query body now
         builder.body = use(QueryBodyProcessor())
-        // if the body has been processed correctly, `}` should be the current token
-        expectToken(Token.Symbol.CurlyBracketEnd)
-        consume()
+        // reading potential modifiers
         processQueryEnd()
     }
 
     private fun processQueryEnd() {
-        while (token != Token.EOF) {
+        while (true) {
             when (token) {
                 Token.Keyword.Order -> processOrdering()
                 Token.Keyword.Group -> processGrouping()
-                else -> expectedToken(Token.Keyword.Order, Token.Keyword.Group, Token.EOF)
+                else -> return // nothing for us to consume here
             }
         }
     }

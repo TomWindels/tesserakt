@@ -73,7 +73,7 @@ sealed interface Token {
         /** The value of the term after the colon **/
         val value: String
     ): Token {
-        override fun toString() = "term `$value`"
+        override fun toString() = "term `$namespace:$value`"
         override val syntax = "$namespace:$value"
     }
 

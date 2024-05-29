@@ -35,8 +35,6 @@ class SegmentProcessor: Analyser<SegmentAST>() {
                 Token.Symbol.CurlyBracketStart
             )
         }
-        expectToken(Token.Symbol.CurlyBracketEnd)
-        consume()
         return segment
     }
 
@@ -47,6 +45,8 @@ class SegmentProcessor: Analyser<SegmentAST>() {
 
     private fun processSegmentAsSelectQuery(): SegmentAST.SelectQuery {
         val query = use(SelectQueryProcessor())
+        expectToken(Token.Symbol.CurlyBracketEnd)
+        consume()
         return SegmentAST.SelectQuery(query)
     }
 

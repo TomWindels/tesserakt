@@ -1,5 +1,6 @@
 package sparql
 
+import FOAF
 import createTestStore
 import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
 import dev.tesserakt.rdf.literalTerm
