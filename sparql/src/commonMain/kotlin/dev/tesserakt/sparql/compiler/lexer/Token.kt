@@ -10,6 +10,11 @@ sealed interface Token {
         CurlyBracketEnd("}"),
         RoundBracketStart("("),
         RoundBracketEnd(")"),
+        AngularBracketStart("<"),
+        AngularBracketEnd(">"),
+        Equals("="),
+        LTEQ("<="),
+        GTEQ(">="),
         PredicateOr("|"),
         ForwardSlash("/"),
         Asterisk("*"),
@@ -48,10 +53,14 @@ sealed interface Token {
         Union("UNION"),
         Distinct("DISTINCT"),
         Optional("OPTIONAL"),
-        FunCount("COUNT"),
-        FunMin("MIN"),
-        FunMax("MAX"),
-        FunAvg("AVG"),
+        /* aggregates */
+        AggCount("COUNT"),
+        AggSum("SUM"),
+        AggMin("MIN"),
+        AggMax("MAX"),
+        AggAvg("AVG"),
+        AggGroupConcat("GROUP_CONCAT"),
+        AggSample("SAMPLE"),
         /* end of (supported) keywords */;
 
         override fun toString() = "keyword `$syntax`"

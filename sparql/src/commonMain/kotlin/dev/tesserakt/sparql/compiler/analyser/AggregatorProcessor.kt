@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.ast.Aggregation
+import dev.tesserakt.sparql.compiler.ast.Expression
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalNumericValue
@@ -8,15 +8,24 @@ import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalNumericValue
 /**
  * Processes structures like `MIN(?s)`, `AVG(?s) - MIN(?p)`, `COUNT(DISTINCT ?s)`
  */
-class AggregatorProcessor: Analyser<Aggregation.Expression>() {
+class AggregatorProcessor: Analyser<Expression>() {
 
-    override fun _process(): Aggregation.Expression {
-        return processAggregationStatement()
+    override fun _process(): Expression {
+        val expr = processMathStatement()
+        // filters should be top level afaik, so checking it after completing the math expression stuff
+        val filterOperand = token.filterOperand
+        return if (filterOperand != null) {
+            consume()
+            val rhs = processMathStatement()
+            Expression.Filter(lhs = expr, rhs = rhs, operand = filterOperand)
+        } else {
+            expr
+        }
     }
 
     // processes & consumes structures like `max(?s) - avg(?p)`
-    private fun processAggregationStatement(): Aggregation.Expression {
-        val builder = Aggregation.MathOp.Builder(nextAggregationOrBindingOrLiteral())
+    private fun processMathStatement(): Expression {
+        val builder = Expression.MathOp.Builder(nextAggregationOrBindingOrLiteral())
         var operator = token.operator
         while (operator != null) {
             consume()
@@ -29,21 +38,24 @@ class AggregatorProcessor: Analyser<Aggregation.Expression>() {
         return builder.build()
     }
 
-    private fun nextAggregationOrBindingOrLiteral(): Aggregation.Expression = when (token) {
+    private fun nextAggregationOrBindingOrLiteral(): Expression = when (token) {
         Token.Keyword.Distinct -> {
             consume()
             expectBinding()
-            Aggregation.DistinctBindingValues(token.bindingName)
+            Expression.DistinctBindingValues(token.bindingName)
                 .also { consume() }
         }
         is Token.Binding -> {
-            Aggregation.BindingValues(token.bindingName)
+            Expression.BindingValues(token.bindingName)
                 .also { consume() }
         }
-        Token.Keyword.FunCount,
-        Token.Keyword.FunMin,
-        Token.Keyword.FunMax,
-        Token.Keyword.FunAvg -> {
+        Token.Keyword.AggCount,
+        Token.Keyword.AggSum,
+        Token.Keyword.AggMin,
+        Token.Keyword.AggMax,
+        Token.Keyword.AggAvg,
+        Token.Keyword.AggGroupConcat,
+        Token.Keyword.AggSample -> {
             processAggregationFunction()
         }
         Token.Symbol.RoundBracketStart -> {
@@ -51,37 +63,37 @@ class AggregatorProcessor: Analyser<Aggregation.Expression>() {
         }
         Token.Symbol.OpMinus -> {
             consume()
-            Aggregation.MathOp.Negative.of(nextAggregationOrBindingOrLiteral())
+            Expression.MathOp.Negative.of(nextAggregationOrBindingOrLiteral())
         }
         is Token.NumericLiteral -> {
-            Aggregation.LiteralValue(token.literalNumericValue)
+            Expression.LiteralValue(token.literalNumericValue)
                 .also { consume() }
         }
         else -> expectedBindingOrLiteralOrToken(
             Token.Keyword.Distinct,
-            Token.Keyword.FunCount,
-            Token.Keyword.FunMin,
-            Token.Keyword.FunMax,
-            Token.Keyword.FunAvg,
+            Token.Keyword.AggCount,
+            Token.Keyword.AggMin,
+            Token.Keyword.AggMax,
+            Token.Keyword.AggAvg,
             Token.Symbol.RoundBracketStart
         )
     }
 
-    private fun nextAggregationOrBinding(): Aggregation.Expression = when (token) {
+    private fun nextAggregationOrBinding(): Expression = when (token) {
         Token.Keyword.Distinct -> {
             consume()
             expectBinding()
-            Aggregation.DistinctBindingValues(token.bindingName)
+            Expression.DistinctBindingValues(token.bindingName)
                 .also { consume() }
         }
         is Token.Binding -> {
-            Aggregation.BindingValues(token.bindingName)
+            Expression.BindingValues(token.bindingName)
                 .also { consume() }
         }
-        Token.Keyword.FunCount,
-        Token.Keyword.FunMin,
-        Token.Keyword.FunMax,
-        Token.Keyword.FunAvg, -> {
+        Token.Keyword.AggCount,
+        Token.Keyword.AggMin,
+        Token.Keyword.AggMax,
+        Token.Keyword.AggAvg, -> {
             processAggregationFunction()
         }
         Token.Symbol.RoundBracketStart -> {
@@ -89,50 +101,65 @@ class AggregatorProcessor: Analyser<Aggregation.Expression>() {
         }
         else -> expectedBindingOrToken(
             Token.Keyword.Distinct,
-            Token.Keyword.FunCount,
-            Token.Keyword.FunMin,
-            Token.Keyword.FunMax,
-            Token.Keyword.FunAvg,
+            Token.Keyword.AggCount,
+            Token.Keyword.AggMin,
+            Token.Keyword.AggMax,
+            Token.Keyword.AggAvg,
             Token.Symbol.RoundBracketStart
         )
     }
 
-    private val Token.operator: Aggregation.MathOp.Operator?
+    private val Token.operator: Expression.MathOp.Operator?
         get() = when (this) {
-            Token.Symbol.OpPlus -> Aggregation.MathOp.Operator.SUM
-            Token.Symbol.OpMinus -> Aggregation.MathOp.Operator.DIFFERENCE
-            Token.Symbol.ForwardSlash -> Aggregation.MathOp.Operator.DIVISION
-            Token.Symbol.Asterisk -> Aggregation.MathOp.Operator.PRODUCT
+            Token.Symbol.OpPlus -> Expression.MathOp.Operator.SUM
+            Token.Symbol.OpMinus -> Expression.MathOp.Operator.DIFFERENCE
+            Token.Symbol.ForwardSlash -> Expression.MathOp.Operator.DIVISION
+            Token.Symbol.Asterisk -> Expression.MathOp.Operator.PRODUCT
+            else -> null
+        }
+
+    private val Token.filterOperand: Expression.Filter.Operand?
+        get() = when (this) {
+            Token.Symbol.AngularBracketStart -> Expression.Filter.Operand.LESS_THAN
+            Token.Symbol.AngularBracketEnd -> Expression.Filter.Operand.GREATER_THAN
+            Token.Symbol.LTEQ -> Expression.Filter.Operand.LESS_THAN_OR_EQ
+            Token.Symbol.GTEQ -> Expression.Filter.Operand.GREATER_THAN_OR_EQ
+            Token.Symbol.Equals -> Expression.Filter.Operand.EQUAL
             else -> null
         }
 
     // processes & consumes structures like `(max(?s) - avg(?p))`
-    private fun processAggregationGroup(): Aggregation.Expression {
+    private fun processAggregationGroup(): Expression {
         // simply calling the `processAggregationStatement` again, level of recursion depth = number of parentheses
         // consuming the '('
         consume()
-        return processAggregationStatement().also {
+        return processMathStatement().also {
             expectToken(Token.Symbol.RoundBracketEnd)
             consume()
         }
     }
 
     // processes & consumes structures like `max(?s)`
-    private fun processAggregationFunction(): Aggregation.FuncCall {
-        val type = when (token) {
-            Token.Keyword.FunCount -> Aggregation.FuncCall.Type.COUNT
-            Token.Keyword.FunMin -> Aggregation.FuncCall.Type.MIN
-            Token.Keyword.FunMax -> Aggregation.FuncCall.Type.MAX
-            Token.Keyword.FunAvg -> Aggregation.FuncCall.Type.AVG
-            else -> bail()
-        }
+    private fun processAggregationFunction(): Expression.FuncCall {
+        val type = token.aggType()
         consume()
         expectToken(Token.Symbol.RoundBracketStart)
         consume()
         val input = nextAggregationOrBinding()
         expectToken(Token.Symbol.RoundBracketEnd)
         consume()
-        return Aggregation.FuncCall(type = type, input = input)
+        return Expression.FuncCall(type = type, input = input)
+    }
+
+    private fun Token.aggType() = when (this) {
+        Token.Keyword.AggCount -> Expression.FuncCall.Type.COUNT
+        Token.Keyword.AggSum -> Expression.FuncCall.Type.SUM
+        Token.Keyword.AggMin -> Expression.FuncCall.Type.MIN
+        Token.Keyword.AggMax -> Expression.FuncCall.Type.MAX
+        Token.Keyword.AggAvg -> Expression.FuncCall.Type.AVG
+        Token.Keyword.AggGroupConcat -> Expression.FuncCall.Type.GROUP_CONCAT
+        Token.Keyword.AggSample -> Expression.FuncCall.Type.SAMPLE
+        else -> bail()
     }
 
 }

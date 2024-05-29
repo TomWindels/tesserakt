@@ -7,7 +7,7 @@ class SelectQueryCompatLayer: CompatLayer<SelectQueryAST, SelectQueryASTr>() {
 
     override fun convert(source: SelectQueryAST): SelectQueryASTr {
         return SelectQueryASTr(
-            output = source.output.names,
+            output = source.output.keys,
             body = QueryBodyCompatLayer().convert(source.body)
         )
     }

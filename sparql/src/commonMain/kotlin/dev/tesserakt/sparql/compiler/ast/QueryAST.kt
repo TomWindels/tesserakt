@@ -1,5 +1,7 @@
 package dev.tesserakt.sparql.compiler.ast
 
+import dev.tesserakt.sparql.formatting.ASTWriter
+
 sealed class QueryAST: ASTNode {
 
     abstract val body: QueryBodyAST
@@ -18,7 +20,7 @@ sealed class QueryAST: ASTNode {
             return QueryBodyAST(
                 patterns = PatternsAST(_globals),
                 unions = _unions.map { union -> UnionAST(union) },
-                optional = _optionals.map { optional -> OptionalAST(optional) }
+                optionals = _optionals.map { optional -> OptionalAST(optional) }
             )
         }
 
@@ -48,7 +50,11 @@ sealed class QueryAST: ASTNode {
         /** All requested unions, not yet flattened to allow for easier optimisation **/
         val unions: List<UnionAST>,
         /** Collection of pattern blocks that are optional **/
-        val optional: List<OptionalAST>
+        val optionals: List<OptionalAST>
     ): ASTNode
+
+    override fun toString(): String {
+        return ASTWriter().write(this)
+    }
 
 }

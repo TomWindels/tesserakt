@@ -11,7 +11,7 @@ class QueryBodyCompatLayer: CompatLayer<QueryAST.QueryBodyAST, QueryASTr.QueryBo
         val unions = source.unions.convert().toMutableList()
         val patterns = PatternCompatLayer { blocks -> unions.add(blocks.toUnion()) }
             .convert(source.patterns)
-        val optional = source.optional.map { OptionalASTr(it.segment.convert()) }
+        val optional = source.optionals.map { OptionalASTr(it.segment.convert()) }
         return QueryASTr.QueryBodyASTr(
             patterns = patterns,
             optional = optional,

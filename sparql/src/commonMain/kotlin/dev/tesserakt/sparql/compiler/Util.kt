@@ -1,9 +1,9 @@
 package dev.tesserakt.sparql.compiler
 
 import dev.tesserakt.sparql.compiler.analyser.Analyser
+import dev.tesserakt.sparql.compiler.ast.*
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.StringLexer
-import dev.tesserakt.sparql.compiler.ast.*
 import dev.tesserakt.sparql.compiler.lexer.Token
 
 
@@ -11,7 +11,7 @@ internal fun QueryAST.QueryBodyAST.extractAllBindings(): List<PatternAST.Binding
     (
         patterns.flatMap { pattern -> pattern.extractAllBindings() } +
         unions.flatMap { union -> union.flatMap { it.extractAllBindings() } } +
-        optional.flatMap { optional -> optional.segment.extractAllBindings() }
+        optionals.flatMap { optional -> optional.segment.extractAllBindings() }
     ).distinct()
 
 fun SegmentAST.extractAllBindings() = when (this) {
@@ -19,7 +19,7 @@ fun SegmentAST.extractAllBindings() = when (this) {
     is SegmentAST.Statements -> statements.extractAllBindings()
 }
 
-fun SelectQueryAST.extractAllOutputsAsBindings() = output.names.map { PatternAST.Binding(it) }
+fun SelectQueryAST.extractAllOutputsAsBindings() = output.keys.map { PatternAST.Binding(it) }
 
 fun PatternAST.extractAllBindings(): List<PatternAST.Binding> {
     val result = mutableListOf<PatternAST.Binding>()

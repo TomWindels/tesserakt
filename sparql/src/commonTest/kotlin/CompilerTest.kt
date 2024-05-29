@@ -5,12 +5,10 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.compiler.CompilerError
 import dev.tesserakt.sparql.compiler.analyser.AggregatorProcessor
-import dev.tesserakt.sparql.compiler.processed
-import dev.tesserakt.sparql.compiler.ast.Aggregation
-import dev.tesserakt.sparql.compiler.ast.Aggregation.Companion.builtin
-import dev.tesserakt.sparql.compiler.ast.Aggregation.Companion.distinctBindings
+import dev.tesserakt.sparql.compiler.ast.Expression
 import dev.tesserakt.sparql.compiler.ast.PatternAST
 import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
+import dev.tesserakt.sparql.compiler.processed
 import kotlin.test.Test
 
 class CompilerTest {
@@ -43,8 +41,8 @@ class CompilerTest {
         "SELECT * WHERE { ?s a/?p1*/?p2?o. }" satisfies {
             require(this is SelectQueryAST)
             body.patterns.first().p is PatternAST.Chain
-                && output.names == setOf("s", "p1", "p2", "o")
-                && output.entries.all { it.value is SelectQueryAST.Output.BindingEntry }
+                && output.keys == setOf("s", "p1", "p2", "o")
+                && output.entries.all { it.value is SelectQueryAST.BindingOutputEntry }
         }
         "SELECT * WHERE { ?s (<predicate2>|<predicate3>)?o. }" satisfies {
             body.patterns.first().p is PatternAST.Alts
@@ -89,9 +87,9 @@ class CompilerTest {
         """ satisfies {
             require(this is SelectQueryAST)
             body.patterns.size == 1 &&
-            body.optional.size == 1 &&
+            body.optionals.size == 1 &&
             body.unions.size == 1 &&
-            output.names == setOf("s", "content", "value1")
+            output.keys == setOf("s", "content", "value1")
         }
         """
             SELECT * WHERE {
@@ -122,29 +120,29 @@ class CompilerTest {
         """ satisfies {
             require(this is SelectQueryAST)
             body.patterns.size == 1 &&
-            body.optional.size == 1 &&
-            output.names == setOf("s", "value")
+            body.optionals.size == 1 &&
+            output.keys == setOf("s", "value")
             // TODO: also check the optional's condition
         }
         "select(count(distinct ?s) as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            val func = output.aggregate("count")!!.expression.builtin
-            func.type == Aggregation.FuncCall.Type.COUNT &&
-            func.input.distinctBindings == Aggregation.DistinctBindingValues("s")
+            val func = (output["count"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression.builtin
+            func.type == Expression.FuncCall.Type.COUNT &&
+            func.input.distinctBindings == Expression.DistinctBindingValues("s")
         }
         "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            output.aggregate("count")!!.expression ==
+            (output["count"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression ==
                     "(${1 / 3.0} * min(?s)) + avg(?s)".processed(AggregatorProcessor()).getOrThrow()
         }
         "select(avg(?s) + min(?s)/3*4+3-5.5*10 as ?count_long){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            output.aggregate("count_long")!!.expression ==
+            (output["count_long"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression ==
                     "4 * (min(?s)) / 3 + avg(?s) - 52".processed(AggregatorProcessor()).getOrThrow()
         }
         "select(-min(?s) + max(?s) as ?reversed_diff){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            output.aggregate("reversed_diff")!!.expression ==
+            (output["reversed_diff"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression ==
                     "max(?s) - min(?s)".processed(AggregatorProcessor()).getOrThrow()
         }
         """
@@ -163,8 +161,8 @@ class CompilerTest {
             )
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
-            output.aggregate("avg")!!.expression.builtin.type == Aggregation.FuncCall.Type.AVG &&
-            output.aggregate("c")!!.expression == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor()).getOrThrow()
+            (output["avg"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression.builtin.type == Expression.FuncCall.Type.AVG &&
+            (output["c"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor()).getOrThrow()
         }
         """
             SELECT * WHERE {
@@ -196,7 +194,7 @@ class CompilerTest {
                 p = PatternAST.Exact("data".asNamedTerm()),
                 o = PatternAST.Binding("values")
             ) &&
-            "values" in output.names
+            "values" in output.keys
         }
         """
             SELECT * WHERE {
@@ -243,7 +241,7 @@ class CompilerTest {
             }
         """ satisfies {
             require(this is SelectQueryAST)
-            output.names.containsAll(listOf("page, type"))
+            output.keys.containsAll(listOf("page, type"))
         }
         /* expected failure cases */
         "SELECT TEST WHERE { ?s a TEST . }" causes CompilerError.Type.SyntaxError

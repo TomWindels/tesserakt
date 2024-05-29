@@ -1,66 +1,57 @@
 package dev.tesserakt.sparql.compiler.ast
 
 import dev.tesserakt.sparql.compiler.extractAllBindings
+import dev.tesserakt.sparql.formatting.ASTWriter
 import kotlin.jvm.JvmInline
 
 data class SelectQueryAST(
-    val output: Output,
+    // TODO "distinct" ?
+    val output: Map<String, OutputEntry>,
     override val body: QueryBodyAST,
     /** GROUP BY <expr> **/
-    val grouping: Aggregation.Expression?,
+    val grouping: Expression?,
+    /** HAVING (filter) **/
+    val groupingFilter: Expression.Filter?,
     /** ORDER BY <expr> **/
-    val ordering: Aggregation.Expression?
+    val ordering: Expression?
 ): QueryAST() {
 
+    sealed interface OutputEntry: ASTNode {
+        val name: String
+    }
+
     @JvmInline
-    value class Output internal constructor(val entries: Map<String, Entry>): ASTNode {
+    value class BindingOutputEntry(val binding: PatternAST.Binding): OutputEntry {
+        override val name: String get() = binding.name
+    }
 
-        val names get() = entries.keys
+    @JvmInline
+    value class AggregationOutputEntry(val aggregation: Aggregation): OutputEntry {
+        override val name: String get() = aggregation.target.name
+    }
 
-        // TODO "distinct" ?
-
-        internal constructor(
-            entries: Iterable<Entry>
-        ): this(
-            entries = entries.associateBy { it.name }
-        )
-
-        fun binding(name: String) = (entries[name] as? BindingEntry)?.binding
-
-        fun aggregate(name: String) = (entries[name] as? AggregationEntry)?.aggregation
-
-        sealed interface Entry {
-            val name: String
-        }
-
-        @JvmInline
-        value class BindingEntry(val binding: PatternAST.Binding): Entry {
-            override val name: String get() = binding.name
-        }
-
-        @JvmInline
-        value class AggregationEntry(val aggregation: Aggregation): Entry {
-            override val name: String get() = aggregation.target.name
-        }
-
+    override fun toString(): String {
+        // even though base class overwrites it, `data class` re-overwrites it
+        return ASTWriter().write(this)
     }
 
     class Builder {
 
         private var everything = false
-        private val entries = mutableListOf<Output.Entry>()
+        private val entries = mutableListOf<OutputEntry>()
         lateinit var body: QueryBodyAST
         // GROUP BY <expr>
-        var grouping: Aggregation.Expression? = null
+        var grouping: Expression? = null
+        var groupingFilter: Expression.Filter? = null
         // ORDER BY <expr>
-        var ordering: Aggregation.Expression? = null
+        var ordering: Expression? = null
 
         fun addToOutput(binding: PatternAST.Binding) {
-            entries.add(Output.BindingEntry(binding))
+            entries.add(BindingOutputEntry(binding))
         }
 
         fun addToOutput(aggregation: Aggregation) {
-            entries.add(Output.AggregationEntry(aggregation))
+            entries.add(AggregationOutputEntry(aggregation))
         }
 
         fun setEverythingAsOutput() {
@@ -69,14 +60,15 @@ data class SelectQueryAST(
 
         fun build(): SelectQueryAST {
             val outputs = if (everything) {
-                body.extractAllBindings().map { Output.BindingEntry(it) }
+                body.extractAllBindings().map { BindingOutputEntry(it) }
             } else {
                 entries
             }
             return SelectQueryAST(
-                output = Output(outputs),
+                output = outputs.associateBy { it.name },
                 body = body,
                 grouping = grouping,
+                groupingFilter = groupingFilter,
                 ordering = ordering
             )
         }

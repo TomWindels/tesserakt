@@ -16,6 +16,8 @@ object VerboseCompiler: Compiler() {
     override fun compile(raw: String): Query<*, *> {
         // compiling the input query
         val ast = raw.toAST()
+        // outputting the resulting AST
+        println(ast)
         // converting it to a subset supported by the runtime
         val compat = QueryCompatLayer().convert(ast)
         // validating if the resulting
