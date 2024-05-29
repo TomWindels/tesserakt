@@ -1,6 +1,6 @@
 package dev.tesserakt.util.console
 
-import dev.tesserakt.sparql.compiler.types.Token
+import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.formatting.ASTrWriter
 import dev.tesserakt.sparql.runtime.types.ASTr
 
@@ -53,6 +53,9 @@ object StylisedASTrWriter: ASTrWriter<String>() {
             }
             is Token.PrefixedTerm -> {
                 add("$namespace:$value", Color.CYAN)
+            }
+            is Token.BlankTerm -> {
+                add("_:$value", Color.BRIGHT_BLACK)
             }
             is Token.Binding -> {
                 add("?$name", Color.BLUE)

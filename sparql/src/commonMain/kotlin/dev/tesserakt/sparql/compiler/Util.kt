@@ -3,7 +3,8 @@ package dev.tesserakt.sparql.compiler
 import dev.tesserakt.sparql.compiler.analyser.Analyser
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.StringLexer
-import dev.tesserakt.sparql.compiler.types.*
+import dev.tesserakt.sparql.compiler.ast.*
+import dev.tesserakt.sparql.compiler.lexer.Token
 
 
 internal fun QueryAST.QueryBodyAST.extractAllBindings(): List<PatternAST.Binding> =
@@ -69,7 +70,7 @@ private fun PatternAST.BlankObject.BlankPattern.extractAllBindings(): List<Patte
  *  a result type containing the corresponding AST if the processing was successful, or a result type containing the
  *  compilation error.
  */
-fun <RT: AST> String.processed(analyser: Analyser<RT>): Result<RT> {
+fun <RT: ASTNode> String.processed(analyser: Analyser<RT>): Result<RT> {
     return try {
         val lexer = StringLexer(this)
         val ast = analyser.configureAndUse(lexer)

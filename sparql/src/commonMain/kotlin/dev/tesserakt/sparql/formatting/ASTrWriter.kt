@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.formatting
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.compiler.types.Token
+import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.runtime.types.*
 
 abstract class ASTrWriter<RT> {
@@ -50,6 +50,7 @@ abstract class ASTrWriter<RT> {
             is Token.Binding -> "?$name"
             is Token.NumericLiteral -> value.toString()
             is Token.PrefixedTerm -> "$namespace:$value"
+            is Token.BlankTerm -> "_:$value"
             is Token.StringLiteral -> value
             is Token.Term -> "<$value>"
             is Token.Symbol -> syntax

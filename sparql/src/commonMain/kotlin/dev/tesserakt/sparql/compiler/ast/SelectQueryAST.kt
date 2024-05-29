@@ -1,15 +1,19 @@
-package dev.tesserakt.sparql.compiler.types
+package dev.tesserakt.sparql.compiler.ast
 
 import dev.tesserakt.sparql.compiler.extractAllBindings
 import kotlin.jvm.JvmInline
 
 data class SelectQueryAST(
     val output: Output,
-    override val body: QueryBodyAST
+    override val body: QueryBodyAST,
+    /** GROUP BY <expr> **/
+    val grouping: Aggregation.Expression?,
+    /** ORDER BY <expr> **/
+    val ordering: Aggregation.Expression?
 ): QueryAST() {
 
     @JvmInline
-    value class Output internal constructor(val entries: Map<String, Entry>): AST {
+    value class Output internal constructor(val entries: Map<String, Entry>): ASTNode {
 
         val names get() = entries.keys
 
@@ -36,7 +40,7 @@ data class SelectQueryAST(
 
         @JvmInline
         value class AggregationEntry(val aggregation: Aggregation): Entry {
-            override val name: String get() = aggregation.output.name
+            override val name: String get() = aggregation.target.name
         }
 
     }
@@ -46,6 +50,10 @@ data class SelectQueryAST(
         private var everything = false
         private val entries = mutableListOf<Output.Entry>()
         lateinit var body: QueryBodyAST
+        // GROUP BY <expr>
+        var grouping: Aggregation.Expression? = null
+        // ORDER BY <expr>
+        var ordering: Aggregation.Expression? = null
 
         fun addToOutput(binding: PatternAST.Binding) {
             entries.add(Output.BindingEntry(binding))
@@ -67,7 +75,9 @@ data class SelectQueryAST(
             }
             return SelectQueryAST(
                 output = Output(outputs),
-                body = body
+                body = body,
+                grouping = grouping,
+                ordering = ordering
             )
         }
 

@@ -1,21 +1,21 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.types.Aggregation
-import dev.tesserakt.sparql.compiler.types.Token
-import dev.tesserakt.sparql.compiler.types.Token.Companion.bindingName
-import dev.tesserakt.sparql.compiler.types.Token.Companion.literalNumericValue
+import dev.tesserakt.sparql.compiler.ast.Aggregation
+import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
+import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalNumericValue
 
 /**
  * Processes structures like `MIN(?s)`, `AVG(?s) - MIN(?p)`, `COUNT(DISTINCT ?s)`
  */
-class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
+class AggregatorProcessor: Analyser<Aggregation.Expression>() {
 
-    override fun _process(): Aggregation.Aggregator {
+    override fun _process(): Aggregation.Expression {
         return processAggregationStatement()
     }
 
     // processes & consumes structures like `max(?s) - avg(?p)`
-    private fun processAggregationStatement(): Aggregation.Aggregator {
+    private fun processAggregationStatement(): Aggregation.Expression {
         val builder = Aggregation.MathOp.Builder(nextAggregationOrBindingOrLiteral())
         var operator = token.operator
         while (operator != null) {
@@ -29,7 +29,7 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
         return builder.build()
     }
 
-    private fun nextAggregationOrBindingOrLiteral(): Aggregation.Aggregator = when (token) {
+    private fun nextAggregationOrBindingOrLiteral(): Aggregation.Expression = when (token) {
         Token.Keyword.Distinct -> {
             consume()
             expectBinding()
@@ -67,7 +67,7 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
         )
     }
 
-    private fun nextAggregationOrBinding(): Aggregation.Aggregator = when (token) {
+    private fun nextAggregationOrBinding(): Aggregation.Expression = when (token) {
         Token.Keyword.Distinct -> {
             consume()
             expectBinding()
@@ -107,7 +107,7 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
         }
 
     // processes & consumes structures like `(max(?s) - avg(?p))`
-    private fun processAggregationGroup(): Aggregation.Aggregator {
+    private fun processAggregationGroup(): Aggregation.Expression {
         // simply calling the `processAggregationStatement` again, level of recursion depth = number of parentheses
         // consuming the '('
         consume()
@@ -118,12 +118,12 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
     }
 
     // processes & consumes structures like `max(?s)`
-    private fun processAggregationFunction(): Aggregation.Builtin {
+    private fun processAggregationFunction(): Aggregation.FuncCall {
         val type = when (token) {
-            Token.Keyword.FunCount -> Aggregation.Builtin.Type.COUNT
-            Token.Keyword.FunMin -> Aggregation.Builtin.Type.MIN
-            Token.Keyword.FunMax -> Aggregation.Builtin.Type.MAX
-            Token.Keyword.FunAvg -> Aggregation.Builtin.Type.AVG
+            Token.Keyword.FunCount -> Aggregation.FuncCall.Type.COUNT
+            Token.Keyword.FunMin -> Aggregation.FuncCall.Type.MIN
+            Token.Keyword.FunMax -> Aggregation.FuncCall.Type.MAX
+            Token.Keyword.FunAvg -> Aggregation.FuncCall.Type.AVG
             else -> bail()
         }
         consume()
@@ -132,7 +132,7 @@ class AggregatorProcessor: Analyser<Aggregation.Aggregator>() {
         val input = nextAggregationOrBinding()
         expectToken(Token.Symbol.RoundBracketEnd)
         consume()
-        return Aggregation.Builtin(type = type, input = input)
+        return Aggregation.FuncCall(type = type, input = input)
     }
 
 }

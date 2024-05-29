@@ -1,19 +1,20 @@
-package dev.tesserakt.sparql.compiler.types
+package dev.tesserakt.sparql.compiler.ast
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.compiler.lexer.Token
 import kotlin.jvm.JvmInline
 
 data class PatternAST(
     val s: Subject,
     val p: Predicate,
     val o: Object
-): AST {
+): ASTNode {
     // collection of all possible subject pattern element types
-    sealed interface Subject: AST
+    sealed interface Subject: ASTNode
     // collection of all possible predicate pattern element types
-    sealed interface Predicate: AST
+    sealed interface Predicate: ASTNode
     // collection of all possible object pattern element types
-    sealed interface Object: AST
+    sealed interface Object: ASTNode
     // collection of types possible at any spot (s, p & o)
     sealed interface Element: Subject, Predicate, Object
 

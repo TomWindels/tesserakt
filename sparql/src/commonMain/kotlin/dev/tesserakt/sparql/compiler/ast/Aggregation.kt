@@ -1,20 +1,21 @@
-package dev.tesserakt.sparql.compiler.types
+package dev.tesserakt.sparql.compiler.ast
 
+import dev.tesserakt.sparql.compiler.lexer.Token
 import kotlin.jvm.JvmInline
 import kotlin.math.absoluteValue
 
 data class Aggregation(
-    val root: Aggregator,
-    val output: Token.Binding
-): AST {
+    val expression: Expression,
+    val target: Token.Binding
+): ASTNode {
 
-    sealed interface Aggregator: AST
+    sealed interface Expression: ASTNode
 
     // TODO: these require grouping for non-aggregated bindings in the select statement (see compile test case `GROUP BY ?g`)
-    data class Builtin(
+    data class FuncCall(
         val type: Type,
-        val input: Aggregator
-    ): Aggregator {
+        val input: Expression
+    ): Expression {
 
         enum class Type {
            MIN,
@@ -27,13 +28,13 @@ data class Aggregation(
 
     }
 
-    sealed class MathOp(val operands: List<Aggregator>): Aggregator {
+    sealed class MathOp(val operands: List<Expression>): Expression {
 
         enum class Operator {
             SUM, PRODUCT, DIFFERENCE, DIVISION
         }
 
-        class Sum(operands: Iterable<Aggregator>): MathOp(
+        class Sum(operands: Iterable<Expression>): MathOp(
             operands = operands
                 .flatMap { if (it is Sum) it.operands else listOf(it.stabilised()) }
                 .stabilised(0) { first, second -> first.toDouble() + second.toDouble() }
@@ -42,7 +43,7 @@ data class Aggregation(
             override fun toString() = operands.joinToString(prefix = "(", postfix = ")", separator = " + ")
         }
 
-        class Multiplication(operands: Iterable<Aggregator>): MathOp(
+        class Multiplication(operands: Iterable<Expression>): MathOp(
             operands = operands
                 .flatMap { if (it is Multiplication) it.operands else listOf(it.stabilised()) }
                 .stabilised(1) { first, second -> first.toDouble() * second.toDouble() }
@@ -60,20 +61,20 @@ data class Aggregation(
 
         /* = - value */
         @JvmInline
-        value class Negative(val value: Aggregator): Aggregator {
+        value class Negative(val value: Expression): Expression {
             override fun toString() = "- $value"
             companion object {
-                fun of(value: Aggregator) = if (value is Negative) value.value else Negative(value)
+                fun of(value: Expression) = if (value is Negative) value.value else Negative(value)
             }
 
         }
 
         /* = 1 / value */
         @JvmInline
-        value class Inverse(val value: Aggregator): Aggregator {
+        value class Inverse(val value: Expression): Expression {
             override fun toString() = "1 / $value"
             companion object {
-                fun of(value: Aggregator) = if (value is Inverse) value.value else Inverse(value)
+                fun of(value: Expression) = if (value is Inverse) value.value else Inverse(value)
             }
 
         }
@@ -85,14 +86,14 @@ data class Aggregation(
          */
         class Builder(
             // the first term of the statement
-            start: Aggregator
+            start: Expression
         ) {
 
             // only + & * are stored here, see `add()`
             private val operators = mutableListOf<Operator>()
             private val operands = mutableListOf(start)
 
-            fun add(operator: Operator, operand: Aggregator) {
+            fun add(operator: Operator, operand: Expression) {
                 when (operator) {
                     Operator.DIFFERENCE -> {
                         operators.add(Operator.SUM)
@@ -113,7 +114,7 @@ data class Aggregation(
              * Builds an aggregated version of the statement. IMPORTANT: this is a destructive operation, leaving the
              *  `Builder` instance in a not-so-usable state (the result becomes the first operand for the next usage)
              */
-            fun build(): Aggregator {
+            fun build(): Expression {
                 // first grouping all multiplication statements
                 var i = 0
                 while (i < operators.size) {
@@ -133,10 +134,10 @@ data class Aggregation(
 
             private inline fun fuse(
                 index: Int,
-                action: (first: Aggregator, second: Aggregator) -> Aggregator
+                action: (first: Expression, second: Expression) -> Expression
             ) {
-                val operand1: Aggregator
-                val operand2: Aggregator
+                val operand1: Expression
+                val operand2: Expression
                 val op1 = operands[index]
                 val op2 = operands[index + 1]
                 if (op1.sortValue > op2.sortValue) {
@@ -159,17 +160,17 @@ data class Aggregation(
     }
 
     @JvmInline
-    value class BindingValues(val name: String): Aggregator {
+    value class BindingValues(val name: String): Expression {
         override fun toString() = "?$name"
     }
 
     @JvmInline
-    value class DistinctBindingValues(val name: String): Aggregator {
+    value class DistinctBindingValues(val name: String): Expression {
         override fun toString() = "DISTINCT ?$name"
     }
 
     @JvmInline
-    value class LiteralValue(val value: Number): Aggregator {
+    value class LiteralValue(val value: Number): Expression {
         override fun toString() = value.toString()
     }
 
@@ -179,11 +180,11 @@ data class Aggregation(
          * A helper value used to stably sort operations
          */
         @Suppress("RecursivePropertyAccessor")
-        private val Aggregator.sortValue: Int
+        private val Expression.sortValue: Int
             get() = when (this) {
                 is BindingValues -> name.hashCode().absoluteValue % 100 + 1
                 is LiteralValue -> value.hashCode().absoluteValue % 100 + 3
-                is Builtin -> input.sortValue * 100 + (type.ordinal + 1) * 10
+                is FuncCall -> input.sortValue * 100 + (type.ordinal + 1) * 10
                 is DistinctBindingValues -> name.hashCode() % 100 + 2
                 is MathOp.Inverse -> - value.sortValue - 1
                 is MathOp.Negative -> - value.sortValue - 2
@@ -197,11 +198,11 @@ data class Aggregation(
          * Produces the constant value associated with this expression if possible, `null` otherwise
          */
         @Suppress("RecursivePropertyAccessor")
-        private val Aggregator.stableValue: Number?
+        private val Expression.stableValue: Number?
             get() = when (this) {
                 is BindingValues -> null
                 is LiteralValue -> value
-                is Builtin -> null // can only be applied to bindings, so no stable value
+                is FuncCall -> null // can only be applied to bindings, so no stable value
                 is DistinctBindingValues -> null
                 is MathOp.Inverse -> value.stableValue?.let { 1 / it.toDouble() }
                 is MathOp.Negative -> value.stableValue?.let { - it.toDouble() }
@@ -214,18 +215,18 @@ data class Aggregation(
         /**
          * Attempts to replace `this` by a literal value constant, if possible
          */
-        private fun Aggregator.stabilised() = stableValue?.let { LiteralValue(it) } ?: this
+        private fun Expression.stabilised() = stableValue?.let { LiteralValue(it) } ?: this
 
         /**
          * Stabilises the incoming aggregations, replacing all where possible with a `LiteralValue` as last element
          *  of the returned list. Aggregation of two elements is done using the provided `aggregator`
          */
-        private fun Iterable<Aggregator>.stabilised(
+        private fun Iterable<Expression>.stabilised(
             neutral: Number,
             aggregator: (first: Number, second: Number) -> Number
-        ): List<Aggregator> {
+        ): List<Expression> {
             var aggregated = neutral
-            val remaining = mutableListOf<Aggregator>()
+            val remaining = mutableListOf<Expression>()
             forEach { element ->
                 element.stableValue
                     ?.let { stabilised -> aggregated = aggregator(aggregated, stabilised) }
@@ -237,22 +238,22 @@ data class Aggregation(
             return remaining
         }
 
-        val Aggregator.builtin get() = this as Builtin
+        val Expression.builtin get() = this as FuncCall
 
-        val Aggregator.sum get() = this as MathOp.Sum
+        val Expression.sum get() = this as MathOp.Sum
 
-        val Aggregator.multiplication get() = this as MathOp.Multiplication
+        val Expression.multiplication get() = this as MathOp.Multiplication
 
         @Suppress("RecursivePropertyAccessor")
-        val Aggregator.literal get(): LiteralValue = when (this) {
+        val Expression.literal get(): LiteralValue = when (this) {
             is MathOp.Inverse -> LiteralValue(1 / value.literal.value.toDouble())
             is MathOp.Negative -> LiteralValue(- value.literal.value.toDouble())
             else -> this as LiteralValue
         }
 
-        val Aggregator.bindings get() = this as BindingValues
+        val Expression.bindings get() = this as BindingValues
 
-        val Aggregator.distinctBindings get() = this as DistinctBindingValues
+        val Expression.distinctBindings get() = this as DistinctBindingValues
 
     }
 

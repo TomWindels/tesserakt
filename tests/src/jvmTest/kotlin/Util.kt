@@ -3,7 +3,7 @@ import dev.tesserakt.rdf.namedTerm
 import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteral
+import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 
 object FOAF: Ontology {
 
@@ -26,8 +26,8 @@ fun createTestStore(): Store = RdfContext.buildStore {
         local("person2"), local("person3"), local("person4")
     )
     person has FOAF.based_near being blank {
-        "street".namedTerm being "unknown".asLiteral()
-        "number".namedTerm being (-1).asLiteral()
+        "street".namedTerm being "unknown".asLiteralTerm()
+        "number".namedTerm being (-1).asLiteralTerm()
     }
     person has "notes".namedTerm being list(
         "first-note".namedTerm, "second-note".namedTerm

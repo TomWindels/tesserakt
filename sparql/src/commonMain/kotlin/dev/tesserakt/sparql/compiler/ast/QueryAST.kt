@@ -1,6 +1,6 @@
-package dev.tesserakt.sparql.compiler.types
+package dev.tesserakt.sparql.compiler.ast
 
-sealed class QueryAST: AST {
+sealed class QueryAST: ASTNode {
 
     abstract val body: QueryBodyAST
 
@@ -49,6 +49,6 @@ sealed class QueryAST: AST {
         val unions: List<UnionAST>,
         /** Collection of pattern blocks that are optional **/
         val optional: List<OptionalAST>
-    ): AST
+    ): ASTNode
 
 }

@@ -1,7 +1,6 @@
 package dev.tesserakt.sparql.compiler.lexer
 
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.compiler.types.Token
 
 @Suppress("NOTHING_TO_INLINE")
 class StringLexer(private val input: String): Lexer() {
@@ -143,6 +142,17 @@ class StringLexer(private val input: String): Lexer() {
                     value = input.substring(colon + 1, terminator)
                 )
             }
+        } else if (end - start > 1 && input[start] == '_' && input[start + 1] == ':') {
+            val terminator = input.endOfBindingOrPrefixedTerm()
+            if (terminator == -1) {
+                Token.BlankTerm(
+                    value = input.substring(start, end)
+                )
+            } else {
+                Token.BlankTerm(
+                    value = input.substring(start, terminator)
+                )
+            }
         } else if (input[start] == '?') {
             // remainder of the string should be valid, as only spaces or < ends a binding name
             // omitting the `?` in the front, so start + 1
@@ -161,6 +171,12 @@ class StringLexer(private val input: String): Lexer() {
             val terminator = input.indexOf('"', startIndex = start + 1, endIndex = end)
             if (terminator == -1) {
                 bail("""Expected `"` at the end: `${input.substring(start, end)}`""")
+            }
+            Token.StringLiteral(input.substring(start + 1, terminator))
+        } else if (input[start] == '\'') {
+            val terminator = input.indexOf('\'', startIndex = start + 1, endIndex = end)
+            if (terminator == -1) {
+                bail("""Expected `'` at the end: `${input.substring(start, end)}`""")
             }
             Token.StringLiteral(input.substring(start + 1, terminator))
         } else if (input[start].representsNumber()) {

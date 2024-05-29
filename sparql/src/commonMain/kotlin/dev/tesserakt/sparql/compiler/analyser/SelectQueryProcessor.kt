@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.types.PatternAST
-import dev.tesserakt.sparql.compiler.types.SelectQueryAST
-import dev.tesserakt.sparql.compiler.types.Token
+import dev.tesserakt.sparql.compiler.ast.PatternAST
+import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
+import dev.tesserakt.sparql.compiler.lexer.Token
 
 class SelectQueryProcessor: Analyser<SelectQueryAST>() {
 
@@ -93,6 +93,39 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
         // if the body has been processed correctly, `}` should be the current token
         expectToken(Token.Symbol.CurlyBracketEnd)
         consume()
+        processQueryEnd()
+    }
+
+    private fun processQueryEnd() {
+        while (token != Token.EOF) {
+            when (token) {
+                Token.Keyword.Order -> processOrdering()
+                Token.Keyword.Group -> processGrouping()
+                else -> expectedToken(Token.Keyword.Order, Token.Keyword.Group, Token.EOF)
+            }
+        }
+    }
+
+    private fun processOrdering() {
+        if (builder.ordering != null) {
+            bail("Multiple order statements are not supported!")
+        }
+        expectToken(Token.Keyword.Order)
+        consume()
+        expectToken(Token.Keyword.By)
+        consume()
+        builder.ordering = use(AggregatorProcessor())
+    }
+
+    private fun processGrouping() {
+        if (builder.grouping != null) {
+            bail("Multiple group statements are not supported!")
+        }
+        expectToken(Token.Keyword.Group)
+        consume()
+        expectToken(Token.Keyword.By)
+        consume()
+        builder.grouping = use(AggregatorProcessor())
     }
 
 }

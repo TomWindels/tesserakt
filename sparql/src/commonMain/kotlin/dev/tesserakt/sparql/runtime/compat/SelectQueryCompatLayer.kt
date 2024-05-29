@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.compat
 
-import dev.tesserakt.sparql.compiler.types.SelectQueryAST
+import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
 import dev.tesserakt.sparql.runtime.types.SelectQueryASTr
 
 class SelectQueryCompatLayer: CompatLayer<SelectQueryAST, SelectQueryASTr>() {

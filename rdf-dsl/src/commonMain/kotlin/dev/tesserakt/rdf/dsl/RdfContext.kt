@@ -2,7 +2,7 @@ package dev.tesserakt.rdf.dsl
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteral
+import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.Store
 import kotlin.contracts.ExperimentalContracts
@@ -78,13 +78,13 @@ class RdfContext internal constructor(
 
     inner class Statement(val _s: Quad.NamedTerm, val _p: Quad.NamedTerm) {
 
-        inline infix fun being(literal: Int) = consumer.process(_s, _p, literal.asLiteral())
+        inline infix fun being(literal: Int) = consumer.process(_s, _p, literal.asLiteralTerm())
 
-        inline infix fun being(literal: Long) = consumer.process(_s, _p, literal.asLiteral())
+        inline infix fun being(literal: Long) = consumer.process(_s, _p, literal.asLiteralTerm())
 
-        inline infix fun being(literal: Float) = consumer.process(_s, _p, literal.asLiteral())
+        inline infix fun being(literal: Float) = consumer.process(_s, _p, literal.asLiteralTerm())
 
-        inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteral())
+        inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteralTerm())
 
         inline infix fun being(value: Quad.Term) = consumer.process(_s, _p, value)
 
@@ -102,13 +102,13 @@ class RdfContext internal constructor(
 
     inner class BlankStatement(val _s: Quad.BlankTerm, val _p: Quad.NamedTerm) {
 
-        inline infix fun being(literal: Int) = consumer.process(_s, _p, literal.asLiteral())
+        inline infix fun being(literal: Int) = consumer.process(_s, _p, literal.asLiteralTerm())
 
-        inline infix fun being(literal: Long) = consumer.process(_s, _p, literal.asLiteral())
+        inline infix fun being(literal: Long) = consumer.process(_s, _p, literal.asLiteralTerm())
 
-        inline infix fun being(literal: Float) = consumer.process(_s, _p, literal.asLiteral())
+        inline infix fun being(literal: Float) = consumer.process(_s, _p, literal.asLiteralTerm())
 
-        inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteral())
+        inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteralTerm())
 
         inline infix fun being(value: Quad.Term) = consumer.process(_s, _p, value)
 
@@ -127,20 +127,20 @@ class RdfContext internal constructor(
     inner class Blank(val _name: Quad.BlankTerm) {
 
         inline infix fun Quad.NamedTerm.being(literal: Int) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteral())
+            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
         }
 
 
         inline infix fun Quad.NamedTerm.being(literal: Long) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteral())
+            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
         }
 
         inline infix fun Quad.NamedTerm.being(literal: Float) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteral())
+            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
         }
 
         inline infix fun Quad.NamedTerm.being(literal: Double) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteral())
+            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
         }
 
         inline infix fun Quad.NamedTerm.being(term: Quad.Term) {

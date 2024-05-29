@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.runtime.compat
 
-import dev.tesserakt.sparql.compiler.types.QueryAST
-import dev.tesserakt.sparql.compiler.types.SelectQueryAST
+import dev.tesserakt.sparql.compiler.ast.QueryAST
+import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
 import dev.tesserakt.sparql.runtime.types.QueryASTr
 
 class QueryCompatLayer: CompatLayer<QueryAST, QueryASTr>() {

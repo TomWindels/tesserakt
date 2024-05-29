@@ -2,10 +2,10 @@ package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.CompilerError
 import dev.tesserakt.sparql.compiler.lexer.Lexer
-import dev.tesserakt.sparql.compiler.types.AST
-import dev.tesserakt.sparql.compiler.types.Token
+import dev.tesserakt.sparql.compiler.ast.ASTNode
+import dev.tesserakt.sparql.compiler.lexer.Token
 
-abstract class Analyser<RT: AST?> {
+abstract class Analyser<RT: ASTNode?> {
 
     /** available set of predicates, set according to the currently processed query **/
     protected lateinit var prefixes: MutableMap<String, String>
@@ -27,7 +27,7 @@ abstract class Analyser<RT: AST?> {
     /**
      * Processes starting from the calling analyzer's last token, reusing that position (so starting at "lexer - 1")
      */
-    protected fun <O: AST?> use(other: Analyser<O>): O {
+    protected fun <O: ASTNode?> use(other: Analyser<O>): O {
         other.lexer = lexer
         other.prefixes = prefixes
         return other._process()

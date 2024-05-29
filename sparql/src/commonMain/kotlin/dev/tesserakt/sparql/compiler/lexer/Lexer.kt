@@ -1,7 +1,6 @@
 package dev.tesserakt.sparql.compiler.lexer
 
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.compiler.types.Token
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 

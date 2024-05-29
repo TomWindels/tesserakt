@@ -2,10 +2,10 @@ package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteral
-import dev.tesserakt.sparql.compiler.types.PatternAST
-import dev.tesserakt.sparql.compiler.types.PatternsAST
-import dev.tesserakt.sparql.compiler.types.Token
+import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
+import dev.tesserakt.sparql.compiler.ast.PatternAST
+import dev.tesserakt.sparql.compiler.ast.PatternsAST
+import dev.tesserakt.sparql.compiler.lexer.Token
 
 class PatternProcessor: Analyser<PatternsAST>() {
 
@@ -131,8 +131,8 @@ class PatternProcessor: Analyser<PatternsAST>() {
         is Token.Binding -> PatternAST.Binding(this)
         is Token.Term -> PatternAST.Exact(Quad.NamedTerm(value = value))
         is Token.PrefixedTerm -> PatternAST.Exact(Quad.NamedTerm(value = resolve()))
-        is Token.StringLiteral -> PatternAST.Exact(value.asLiteral())
-        is Token.NumericLiteral -> PatternAST.Exact(value.asLiteral())
+        is Token.StringLiteral -> PatternAST.Exact(value.asLiteralTerm())
+        is Token.NumericLiteral -> PatternAST.Exact(value.asLiteralTerm())
         Token.Keyword.RdfTypePredicate -> PatternAST.Exact(RDF.type)
         else -> null
     }

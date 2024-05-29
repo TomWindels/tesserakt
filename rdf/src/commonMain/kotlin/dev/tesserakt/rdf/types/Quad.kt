@@ -58,30 +58,38 @@ class Quad(
         fun String.asNamedTerm() = NamedTerm(this)
 
         @JvmStatic
-        fun String.asLiteral() = Literal(this, type = XSD.string)
+        fun String.asLiteralTerm() = Literal(this, type = XSD.string)
 
         @JvmStatic
-        fun Int.asLiteral() = Literal(this, type = XSD.int)
+        fun Int.asLiteralTerm() = Literal(this, type = XSD.int)
 
         @JvmStatic
-        fun Long.asLiteral() = Literal(this, type = XSD.long)
+        fun Long.asLiteralTerm() = Literal(this, type = XSD.long)
 
         @JvmStatic
-        fun Float.asLiteral() = Literal(this, type = XSD.float)
+        fun Float.asLiteralTerm() = Literal(this, type = XSD.float)
 
         @JvmStatic
-        fun Double.asLiteral() = Literal(this, type = XSD.double)
+        fun Double.asLiteralTerm() = Literal(this, type = XSD.double)
 
         @JvmStatic
-        fun Boolean.asLiteral() = Literal(this, type = XSD.boolean)
+        fun Boolean.asLiteralTerm() = Literal(this, type = XSD.boolean)
 
         @JvmStatic
-        fun Number.asLiteral() = when (this) {
-            is Int -> asLiteral()
-            is Long -> asLiteral()
-            is Float -> asLiteral()
+        fun Number.asLiteralTerm() = when (this) {
+            is Int -> asLiteralTerm()
+            is Long -> asLiteralTerm()
+            is Float -> asLiteralTerm()
             /* TODO: byte char & short  */
-            else -> toDouble().asLiteral()
+            else -> toDouble().asLiteralTerm()
+        }
+
+        @JvmStatic
+        fun <T> T.asLiteralTerm() = when (this) {
+            is Number -> asLiteralTerm()
+            is String -> asLiteralTerm()
+            is Boolean -> asLiteralTerm()
+            else -> throw IllegalArgumentException("Unknown literal type `$this`")
         }
 
     }

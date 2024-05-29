@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.runtime.compat
 
-import dev.tesserakt.sparql.compiler.types.PatternAST
-import dev.tesserakt.sparql.compiler.types.PatternsAST
+import dev.tesserakt.sparql.compiler.ast.PatternAST
+import dev.tesserakt.sparql.compiler.ast.PatternsAST
 import dev.tesserakt.sparql.runtime.types.PatternASTr
 import dev.tesserakt.sparql.runtime.types.PatternsASTr
 

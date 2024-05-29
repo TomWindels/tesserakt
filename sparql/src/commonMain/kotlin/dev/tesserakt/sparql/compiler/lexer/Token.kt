@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql.compiler.types
+package dev.tesserakt.sparql.compiler.lexer
 
 sealed interface Token {
 
@@ -34,10 +34,16 @@ sealed interface Token {
         Prefix("PREFIX"),
         Select("SELECT"),
         Construct("CONSTRUCT"),
+        Insert("INSERT"),
         Where("WHERE"),
         As("AS"),
+        Ask("ASK"),
         Bind("BIND"),
         Filter("FILTER"),
+        Order("ORDER"),
+        Group("GROUP"),
+        Having("HAVING"),
+        By("BY"),
         Limit("LIMIT"),
         Union("UNION"),
         Distinct("DISTINCT"),
@@ -67,6 +73,15 @@ sealed interface Token {
         val value: String
     ): Token {
         override fun toString() = "term `$value`"
+        override val syntax = value
+    }
+
+    // special type of term, it was prefixed with `_:`
+    data class BlankTerm(
+        /** The value of the term from the query, without the `<`, `>` **/
+        val value: String
+    ): Token {
+        override fun toString() = "blank term `$value`"
         override val syntax = value
     }
 

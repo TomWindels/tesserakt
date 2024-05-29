@@ -26,6 +26,7 @@ kotlin {
         }
         val jvmTest by getting {
             dependencies {
+                implementation(project(":serialization"))
                 implementation(kotlin("test"))
             }
         }

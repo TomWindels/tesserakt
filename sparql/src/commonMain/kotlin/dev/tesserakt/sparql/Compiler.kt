@@ -2,7 +2,7 @@ package dev.tesserakt.sparql
 
 import dev.tesserakt.sparql.compiler.analyser.QueryProcessor
 import dev.tesserakt.sparql.compiler.lexer.StringLexer
-import dev.tesserakt.sparql.compiler.types.QueryAST
+import dev.tesserakt.sparql.compiler.ast.QueryAST
 import dev.tesserakt.sparql.runtime.compat.QueryCompatLayer
 import dev.tesserakt.sparql.runtime.query.Query
 import dev.tesserakt.sparql.runtime.query.SelectQuery

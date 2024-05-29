@@ -6,11 +6,11 @@ import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.compiler.CompilerError
 import dev.tesserakt.sparql.compiler.analyser.AggregatorProcessor
 import dev.tesserakt.sparql.compiler.processed
-import dev.tesserakt.sparql.compiler.types.Aggregation
-import dev.tesserakt.sparql.compiler.types.Aggregation.Companion.builtin
-import dev.tesserakt.sparql.compiler.types.Aggregation.Companion.distinctBindings
-import dev.tesserakt.sparql.compiler.types.PatternAST
-import dev.tesserakt.sparql.compiler.types.SelectQueryAST
+import dev.tesserakt.sparql.compiler.ast.Aggregation
+import dev.tesserakt.sparql.compiler.ast.Aggregation.Companion.builtin
+import dev.tesserakt.sparql.compiler.ast.Aggregation.Companion.distinctBindings
+import dev.tesserakt.sparql.compiler.ast.PatternAST
+import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
 import kotlin.test.Test
 
 class CompilerTest {
@@ -128,23 +128,23 @@ class CompilerTest {
         }
         "select(count(distinct ?s) as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            val func = output.aggregate("count")!!.root.builtin
-            func.type == Aggregation.Builtin.Type.COUNT &&
+            val func = output.aggregate("count")!!.expression.builtin
+            func.type == Aggregation.FuncCall.Type.COUNT &&
             func.input.distinctBindings == Aggregation.DistinctBindingValues("s")
         }
         "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            output.aggregate("count")!!.root ==
+            output.aggregate("count")!!.expression ==
                     "(${1 / 3.0} * min(?s)) + avg(?s)".processed(AggregatorProcessor()).getOrThrow()
         }
         "select(avg(?s) + min(?s)/3*4+3-5.5*10 as ?count_long){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            output.aggregate("count_long")!!.root ==
+            output.aggregate("count_long")!!.expression ==
                     "4 * (min(?s)) / 3 + avg(?s) - 52".processed(AggregatorProcessor()).getOrThrow()
         }
         "select(-min(?s) + max(?s) as ?reversed_diff){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            output.aggregate("reversed_diff")!!.root ==
+            output.aggregate("reversed_diff")!!.expression ==
                     "max(?s) - min(?s)".processed(AggregatorProcessor()).getOrThrow()
         }
         """
@@ -163,8 +163,8 @@ class CompilerTest {
             )
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
-            output.aggregate("avg")!!.root.builtin.type == Aggregation.Builtin.Type.AVG &&
-            output.aggregate("c")!!.root == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor()).getOrThrow()
+            output.aggregate("avg")!!.expression.builtin.type == Aggregation.FuncCall.Type.AVG &&
+            output.aggregate("c")!!.expression == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor()).getOrThrow()
         }
         """
             SELECT * WHERE {
