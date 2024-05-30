@@ -49,7 +49,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
 
     private fun process(symbol: ASTNode): Unit = when (symbol) {
         is AggregationAST -> {
-            append("aggregation")
+            writeLine("aggregation")
             indented {
                 writeLine("target: ${symbol.target.stringified()}")
                 writeLine("expression: ")
@@ -58,12 +58,12 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is ExpressionAST.BindingValues -> {
-            append("binding")
+            writeLine("binding")
             indented { writeLine("target: ${symbol.name}") }
         }
 
-        is ExpressionAST.Filter -> {
-            append("filter")
+        is ExpressionAST.Conditional -> {
+            writeLine("conditional")
             indented {
                 writeLine("operand: ${symbol.operand}")
                 writeLine("lhs: ")
@@ -74,7 +74,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is ExpressionAST.FuncCall -> {
-            append("func call")
+            writeLine("func call")
             indented {
                 writeLine("type: ${symbol.type}")
                 writeLine("distinct: ${symbol.distinct}")
@@ -83,7 +83,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is ExpressionAST.MathOp.Inverse -> {
-            append("inverse")
+            writeLine("inverse")
             indented {
                 writeLine("input: ")
                 process(symbol.value)
@@ -91,14 +91,14 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is ExpressionAST.LiteralValue -> {
-            append("literal")
+            writeLine("literal")
             indented {
                 writeLine("value: ${symbol.value}")
             }
         }
 
         is ExpressionAST.MathOp.Multiplication -> {
-            append("multiplication")
+            writeLine("multiplication")
             indented {
                 symbol.operands.forEachIndexed { index, expression ->
                     writeLine("operand $index")
@@ -108,7 +108,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is ExpressionAST.MathOp.Sum -> {
-            append("sum")
+            writeLine("sum")
             indented {
                 symbol.operands.forEachIndexed { index, expression ->
                     writeLine("operand $index")
@@ -118,7 +118,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is ExpressionAST.MathOp.Negative -> {
-            append("negative")
+            writeLine("negative")
             indented {
                 writeLine("input: ")
                 process(symbol.value)
@@ -126,7 +126,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is PatternAST.BlankObject -> {
-            append("blank object")
+            writeLine("blank object")
             indented {
                 writeLine("properties")
                 symbol.properties.forEachIndexed { index, property ->
@@ -155,7 +155,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is PatternAST -> {
-            append("pattern")
+            writeLine("pattern")
             indented {
                 writeLine("subject: ")
                 process(symbol.s)
@@ -241,18 +241,27 @@ class ASTWriter(private val indentStyle: String = "  ") {
         is QueryAST.QueryBodyAST -> {
             indented {
                 process(symbol.patterns)
-                if (symbol.unions.isNotEmpty()) {
-                    writeLine("unions")
-                    symbol.unions.forEachIndexed { index, union ->
-                        writeLine("$index: ")
-                        process(union)
+                indented {
+                    if (symbol.filters.isNotEmpty()) {
+                        writeLine("filters")
+                        symbol.filters.forEachIndexed { index, filter ->
+                            writeLine("$index: ")
+                            process(filter)
+                        }
                     }
-                }
-                if (symbol.optionals.isNotEmpty()) {
-                    writeLine("optionals")
-                    symbol.optionals.forEachIndexed { index, optional ->
-                        writeLine("$index: ")
-                        process(optional)
+                    if (symbol.unions.isNotEmpty()) {
+                        writeLine("unions")
+                        symbol.unions.forEachIndexed { index, union ->
+                            writeLine("$index: ")
+                            process(union)
+                        }
+                    }
+                    if (symbol.optionals.isNotEmpty()) {
+                        writeLine("optionals")
+                        symbol.optionals.forEachIndexed { index, optional ->
+                            writeLine("$index: ")
+                            process(optional)
+                        }
                     }
                 }
             }
@@ -285,6 +294,21 @@ class ASTWriter(private val indentStyle: String = "  ") {
             append("aggregated output (from select) ")
             process(symbol.aggregation)
         }
+
+        is FilterAST.Predicate -> {
+            append("expression")
+            process(symbol.expression)
+        }
+
+        is FilterAST.Regex -> {
+            writeLine("regex")
+            indented {
+                writeLine("input: ${symbol.input}")
+                writeLine("regex: ${symbol.regex}")
+                writeLine("mode: ${symbol.mode}")
+            }
+        }
+
     }
 
     /* helpers */

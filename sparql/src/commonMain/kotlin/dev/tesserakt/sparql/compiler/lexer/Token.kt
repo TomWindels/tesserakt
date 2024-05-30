@@ -45,6 +45,7 @@ sealed interface Token {
         Ask("ASK"),
         Bind("BIND"),
         Filter("FILTER"),
+        Regex("REGEX"),
         Order("ORDER"),
         Group("GROUP"),
         Having("HAVING"),

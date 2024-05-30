@@ -11,7 +11,7 @@ data class SelectQueryAST(
     /** GROUP BY <expr> **/
     val grouping: ExpressionAST?,
     /** HAVING (filter) **/
-    val groupingFilter: ExpressionAST.Filter?,
+    val groupingFilter: ExpressionAST.Conditional?,
     /** ORDER BY <expr> **/
     val ordering: ExpressionAST?
 ): QueryAST() {
@@ -42,7 +42,7 @@ data class SelectQueryAST(
         lateinit var body: QueryBodyAST
         // GROUP BY <expr>
         var grouping: ExpressionAST? = null
-        var groupingFilter: ExpressionAST.Filter? = null
+        var groupingFilter: ExpressionAST.Conditional? = null
         // ORDER BY <expr>
         var ordering: ExpressionAST? = null
 

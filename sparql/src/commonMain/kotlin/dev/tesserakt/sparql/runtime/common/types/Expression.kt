@@ -16,18 +16,18 @@ fun interface Expression<T> : CommonNode {
                 it.current[ast.name]
             }
 
-            is ExpressionAST.Filter -> object : Expression<Boolean> {
+            is ExpressionAST.Conditional -> object : Expression<Boolean> {
                 val lhs = convert(ast.lhs)
                 val rhs = convert(ast.rhs)
                 override fun execute(context: Context): Boolean {
                     val a = lhs.execute(context) as Comparable<Any>
                     val b = rhs.execute(context) as Comparable<Any>
                     return when (ast.operand) {
-                        ExpressionAST.Filter.Operand.GREATER_THAN -> a > b
-                        ExpressionAST.Filter.Operand.GREATER_THAN_OR_EQ -> a >= b
-                        ExpressionAST.Filter.Operand.LESS_THAN -> a < b
-                        ExpressionAST.Filter.Operand.LESS_THAN_OR_EQ -> a <= b
-                        ExpressionAST.Filter.Operand.EQUAL -> a == b
+                        ExpressionAST.Conditional.Operand.GREATER_THAN -> a > b
+                        ExpressionAST.Conditional.Operand.GREATER_THAN_OR_EQ -> a >= b
+                        ExpressionAST.Conditional.Operand.LESS_THAN -> a < b
+                        ExpressionAST.Conditional.Operand.LESS_THAN_OR_EQ -> a <= b
+                        ExpressionAST.Conditional.Operand.EQUAL -> a == b
                     }
                 }
             }

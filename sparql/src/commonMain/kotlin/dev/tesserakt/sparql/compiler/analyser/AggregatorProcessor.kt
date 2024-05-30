@@ -17,7 +17,7 @@ class AggregatorProcessor: Analyser<ExpressionAST>() {
         return if (filterOperand != null) {
             consume()
             val rhs = processMathStatement()
-            ExpressionAST.Filter(lhs = expr, rhs = rhs, operand = filterOperand)
+            ExpressionAST.Conditional(lhs = expr, rhs = rhs, operand = filterOperand)
         } else {
             expr
         }
@@ -81,13 +81,13 @@ class AggregatorProcessor: Analyser<ExpressionAST>() {
             else -> null
         }
 
-    private val Token.filterOperand: ExpressionAST.Filter.Operand?
+    private val Token.filterOperand: ExpressionAST.Conditional.Operand?
         get() = when (this) {
-            Token.Symbol.AngularBracketStart -> ExpressionAST.Filter.Operand.LESS_THAN
-            Token.Symbol.AngularBracketEnd -> ExpressionAST.Filter.Operand.GREATER_THAN
-            Token.Symbol.LTEQ -> ExpressionAST.Filter.Operand.LESS_THAN_OR_EQ
-            Token.Symbol.GTEQ -> ExpressionAST.Filter.Operand.GREATER_THAN_OR_EQ
-            Token.Symbol.Equals -> ExpressionAST.Filter.Operand.EQUAL
+            Token.Symbol.AngularBracketStart -> ExpressionAST.Conditional.Operand.LESS_THAN
+            Token.Symbol.AngularBracketEnd -> ExpressionAST.Conditional.Operand.GREATER_THAN
+            Token.Symbol.LTEQ -> ExpressionAST.Conditional.Operand.LESS_THAN_OR_EQ
+            Token.Symbol.GTEQ -> ExpressionAST.Conditional.Operand.GREATER_THAN_OR_EQ
+            Token.Symbol.Equals -> ExpressionAST.Conditional.Operand.EQUAL
             else -> null
         }
 

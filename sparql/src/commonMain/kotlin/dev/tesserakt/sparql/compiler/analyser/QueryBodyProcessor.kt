@@ -24,6 +24,10 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 is Token.NumericLiteral -> {
                     builder.addPatterns(use(PatternProcessor()))
                 }
+                Token.Keyword.Filter -> {
+                    consume()
+                    builder.addFilter(use(FilterProcessor()))
+                }
                 Token.Keyword.Optional -> {
                     // consuming the "OPTIONAL" keyword before extracting the segment
                     consume()
@@ -39,9 +43,10 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                     return
                 }
                 else -> expectedPatternElementOrBindingOrToken(
+                    Token.Keyword.Filter,
                     Token.Keyword.Optional,
                     Token.Symbol.CurlyBracketStart,
-                    Token.Symbol.CurlyBracketEnd,
+                    Token.Symbol.CurlyBracketEnd
                 )
             }
         }

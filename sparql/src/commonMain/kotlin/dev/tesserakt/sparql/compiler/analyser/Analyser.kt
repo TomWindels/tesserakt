@@ -1,9 +1,11 @@
 package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.ast.ASTNode
+import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.Token
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 abstract class Analyser<RT: ASTNode?> {
 
@@ -40,6 +42,16 @@ abstract class Analyser<RT: ASTNode?> {
         lexer.advance()
     }
 
+    @OptIn(ExperimentalContracts::class)
+    protected inline fun expect(predicate: Boolean, msg: String = "Requirement failed") {
+        contract {
+            returns() implies (predicate)
+        }
+        if (!predicate) {
+            bail(msg)
+        }
+    }
+
     protected fun expectToken(vararg tokens: Token) {
         if (token !in tokens) {
             expectedToken(*tokens)
@@ -49,6 +61,12 @@ abstract class Analyser<RT: ASTNode?> {
     protected fun expectBinding() {
         if (token !is Token.Binding) {
             expectedBinding()
+        }
+    }
+
+    protected fun expectStringLiteral() {
+        if (token !is Token.StringLiteral) {
+            expectedStringLiteral()
         }
     }
 
@@ -79,6 +97,10 @@ abstract class Analyser<RT: ASTNode?> {
 
     protected fun expectedBinding(): Nothing {
         bail("Unexpected $token, expected pattern element")
+    }
+
+    protected fun expectedStringLiteral(): Nothing {
+        bail("Unexpected $token, expected string literal")
     }
 
     protected fun expectedPatternElementOrBinding(): Nothing {

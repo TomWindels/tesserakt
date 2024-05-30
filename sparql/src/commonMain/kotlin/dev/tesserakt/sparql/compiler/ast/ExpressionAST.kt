@@ -162,7 +162,7 @@ sealed interface ExpressionAST : ASTNode {
 
     }
 
-    data class Filter(
+    data class Conditional(
         val lhs: ExpressionAST,
         val rhs: ExpressionAST,
         val operand: Operand
@@ -192,7 +192,7 @@ private val ExpressionAST.sortValue: Int
         is ExpressionAST.BindingValues -> name.hashCode().absoluteValue % 100 + 1
         is ExpressionAST.LiteralValue -> value.hashCode().absoluteValue % 100 + 3
         is ExpressionAST.FuncCall -> input.sortValue * 100 + (type.ordinal + 1) * 10
-        is ExpressionAST.Filter -> lhs.sortValue * 10000 + rhs.sortValue * 100 + (operand.ordinal + 1) * 10
+        is ExpressionAST.Conditional -> lhs.sortValue * 10000 + rhs.sortValue * 100 + (operand.ordinal + 1) * 10
         is ExpressionAST.MathOp.Inverse -> -value.sortValue - 1
         is ExpressionAST.MathOp.Negative -> -value.sortValue - 2
         is ExpressionAST.MathOp.Sum -> operands
@@ -212,7 +212,7 @@ private val ExpressionAST.stableValue: Number?
         is ExpressionAST.BindingValues -> null
         is ExpressionAST.LiteralValue -> value
         is ExpressionAST.FuncCall -> null // can only be applied to bindings, so no stable value
-        is ExpressionAST.Filter -> null
+        is ExpressionAST.Conditional -> null
         is ExpressionAST.MathOp.Inverse -> value.stableValue?.let { 1 / it.toDouble() }
         is ExpressionAST.MathOp.Negative -> value.stableValue?.let { -it.toDouble() }
         is ExpressionAST.MathOp.Sum -> operands

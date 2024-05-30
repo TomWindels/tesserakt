@@ -64,6 +64,7 @@ class TestEnvironment private constructor() {
 
         override operator fun invoke() {
             val ast = input.toAST()
+            println("Input:\n$input\nAST:\n$ast")
             assertTrue(test(ast), "Validation did not succeed! Got AST $ast")
         }
 
