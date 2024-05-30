@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.patterns.rules
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.types.PatternASTr
+import dev.tesserakt.sparql.runtime.incremental.types.Pattern
 
 internal abstract class QueryRule<DT: Any> {
 
@@ -14,29 +14,29 @@ internal abstract class QueryRule<DT: Any> {
 
         /* helpers for using the pattern element types */
 
-        val PatternASTr.Subject.bindingName: String?
-            get() = (this as? PatternASTr.Binding)?.name
+        val Pattern.Subject.bindingName: String?
+            get() = (this as? Pattern.Binding)?.name
 
-        val PatternASTr.Object.bindingName: String?
-            get() = (this as? PatternASTr.Binding)?.name
+        val Pattern.Object.bindingName: String?
+            get() = (this as? Pattern.Binding)?.name
 
-        val PatternASTr.Predicate.bindingName: String?
-            get() = (this as? PatternASTr.Binding)?.name
+        val Pattern.Predicate.bindingName: String?
+            get() = (this as? Pattern.Binding)?.name
 
-        fun PatternASTr.Subject.matches(term: Quad.Term): Boolean =
-            (this !is PatternASTr.Exact || this.term == term)
+        fun Pattern.Subject.matches(term: Quad.Term): Boolean =
+            (this !is Pattern.Exact || this.term == term)
 
-        fun PatternASTr.Object.matches(term: Quad.Term): Boolean =
-            (this !is PatternASTr.Exact || this.term == term)
+        fun Pattern.Object.matches(term: Quad.Term): Boolean =
+            (this !is Pattern.Exact || this.term == term)
 
-        fun PatternASTr.Predicate.matches(term: Quad.Term): Boolean =
-            this is PatternASTr.RegularBinding || (this as PatternASTr.FixedPredicate).matches(term)
+        fun Pattern.Predicate.matches(term: Quad.Term): Boolean =
+            this is Pattern.RegularBinding || (this as Pattern.FixedPredicate).matches(term)
 
-        fun PatternASTr.FixedPredicate.matches(term: Quad.Term): Boolean =
+        fun Pattern.FixedPredicate.matches(term: Quad.Term): Boolean =
             when (this) {
-                is PatternASTr.Alts -> allowed.any { it.matches(term) }
-                is PatternASTr.Exact -> this.term == term
-                is PatternASTr.Inverse -> this.predicate != term
+                is Pattern.Alts -> allowed.any { it.matches(term) }
+                is Pattern.Exact -> this.term == term
+                is Pattern.Inverse -> this.predicate != term
             }
 
     }

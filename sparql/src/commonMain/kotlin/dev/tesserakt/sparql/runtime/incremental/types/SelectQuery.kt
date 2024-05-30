@@ -1,0 +1,31 @@
+package dev.tesserakt.sparql.runtime.incremental.types
+
+import dev.tesserakt.sparql.runtime.common.types.Expression
+
+data class SelectQuery(
+    // the output can later be further implemented to support aggregates in its implementation
+    val output: List<Output>,
+    override val body: QueryBody,
+    /** GROUP BY <expr> **/
+    val grouping: Expression<Any>?,
+    /** HAVING (filter) **/
+    val groupingFilter: Expression<Boolean>?,
+    /** ORDER BY <expr> **/
+    val ordering: Expression<Comparable<Any>>?
+): Query() {
+
+    sealed class Output {
+        abstract val name: String
+    }
+
+    data class BindingOutput(
+        override val name: String
+    ): Output()
+
+    data class ExpressionOutput(
+        override val name: String,
+        // could be anything out; a number, a term, ...
+        val expression: Expression<Any>
+    ): Output()
+
+}

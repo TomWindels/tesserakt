@@ -1,16 +1,16 @@
 package dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.types.Bindings
-import dev.tesserakt.sparql.runtime.types.PatternASTr
+import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.incremental.types.Pattern
 
 internal abstract class FixedPredicateRule(
     // the intended start element
-    s: PatternASTr.Binding,
+    s: Pattern.Binding,
     // the repeating element
-    private val p: PatternASTr.FixedPredicate,
+    private val p: Pattern.FixedPredicate,
     // the intended final result
-    o: PatternASTr.Binding
+    o: Pattern.Binding
 ) : RepeatingRule<RepeatingRule.Connections>(s = s, o = o) {
 
     open fun insertAndReturnNewPaths(triple: Quad, data: Connections): List<Bindings> {

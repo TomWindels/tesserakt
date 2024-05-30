@@ -1,19 +1,19 @@
-package dev.tesserakt.sparql.runtime.query
+package dev.tesserakt.sparql.runtime.incremental.query
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.incremental.patterns.IncrementalRuleSet
-import dev.tesserakt.sparql.runtime.types.Bindings
-import dev.tesserakt.sparql.runtime.types.QueryASTr
+import dev.tesserakt.sparql.runtime.incremental.types.Query
 
-sealed class Query<ResultType, AST: QueryASTr>(
-    protected val ast: AST
+sealed class IncrementalQuery<ResultType, Q: Query>(
+    protected val ast: Q
 ) {
 
     private val incrementalRuleSet = IncrementalRuleSet.from(ast.body.patterns)
 
     companion object {
 
-        fun <RT> Iterable<Quad>.query(query: Query<RT, *>, callback: (RT) -> Unit) {
+        fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>, callback: (RT) -> Unit) {
             val processor = with(query) { Processor(this@query) }
             var bindings = processor.next()
             while (bindings != null) {
@@ -22,7 +22,7 @@ sealed class Query<ResultType, AST: QueryASTr>(
             }
         }
 
-        fun <RT> Sequence<Quad>.query(query: Query<RT, *>): Sequence<RT> = sequence {
+        fun <RT> Sequence<Quad>.query(query: IncrementalQuery<RT, *>): Sequence<RT> = sequence {
             val processor = with(query) { Processor(this@query.iterator()) }
             var bindings = processor.next()
             while (bindings != null) {
@@ -31,7 +31,7 @@ sealed class Query<ResultType, AST: QueryASTr>(
             }
         }
 
-        fun <RT> Iterable<Quad>.query(query: Query<RT, *>): List<RT> = buildList {
+        fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>): List<RT> = buildList {
             val processor = with(query) { Processor(this@query) }
             var bindings = processor.next()
             while (bindings != null) {

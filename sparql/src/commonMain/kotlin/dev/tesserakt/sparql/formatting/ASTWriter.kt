@@ -48,7 +48,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
     }
 
     private fun process(symbol: ASTNode): Unit = when (symbol) {
-        is Aggregation -> {
+        is AggregationAST -> {
             append("aggregation")
             indented {
                 writeLine("target: ${symbol.target.stringified()}")
@@ -57,17 +57,12 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Expression.BindingValues -> {
+        is ExpressionAST.BindingValues -> {
             append("binding")
             indented { writeLine("target: ${symbol.name}") }
         }
 
-        is Expression.DistinctBindingValues -> {
-            append("binding (distinct)")
-            indented { writeLine("target: ${symbol.name}") }
-        }
-
-        is Expression.Filter -> {
+        is ExpressionAST.Filter -> {
             append("filter")
             indented {
                 writeLine("operand: ${symbol.operand}")
@@ -78,16 +73,16 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Expression.FuncCall -> {
+        is ExpressionAST.FuncCall -> {
             append("func call")
             indented {
                 writeLine("type: ${symbol.type}")
-                writeLine("input: ")
-                process(symbol.input)
+                writeLine("distinct: ${symbol.distinct}")
+                writeLine("input: ${symbol.input.name}")
             }
         }
 
-        is Expression.MathOp.Inverse -> {
+        is ExpressionAST.MathOp.Inverse -> {
             append("inverse")
             indented {
                 writeLine("input: ")
@@ -95,14 +90,14 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Expression.LiteralValue -> {
+        is ExpressionAST.LiteralValue -> {
             append("literal")
             indented {
                 writeLine("value: ${symbol.value}")
             }
         }
 
-        is Expression.MathOp.Multiplication -> {
+        is ExpressionAST.MathOp.Multiplication -> {
             append("multiplication")
             indented {
                 symbol.operands.forEachIndexed { index, expression ->
@@ -112,7 +107,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Expression.MathOp.Sum -> {
+        is ExpressionAST.MathOp.Sum -> {
             append("sum")
             indented {
                 symbol.operands.forEachIndexed { index, expression ->
@@ -122,7 +117,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Expression.MathOp.Negative -> {
+        is ExpressionAST.MathOp.Negative -> {
             append("negative")
             indented {
                 writeLine("input: ")

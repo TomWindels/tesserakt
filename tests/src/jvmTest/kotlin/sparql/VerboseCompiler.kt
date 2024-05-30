@@ -1,19 +1,17 @@
 package sparql
 
 import dev.tesserakt.sparql.Compiler
-import dev.tesserakt.sparql.runtime.compat.QueryCompatLayer
-import dev.tesserakt.sparql.runtime.query.Query
-import dev.tesserakt.sparql.runtime.validator.SelectQueryOutputValidator
-import dev.tesserakt.sparql.runtime.validator.Validator.Companion.validate
-import dev.tesserakt.util.console.StylisedASTrWriter
+import dev.tesserakt.sparql.runtime.incremental.compat.QueryCompatLayer
+import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery
+import dev.tesserakt.sparql.runtime.incremental.validation.Validator
+import dev.tesserakt.sparql.runtime.incremental.validation.Validator.Companion.validate
+import dev.tesserakt.util.console.StylisedWriter
 
 object VerboseCompiler: Compiler() {
 
-    private val validators = listOf(
-        SelectQueryOutputValidator,
-    )
+    private val validators = listOf<Validator<*>>()
 
-    override fun compile(raw: String): Query<*, *> {
+    override fun compile(raw: String): IncrementalQuery<*, *> {
         // compiling the input query
         val ast = raw.toAST()
         // outputting the resulting AST
@@ -23,8 +21,8 @@ object VerboseCompiler: Compiler() {
         // validating if the resulting
         validators.validate(compat)
         println("Generated the following runtime AST:")
-        println(StylisedASTrWriter.write(compat))
-        return compat.toQuery()
+        println(StylisedWriter.write(compat))
+        return compat.toIncrementalQuery()
     }
 
 }

@@ -4,34 +4,14 @@ import kotlin.jvm.JvmInline
 import kotlin.math.absoluteValue
 
 
-sealed interface Expression : ASTNode {
-
-    // convenience methods
-
-    val builtin get() = this as FuncCall
-
-    val sum get() = this as MathOp.Sum
-
-    val multiplication get() = this as MathOp.Multiplication
-
-    @Suppress("RecursivePropertyAccessor")
-    val literal
-        get(): LiteralValue = when (this) {
-            is MathOp.Inverse -> LiteralValue(1 / value.literal.value.toDouble())
-            is MathOp.Negative -> LiteralValue(-value.literal.value.toDouble())
-            else -> this as LiteralValue
-        }
-
-    val bindings get() = this as BindingValues
-
-    val distinctBindings get() = this as DistinctBindingValues
-
+sealed interface ExpressionAST : ASTNode {
 
     // TODO: these require grouping for non-aggregated bindings in the select statement (see compile test case `GROUP BY ?g`)
     data class FuncCall(
         val type: Type,
-        val input: Expression
-    ) : Expression {
+        val input: BindingValues,
+        val distinct: Boolean
+    ) : ExpressionAST {
 
         enum class Type {
             COUNT,
@@ -47,13 +27,13 @@ sealed interface Expression : ASTNode {
 
     }
 
-    sealed class MathOp(val operands: List<Expression>) : Expression {
+    sealed class MathOp(val operands: List<ExpressionAST>) : ExpressionAST {
 
         enum class Operator {
             SUM, PRODUCT, DIFFERENCE, DIVISION
         }
 
-        class Sum(operands: Iterable<Expression>) : MathOp(
+        class Sum(operands: Iterable<ExpressionAST>) : MathOp(
             operands = operands
                 .flatMap { if (it is Sum) it.operands else listOf(it.stabilised()) }
                 .stabilised(0) { first, second -> first.toDouble() + second.toDouble() }
@@ -62,7 +42,7 @@ sealed interface Expression : ASTNode {
             override fun toString() = operands.joinToString(prefix = "(", postfix = ")", separator = " + ")
         }
 
-        class Multiplication(operands: Iterable<Expression>) : MathOp(
+        class Multiplication(operands: Iterable<ExpressionAST>) : MathOp(
             operands = operands
                 .flatMap { if (it is Multiplication) it.operands else listOf(it.stabilised()) }
                 .stabilised(1) { first, second -> first.toDouble() * second.toDouble() }
@@ -80,22 +60,22 @@ sealed interface Expression : ASTNode {
 
         /* = - value */
         @JvmInline
-        value class Negative(val value: Expression) : Expression {
+        value class Negative(val value: ExpressionAST) : ExpressionAST {
             override fun toString() = "- $value"
 
             companion object {
-                fun of(value: Expression) = if (value is Negative) value.value else Negative(value)
+                fun of(value: ExpressionAST) = if (value is Negative) value.value else Negative(value)
             }
 
         }
 
         /* = 1 / value */
         @JvmInline
-        value class Inverse(val value: Expression) : Expression {
+        value class Inverse(val value: ExpressionAST) : ExpressionAST {
             override fun toString() = "1 / $value"
 
             companion object {
-                fun of(value: Expression) = if (value is Inverse) value.value else Inverse(value)
+                fun of(value: ExpressionAST) = if (value is Inverse) value.value else Inverse(value)
             }
 
         }
@@ -107,14 +87,14 @@ sealed interface Expression : ASTNode {
          */
         class Builder(
             // the first term of the statement
-            start: Expression
+            start: ExpressionAST
         ) {
 
             // only + & * are stored here, see `add()`
             private val operators = mutableListOf<Operator>()
             private val operands = mutableListOf(start)
 
-            fun add(operator: Operator, operand: Expression) {
+            fun add(operator: Operator, operand: ExpressionAST) {
                 when (operator) {
                     Operator.DIFFERENCE -> {
                         operators.add(Operator.SUM)
@@ -137,7 +117,7 @@ sealed interface Expression : ASTNode {
              * Builds an aggregated version of the statement. IMPORTANT: this is a destructive operation, leaving the
              *  `Builder` instance in a not-so-usable state (the result becomes the first operand for the next usage)
              */
-            fun build(): Expression {
+            fun build(): ExpressionAST {
                 // first grouping all multiplication statements
                 var i = 0
                 while (i < operators.size) {
@@ -157,10 +137,10 @@ sealed interface Expression : ASTNode {
 
             private inline fun fuse(
                 index: Int,
-                action: (first: Expression, second: Expression) -> Expression
+                action: (first: ExpressionAST, second: ExpressionAST) -> ExpressionAST
             ) {
-                val operand1: Expression
-                val operand2: Expression
+                val operand1: ExpressionAST
+                val operand2: ExpressionAST
                 val op1 = operands[index]
                 val op2 = operands[index + 1]
                 if (op1.sortValue > op2.sortValue) {
@@ -183,27 +163,22 @@ sealed interface Expression : ASTNode {
     }
 
     data class Filter(
-        val lhs: Expression,
-        val rhs: Expression,
+        val lhs: ExpressionAST,
+        val rhs: ExpressionAST,
         val operand: Operand
-    ): Expression {
+    ): ExpressionAST {
         enum class Operand {
             GREATER_THAN, GREATER_THAN_OR_EQ, LESS_THAN, LESS_THAN_OR_EQ, EQUAL
         }
     }
 
     @JvmInline
-    value class BindingValues(val name: String) : Expression {
+    value class BindingValues(val name: String) : ExpressionAST {
         override fun toString() = "?$name"
     }
 
     @JvmInline
-    value class DistinctBindingValues(val name: String) : Expression {
-        override fun toString() = "DISTINCT ?$name"
-    }
-
-    @JvmInline
-    value class LiteralValue(val value: Number) : Expression {
+    value class LiteralValue(val value: Number) : ExpressionAST {
         override fun toString() = value.toString()
     }
 }
@@ -212,19 +187,18 @@ sealed interface Expression : ASTNode {
  * A helper value used to stably sort operations
  */
 @Suppress("RecursivePropertyAccessor")
-private val Expression.sortValue: Int
+private val ExpressionAST.sortValue: Int
     get() = when (this) {
-        is Expression.BindingValues -> name.hashCode().absoluteValue % 100 + 1
-        is Expression.LiteralValue -> value.hashCode().absoluteValue % 100 + 3
-        is Expression.FuncCall -> input.sortValue * 100 + (type.ordinal + 1) * 10
-        is Expression.Filter -> lhs.sortValue * 10000 + rhs.sortValue * 100 + (operand.ordinal + 1) * 10
-        is Expression.DistinctBindingValues -> name.hashCode() % 100 + 2
-        is Expression.MathOp.Inverse -> -value.sortValue - 1
-        is Expression.MathOp.Negative -> -value.sortValue - 2
-        is Expression.MathOp.Sum -> operands
+        is ExpressionAST.BindingValues -> name.hashCode().absoluteValue % 100 + 1
+        is ExpressionAST.LiteralValue -> value.hashCode().absoluteValue % 100 + 3
+        is ExpressionAST.FuncCall -> input.sortValue * 100 + (type.ordinal + 1) * 10
+        is ExpressionAST.Filter -> lhs.sortValue * 10000 + rhs.sortValue * 100 + (operand.ordinal + 1) * 10
+        is ExpressionAST.MathOp.Inverse -> -value.sortValue - 1
+        is ExpressionAST.MathOp.Negative -> -value.sortValue - 2
+        is ExpressionAST.MathOp.Sum -> operands
             .sumOf { it.sortValue } * 1000 + 100
 
-        is Expression.MathOp.Multiplication -> operands
+        is ExpressionAST.MathOp.Multiplication -> operands
             .sumOf { it.sortValue } * 1000 + 200
 
     }
@@ -233,19 +207,18 @@ private val Expression.sortValue: Int
  * Produces the constant value associated with this expression if possible, `null` otherwise
  */
 @Suppress("RecursivePropertyAccessor")
-private val Expression.stableValue: Number?
+private val ExpressionAST.stableValue: Number?
     get() = when (this) {
-        is Expression.BindingValues -> null
-        is Expression.LiteralValue -> value
-        is Expression.FuncCall -> null // can only be applied to bindings, so no stable value
-        is Expression.Filter -> null
-        is Expression.DistinctBindingValues -> null
-        is Expression.MathOp.Inverse -> value.stableValue?.let { 1 / it.toDouble() }
-        is Expression.MathOp.Negative -> value.stableValue?.let { -it.toDouble() }
-        is Expression.MathOp.Sum -> operands
+        is ExpressionAST.BindingValues -> null
+        is ExpressionAST.LiteralValue -> value
+        is ExpressionAST.FuncCall -> null // can only be applied to bindings, so no stable value
+        is ExpressionAST.Filter -> null
+        is ExpressionAST.MathOp.Inverse -> value.stableValue?.let { 1 / it.toDouble() }
+        is ExpressionAST.MathOp.Negative -> value.stableValue?.let { -it.toDouble() }
+        is ExpressionAST.MathOp.Sum -> operands
             .sumOf { it.stableValue?.toDouble() ?: return null }
 
-        is Expression.MathOp.Multiplication -> operands
+        is ExpressionAST.MathOp.Multiplication -> operands
             .fold(initial = 1.0) { value, element -> (element.stableValue?.toDouble() ?: return null) * value }
 
     }
@@ -253,25 +226,25 @@ private val Expression.stableValue: Number?
 /**
  * Attempts to replace `this` by a literal value constant, if possible
  */
-private fun Expression.stabilised() = stableValue?.let { Expression.LiteralValue(it) } ?: this
+private fun ExpressionAST.stabilised() = stableValue?.let { ExpressionAST.LiteralValue(it) } ?: this
 
 /**
  * Stabilises the incoming aggregations, replacing all where possible with a `LiteralValue` as last element
  *  of the returned list. Aggregation of two elements is done using the provided `aggregator`
  */
-private fun Iterable<Expression>.stabilised(
+private fun Iterable<ExpressionAST>.stabilised(
     neutral: Number,
     aggregator: (first: Number, second: Number) -> Number
-): List<Expression> {
+): List<ExpressionAST> {
     var aggregated = neutral
-    val remaining = mutableListOf<Expression>()
+    val remaining = mutableListOf<ExpressionAST>()
     forEach { element ->
         element.stableValue
             ?.let { stabilised -> aggregated = aggregator(aggregated, stabilised) }
             ?: run { remaining.add(element) }
     }
     if (neutral != aggregated) {
-        remaining.add(Expression.LiteralValue(aggregated))
+        remaining.add(ExpressionAST.LiteralValue(aggregated))
     }
     return remaining
 }

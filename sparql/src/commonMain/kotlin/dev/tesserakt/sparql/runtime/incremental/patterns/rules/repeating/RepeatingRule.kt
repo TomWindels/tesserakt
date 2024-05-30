@@ -2,16 +2,16 @@ package dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.incremental.patterns.rules.QueryRule
-import dev.tesserakt.sparql.runtime.types.Bindings
-import dev.tesserakt.sparql.runtime.types.PatternASTr
+import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.incremental.types.Pattern
 
 // TODO: make helper method for when repeating with a specific term as s & o, making those additional regular rules
 //  (should be equivalent)
 internal abstract class RepeatingRule<DT: Any>(
     // the intended start element
-    protected val s: PatternASTr.Binding,
+    protected val s: Pattern.Binding,
     // the intended final result
-    protected val o: PatternASTr.Binding,
+    protected val o: Pattern.Binding,
     // TODO make the DT for the bind predicate a map, key being the bound predicate
 ) : QueryRule<DT>() {
 
@@ -108,15 +108,15 @@ internal abstract class RepeatingRule<DT: Any>(
     companion object {
 
         fun repeatingOf(
-            s: PatternASTr.Subject,
-            p: PatternASTr.RepeatingPredicate,
-            o: PatternASTr.Object
+            s: Pattern.Subject,
+            p: Pattern.RepeatingPredicate,
+            o: Pattern.Object
         ): RepeatingRule<*> = when {
-            s is PatternASTr.Binding && o is PatternASTr.Binding -> when (p) {
-                is PatternASTr.ZeroOrMoreBound -> ZeroOrMoreBindingPredicateRule(s, p.predicate, o)
-                is PatternASTr.ZeroOrMoreFixed -> ZeroOrMoreFixedPredicateRule(s, p.predicate, o)
-                is PatternASTr.OneOrMoreBound -> OneOrMoreBindingPredicateRule(s, p.predicate, o)
-                is PatternASTr.OneOrMoreFixed -> OneOrMoreFixedPredicateRule(s, p.predicate, o)
+            s is Pattern.Binding && o is Pattern.Binding -> when (p) {
+                is Pattern.ZeroOrMoreBound -> ZeroOrMoreBindingPredicateRule(s, p.predicate, o)
+                is Pattern.ZeroOrMoreFixed -> ZeroOrMoreFixedPredicateRule(s, p.predicate, o)
+                is Pattern.OneOrMoreBound -> OneOrMoreBindingPredicateRule(s, p.predicate, o)
+                is Pattern.OneOrMoreFixed -> OneOrMoreFixedPredicateRule(s, p.predicate, o)
             }
             else -> throw UnsupportedOperationException("Using fixed s/o terms in repeating rules is currently unsupported!")
         }

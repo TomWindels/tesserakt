@@ -1,10 +1,10 @@
 package dev.tesserakt.util.console
 
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.formatting.ASTrWriter
-import dev.tesserakt.sparql.runtime.types.ASTr
+import dev.tesserakt.sparql.formatting.NodeWriter
+import dev.tesserakt.sparql.runtime.node.Node
 
-object StylisedASTrWriter: ASTrWriter<String>() {
+object StylisedWriter: NodeWriter<String>() {
 
     private val state = State()
 
@@ -18,8 +18,8 @@ object StylisedASTrWriter: ASTrWriter<String>() {
         }
     }
 
-    override fun write(ast: ASTr): String {
-        process(ast)
+    override fun write(node: Node): String {
+        process(node)
         // considering the stylised string type acts as a builder, clearing it without converting it to a regular
         //  string first would undo all processing
         return state.content.toString()

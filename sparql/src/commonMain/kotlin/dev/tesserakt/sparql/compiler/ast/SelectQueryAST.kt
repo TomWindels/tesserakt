@@ -9,11 +9,11 @@ data class SelectQueryAST(
     val output: Map<String, OutputEntry>,
     override val body: QueryBodyAST,
     /** GROUP BY <expr> **/
-    val grouping: Expression?,
+    val grouping: ExpressionAST?,
     /** HAVING (filter) **/
-    val groupingFilter: Expression.Filter?,
+    val groupingFilter: ExpressionAST.Filter?,
     /** ORDER BY <expr> **/
-    val ordering: Expression?
+    val ordering: ExpressionAST?
 ): QueryAST() {
 
     sealed interface OutputEntry: ASTNode {
@@ -26,7 +26,7 @@ data class SelectQueryAST(
     }
 
     @JvmInline
-    value class AggregationOutputEntry(val aggregation: Aggregation): OutputEntry {
+    value class AggregationOutputEntry(val aggregation: AggregationAST): OutputEntry {
         override val name: String get() = aggregation.target.name
     }
 
@@ -41,16 +41,16 @@ data class SelectQueryAST(
         private val entries = mutableListOf<OutputEntry>()
         lateinit var body: QueryBodyAST
         // GROUP BY <expr>
-        var grouping: Expression? = null
-        var groupingFilter: Expression.Filter? = null
+        var grouping: ExpressionAST? = null
+        var groupingFilter: ExpressionAST.Filter? = null
         // ORDER BY <expr>
-        var ordering: Expression? = null
+        var ordering: ExpressionAST? = null
 
         fun addToOutput(binding: PatternAST.Binding) {
             entries.add(BindingOutputEntry(binding))
         }
 
-        fun addToOutput(aggregation: Aggregation) {
+        fun addToOutput(aggregation: AggregationAST) {
             entries.add(AggregationOutputEntry(aggregation))
         }
 

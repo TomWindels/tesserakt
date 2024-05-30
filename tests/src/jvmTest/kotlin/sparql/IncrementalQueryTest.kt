@@ -9,11 +9,11 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.serialization.Turtle.parseTurtleString
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.BindingsTable.Companion.tabulate
-import dev.tesserakt.sparql.runtime.query.Query.Companion.query
+import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
 import dev.tesserakt.util.console.toStylisedString
 import kotlin.test.Test
 
-class QueryTest {
+class IncrementalQueryTest {
 
     private fun buildAddressesStore() = buildStore {
         "person1".namedTerm has "domicile".namedTerm being blank {

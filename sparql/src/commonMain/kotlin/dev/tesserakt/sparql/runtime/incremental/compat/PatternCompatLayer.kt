@@ -1,35 +1,35 @@
-package dev.tesserakt.sparql.runtime.compat
+package dev.tesserakt.sparql.runtime.incremental.compat
 
 import dev.tesserakt.sparql.compiler.ast.PatternAST
 import dev.tesserakt.sparql.compiler.ast.PatternsAST
-import dev.tesserakt.sparql.runtime.types.PatternASTr
-import dev.tesserakt.sparql.runtime.types.PatternsASTr
+import dev.tesserakt.sparql.runtime.incremental.types.Pattern
+import dev.tesserakt.sparql.runtime.incremental.types.Patterns
 
 class PatternCompatLayer(
-    val onUnionCreated: (blocks: List<PatternsASTr>) -> Unit
-): CompatLayer<PatternsAST, PatternsASTr>() {
+    val onUnionCreated: (blocks: List<Patterns>) -> Unit
+): IncrementalCompatLayer<PatternsAST, Patterns>() {
 
-    override fun convert(source: PatternsAST): PatternsASTr = PatternsASTr(
+    override fun convert(source: PatternsAST): Patterns = Patterns(
         buildList { source.forEach { it.insert(this) } }
     )
 
     /* helpers */
 
-    private fun PatternAST.insert(results: MutableList<PatternASTr>) {
+    private fun PatternAST.insert(results: MutableList<Pattern>) {
         return p.insert(results, s.convert(), o.nameOrInsert(results))
     }
 
     private fun PatternAST.Predicate.insert(
-        results: MutableList<PatternASTr>,
-        start: PatternASTr.Subject,
-        end: PatternASTr.Object
+        results: MutableList<Pattern>,
+        start: Pattern.Subject,
+        end: Pattern.Object
     ) {
         when (this) {
             is PatternAST.Chain -> {
                 var s = start
                 for (i in 0 ..< chain.size - 1) {
-                    val o = PatternASTr.GeneratedBinding(++id)
-                    val element = PatternASTr(
+                    val o = Pattern.GeneratedBinding(++id)
+                    val element = Pattern(
                         s = s,
                         p = chain[i].convertToSinglePredicate() ?: bail("Input is incompatible"),
                         o = o
@@ -37,7 +37,7 @@ class PatternCompatLayer(
                     results.add(element)
                     s = o
                 }
-                val element = PatternASTr(
+                val element = Pattern(
                     s = s,
                     p = chain.last().convertToSinglePredicate() ?: bail("Input is incompatible"),
                     o = end
@@ -51,11 +51,11 @@ class PatternCompatLayer(
                     splitUp.first().insert(results, start, end)
                 } else {
                     // inserting them all as unions
-                    val blocks = mutableListOf<PatternsASTr>()
+                    val blocks = mutableListOf<Patterns>()
                     splitUp.forEach { path ->
-                        val content = mutableListOf<PatternASTr>()
+                        val content = mutableListOf<Pattern>()
                         path.insert(content, start, end)
-                        blocks.add(PatternsASTr(content))
+                        blocks.add(Patterns(content))
                     }
                     onUnionCreated(blocks)
                 }
@@ -66,7 +66,7 @@ class PatternCompatLayer(
             is PatternAST.Not,
             is PatternAST.OneOrMore,
             is PatternAST.ZeroOrMore -> results.add(
-                PatternASTr(s = start, p = convertToSinglePredicate() ?: bail("Input is incompatible"), o = end)
+                Pattern(s = start, p = convertToSinglePredicate() ?: bail("Input is incompatible"), o = end)
             )
         }
     }
@@ -119,57 +119,57 @@ class PatternCompatLayer(
         return result
     }
 
-    private fun PatternAST.Object.nameOrInsert(results: MutableList<PatternASTr>): PatternASTr.Object =
+    private fun PatternAST.Object.nameOrInsert(results: MutableList<Pattern>): Pattern.Object =
         when (this) {
             is PatternAST.BlankObject ->
-                PatternASTr.GeneratedBinding(++id).also { name -> insert(results, name) }
+                Pattern.GeneratedBinding(++id).also { name -> insert(results, name) }
 
             is PatternAST.Binding ->
-                PatternASTr.RegularBinding(name)
+                Pattern.RegularBinding(name)
 
             is PatternAST.Exact ->
-                PatternASTr.Exact(term)
+                Pattern.Exact(term)
         }
 
     private fun PatternAST.BlankObject.insert(
-        results: MutableList<PatternASTr>,
-        name: PatternASTr.GeneratedBinding
+        results: MutableList<Pattern>,
+        name: Pattern.GeneratedBinding
     ) {
         properties.forEach { (p, o) ->
             p.insert(results, name, o.nameOrInsert(results))
         }
     }
 
-    private fun PatternAST.Subject.convert(): PatternASTr.Subject = when (this) {
-        is PatternAST.Binding -> PatternASTr.RegularBinding(name)
-        is PatternAST.Exact -> PatternASTr.Exact(term)
+    private fun PatternAST.Subject.convert(): Pattern.Subject = when (this) {
+        is PatternAST.Binding -> Pattern.RegularBinding(name)
+        is PatternAST.Exact -> Pattern.Exact(term)
     }
 
     /**
      * Converts the predicate to a single RT version if possible, `null` otherwise
      */
-    private fun PatternAST.Predicate.convertToSinglePredicate(): PatternASTr.Predicate? {
+    private fun PatternAST.Predicate.convertToSinglePredicate(): Pattern.Predicate? {
         return when (this) {
             is PatternAST.Binding -> {
-                PatternASTr.RegularBinding(name)
+                Pattern.RegularBinding(name)
             }
             is PatternAST.OneOrMore -> {
                 when (value) {
                     is PatternAST.Binding -> {
-                        PatternASTr.OneOrMoreBound(predicate = PatternASTr.RegularBinding(value.name))
+                        Pattern.OneOrMoreBound(predicate = Pattern.RegularBinding(value.name))
                     }
                     else -> {
-                        PatternASTr.OneOrMoreFixed(predicate = value.convertToSingleFixedPredicate() ?: return null)
+                        Pattern.OneOrMoreFixed(predicate = value.convertToSingleFixedPredicate() ?: return null)
                     }
                 }
             }
             is PatternAST.ZeroOrMore -> {
                 when (value) {
                     is PatternAST.Binding -> {
-                        PatternASTr.ZeroOrMoreBound(predicate = PatternASTr.RegularBinding(value.name))
+                        Pattern.ZeroOrMoreBound(predicate = Pattern.RegularBinding(value.name))
                     }
                     else -> {
-                        PatternASTr.ZeroOrMoreFixed(predicate = value.convertToSingleFixedPredicate() ?: return null)
+                        Pattern.ZeroOrMoreFixed(predicate = value.convertToSingleFixedPredicate() ?: return null)
                     }
                 }
             }
@@ -185,15 +185,15 @@ class PatternCompatLayer(
     /**
      * Converts the predicate to a single fixed RT version if possible, `null` otherwise
      */
-    private fun PatternAST.Predicate.convertToSingleFixedPredicate(): PatternASTr.FixedPredicate? {
+    private fun PatternAST.Predicate.convertToSingleFixedPredicate(): Pattern.FixedPredicate? {
         return when (this) {
             is PatternAST.Binding -> null
-            is PatternAST.Exact -> PatternASTr.Exact(term)
+            is PatternAST.Exact -> Pattern.Exact(term)
             is PatternAST.Chain -> null
             is PatternAST.Alts ->
-                allowed.map { it.convertToSingleFixedPredicate() ?: return null }.let { PatternASTr.Alts(it) }
+                allowed.map { it.convertToSingleFixedPredicate() ?: return null }.let { Pattern.Alts(it) }
             is PatternAST.Not ->
-                PatternASTr.Inverse(predicate.convertToSingleFixedPredicate() ?: return null)
+                Pattern.Inverse(predicate.convertToSingleFixedPredicate() ?: return null)
             is PatternAST.OneOrMore -> null // not a fixed predicate
             is PatternAST.ZeroOrMore -> null // not a fixed predicate
         }

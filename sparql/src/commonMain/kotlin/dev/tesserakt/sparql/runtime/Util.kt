@@ -1,11 +1,8 @@
 package dev.tesserakt.sparql.runtime
 
-import dev.tesserakt.sparql.runtime.types.PatternASTr
-import dev.tesserakt.sparql.runtime.types.PatternsASTr
-import dev.tesserakt.sparql.runtime.types.QueryASTr
-import dev.tesserakt.sparql.runtime.types.SegmentASTr
+import dev.tesserakt.sparql.runtime.incremental.types.*
 
-fun QueryASTr.QueryBodyASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> =
+fun Query.QueryBody.getAllNamedBindings(): Set<Pattern.RegularBinding> =
     buildSet {
         addAll(patterns.getAllNamedBindings())
         optional.forEach { optional -> addAll(optional.segment.getAllNamedBindings()) }
@@ -15,45 +12,45 @@ fun QueryASTr.QueryBodyASTr.getAllNamedBindings(): Set<PatternASTr.RegularBindin
 /**
  * Extracts all named bindings from the original query (excluding generated ones from the AST)
  */
-fun PatternsASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> =
+fun Patterns.getAllNamedBindings(): Set<Pattern.RegularBinding> =
     buildSet {
         this@getAllNamedBindings.forEach { pattern ->
             addAll(pattern.getAllNamedBindings())
         }
     }
 
-fun PatternASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> {
+fun Pattern.getAllNamedBindings(): Set<Pattern.RegularBinding> {
     return if (
-        s !is PatternASTr.RegularBinding &&
-        p !is PatternASTr.RegularBinding &&
-        o !is PatternASTr.RegularBinding
+        s !is Pattern.RegularBinding &&
+        p !is Pattern.RegularBinding &&
+        o !is Pattern.RegularBinding
     ) {
         emptySet()
     } else buildSet {
-        (s as? PatternASTr.RegularBinding)?.let { add(it) }
+        (s as? Pattern.RegularBinding)?.let { add(it) }
         p.getNamedBinding()?.let { add(it) }
-        (o as? PatternASTr.RegularBinding)?.let { add(it) }
+        (o as? Pattern.RegularBinding)?.let { add(it) }
     }
 }
 
-private fun SegmentASTr.getAllNamedBindings(): Set<PatternASTr.RegularBinding> {
+private fun Segment.getAllNamedBindings(): Set<Pattern.RegularBinding> {
     return when (this) {
-        is SegmentASTr.SelectQuery ->
-            query.output.map { name -> PatternASTr.RegularBinding(name) }.toSet()
+        is SelectQuerySegment ->
+            query.output.map { output -> Pattern.RegularBinding(output.name) }.toSet()
 
-        is SegmentASTr.Statements ->
+        is StatementsSegment ->
             statements.getAllNamedBindings()
     }
 }
 
-private fun PatternASTr.Predicate.getNamedBinding(): PatternASTr.RegularBinding? = when(this) {
-    is PatternASTr.Alts,
-    is PatternASTr.Exact,
-    is PatternASTr.Inverse,
-    is PatternASTr.GeneratedBinding,
-    is PatternASTr.OneOrMoreFixed,
-    is PatternASTr.ZeroOrMoreFixed -> null
-    is PatternASTr.RegularBinding -> this
-    is PatternASTr.OneOrMoreBound -> predicate
-    is PatternASTr.ZeroOrMoreBound -> predicate
+private fun Pattern.Predicate.getNamedBinding(): Pattern.RegularBinding? = when(this) {
+    is Pattern.Alts,
+    is Pattern.Exact,
+    is Pattern.Inverse,
+    is Pattern.GeneratedBinding,
+    is Pattern.OneOrMoreFixed,
+    is Pattern.ZeroOrMoreFixed -> null
+    is Pattern.RegularBinding -> this
+    is Pattern.OneOrMoreBound -> predicate
+    is Pattern.ZeroOrMoreBound -> predicate
 }

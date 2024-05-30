@@ -6,9 +6,9 @@ import dev.tesserakt.sparql.runtime.incremental.patterns.rules.RegularRule
 import dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating.BindingPredicateRule
 import dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating.FixedPredicateRule
 import dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating.RepeatingRule.Companion.repeatingOf
-import dev.tesserakt.sparql.runtime.types.Bindings
-import dev.tesserakt.sparql.runtime.types.PatternASTr
-import dev.tesserakt.sparql.runtime.types.PatternsASTr
+import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.incremental.types.Pattern
+import dev.tesserakt.sparql.runtime.incremental.types.Patterns
 
 internal class IncrementalRuleSet (rules: List<QueryRule<*>>) {
 
@@ -90,15 +90,15 @@ internal class IncrementalRuleSet (rules: List<QueryRule<*>>) {
 
     companion object {
 
-        fun from(patterns: PatternsASTr) =
+        fun from(patterns: Patterns) =
             IncrementalRuleSet(rules = patterns.toFilterRules())
 
         /* helpers */
 
-        private fun PatternsASTr.toFilterRules(): List<QueryRule<*>> = map { (s, p, o) ->
+        private fun Patterns.toFilterRules(): List<QueryRule<*>> = map { (s, p, o) ->
             when (p) {
-                is PatternASTr.RepeatingPredicate -> repeatingOf(s, p, o)
-                is PatternASTr.NonRepeatingPredicate -> RegularRule(s, p, o)
+                is Pattern.RepeatingPredicate -> repeatingOf(s, p, o)
+                is Pattern.NonRepeatingPredicate -> RegularRule(s, p, o)
             }
         }
 

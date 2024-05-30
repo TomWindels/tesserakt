@@ -1,15 +1,15 @@
 package dev.tesserakt.sparql.runtime.incremental.patterns.rules
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.types.Bindings
-import dev.tesserakt.sparql.runtime.types.PatternASTr
+import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.incremental.types.Pattern
 import dev.tesserakt.util.compatibleWith
 
 // TODO: make 4 versions of this rule, alternating between exact and binding types for `s`, `o`
 internal data class RegularRule(
-    private val s: PatternASTr.Subject,
-    private val p: PatternASTr.NonRepeatingPredicate,
-    private val o: PatternASTr.Object
+    private val s: Pattern.Subject,
+    private val p: Pattern.NonRepeatingPredicate,
+    private val o: Pattern.Object
 ) : QueryRule<MutableList<Bindings>>() {
 
     /**

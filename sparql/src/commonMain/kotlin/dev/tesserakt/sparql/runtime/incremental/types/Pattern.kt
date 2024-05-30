@@ -1,19 +1,20 @@
-package dev.tesserakt.sparql.runtime.types
+package dev.tesserakt.sparql.runtime.incremental.types
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.node.IncrementalNode
 import kotlin.jvm.JvmInline
 
-data class PatternASTr(
+data class Pattern(
     val s: Subject,
     val p: Predicate,
     val o: Object,
-): ASTr {
+): IncrementalNode {
 
-    sealed interface Subject: ASTr
+    sealed interface Subject: IncrementalNode
 
-    sealed interface Predicate: ASTr
+    sealed interface Predicate: IncrementalNode
 
-    sealed interface Object: ASTr
+    sealed interface Object: IncrementalNode
 
     sealed interface NonRepeatingPredicate: Predicate
 

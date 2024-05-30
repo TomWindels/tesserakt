@@ -2,11 +2,14 @@ package dev.tesserakt.sparql.formatting
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.runtime.types.*
+import dev.tesserakt.sparql.runtime.common.types.Expression
+import dev.tesserakt.sparql.runtime.incremental.types.*
+import dev.tesserakt.sparql.runtime.node.IncrementalNode
+import dev.tesserakt.sparql.runtime.node.Node
 
-abstract class ASTrWriter<RT> {
+abstract class NodeWriter<RT> {
 
-    object Default: ASTrWriter<String>() {
+    object Default: NodeWriter<String>() {
 
         private val state = State()
 
@@ -20,8 +23,8 @@ abstract class ASTrWriter<RT> {
             }
         }
 
-        override fun write(ast: ASTr): String {
-            process(ast)
+        override fun write(node: Node): String {
+            process(node)
             return state.content.toString()
                 .also { state.clear() }
         }
@@ -60,9 +63,9 @@ abstract class ASTrWriter<RT> {
 
     }
 
-    abstract fun write(ast: ASTr): RT
+    abstract fun write(node: Node): RT
 
-    /* internal API for writing the ASTr */
+    /* internal API for writing the Node */
 
     protected abstract fun newline()
 
@@ -74,15 +77,15 @@ abstract class ASTrWriter<RT> {
 
     /* shared implementation */
 
-    protected fun process(symbol: ASTr) {
+    protected fun process(symbol: Node) {
         when (symbol) {
-            is PatternASTr.GeneratedBinding ->
+            is Pattern.GeneratedBinding ->
                 add(Token.PrefixedTerm(namespace = "_", value = "b${symbol.id}"))
 
-            is PatternASTr.RegularBinding ->
+            is Pattern.RegularBinding ->
                 add(Token.Binding(symbol.name))
 
-            is PatternASTr.Exact -> when (symbol.term) {
+            is Pattern.Exact -> when (symbol.term) {
                 is Quad.BlankTerm -> throw UnsupportedOperationException()
                 is Quad.Literal<*> -> {
                     (symbol.term.literal as? String)?.let { add(Token.StringLiteral(it)) }
@@ -92,7 +95,7 @@ abstract class ASTrWriter<RT> {
                 is Quad.NamedTerm -> add(Token.Term(symbol.term.value))
             }
 
-            is PatternASTr.Alts -> {
+            is Pattern.Alts -> {
                 add(Token.Symbol.RoundBracketStart)
                 for (i in 0 ..< symbol.allowed.size - 1) {
                     process(symbol.allowed[i])
@@ -102,69 +105,69 @@ abstract class ASTrWriter<RT> {
                 add(Token.Symbol.RoundBracketEnd)
             }
 
-            is PatternASTr.Inverse -> {
+            is Pattern.Inverse -> {
                 add(Token.Symbol.ExclamationMark)
                 process(symbol.predicate)
             }
 
-            is PatternASTr.OneOrMoreBound -> {
+            is Pattern.OneOrMoreBound -> {
                 process(symbol.predicate)
                 add(Token.Symbol.OpPlus)
             }
 
-            is PatternASTr.OneOrMoreFixed -> {
+            is Pattern.OneOrMoreFixed -> {
                 process(symbol.predicate)
                 add(Token.Symbol.OpPlus)
             }
 
-            is PatternASTr.ZeroOrMoreBound -> {
+            is Pattern.ZeroOrMoreBound -> {
                 process(symbol.predicate)
                 add(Token.Symbol.Asterisk)
             }
 
-            is PatternASTr.ZeroOrMoreFixed -> {
+            is Pattern.ZeroOrMoreFixed -> {
                 process(symbol.predicate)
                 add(Token.Symbol.Asterisk)
             }
 
-            is PatternASTr -> {
+            is Pattern -> {
                 process(symbol.s)
                 process(symbol.p)
                 process(symbol.o)
                 add(Token.Symbol.Period)
             }
 
-            is PatternsASTr -> {
+            is Patterns -> {
                 symbol.forEach { pattern ->
                     newline()
                     process(pattern)
                 }
             }
 
-            is SegmentASTr.SelectQuery -> {
+            is SelectQuerySegment -> {
                 newline()
                 process(symbol.query)
             }
 
-            is SegmentASTr.Statements -> {
+            is StatementsSegment -> {
                 process(symbol.statements)
             }
 
-            is OptionalASTr -> {
+            is Optional -> {
                 when (symbol.segment) {
-                    is SegmentASTr.SelectQuery -> { process(symbol.segment) }
-                    is SegmentASTr.Statements -> { process(symbol.segment) }
+                    is SelectQuerySegment -> { process(symbol.segment) }
+                    is StatementsSegment -> { process(symbol.segment) }
                 }
             }
 
-            is UnionASTr -> {
+            is Union -> {
                 newline()
                 for (i in 0 ..< symbol.size - 1) {
                     add(Token.Symbol.CurlyBracketStart)
                     indent()
                     when (val segment = symbol[i]) {
-                        is SegmentASTr.SelectQuery -> { process(segment) }
-                        is SegmentASTr.Statements -> { process(segment) }
+                        is SelectQuerySegment -> { process(segment) }
+                        is StatementsSegment -> { process(segment) }
                     }
                     unindent()
                     newline()
@@ -174,15 +177,15 @@ abstract class ASTrWriter<RT> {
                 add(Token.Symbol.CurlyBracketStart)
                 indent()
                 when (val segment = symbol.last()) {
-                    is SegmentASTr.SelectQuery -> { process(segment) }
-                    is SegmentASTr.Statements -> { process(segment) }
+                    is SelectQuerySegment -> { process(segment) }
+                    is StatementsSegment -> { process(segment) }
                 }
                 unindent()
                 newline()
                 add(Token.Symbol.CurlyBracketEnd)
             }
 
-            is QueryASTr.QueryBodyASTr -> {
+            is Query.QueryBody -> {
                 process(symbol.patterns)
                 symbol.optional.forEach { optional ->
                     newline()
@@ -199,10 +202,20 @@ abstract class ASTrWriter<RT> {
                 }
             }
 
-            is SelectQueryASTr -> {
+            is SelectQuery -> {
                 add(Token.Keyword.Select)
-                symbol.output.forEach { name ->
-                    add(Token.Binding(name))
+                symbol.output.forEach { output ->
+                    when (output) {
+                        is SelectQuery.BindingOutput ->
+                            add(Token.Binding(output.name))
+                        is SelectQuery.ExpressionOutput -> {
+                            add(Token.Symbol.RoundBracketStart)
+                            process(output.expression)
+                            add(Token.Keyword.As)
+                            add(Token.Binding(output.name))
+                            add(Token.Symbol.RoundBracketEnd)
+                        }
+                    }
                 }
                 add(Token.Keyword.Where)
                 add(Token.Symbol.CurlyBracketStart)
@@ -211,6 +224,31 @@ abstract class ASTrWriter<RT> {
                 unindent()
                 newline()
                 add(Token.Symbol.CurlyBracketEnd)
+                if (symbol.grouping != null) {
+                    newline()
+                    add(Token.Keyword.Group)
+                    add(Token.Keyword.By)
+                    process(symbol.grouping)
+                }
+                if (symbol.groupingFilter != null) {
+                    newline()
+                    add(Token.Keyword.Having)
+                    process(symbol.groupingFilter)
+                }
+                if (symbol.ordering != null) {
+                    newline()
+                    add(Token.Keyword.Order)
+                    add(Token.Keyword.By)
+                    process(symbol.ordering)
+                }
+            }
+
+            is Expression<*> -> {
+                add(Token.StringLiteral("EXPR"))
+            }
+
+            is IncrementalNode -> {
+                add(Token.StringLiteral("??NODE:${symbol::class.simpleName}"))
             }
         }
 

@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.ast.Expression
+import dev.tesserakt.sparql.compiler.ast.ExpressionAST
 import dev.tesserakt.sparql.compiler.ast.PatternAST
 import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
 import dev.tesserakt.sparql.compiler.lexer.Token
@@ -129,7 +129,7 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
             consume()
             expectToken(Token.Symbol.RoundBracketStart)
             consume()
-            builder.groupingFilter = use(AggregatorProcessor()) as? Expression.Filter
+            builder.groupingFilter = use(AggregatorProcessor()) as? ExpressionAST.Filter
                 ?: bail("Group filter expression expected")
             expectToken(Token.Symbol.RoundBracketEnd)
             consume()

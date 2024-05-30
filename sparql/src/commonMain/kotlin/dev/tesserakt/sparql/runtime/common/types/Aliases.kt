@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql.runtime.types
+package dev.tesserakt.sparql.runtime.common.types
 
 import dev.tesserakt.rdf.types.Quad
 

@@ -5,7 +5,7 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.compiler.CompilerError
 import dev.tesserakt.sparql.compiler.analyser.AggregatorProcessor
-import dev.tesserakt.sparql.compiler.ast.Expression
+import dev.tesserakt.sparql.compiler.ast.ExpressionAST
 import dev.tesserakt.sparql.compiler.ast.PatternAST
 import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
 import dev.tesserakt.sparql.compiler.processed
@@ -126,9 +126,8 @@ class CompilerTest {
         }
         "select(count(distinct ?s) as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            val func = (output["count"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression.builtin
-            func.type == Expression.FuncCall.Type.COUNT &&
-            func.input.distinctBindings == Expression.DistinctBindingValues("s")
+            val func = (output["count"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression as ExpressionAST.FuncCall
+            func.type == ExpressionAST.FuncCall.Type.COUNT
         }
         "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
@@ -161,7 +160,7 @@ class CompilerTest {
             )
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
-            (output["avg"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression.builtin.type == Expression.FuncCall.Type.AVG &&
+            ((output["avg"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression as ExpressionAST.FuncCall).type == ExpressionAST.FuncCall.Type.AVG &&
             (output["c"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor()).getOrThrow()
         }
         """

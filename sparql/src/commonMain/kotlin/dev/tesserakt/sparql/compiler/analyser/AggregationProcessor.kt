@@ -1,14 +1,14 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.ast.Aggregation
+import dev.tesserakt.sparql.compiler.ast.AggregationAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 
 /**
  * Processes structures like `(<STATEMENT> AS ?BINDING)`
  */
-class AggregationProcessor: Analyser<Aggregation>() {
+class AggregationProcessor: Analyser<AggregationAST>() {
 
-    override fun _process(): Aggregation {
+    override fun _process(): AggregationAST {
         // consuming the first `(`
         consume()
         val aggregation = use(AggregatorProcessor())
@@ -16,7 +16,7 @@ class AggregationProcessor: Analyser<Aggregation>() {
         expectToken(Token.Keyword.As)
         consume()
         expectBinding()
-        val result = Aggregation(
+        val result = AggregationAST(
             expression = aggregation,
             target = token as Token.Binding
         )

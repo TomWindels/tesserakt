@@ -30,7 +30,7 @@ sealed interface Token {
         BlankEnd("]")
         /* end of (supported) (structural) symbols */;
 
-        override fun toString() = "symbol $syntax"
+        override fun toString() = "symbol `$syntax`"
 
     }
 
@@ -53,6 +53,8 @@ sealed interface Token {
         Union("UNION"),
         Distinct("DISTINCT"),
         Optional("OPTIONAL"),
+        Bindings("BINDINGS"),
+        Values("VALUES"),
         /* aggregates */
         AggCount("COUNT"),
         AggSum("SUM"),

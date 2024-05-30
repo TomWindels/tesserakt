@@ -1,14 +1,14 @@
 package dev.tesserakt.sparql.runtime.incremental.patterns.rules.repeating
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.types.Bindings
-import dev.tesserakt.sparql.runtime.types.PatternASTr
+import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.incremental.types.Pattern
 import dev.tesserakt.util.addFront
 
 internal class ZeroOrMoreBindingPredicateRule(
-    s: PatternASTr.Binding,
-    p: PatternASTr.Binding,
-    o: PatternASTr.Binding,
+    s: Pattern.Binding,
+    p: Pattern.Binding,
+    o: Pattern.Binding,
 ) : BindingPredicateRule(s = s, p = p, o = o) {
 
     override fun expand(input: List<Bindings>, data: MutableMap<Quad.Term, Connections>): List<Bindings> {

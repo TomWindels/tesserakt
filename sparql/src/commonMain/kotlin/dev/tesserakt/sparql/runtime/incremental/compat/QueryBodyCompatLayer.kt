@@ -1,18 +1,18 @@
-package dev.tesserakt.sparql.runtime.compat
+package dev.tesserakt.sparql.runtime.incremental.compat
 
 import dev.tesserakt.sparql.compiler.ast.QueryAST
 import dev.tesserakt.sparql.compiler.ast.SegmentAST
 import dev.tesserakt.sparql.compiler.ast.UnionAST
-import dev.tesserakt.sparql.runtime.types.*
+import dev.tesserakt.sparql.runtime.incremental.types.*
 
-class QueryBodyCompatLayer: CompatLayer<QueryAST.QueryBodyAST, QueryASTr.QueryBodyASTr>() {
+object QueryBodyCompatLayer: IncrementalCompatLayer<QueryAST.QueryBodyAST, Query.QueryBody>() {
 
-    override fun convert(source: QueryAST.QueryBodyAST): QueryASTr.QueryBodyASTr {
+    override fun convert(source: QueryAST.QueryBodyAST): Query.QueryBody {
         val unions = source.unions.convert().toMutableList()
         val patterns = PatternCompatLayer { blocks -> unions.add(blocks.toUnion()) }
             .convert(source.patterns)
-        val optional = source.optionals.map { OptionalASTr(it.segment.convert()) }
-        return QueryASTr.QueryBodyASTr(
+        val optional = source.optionals.map { Optional(it.segment.convert()) }
+        return Query.QueryBody(
             patterns = patterns,
             optional = optional,
             unions = unions
@@ -22,10 +22,10 @@ class QueryBodyCompatLayer: CompatLayer<QueryAST.QueryBodyAST, QueryASTr.QueryBo
     /**
      * Converts a set of patterns into a union statement, using the input patterns as body patterns
      */
-    private fun List<PatternsASTr>.toUnion() = UnionASTr(
+    private fun List<Patterns>.toUnion() = Union(
         map { patterns ->
-            SegmentASTr.Statements(
-                statements = QueryASTr.QueryBodyASTr(
+            StatementsSegment(
+                statements = Query.QueryBody(
                     patterns = patterns,
                     unions = emptyList(),
                     optional = emptyList()
@@ -35,14 +35,14 @@ class QueryBodyCompatLayer: CompatLayer<QueryAST.QueryBodyAST, QueryASTr.QueryBo
     )
 
     private fun Iterable<UnionAST>.convert() =
-        map { block -> UnionASTr(block.map { segment -> segment.convert() }) }
+        map { block -> Union(block.map { segment -> segment.convert() }) }
 
-    private fun SegmentAST.convert(): SegmentASTr = when (this) {
+    private fun SegmentAST.convert(): Segment = when (this) {
         is SegmentAST.SelectQuery ->
-            SegmentASTr.SelectQuery(SelectQueryCompatLayer().convert(query))
+            SelectQuerySegment(SelectQueryCompatLayer.convert(query))
 
         is SegmentAST.Statements ->
-            SegmentASTr.Statements(QueryBodyCompatLayer().convert(statements))
+            StatementsSegment(convert(statements))
     }
 
 }
