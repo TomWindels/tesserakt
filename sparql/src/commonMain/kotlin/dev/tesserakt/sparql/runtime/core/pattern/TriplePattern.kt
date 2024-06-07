@@ -1,14 +1,26 @@
-package dev.tesserakt.sparql.runtime.incremental.patterns.rules
+package dev.tesserakt.sparql.runtime.core.pattern
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.incremental.types.Pattern
+import dev.tesserakt.sparql.runtime.common.types.Pattern
 
-internal abstract class QueryRule<DT: Any> {
+internal sealed class TriplePattern {
 
-    /**
-     * Creates a new state object for that specific rule instance
-     */
-    abstract fun newState(): DT
+    internal data class NonRepeating(
+        val s: Pattern.Subject,
+        val p: Pattern.NonRepeatingPredicate,
+        val o: Pattern.Object
+    ) : TriplePattern()
+
+    internal data class Repeating(
+        val s: Pattern.Subject,
+        val p: Pattern.FixedPredicate,
+        val o: Pattern.Object,
+        val type: Type
+    ) : TriplePattern() {
+        enum class Type {
+            ZERO_OR_MORE, ONE_OR_MORE
+        }
+    }
 
     companion object {
 

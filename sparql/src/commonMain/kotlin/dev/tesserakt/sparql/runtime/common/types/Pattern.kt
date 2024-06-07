@@ -1,26 +1,28 @@
-package dev.tesserakt.sparql.runtime.incremental.types
+package dev.tesserakt.sparql.runtime.common.types
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.node.IncrementalNode
+import dev.tesserakt.sparql.runtime.node.CommonNode
 import kotlin.jvm.JvmInline
 
 data class Pattern(
     val s: Subject,
     val p: Predicate,
     val o: Object,
-): IncrementalNode {
+): CommonNode {
 
-    sealed interface Subject: IncrementalNode
+    sealed interface Subject: CommonNode
 
-    sealed interface Predicate: IncrementalNode
+    sealed interface Predicate: CommonNode
 
-    sealed interface Object: IncrementalNode
+    sealed interface Object: CommonNode
 
     sealed interface NonRepeatingPredicate: Predicate
 
     sealed interface FixedPredicate: NonRepeatingPredicate
 
-    sealed interface RepeatingPredicate: Predicate
+    sealed interface RepeatingPredicate: Predicate {
+        val element: FixedPredicate
+    }
 
     sealed interface Binding: Subject, NonRepeatingPredicate, Object {
         val name: String
@@ -51,15 +53,9 @@ data class Pattern(
     value class Inverse(val predicate: FixedPredicate): FixedPredicate
 
     @JvmInline
-    value class ZeroOrMoreBound(val predicate: RegularBinding): RepeatingPredicate
+    value class ZeroOrMore(override val element: FixedPredicate): RepeatingPredicate
 
     @JvmInline
-    value class ZeroOrMoreFixed(val predicate: FixedPredicate): RepeatingPredicate
-
-    @JvmInline
-    value class OneOrMoreBound(val predicate: RegularBinding): RepeatingPredicate
-
-    @JvmInline
-    value class OneOrMoreFixed(val predicate: FixedPredicate): RepeatingPredicate
+    value class OneOrMore(override val element: FixedPredicate): RepeatingPredicate
 
 }

@@ -3,6 +3,7 @@ package dev.tesserakt.sparql.formatting
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.runtime.common.types.Expression
+import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.incremental.types.*
 import dev.tesserakt.sparql.runtime.node.IncrementalNode
 import dev.tesserakt.sparql.runtime.node.Node
@@ -110,23 +111,13 @@ abstract class NodeWriter<RT> {
                 process(symbol.predicate)
             }
 
-            is Pattern.OneOrMoreBound -> {
-                process(symbol.predicate)
+            is Pattern.OneOrMore -> {
+                process(symbol.element)
                 add(Token.Symbol.OpPlus)
             }
 
-            is Pattern.OneOrMoreFixed -> {
-                process(symbol.predicate)
-                add(Token.Symbol.OpPlus)
-            }
-
-            is Pattern.ZeroOrMoreBound -> {
-                process(symbol.predicate)
-                add(Token.Symbol.Asterisk)
-            }
-
-            is Pattern.ZeroOrMoreFixed -> {
-                process(symbol.predicate)
+            is Pattern.ZeroOrMore -> {
+                process(symbol.element)
                 add(Token.Symbol.Asterisk)
             }
 

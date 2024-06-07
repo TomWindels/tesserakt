@@ -2,14 +2,15 @@ package dev.tesserakt.sparql.runtime.incremental.query
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.common.types.Bindings
-import dev.tesserakt.sparql.runtime.incremental.patterns.IncrementalRuleSet
+import dev.tesserakt.sparql.runtime.incremental.pattern.IncrementalBasicGraphPattern
+import dev.tesserakt.sparql.runtime.incremental.state.IncrementalBasicGraphPatternState
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 
 sealed class IncrementalQuery<ResultType, Q: Query>(
     protected val ast: Q
 ) {
 
-    private val incrementalRuleSet = IncrementalRuleSet.from(ast.body.patterns)
+    private val bgp = IncrementalBasicGraphPattern(ast = ast.body)
 
     companion object {
 
@@ -48,7 +49,7 @@ sealed class IncrementalQuery<ResultType, Q: Query>(
 
         constructor(source: Iterable<Quad>): this(iterator = source.iterator())
 
-        private val state = incrementalRuleSet.State()
+        private val state = IncrementalBasicGraphPatternState(parent = bgp)
         // pending results that have been yielded since last `iterator.next` call, but not yet
         //  processed through `next()`
         private val pending = ArrayList<Bindings>(10)

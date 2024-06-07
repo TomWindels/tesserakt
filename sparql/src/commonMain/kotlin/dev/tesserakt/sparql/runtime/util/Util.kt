@@ -1,5 +1,6 @@
-package dev.tesserakt.sparql.runtime
+package dev.tesserakt.sparql.runtime.util
 
+import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.incremental.types.*
 
 fun Query.QueryBody.getAllNamedBindings(): Set<Pattern.RegularBinding> =
@@ -48,9 +49,7 @@ private fun Pattern.Predicate.getNamedBinding(): Pattern.RegularBinding? = when(
     is Pattern.Exact,
     is Pattern.Inverse,
     is Pattern.GeneratedBinding,
-    is Pattern.OneOrMoreFixed,
-    is Pattern.ZeroOrMoreFixed -> null
+    is Pattern.OneOrMore,
+    is Pattern.ZeroOrMore -> null
     is Pattern.RegularBinding -> this
-    is Pattern.OneOrMoreBound -> predicate
-    is Pattern.ZeroOrMoreBound -> predicate
 }

@@ -2,12 +2,12 @@ package dev.tesserakt.sparql.runtime.incremental.compat
 
 import dev.tesserakt.sparql.compiler.ast.PatternAST
 import dev.tesserakt.sparql.compiler.ast.PatternsAST
-import dev.tesserakt.sparql.runtime.incremental.types.Pattern
+import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
 
 class PatternCompatLayer(
     val onUnionCreated: (blocks: List<Patterns>) -> Unit
-): IncrementalCompatLayer<PatternsAST, Patterns>() {
+) : IncrementalCompatLayer<PatternsAST, Patterns>() {
 
     override fun convert(source: PatternsAST): Patterns = Patterns(
         buildList { source.forEach { it.insert(this) } }
@@ -153,26 +153,21 @@ class PatternCompatLayer(
             is PatternAST.Binding -> {
                 Pattern.RegularBinding(name)
             }
+
             is PatternAST.OneOrMore -> {
-                when (value) {
-                    is PatternAST.Binding -> {
-                        Pattern.OneOrMoreBound(predicate = Pattern.RegularBinding(value.name))
-                    }
-                    else -> {
-                        Pattern.OneOrMoreFixed(predicate = value.convertToSingleFixedPredicate() ?: return null)
-                    }
-                }
+                Pattern.OneOrMore(
+                    element = value.convertToSingleFixedPredicate()
+                        ?: throw IllegalArgumentException("${value::class.simpleName} is an invalid type to use in repeating predicates!")
+                )
             }
+
             is PatternAST.ZeroOrMore -> {
-                when (value) {
-                    is PatternAST.Binding -> {
-                        Pattern.ZeroOrMoreBound(predicate = Pattern.RegularBinding(value.name))
-                    }
-                    else -> {
-                        Pattern.ZeroOrMoreFixed(predicate = value.convertToSingleFixedPredicate() ?: return null)
-                    }
-                }
+                Pattern.ZeroOrMore(
+                    element = value.convertToSingleFixedPredicate()
+                        ?: throw IllegalArgumentException("${value::class.simpleName} is an invalid type to use in repeating predicates!")
+                )
             }
+
             is PatternAST.Alts,
             is PatternAST.Chain,
             is PatternAST.Exact,
@@ -192,8 +187,10 @@ class PatternCompatLayer(
             is PatternAST.Chain -> null
             is PatternAST.Alts ->
                 allowed.map { it.convertToSingleFixedPredicate() ?: return null }.let { Pattern.Alts(it) }
+
             is PatternAST.Not ->
                 Pattern.Inverse(predicate.convertToSingleFixedPredicate() ?: return null)
+
             is PatternAST.OneOrMore -> null // not a fixed predicate
             is PatternAST.ZeroOrMore -> null // not a fixed predicate
         }

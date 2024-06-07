@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.incremental.types
 
+import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.node.IncrementalNode
 import kotlin.jvm.JvmInline
 
