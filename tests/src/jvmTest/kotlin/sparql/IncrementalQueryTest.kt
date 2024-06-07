@@ -10,7 +10,6 @@ import dev.tesserakt.rdf.serialization.Turtle.parseTurtleString
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.BindingsTable.Companion.tabulate
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
-import dev.tesserakt.util.console.toStylisedString
 import kotlin.test.Test
 
 class IncrementalQueryTest {
@@ -128,14 +127,6 @@ class IncrementalQueryTest {
         """.asSPARQLSelectQuery()
         // expecting a lot of results
         println("Found \"any\" entries:\n${store.query(any).tabulate()}")
-
-        val traversal = """
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            SELECT ?person ?p ?result {
-                ?person <notes>/?p+ ?result .
-            }
-        """.asSPARQLSelectQuery()
-        println("Found \"traversal\" entries:\n${store.query(traversal).tabulate().apply { order("person", "p", "result")}.toStylisedString() }")
     }
 
     @Test

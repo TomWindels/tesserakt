@@ -7,9 +7,7 @@ repositories {
 }
 
 kotlin {
-    jvm {
-        jvmToolchain(8)
-    }
+    jvm()
     js {
         nodejs()
     }

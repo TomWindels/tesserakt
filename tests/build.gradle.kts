@@ -6,9 +6,7 @@ plugins {
 }
 
 kotlin {
-    jvm {
-        jvmToolchain(8)
-    }
+    jvm()
     js {
         nodejs()
         binaries.library()
@@ -33,7 +31,13 @@ kotlin {
         // dependency is used in the task below; is a main SourceSet for task management purposes
         val jsMain by getting {
             dependencies {
+                // the script used for interacting with the external testing suite
                 implementation(npm("rdf-test-suite", "1.25.0"))
+                // dependencies used when testing logic directly
+                implementation(project(":rdfjs"))
+                implementation(npm("@comunica/query-sparql", "3.1.2"))
+                // awaiting promises
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")
             }
         }
     }

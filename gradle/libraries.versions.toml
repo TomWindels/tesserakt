@@ -2,7 +2,7 @@
 
 compileSdk = "33"
 android-plugin = "8.2.1"
-kotlin = "1.9.21"
+kotlin = "2.0.0"
 
 [libraries]
 

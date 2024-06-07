@@ -8,6 +8,7 @@ rootProject.name = "tesserakt"
 include("rdf")
 include("extra")
 include("rdf-dsl")
+include("rdfjs")
 include("sparql")
 include("serialization")
 include("common")
