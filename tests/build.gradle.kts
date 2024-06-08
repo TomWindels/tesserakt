@@ -22,6 +22,11 @@ kotlin {
                 implementation(project(":sparql"))
             }
         }
+        val jvmMain by getting {
+            dependencies {
+                implementation(project(":interop:jena"))
+            }
+        }
         val jvmTest by getting {
             dependencies {
                 implementation(project(":serialization"))
@@ -34,7 +39,7 @@ kotlin {
                 // the script used for interacting with the external testing suite
                 implementation(npm("rdf-test-suite", "1.25.0"))
                 // dependencies used when testing logic directly
-                implementation(project(":rdfjs"))
+                implementation(project(":interop:rdfjs"))
                 implementation(npm("@comunica/query-sparql", "3.1.2"))
                 // awaiting promises
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")

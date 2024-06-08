@@ -1,11 +1,12 @@
-package sparql
+package sparql.tests
 
 import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import sparql.util.TestEnvironment.Companion.test
+import test.suite.testEnv
 
-fun compareIncrementalBasicGraphPatternOutput() = test {
+
+fun compareIncrementalBasicGraphPatternOutput() = testEnv {
     val store = buildStore {
         val person = local("person1")
         person has RDF.type being "http://example.org/person".asNamedTerm()

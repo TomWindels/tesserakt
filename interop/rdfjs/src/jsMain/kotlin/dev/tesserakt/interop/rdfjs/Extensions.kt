@@ -1,9 +1,9 @@
-package dev.tesserakt.rdfjs
+package dev.tesserakt.interop.rdfjs
 
+import dev.tesserakt.interop.rdfjs.n3.*
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdfjs.n3.*
 
 fun Store.toN3Store(): N3Store {
     val result = N3Store()

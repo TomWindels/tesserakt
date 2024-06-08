@@ -2,7 +2,7 @@
 @file:JsNonModule
 package comunica
 
-import dev.tesserakt.rdfjs.n3.N3Term
+import dev.tesserakt.interop.rdfjs.n3.N3Term
 import kotlin.js.Promise
 
 @JsName("QueryEngine")

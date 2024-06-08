@@ -1,4 +1,4 @@
-import sparql.compareIncrementalBasicGraphPatternOutput
+import sparql.tests.compareIncrementalBasicGraphPatternOutput
 
 
 suspend fun main() {

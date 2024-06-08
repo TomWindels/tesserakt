@@ -1,6 +1,6 @@
 @file:JsModule("n3")
 @file:JsNonModule
-package dev.tesserakt.rdfjs.n3
+package dev.tesserakt.interop.rdfjs.n3
 
 @JsName("Triple")
 external class N3Triple(

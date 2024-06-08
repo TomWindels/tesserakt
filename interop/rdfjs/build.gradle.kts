@@ -1,7 +1,5 @@
 plugins {
-    // only JS is used, new way of doing things
-    // see https://kotlinlang.org/docs/multiplatform-compatibility-guide.html#96e300af
-    kotlin("multiplatform")
+    id("package-conventions")
 }
 
 kotlin {
