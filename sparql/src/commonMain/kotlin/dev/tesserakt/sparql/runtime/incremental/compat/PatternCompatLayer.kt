@@ -4,205 +4,188 @@ import dev.tesserakt.sparql.compiler.ast.PatternAST
 import dev.tesserakt.sparql.compiler.ast.PatternsAST
 import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
+import dev.tesserakt.sparql.runtime.incremental.types.Query.QueryBody
+import dev.tesserakt.sparql.runtime.incremental.types.StatementsSegment
+import dev.tesserakt.sparql.runtime.incremental.types.Union
 
 class PatternCompatLayer(
-    val onUnionCreated: (blocks: List<Patterns>) -> Unit
+    val appendUnion: (blocks: List<StatementsSegment>) -> Unit
 ) : IncrementalCompatLayer<PatternsAST, Patterns>() {
 
-    override fun convert(source: PatternsAST): Patterns = Patterns(
-        buildList { source.forEach { it.insert(this) } }
-    )
+    private var _id = 0
 
-    /* helpers */
-
-    private fun PatternAST.insert(results: MutableList<Pattern>) {
-        return p.insert(results, s.convert(), o.nameOrInsert(results))
+    override fun convert(source: PatternsAST): Patterns {
+        val ctx = StatementsBuilder()
+        source.forEach {
+            ctx.insert(it)
+        }
+        ctx.unions.forEach { union -> appendUnion(union) }
+        return Patterns(ctx.patterns)
     }
 
-    private fun PatternAST.Predicate.insert(
-        results: MutableList<Pattern>,
-        start: Pattern.Subject,
-        end: Pattern.Object
-    ) {
-        when (this) {
-            is PatternAST.Chain -> {
-                var s = start
-                for (i in 0 ..< chain.size - 1) {
-                    val o = Pattern.GeneratedBinding(++id)
-                    val element = Pattern(
-                        s = s,
-                        p = chain[i].convertToSinglePredicate() ?: bail("Input is incompatible"),
-                        o = o
-                    )
-                    results.add(element)
-                    s = o
-                }
-                val element = Pattern(
-                    s = s,
-                    p = chain.last().convertToSinglePredicate() ?: bail("Input is incompatible"),
-                    o = end
-                )
-                results.add(element)
-            }
+    private interface ProcessingContext {
+        fun insert(pattern: Pattern)
+        fun insert(union: List<StatementsSegment>)
+    }
 
+    private inner class StatementsBuilder(
+        val patterns: MutableList<Pattern> = mutableListOf(),
+        val unions: MutableList<List<StatementsSegment>> = mutableListOf()
+    ) : ProcessingContext {
+        override fun insert(pattern: Pattern) {
+            patterns.add(pattern)
+        }
+
+        override fun insert(union: List<StatementsSegment>) {
+            unions.add(union)
+        }
+
+        fun build() =
+            StatementsSegment(QueryBody(patterns = Patterns(items = patterns), unions = unions.map { Union(it) }, optional = emptyList()))
+    }
+
+    private fun ProcessingContext.insert(pattern: PatternAST) {
+        insert(subj = pattern.s, pred = pattern.p, obj = pattern.o)
+    }
+
+    private fun ProcessingContext.insert(
+        subj: PatternAST.Subject,
+        pred: PatternAST.Predicate,
+        obj: PatternAST.Object
+    ) {
+        when (pred) {
             is PatternAST.Alts -> {
-                val splitUp = split()
-                if (splitUp.size == 1) {
-                    splitUp.first().insert(results, start, end)
-                } else {
-                    // inserting them all as unions
-                    val blocks = mutableListOf<Patterns>()
-                    splitUp.forEach { path ->
-                        val content = mutableListOf<Pattern>()
-                        path.insert(content, start, end)
-                        blocks.add(Patterns(content))
+                val segments = pred.allowed.map { alt ->
+                    val builder = StatementsBuilder()
+                    builder.insert(
+                        subj = subj,
+                        pred = alt,
+                        obj = obj
+                    )
+                    builder.build()
+                }
+                insert(segments)
+            }
+
+            is PatternAST.Chain -> {
+                when (pred.chain.size) {
+                    0 -> throw IllegalStateException("Empty predicate chain is not allowed!")
+                    1 -> insert(subj, pred.chain.single(), obj)
+                    else -> {
+                        var start = subj
+                        var end: PatternAST.Element
+                        (0 until pred.chain.size - 1).forEach { i ->
+                            end = generateBlank().toPatternASTObject()
+                            insert(start, pred.chain[i], end)
+                            start = end
+                        }
+                        insert(start, pred.chain.last(), obj)
                     }
-                    onUnionCreated(blocks)
                 }
             }
 
-            is PatternAST.Binding,
-            is PatternAST.Exact,
+            is PatternAST.Binding -> {
+                insert(
+                    pattern = Pattern(
+                        s = subj.toPatternSubject(),
+                        p = Pattern.RegularBinding(pred.name),
+                        o = obj.toPatternObject(this)
+                    )
+                )
+            }
+
+            is PatternAST.Exact -> {
+                insert(
+                    pattern = Pattern(
+                        s = subj.toPatternSubject(),
+                        p = Pattern.Exact(pred.term),
+                        o = obj.toPatternObject(this)
+                    )
+                )
+            }
+
             is PatternAST.Not,
-            is PatternAST.OneOrMore,
-            is PatternAST.ZeroOrMore -> results.add(
-                Pattern(s = start, p = convertToSinglePredicate() ?: bail("Input is incompatible"), o = end)
-            )
-        }
-    }
-
-    /**
-     * Splits up the incoming alternative paths into different segments. The returned list is at least of size 1. If
-     *  the input consists contains alternatives that are paths or repeating segments, they are split up into multiple
-     *  predicates inside the returned list, so they can be split up into unions for runtime compatibility.
-     */
-    private fun PatternAST.Alts.split(): List<PatternAST.Predicate> {
-        // total amount of predicates
-        val result = mutableListOf<PatternAST.Predicate>()
-        // collection of "normal" alt paths that are allowed in the ASTr representation (can be mapped to fixed
-        //  predicate in subsequent steps)
-        val regular = mutableListOf<PatternAST.Predicate>()
-        allowed.forEach { predicate ->
-            when (predicate) {
-                is PatternAST.Alts ->
-                    predicate.split().let { processed ->
-                        // if the last is of type alts, then it can be directly added here, otherwise, they are all
-                        //  part of the regular split up
-                        val alts = processed.last()
-                        if (alts is PatternAST.Alts) {
-                            // adding its contents to the regular list
-                            regular.addAll(alts.allowed)
-                            // only adding the others
-                            result.addAll(processed.subList(0, processed.size - 1))
-                        } else {
-                            // adding them all instead
-                            result.addAll(processed)
-                        }
-                    }
-
-                is PatternAST.Chain ->
-                    result.add(predicate)
-
-                is PatternAST.Exact,
-                is PatternAST.Not ->
-                    regular.add(predicate)
-
-                is PatternAST.OneOrMore,
-                is PatternAST.ZeroOrMore,
-                is PatternAST.Binding ->
-                    result.add(predicate)
+            is PatternAST.ZeroOrMore,
+            is PatternAST.OneOrMore -> {
+                // it's contents can't be further flattened, so inserting it directly
+                insert(
+                    pattern = Pattern(
+                        s = subj.toPatternSubject(),
+                        p = pred.toPatternPredicate(),
+                        o = obj.toPatternObject(this)
+                    )
+                )
             }
         }
-        if (regular.isNotEmpty()) {
-            result.add(PatternAST.Alts(regular))
-        }
-        return result
     }
 
-    private fun PatternAST.Object.nameOrInsert(results: MutableList<Pattern>): Pattern.Object =
-        when (this) {
-            is PatternAST.BlankObject ->
-                Pattern.GeneratedBinding(++id).also { name -> insert(results, name) }
-
-            is PatternAST.Binding ->
-                Pattern.RegularBinding(name)
-
-            is PatternAST.Exact ->
-                Pattern.Exact(term)
-        }
-
-    private fun PatternAST.BlankObject.insert(
-        results: MutableList<Pattern>,
-        name: Pattern.GeneratedBinding
-    ) {
-        properties.forEach { (p, o) ->
-            p.insert(results, name, o.nameOrInsert(results))
-        }
-    }
-
-    private fun PatternAST.Subject.convert(): Pattern.Subject = when (this) {
+    private fun PatternAST.Subject.toPatternSubject(): Pattern.Subject = when (this) {
         is PatternAST.Binding -> Pattern.RegularBinding(name)
         is PatternAST.Exact -> Pattern.Exact(term)
     }
 
-    /**
-     * Converts the predicate to a single RT version if possible, `null` otherwise
-     */
-    private fun PatternAST.Predicate.convertToSinglePredicate(): Pattern.Predicate? {
-        return when (this) {
-            is PatternAST.Binding -> {
-                Pattern.RegularBinding(name)
-            }
-
-            is PatternAST.OneOrMore -> {
-                Pattern.OneOrMore(
-                    element = value.convertToSingleFixedPredicate()
-                        ?: throw IllegalArgumentException("${value::class.simpleName} is an invalid type to use in repeating predicates!")
+    private fun PatternAST.Object.toPatternObject(
+        context: ProcessingContext
+    ): Pattern.Object = when (this) {
+        is PatternAST.Binding -> Pattern.RegularBinding(name)
+        is PatternAST.Exact -> Pattern.Exact(term)
+        is PatternAST.BlankObject -> {
+            val generated = generateBlank()
+            val subj = generated.toPatternASTObject()
+            properties.forEach {
+                context.insert(
+                    subj = subj,
+                    pred = it.p,
+                    obj = it.o
                 )
             }
-
-            is PatternAST.ZeroOrMore -> {
-                Pattern.ZeroOrMore(
-                    element = value.convertToSingleFixedPredicate()
-                        ?: throw IllegalArgumentException("${value::class.simpleName} is an invalid type to use in repeating predicates!")
-                )
-            }
-
-            is PatternAST.Alts,
-            is PatternAST.Chain,
-            is PatternAST.Exact,
-            is PatternAST.Not -> {
-                convertToSingleFixedPredicate()
-            }
+            generated
         }
     }
 
-    /**
-     * Converts the predicate to a single fixed RT version if possible, `null` otherwise
-     */
-    private fun PatternAST.Predicate.convertToSingleFixedPredicate(): Pattern.FixedPredicate? {
-        return when (this) {
-            is PatternAST.Binding -> null
-            is PatternAST.Exact -> Pattern.Exact(term)
-            is PatternAST.Chain -> null
-            is PatternAST.Alts ->
-                allowed.map { it.convertToSingleFixedPredicate() ?: return null }.let { Pattern.Alts(it) }
-
-            is PatternAST.Not ->
-                Pattern.Inverse(predicate.convertToSingleFixedPredicate() ?: return null)
-
-            is PatternAST.OneOrMore -> null // not a fixed predicate
-            is PatternAST.ZeroOrMore -> null // not a fixed predicate
+    private fun PatternAST.Predicate.toPatternPredicate(): Pattern.Predicate = when (this) {
+        is PatternAST.Alts -> {
+            val mapped = allowed.map { it.toPatternPredicate() }
+            if (mapped.all { it is Pattern.UnboundPredicate }) {
+                Pattern.UnboundAlts(mapped.unsafeCast())
+            } else {
+                Pattern.Alts(mapped)
+            }
         }
+        is PatternAST.Chain -> {
+            val mapped = chain.map { it.toPatternPredicate() }
+            if (mapped.all { it is Pattern.UnboundPredicate }) {
+                Pattern.UnboundChain(mapped.unsafeCast())
+            } else {
+                Pattern.Chain(mapped)
+            }
+        }
+        is PatternAST.Exact -> Pattern.Exact(term)
+        is PatternAST.Not -> Pattern.UnboundInverse(predicate.toUnboundPatternPredicateOrBail())
+        is PatternAST.OneOrMore -> Pattern.OneOrMore(element = value.toUnboundPatternPredicateOrBail())
+        is PatternAST.ZeroOrMore -> Pattern.ZeroOrMore(element = value.toUnboundPatternPredicateOrBail())
+        is PatternAST.Binding -> Pattern.RegularBinding(name)
     }
 
-    companion object {
-
-        // id used to uniquely create new runtime blank terms within the same process; this approach is not 100%
-        //  foolproof but compiling and converting a single query in multiple processes where this static value can
-        //  differ is not an expected use case
-        private var id = -1
-
+    private fun PatternAST.Predicate.toUnboundPatternPredicateOrBail(): Pattern.UnboundPredicate = when (this) {
+        is PatternAST.Alts -> Pattern.UnboundAlts(allowed = allowed.map { it.toUnboundPatternPredicateOrBail() })
+        is PatternAST.Chain -> Pattern.UnboundChain(chain = chain.map { it.toUnboundPatternPredicateOrBail() })
+        is PatternAST.Exact -> Pattern.Exact(term)
+        is PatternAST.Not -> Pattern.UnboundInverse(predicate = predicate.toUnboundPatternPredicateOrBail())
+        is PatternAST.OneOrMore -> Pattern.OneOrMore(element = value.toUnboundPatternPredicateOrBail())
+        is PatternAST.ZeroOrMore -> Pattern.ZeroOrMore(element = value.toUnboundPatternPredicateOrBail())
+        is PatternAST.Binding -> throw IllegalArgumentException("Invalid predicate usage! Binding `$name` cannot appear here.")
     }
 
+    private fun generateBlank() = Pattern.GeneratedBinding(id = _id++)
+
+    private fun Pattern.GeneratedBinding.toPatternASTObject() = PatternAST.Binding(name = name)
+
+}
+
+/* helpers */
+
+private inline fun <R> Any.unsafeCast(): R {
+    @Suppress("UNCHECKED_CAST")
+    return this as R
 }

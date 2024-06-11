@@ -11,10 +11,15 @@ internal class SegmentsList {
         override fun toString() = "$start -> $end"
     }
 
-    private val _segments = mutableListOf<Segment>()
-    val segments: List<Segment> get() = _segments
-    private val _paths = mutableListOf<Segment>()
-    val paths: List<Segment> get() = _paths
+    // the individual already-visited nodes
+    private val _nodes = mutableSetOf<Quad.Term>()
+    val nodes: Set<Quad.Term> get() = _nodes
+    // segments connecting the nodes from above
+    private val _segments = mutableSetOf<Segment>()
+    val segments: Set<Segment> get() = _segments
+    // all paths that can be formed using the segments from above
+    private val _paths = mutableSetOf<Segment>()
+    val paths: Set<Segment> get() = _paths
 
     /**
      * Adds the `segment` to the list of segments, allowing it to be used when calculating the delta, and expands
@@ -25,24 +30,32 @@ internal class SegmentsList {
         _paths.addAll(newPathsOnAdding(segment))
         // now the segment can be directly added
         _segments.add(segment)
+        // inserting the nodes too
+        _nodes.add(segment.start)
+        _nodes.add(segment.end)
     }
 
     /**
      * Calculates all path variations that can be formed when adding the new `segment` to this segment store,
      *  WITHOUT actually adding it. Uses segments to calculate all new variations.
      */
-    fun newPathsOnAdding(segment: Segment): List<Segment> {
+    fun newPathsOnAdding(segment: Segment): Set<Segment> {
+        if (segment in segments) {
+            // no impact, no new paths could be made
+            return emptySet()
+        }
         val left = pathsEndingWithUsingSegments(end = segment.start)
         val right = pathsStartingWithUsingSegments(start = segment.end)
         // all results from `before` are now connected with those `after`, with the new segment at least being part
         //  of the result
-        val result = ArrayList<Segment>((left.size + 1) * (right.size + 1))
+        val result = LinkedHashSet<Segment>((left.size + 1) * (right.size + 1))
         result.add(segment)
         // adding every permutation
         left.forEach { start -> result.add(Segment(start = start, end = segment.end)) }
         right.forEach { end -> result.add(Segment(start = segment.start, end = end)) }
         left.forEach { start -> right.forEach { end -> result.add(Segment(start = start, end = end)) } }
-        return result
+        // existing paths can't result in new sub-results
+        return result - _paths
     }
 
     /**

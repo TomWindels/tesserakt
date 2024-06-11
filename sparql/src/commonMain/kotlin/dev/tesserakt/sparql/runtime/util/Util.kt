@@ -44,11 +44,14 @@ private fun Segment.getAllNamedBindings(): Set<Pattern.RegularBinding> {
     }
 }
 
-private fun Pattern.Predicate.getNamedBinding(): Pattern.RegularBinding? = when(this) {
+private fun Pattern.Predicate.getNamedBinding(): Pattern.RegularBinding? = when (this) {
     is Pattern.Alts,
     is Pattern.Exact,
-    is Pattern.Inverse,
     is Pattern.GeneratedBinding,
+    is Pattern.Chain,
+    is Pattern.UnboundAlts,
+    is Pattern.UnboundChain,
+    is Pattern.UnboundInverse,
     is Pattern.OneOrMore,
     is Pattern.ZeroOrMore -> null
     is Pattern.RegularBinding -> this

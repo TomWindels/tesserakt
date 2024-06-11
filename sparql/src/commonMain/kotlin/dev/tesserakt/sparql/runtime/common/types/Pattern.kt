@@ -16,15 +16,13 @@ data class Pattern(
 
     sealed interface Object: CommonNode
 
-    sealed interface NonRepeatingPredicate: Predicate
+    sealed interface UnboundPredicate: Predicate
 
-    sealed interface FixedPredicate: NonRepeatingPredicate
-
-    sealed interface RepeatingPredicate: Predicate {
-        val element: FixedPredicate
+    sealed interface RepeatingPredicate: UnboundPredicate {
+        val element: UnboundPredicate
     }
 
-    sealed interface Binding: Subject, NonRepeatingPredicate, Object {
+    sealed interface Binding: Subject, Predicate, Object {
         val name: String
     }
 
@@ -44,18 +42,34 @@ data class Pattern(
     }
 
     @JvmInline
-    value class Exact(val term: Quad.Term): Subject, FixedPredicate, Object
+    value class Exact(val term: Quad.Term): Subject, UnboundPredicate, Object
 
     @JvmInline
-    value class Alts(val allowed: List<FixedPredicate>): FixedPredicate
+    value class Alts(val allowed: List<Predicate>): Predicate
 
     @JvmInline
-    value class Inverse(val predicate: FixedPredicate): FixedPredicate
+    value class UnboundAlts(val allowed: List<UnboundPredicate>): UnboundPredicate
+
+    /*
+    cannot always be destructured using generated bindings, as they sometimes appear in repeating or inverse structures;
+    in the repeating cases, bindings are not allowed, so this version cannot be used
+    */
+    @JvmInline
+    value class Chain(val chain: List<Predicate>): Predicate
+
+    /*
+    cannot always be destructured using generated bindings, as they sometimes appear in repeating or inverse structures
+    */
+    @JvmInline
+    value class UnboundChain(val chain: List<UnboundPredicate>): UnboundPredicate
 
     @JvmInline
-    value class ZeroOrMore(override val element: FixedPredicate): RepeatingPredicate
+    value class UnboundInverse(val predicate: UnboundPredicate): UnboundPredicate
 
     @JvmInline
-    value class OneOrMore(override val element: FixedPredicate): RepeatingPredicate
+    value class ZeroOrMore(override val element: UnboundPredicate): RepeatingPredicate, UnboundPredicate
+
+    @JvmInline
+    value class OneOrMore(override val element: UnboundPredicate): RepeatingPredicate, UnboundPredicate
 
 }

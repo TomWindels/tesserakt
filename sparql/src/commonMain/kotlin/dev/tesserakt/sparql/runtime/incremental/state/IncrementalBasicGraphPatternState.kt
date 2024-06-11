@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.pattern.TriplePattern
 import dev.tesserakt.sparql.runtime.incremental.pattern.IncrementalBasicGraphPattern
@@ -28,9 +29,16 @@ internal class IncrementalBasicGraphPatternState(parent: IncrementalBasicGraphPa
 
 }
 
-private fun TriplePattern.createIncrementalPatternState(): IncrementalTriplePatternState = when (this) {
-    is TriplePattern.NonRepeating -> IncrementalTriplePatternState.NonRepeating.ArrayBacked(pattern = this)
-    is TriplePattern.Repeating -> IncrementalTriplePatternState.Repeating(pattern = this)
+private fun TriplePattern.createIncrementalPatternState(): IncrementalTriplePatternState<*> = when (p) {
+    is Pattern.RepeatingPredicate -> IncrementalTriplePatternState.Repeating(s, p, o)
+    is Pattern.Exact -> IncrementalTriplePatternState.ExactPattern(s, p, o)
+    is Pattern.Alts -> TODO()
+    is Pattern.GeneratedBinding -> TODO()
+    is Pattern.RegularBinding -> TODO()
+    is Pattern.Chain -> TODO()
+    is Pattern.UnboundAlts -> TODO()
+    is Pattern.UnboundChain -> TODO()
+    is Pattern.UnboundInverse -> TODO()
 }
 
 /**

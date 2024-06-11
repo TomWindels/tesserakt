@@ -55,11 +55,29 @@ internal sealed class IncrementalPathState(
             }
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> =
-            // NOTE: adding these segments here produces double firing
-            segments.newPathsOnAdding(segment).map { it.toMapping() } //+
-//            SegmentsList.Segment(start = segment.start, end = segment.start).toMapping() +
-//            SegmentsList.Segment(start = segment.end, end = segment.end).toMapping()
+        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+            val result = segments.newPathsOnAdding(segment).let { paths ->
+                val base = ArrayList<Mapping>(paths.size + 2)
+                paths.mapTo(base) { it.toMapping() }
+            }
+            if (segment.start !in segments.nodes) {
+                result.add(
+                    SegmentsList.Segment(
+                        start = segment.start,
+                        end = segment.start
+                    ).toMapping()
+                )
+            }
+            if (segment.end !in segments.nodes) {
+                result.add(
+                    SegmentsList.Segment(
+                        start = segment.end,
+                        end = segment.end
+                    ).toMapping()
+                )
+            }
+            return result
+        }
 
     }
 

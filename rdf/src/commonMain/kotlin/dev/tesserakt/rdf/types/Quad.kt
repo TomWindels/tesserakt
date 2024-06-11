@@ -5,26 +5,13 @@ import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmStatic
 
 @Suppress("unused")
-class Quad(
-    s: Term,
-    p: NamedTerm,
-    o: Term
+data class Quad(
+    val s: Term,
+    val p: NamedTerm,
+    val o: Term
 ) {
 
-    private val data = arrayOf(s, p, o)
-
-    /** named or blank **/
-    val s: Term get() = data[0]
-
-    /** named **/
-    val p: Term get() = data[1]
-
-    /** named, literal or blank **/
-    val o: Term get() = data[2]
-
-    operator fun get(index: Int) = data[index]
-
-    override fun toString() = "Triple <$s $p $o>"
+    override fun toString() = "$s $p $o"
 
     sealed interface Term {
         val value: String

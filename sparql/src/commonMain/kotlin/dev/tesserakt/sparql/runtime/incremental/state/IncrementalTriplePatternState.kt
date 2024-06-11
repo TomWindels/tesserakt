@@ -1,50 +1,48 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
-import dev.tesserakt.sparql.runtime.core.pattern.TriplePattern
 import dev.tesserakt.sparql.runtime.core.pattern.TriplePattern.Companion.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.TriplePattern.Companion.matches
 import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
 import dev.tesserakt.util.compatibleWith
 
-internal sealed class IncrementalTriplePatternState {
+internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
-    sealed class NonRepeating : IncrementalTriplePatternState() {
+    abstract val subj: Pattern.Subject
+    abstract val pred: P
+    abstract val obj: Pattern.Object
 
-        abstract val pattern: TriplePattern.NonRepeating
+    // FIXME set semantics: duplicate triples should be ignored!
 
-        data class ArrayBacked(
-            override val pattern: TriplePattern.NonRepeating,
-            override val data: MutableList<Mapping> = mutableListOf()
-        ) : NonRepeating() {
+    data class ExactPattern(
+        override val subj: Pattern.Subject,
+        override val pred: Pattern.Exact,
+        override val obj: Pattern.Object
+    ) : IncrementalTriplePatternState<Pattern.Exact>() {
 
-            override fun insert(quad: Quad) {
-                // knowing how delta works here, this makes getting the mapping easier
-                data.addAll(delta(quad))
-            }
+        private val data: MutableList<Mapping> = mutableListOf()
 
+        override fun insert(quad: Quad) {
+            // knowing how delta works here, this makes getting the mapping easier
+            data.addAll(delta(quad))
         }
 
-        // TODO: later, a circular buffer-backed implementation can be added
-
-        protected abstract val data: List<Mapping>
-
-        final override fun delta(quad: Quad): List<Mapping> {
-            if (!pattern.s.matches(quad.s) || !pattern.p.matches(quad.p) || !pattern.o.matches(quad.o)) {
+        override fun delta(quad: Quad): List<Mapping> {
+            if (!subj.matches(quad.s) || !pred.matches(quad.p) || !obj.matches(quad.o)) {
                 return emptyList()
             }
             // checking to see if there's any matches with the given triple
             val match = mappingOf(
-                pattern.s.bindingName to quad.s,
-                pattern.p.bindingName to quad.p,
-                pattern.o.bindingName to quad.o
+                subj.bindingName to quad.s,
+                obj.bindingName to quad.o
             )
             return listOf(match)
         }
 
-        final override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { bindings ->
+        override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { bindings ->
             data.mapNotNull { previous ->
                 // checking to see if there's any incompatibility in the input constraints
                 if (bindings.compatibleWith(previous)) {
@@ -54,14 +52,24 @@ internal sealed class IncrementalTriplePatternState {
                 }
             }
         }
-
     }
 
-    class Repeating(private val pattern: TriplePattern.Repeating) : IncrementalTriplePatternState() {
+    class Repeating(
+        override val subj: Pattern.Subject,
+        override val pred: Pattern.RepeatingPredicate,
+        override val obj: Pattern.Object
+    ) : IncrementalTriplePatternState<Pattern.RepeatingPredicate>() {
 
-        private val state = when (pattern.type) {
-            TriplePattern.Repeating.Type.ZERO_OR_MORE -> IncrementalPathState.ZeroOrMore(start = pattern.s, end = pattern.o)
-            TriplePattern.Repeating.Type.ONE_OR_MORE -> IncrementalPathState.OneOrMore(start = pattern.s, end = pattern.o)
+        private val state = when (pred) {
+            is Pattern.ZeroOrMore -> IncrementalPathState.ZeroOrMore(
+                start = subj,
+                end = obj
+            )
+
+            is Pattern.OneOrMore -> IncrementalPathState.OneOrMore(
+                start = subj,
+                end = obj
+            )
         }
 
         override fun delta(quad: Quad): List<Mapping> {
@@ -80,7 +88,7 @@ internal sealed class IncrementalTriplePatternState {
          * Processes the incoming triple, returns `null` if no match is found, or its segment object
          */
         private fun Quad.toSegment(): SegmentsList.Segment? {
-            if (!pattern.p.matches(p)) {
+            if (!pred.element.matches(p)) {
                 return null
             }
             return SegmentsList.Segment(

@@ -9,7 +9,7 @@ object QueryBodyCompatLayer: IncrementalCompatLayer<QueryAST.QueryBodyAST, Query
 
     override fun convert(source: QueryAST.QueryBodyAST): Query.QueryBody {
         val unions = source.unions.convert().toMutableList()
-        val patterns = PatternCompatLayer { blocks -> unions.add(blocks.toUnion()) }
+        val patterns = PatternCompatLayer { blocks -> unions.add(Union(blocks)) }
             .convert(source.patterns)
         val optional = source.optionals.map { Optional(it.segment.convert()) }
         return Query.QueryBody(
@@ -18,21 +18,6 @@ object QueryBodyCompatLayer: IncrementalCompatLayer<QueryAST.QueryBodyAST, Query
             unions = unions
         )
     }
-
-    /**
-     * Converts a set of patterns into a union statement, using the input patterns as body patterns
-     */
-    private fun List<Patterns>.toUnion() = Union(
-        map { patterns ->
-            StatementsSegment(
-                statements = Query.QueryBody(
-                    patterns = patterns,
-                    unions = emptyList(),
-                    optional = emptyList()
-                )
-            )
-        }
-    )
 
     private fun Iterable<UnionAST>.convert() =
         map { block -> Union(block.map { segment -> segment.convert() }) }

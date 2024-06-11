@@ -106,7 +106,7 @@ abstract class NodeWriter<RT> {
                 add(Token.Symbol.RoundBracketEnd)
             }
 
-            is Pattern.Inverse -> {
+            is Pattern.UnboundInverse -> {
                 add(Token.Symbol.ExclamationMark)
                 process(symbol.predicate)
             }
