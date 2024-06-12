@@ -121,4 +121,13 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         }
     """
 
+    using(chain) test """
+        SELECT * {
+            # This line is apparently not valid SPARQL; oh well
+            # ?s (<http://example.org/path>*)/?p ?e
+            ?s <http://example.org/path>* ?b .
+            ?b ?p ?e
+        }
+    """
+
 }

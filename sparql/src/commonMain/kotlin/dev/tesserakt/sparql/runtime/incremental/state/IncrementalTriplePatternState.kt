@@ -96,7 +96,28 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
     }
 
-    class NegatedPattern(
+    data class BindingPattern(
+        val subj: Pattern.Subject,
+        val pred: Pattern.Binding,
+        val obj: Pattern.Object
+    ) : ArrayBackedPattern<Pattern.Exact>() {
+
+        override fun delta(quad: Quad): List<Mapping> {
+            if (!subj.matches(quad.s) || !obj.matches(quad.o)) {
+                return emptyList()
+            }
+            // checking to see if there's any matches with the given triple
+            val match = mappingOf(
+                subj.bindingName to quad.s,
+                pred.name to quad.p,
+                obj.bindingName to quad.o
+            )
+            return listOf(match)
+        }
+
+    }
+
+    data class NegatedPattern(
         val subj: Pattern.Subject,
         val pred: Pattern.Negated,
         val obj: Pattern.Object
@@ -317,7 +338,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
             is Pattern.UnboundAlts -> UnboundedAltPattern(s, p, o)
             is Pattern.Sequence -> SequencePattern(s, p, o)
             is Pattern.UnboundSequence -> UnboundedSequencePattern(s, p, o)
-            is Pattern.Binding -> TODO()
+            is Pattern.Binding -> BindingPattern(s, p, o)
         }
 
     }
