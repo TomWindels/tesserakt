@@ -73,7 +73,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is ExpressionAST.FuncCall -> {
+        is ExpressionAST.BindingAggregate -> {
             writeLine("func call")
             indented {
                 writeLine("type: ${symbol.type}")
@@ -82,38 +82,57 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is ExpressionAST.MathOp.Inverse -> {
-            writeLine("inverse")
+        is ExpressionAST.NumericLiteralValue -> {
+            writeLine("numeric literal")
             indented {
-                writeLine("input: ")
-                process(symbol.value)
+                writeLine("value: ${symbol.value} [${symbol.value::class.qualifiedName}]")
             }
         }
 
-        is ExpressionAST.LiteralValue -> {
-            writeLine("literal")
+        is ExpressionAST.StringLiteralValue -> {
+            writeLine("string literal")
             indented {
-                writeLine("value: ${symbol.value}")
-            }
-        }
-
-        is ExpressionAST.MathOp.Multiplication -> {
-            writeLine("multiplication")
-            indented {
-                symbol.operands.forEachIndexed { index, expression ->
-                    writeLine("operand $index")
-                    process(expression)
-                }
+                writeLine("value: ${symbol.value} [${symbol.value::class.qualifiedName}]")
             }
         }
 
         is ExpressionAST.MathOp.Sum -> {
             writeLine("sum")
             indented {
-                symbol.operands.forEachIndexed { index, expression ->
-                    writeLine("operand $index")
-                    process(expression)
-                }
+                writeLine("lhs")
+                process(symbol.lhs)
+                writeLine("rhs")
+                process(symbol.rhs)
+            }
+        }
+
+        is ExpressionAST.MathOp.Diff -> {
+            writeLine("difference")
+            indented {
+                writeLine("lhs")
+                process(symbol.lhs)
+                writeLine("rhs")
+                process(symbol.rhs)
+            }
+        }
+
+        is ExpressionAST.MathOp.Mul -> {
+            writeLine("multiplication")
+            indented {
+                writeLine("lhs")
+                process(symbol.lhs)
+                writeLine("rhs")
+                process(symbol.rhs)
+            }
+        }
+
+        is ExpressionAST.MathOp.Div -> {
+            writeLine("division")
+            indented {
+                writeLine("lhs")
+                process(symbol.lhs)
+                writeLine("rhs")
+                process(symbol.rhs)
             }
         }
 
@@ -309,6 +328,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
+        is ExpressionAST.FuncCall -> TODO()
     }
 
     /* helpers */

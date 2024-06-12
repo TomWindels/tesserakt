@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.ast.QueryAST
 import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
 
 class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
 
@@ -42,9 +43,24 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                     consume()
                     return
                 }
+                Token.Keyword.Bind -> {
+                    consume()
+                    expectToken(Token.Symbol.RoundBracketStart)
+                    consume()
+                    val expression = use(AggregatorProcessor())
+                    expectToken(Token.Keyword.As)
+                    consume()
+                    expectBinding()
+                    val target = token.bindingName
+                    consume()
+                    expectToken(Token.Symbol.RoundBracketEnd)
+                    consume()
+                    // TODO: append to AST, finalizing current BGP & start new active BGP
+                }
                 else -> expectedPatternElementOrBindingOrToken(
                     Token.Keyword.Filter,
                     Token.Keyword.Optional,
+                    Token.Keyword.Bind,
                     Token.Symbol.CurlyBracketStart,
                     Token.Symbol.CurlyBracketEnd
                 )

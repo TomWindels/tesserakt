@@ -2,6 +2,7 @@ package sparql.tests
 
 import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
 import dev.tesserakt.rdf.ontology.RDF
+import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import test.suite.testEnv
 
@@ -127,6 +128,24 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
             # ?s (<http://example.org/path>*)/?p ?e
             ?s <http://example.org/path>* ?b .
             ?b ?p ?e
+        }
+    """
+
+    val person = buildStore {
+        val person1 = "http://example.org/person1".asNamedTerm()
+        val person2 = "http://example.org/person2".asNamedTerm()
+        person1 has "http://example.org/givenName".asNamedTerm() being "John".asLiteralTerm()
+        person1 has "http://example.org/surname".asNamedTerm() being "Doe".asLiteralTerm()
+        person2 has "http://example.org/givenName".asNamedTerm() being "A".asLiteralTerm()
+        person2 has "http://example.org/surname".asNamedTerm() being "B".asLiteralTerm()
+    }
+
+    using(person) test """
+        PREFIX : <http://example.org/>
+        SELECT ?name {
+            ?person :givenName ?gName ; :surname ?sName .
+            BIND(CONCAT(?gName, " ", ?sName) AS ?name)
+            FILTER(STRLEN(?name) > 3)
         }
     """
 

@@ -44,6 +44,8 @@ sealed interface Token {
         As("AS"),
         Ask("ASK"),
         Bind("BIND"),
+        Concat("CONCAT"),
+        StringLength("STRLEN"),
         Filter("FILTER"),
         Regex("REGEX"),
         Order("ORDER"),

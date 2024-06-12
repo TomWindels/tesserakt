@@ -47,6 +47,7 @@ class TestEnvironment private constructor() {
                 printerrln("Query ${i + 1} failed due to a compiler error: `${compact}`\n${t.message}")
             } else {
                 printerrln("Query ${i + 1} failed due to an unexpected error: `${compact}`\n${t.message}")
+                t.printStackTrace()
             }
         }
         println("${tests.size - failures.size} / ${tests.size} tests succeeded")

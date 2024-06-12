@@ -32,17 +32,17 @@ fun interface Expression<T> : CommonNode {
                 }
             }
 
-            is ExpressionAST.FuncCall -> object : Expression<Any> {
+            is ExpressionAST.BindingAggregate -> object : Expression<Any> {
                 val input = ast.input.name
                 val distinct = ast.distinct
                 val expr = when (ast.type) {
-                    ExpressionAST.FuncCall.Type.COUNT -> Collection<Any>::count
-                    ExpressionAST.FuncCall.Type.SUM -> Collection<Double>::sum
-                    ExpressionAST.FuncCall.Type.MIN -> Collection<Comparable<Any>>::min
-                    ExpressionAST.FuncCall.Type.MAX -> Collection<Comparable<Any>>::max
-                    ExpressionAST.FuncCall.Type.AVG -> Collection<Double>::average
-                    ExpressionAST.FuncCall.Type.GROUP_CONCAT -> TODO()
-                    ExpressionAST.FuncCall.Type.SAMPLE -> TODO()
+                    ExpressionAST.BindingAggregate.Type.COUNT -> Collection<Any>::count
+                    ExpressionAST.BindingAggregate.Type.SUM -> Collection<Double>::sum
+                    ExpressionAST.BindingAggregate.Type.MIN -> Collection<Comparable<Any>>::min
+                    ExpressionAST.BindingAggregate.Type.MAX -> Collection<Comparable<Any>>::max
+                    ExpressionAST.BindingAggregate.Type.AVG -> Collection<Double>::average
+                    ExpressionAST.BindingAggregate.Type.GROUP_CONCAT -> TODO()
+                    ExpressionAST.BindingAggregate.Type.SAMPLE -> TODO()
                 } as (Any) -> Any
 
                 override fun execute(context: Context): Any {
@@ -53,23 +53,32 @@ fun interface Expression<T> : CommonNode {
                 }
             }
 
-            is ExpressionAST.LiteralValue -> Expression { ast.value }
+            is ExpressionAST.NumericLiteralValue -> Expression { ast.value }
 
-            is ExpressionAST.MathOp.Inverse -> object : Expression<Number> {
-                val expr = convert(ast.value)
-                override fun execute(context: Context): Number {
-                    return 1 / (expr.execute(context) as Number).toDouble()
-                }
-            }
+            is ExpressionAST.StringLiteralValue -> Expression { ast.value }
 
-            is ExpressionAST.MathOp.Multiplication -> object: Expression<Double> {
-                val expr = ast.operands.map { convert(it) as Expression<Number> }
-                override fun execute(context: Context) = expr.fold(1.0) { acc, expression -> acc * expression.execute(context).toDouble() }
+            is ExpressionAST.MathOp.Mul -> object: Expression<Double> {
+                val lhs = convert(ast.lhs) as Expression<Number>
+                val rhs = convert(ast.rhs) as Expression<Number>
+                override fun execute(context: Context) = lhs.execute(context).toDouble() * rhs.execute(context).toDouble()
             }
 
             is ExpressionAST.MathOp.Sum -> object: Expression<Double> {
-                val expr = ast.operands.map { convert(it) as Expression<Number> }
-                override fun execute(context: Context) = expr.sumOf { it.execute(context).toDouble() }
+                val lhs = convert(ast.lhs) as Expression<Number>
+                val rhs = convert(ast.rhs) as Expression<Number>
+                override fun execute(context: Context) = lhs.execute(context).toDouble() + rhs.execute(context).toDouble()
+            }
+
+            is ExpressionAST.MathOp.Diff -> object: Expression<Double> {
+                val lhs = convert(ast.lhs) as Expression<Number>
+                val rhs = convert(ast.rhs) as Expression<Number>
+                override fun execute(context: Context) = lhs.execute(context).toDouble() - rhs.execute(context).toDouble()
+            }
+
+            is ExpressionAST.MathOp.Div -> object: Expression<Double> {
+                val lhs = convert(ast.lhs) as Expression<Number>
+                val rhs = convert(ast.rhs) as Expression<Number>
+                override fun execute(context: Context) = lhs.execute(context).toDouble() / rhs.execute(context).toDouble()
             }
 
             is ExpressionAST.MathOp.Negative -> object: Expression<Double> {
@@ -77,8 +86,19 @@ fun interface Expression<T> : CommonNode {
                 override fun execute(context: Context) = - expr.execute(context).toDouble()
             }
 
+            is ExpressionAST.FuncCall -> object: Expression<Any> {
+                val func = funcs[ast.name]!!
+                val args = ast.args.map { arg -> convert(arg) }
+                override fun execute(context: Context): Any = func(args.map { it.execute(context)!! })
+            }
+
         }
 
     }
 
 }
+
+private val funcs = mapOf<String, (List<Any>) -> Any>(
+    "strlen" to { (it.single() as String).length },
+    "concat" to { it.joinToString() },
+)

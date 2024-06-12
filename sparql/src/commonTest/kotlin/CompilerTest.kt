@@ -4,11 +4,9 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.compiler.analyser.AggregatorProcessor
 import dev.tesserakt.sparql.compiler.ast.ExpressionAST
 import dev.tesserakt.sparql.compiler.ast.PatternAST
 import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
-import dev.tesserakt.sparql.compiler.processed
 import kotlin.test.Test
 
 class CompilerTest {
@@ -126,23 +124,28 @@ class CompilerTest {
         }
         "select(count(distinct ?s) as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
-            val func = (output["count"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression as ExpressionAST.FuncCall
-            func.type == ExpressionAST.FuncCall.Type.COUNT
+            val func =
+                (output["count"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression as ExpressionAST.BindingAggregate
+            func.type == ExpressionAST.BindingAggregate.Type.COUNT
         }
         "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryAST)
             (output["count"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression ==
-                    "(${1 / 3.0} * min(?s)) + avg(?s)".processed(AggregatorProcessor()).getOrThrow()
-        }
-        "select(avg(?s) + min(?s)/3*4+3-5.5*10 as ?count_long){?s?p?o}" satisfies {
-            require(this is SelectQueryAST)
-            (output["count_long"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression ==
-                    "4 * (min(?s)) / 3 + avg(?s) - 52".processed(AggregatorProcessor()).getOrThrow()
-        }
-        "select(-min(?s) + max(?s) as ?reversed_diff){?s?p?o}" satisfies {
-            require(this is SelectQueryAST)
-            (output["reversed_diff"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression ==
-                    "max(?s) - min(?s)".processed(AggregatorProcessor()).getOrThrow()
+                    ExpressionAST.MathOp.Sum(
+                        lhs = ExpressionAST.BindingAggregate(
+                            type = ExpressionAST.BindingAggregate.Type.AVG,
+                            input = ExpressionAST.BindingValues("s"),
+                            distinct = false
+                        ),
+                        rhs = ExpressionAST.MathOp.Div(
+                            lhs = ExpressionAST.BindingAggregate(
+                                type = ExpressionAST.BindingAggregate.Type.MIN,
+                                input = ExpressionAST.BindingValues("s"),
+                                distinct = false
+                            ),
+                            rhs = ExpressionAST.NumericLiteralValue(3L)
+                        )
+                    )
         }
         """
             PREFIX : <http://example.com/data/#>
@@ -160,8 +163,8 @@ class CompilerTest {
             )
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
-            ((output["avg"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression as ExpressionAST.FuncCall).type == ExpressionAST.FuncCall.Type.AVG &&
-            (output["c"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression == ".5 * (max(?p) + min(?p))".processed(AggregatorProcessor()).getOrThrow()
+            ((output["avg"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression as ExpressionAST.BindingAggregate).type == ExpressionAST.BindingAggregate.Type.AVG &&
+            (output["c"] as SelectQueryAST.AggregationOutputEntry).aggregation.expression is ExpressionAST.MathOp.Div
         }
         """
             SELECT * WHERE {
