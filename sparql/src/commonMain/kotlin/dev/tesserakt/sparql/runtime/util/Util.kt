@@ -51,7 +51,7 @@ private fun Pattern.Predicate.getNamedBinding(): Pattern.RegularBinding? = when 
     is Pattern.Chain,
     is Pattern.UnboundAlts,
     is Pattern.UnboundChain,
-    is Pattern.UnboundInverse,
+    is Pattern.Negated,
     is Pattern.OneOrMore,
     is Pattern.ZeroOrMore -> null
     is Pattern.RegularBinding -> this

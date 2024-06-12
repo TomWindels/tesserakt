@@ -32,7 +32,7 @@ internal fun Pattern.Predicate.matches(term: Quad.Term): Boolean = when (this) {
     /* all of these match only a subset of terms, so checking manually */
     is Pattern.Exact -> term == this.term
     is Pattern.UnboundAlts -> allowed.any { it.matches(term) }
-    is Pattern.UnboundInverse -> !predicate.matches(term)
+    is Pattern.Negated -> term != this.term
     /* these cannot be directly matched to terms, so bailing */
     is Pattern.Chain,
     is Pattern.UnboundChain -> throw IllegalArgumentException("Chains cannot be directly matched with terms!")

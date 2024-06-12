@@ -16,8 +16,8 @@ actual suspend fun executeExternalQuery(query: String, data: Store): List<Bindin
         while (solutions.hasNext()) {
             val current = mutableMapOf<String, Quad.Term>()
             val solution = solutions.nextSolution()
-            solution.varNames().forEach {
-                current[it] = solution[it].asNode().toTerm()
+            solution.varNames().forEach { name ->
+                solution[name]?.asNode()?.toTerm()?.let { current[name] = it }
             }
             results.add(current)
         }

@@ -27,6 +27,12 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
 
     using(small) test """
         SELECT * {
+            ?s (<http://example.org/path1>/!<http://example.org/path2>) ?o
+        }
+    """
+
+    using(small) test """
+        SELECT * {
             ?s !<http://example.org/path3> ?o
         }
     """

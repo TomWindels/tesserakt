@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.incremental.compat
 
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.ast.PatternAST
 import dev.tesserakt.sparql.compiler.ast.PatternsAST
 import dev.tesserakt.sparql.runtime.common.types.Pattern
@@ -161,7 +162,7 @@ class PatternCompatLayer(
             }
         }
         is PatternAST.Exact -> Pattern.Exact(term)
-        is PatternAST.Not -> Pattern.UnboundInverse(predicate.toUnboundPatternPredicateOrBail())
+        is PatternAST.Not -> Pattern.Negated(term = predicate.termOrBail())
         is PatternAST.OneOrMore -> Pattern.OneOrMore(element = value.toUnboundPatternPredicateOrBail())
         is PatternAST.ZeroOrMore -> Pattern.ZeroOrMore(element = value.toUnboundPatternPredicateOrBail())
         is PatternAST.Binding -> Pattern.RegularBinding(name)
@@ -171,7 +172,7 @@ class PatternCompatLayer(
         is PatternAST.Alts -> Pattern.UnboundAlts(allowed = allowed.map { it.toUnboundPatternPredicateOrBail() })
         is PatternAST.Chain -> Pattern.UnboundChain(chain = chain.map { it.toUnboundPatternPredicateOrBail() })
         is PatternAST.Exact -> Pattern.Exact(term)
-        is PatternAST.Not -> Pattern.UnboundInverse(predicate = predicate.toUnboundPatternPredicateOrBail())
+        is PatternAST.Not -> Pattern.Negated(term = predicate.termOrBail())
         is PatternAST.OneOrMore -> Pattern.OneOrMore(element = value.toUnboundPatternPredicateOrBail())
         is PatternAST.ZeroOrMore -> Pattern.ZeroOrMore(element = value.toUnboundPatternPredicateOrBail())
         is PatternAST.Binding -> throw IllegalArgumentException("Invalid predicate usage! Binding `$name` cannot appear here.")
@@ -189,3 +190,6 @@ private inline fun <R> Any.unsafeCast(): R {
     @Suppress("UNCHECKED_CAST")
     return this as R
 }
+
+private inline fun PatternAST.Predicate.termOrBail(): Quad.Term =
+    (this as? PatternAST.Exact)?.term ?: throw IllegalArgumentException("IRI predicate expected, got `$this`")

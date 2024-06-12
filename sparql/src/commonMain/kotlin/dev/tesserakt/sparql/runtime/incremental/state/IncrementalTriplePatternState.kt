@@ -11,24 +11,34 @@ import dev.tesserakt.util.compatibleWith
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
-    abstract val subj: Pattern.Subject
-    abstract val pred: P
-    abstract val obj: Pattern.Object
-
     // FIXME set semantics: duplicate triples should be ignored!
 
-    data class ExactPattern(
-        override val subj: Pattern.Subject,
-        override val pred: Pattern.Exact,
-        override val obj: Pattern.Object
-    ) : IncrementalTriplePatternState<Pattern.Exact>() {
+    sealed class ArrayBackedPattern<P : Pattern.Predicate> : IncrementalTriplePatternState<P>() {
 
-        private val data: MutableList<Mapping> = mutableListOf()
+        private val data = mutableListOf<Mapping>()
 
-        override fun insert(quad: Quad) {
-            // knowing how delta works here, this makes getting the mapping easier
+        final override fun insert(quad: Quad) {
             data.addAll(delta(quad))
         }
+
+        final override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { bindings ->
+            data.mapNotNull { previous ->
+                // checking to see if there's any incompatibility in the input constraints
+                if (bindings.compatibleWith(previous)) {
+                    bindings + previous
+                } else {
+                    null
+                }
+            }
+        }
+
+    }
+
+    data class ExactPattern(
+        val subj: Pattern.Subject,
+        val pred: Pattern.Exact,
+        val obj: Pattern.Object
+    ) : ArrayBackedPattern<Pattern.Exact>() {
 
         override fun delta(quad: Quad): List<Mapping> {
             if (!subj.matches(quad.s) || !pred.matches(quad.p) || !obj.matches(quad.o)) {
@@ -42,22 +52,32 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
             return listOf(match)
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { bindings ->
-            data.mapNotNull { previous ->
-                // checking to see if there's any incompatibility in the input constraints
-                if (bindings.compatibleWith(previous)) {
-                    bindings + previous
-                } else {
-                    null
-                }
+    }
+
+    class NegatedPattern(
+        val subj: Pattern.Subject,
+        val pred: Pattern.Negated,
+        val obj: Pattern.Object
+    ) : ArrayBackedPattern<Pattern.Negated>() {
+
+        override fun delta(quad: Quad): List<Mapping> {
+            if (!subj.matches(quad.s) || pred.term == quad.p || !obj.matches(quad.o)) {
+                return emptyList()
             }
+            // checking to see if there's any matches with the given triple
+            val match = mappingOf(
+                subj.bindingName to quad.s,
+                obj.bindingName to quad.o
+            )
+            return listOf(match)
         }
+
     }
 
     class RepeatingPattern(
-        override val subj: Pattern.Subject,
-        override val pred: Pattern.RepeatingPredicate,
-        override val obj: Pattern.Object
+        subj: Pattern.Subject,
+        val pred: Pattern.RepeatingPredicate,
+        obj: Pattern.Object
     ) : IncrementalTriplePatternState<Pattern.RepeatingPredicate>() {
 
         private val state = when (pred) {
@@ -99,24 +119,24 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
     }
 
-    data class AltPattern(
-        override val subj: Pattern.Subject,
-        override val pred: Pattern.Alts,
-        override val obj: Pattern.Object
-    ): IncrementalTriplePatternState<Pattern.Alts>() {
+    class AltPattern(
+        subj: Pattern.Subject,
+        pred: Pattern.Alts,
+        obj: Pattern.Object
+    ) : IncrementalTriplePatternState<Pattern.Alts>() {
 
-        private val _states = pred.allowed.map { p -> Pattern(subj, p, obj).createIncrementalPatternState() }
+        private val states = pred.allowed.map { p -> Pattern(subj, p, obj).createIncrementalPatternState() }
 
         override fun delta(quad: Quad): List<Mapping> {
-            return _states.flatMap { it.delta(quad) }
+            return states.flatMap { it.delta(quad) }
         }
 
         override fun insert(quad: Quad) {
-            _states.forEach { it.insert(quad) }
+            states.forEach { it.insert(quad) }
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
-            return _states.flatMap { it.join(mappings) }
+            return states.flatMap { it.join(mappings) }
         }
 
     }
@@ -146,7 +166,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
             is Pattern.Chain -> TODO()
             is Pattern.UnboundAlts -> TODO()
             is Pattern.UnboundChain -> TODO()
-            is Pattern.UnboundInverse -> TODO()
+            is Pattern.Negated -> NegatedPattern(s, p, o)
             is Pattern.Binding -> TODO()
         }
 

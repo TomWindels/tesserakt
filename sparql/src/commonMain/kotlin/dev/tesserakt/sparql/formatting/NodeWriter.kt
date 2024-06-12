@@ -106,9 +106,18 @@ abstract class NodeWriter<RT> {
                 add(Token.Symbol.RoundBracketEnd)
             }
 
-            is Pattern.UnboundInverse -> {
+            is Pattern.Negated -> {
                 add(Token.Symbol.ExclamationMark)
-                process(symbol.predicate)
+                when (symbol.term) {
+                    is Quad.BlankTerm -> throw UnsupportedOperationException()
+                    is Quad.Literal<*> -> {
+                        (symbol.term.literal as? String)?.let { add(Token.StringLiteral(it)) }
+                            ?: (symbol.term.literal as? Number)?.let { add(Token.NumericLiteral(it)) }
+                            ?: throw UnsupportedOperationException()
+                    }
+
+                    is Quad.NamedTerm -> add(Token.Term(symbol.term.value))
+                }
             }
 
             is Pattern.OneOrMore -> {

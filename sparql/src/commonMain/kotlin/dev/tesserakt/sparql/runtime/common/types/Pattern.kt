@@ -44,6 +44,10 @@ data class Pattern(
     @JvmInline
     value class Exact(val term: Quad.Term): Subject, UnboundPredicate, Object
 
+    // FIXME: inverse can either be the inverse of a term (this case) AS WELL AS the inverse of a path (^iri)
+    @JvmInline
+    value class Negated(val term: Quad.Term): UnboundPredicate
+
     @JvmInline
     value class Alts(val allowed: List<Predicate>): Predicate
 
@@ -62,9 +66,6 @@ data class Pattern(
     */
     @JvmInline
     value class UnboundChain(val chain: List<UnboundPredicate>): UnboundPredicate
-
-    @JvmInline
-    value class UnboundInverse(val predicate: UnboundPredicate): UnboundPredicate
 
     @JvmInline
     value class ZeroOrMore(override val element: UnboundPredicate): RepeatingPredicate, UnboundPredicate
