@@ -34,8 +34,8 @@ internal fun Pattern.Predicate.matches(term: Quad.Term): Boolean = when (this) {
     is Pattern.UnboundAlts -> allowed.any { it.matches(term) }
     is Pattern.Negated -> term != this.term
     /* these cannot be directly matched to terms, so bailing */
-    is Pattern.Chain,
-    is Pattern.UnboundChain -> throw IllegalArgumentException("Chains cannot be directly matched with terms!")
+    is Pattern.Sequence,
+    is Pattern.UnboundSequence -> throw IllegalArgumentException("Sequences cannot be directly matched with terms!")
     is Pattern.OneOrMore,
     is Pattern.ZeroOrMore -> throw IllegalArgumentException("Repeating patterns cannot be directly matched with terms!")
 }

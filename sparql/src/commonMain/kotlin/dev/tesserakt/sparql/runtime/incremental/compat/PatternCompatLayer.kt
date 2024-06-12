@@ -156,9 +156,9 @@ class PatternCompatLayer(
         is PatternAST.Chain -> {
             val mapped = chain.map { it.toPatternPredicate() }
             if (mapped.all { it is Pattern.UnboundPredicate }) {
-                Pattern.UnboundChain(mapped.unsafeCast())
+                Pattern.UnboundSequence(mapped.unsafeCast())
             } else {
-                Pattern.Chain(mapped)
+                Pattern.Sequence(mapped)
             }
         }
         is PatternAST.Exact -> Pattern.Exact(term)
@@ -170,7 +170,7 @@ class PatternCompatLayer(
 
     private fun PatternAST.Predicate.toUnboundPatternPredicateOrBail(): Pattern.UnboundPredicate = when (this) {
         is PatternAST.Alts -> Pattern.UnboundAlts(allowed = allowed.map { it.toUnboundPatternPredicateOrBail() })
-        is PatternAST.Chain -> Pattern.UnboundChain(chain = chain.map { it.toUnboundPatternPredicateOrBail() })
+        is PatternAST.Chain -> Pattern.UnboundSequence(chain = chain.map { it.toUnboundPatternPredicateOrBail() })
         is PatternAST.Exact -> Pattern.Exact(term)
         is PatternAST.Not -> Pattern.Negated(term = predicate.termOrBail())
         is PatternAST.OneOrMore -> Pattern.OneOrMore(element = value.toUnboundPatternPredicateOrBail())

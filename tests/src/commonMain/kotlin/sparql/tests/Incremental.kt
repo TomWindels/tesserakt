@@ -99,4 +99,26 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         }
     """
 
+    val chain = buildStore {
+        val start = local("start")
+        val end = local("end")
+        val path = "http://example.org/path".asNamedTerm()
+        start has path being end
+        start has path being blank {
+            path being end
+            path being blank {
+                path being end
+                path being blank {
+                    path being end
+                }
+            }
+        }
+    }
+
+    using(chain) test """
+        SELECT ?s ?e {
+            ?s (<http://example.org/path>/<http://example.org/path>)* ?e
+        }
+    """
+
 }

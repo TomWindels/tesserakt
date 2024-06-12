@@ -48,9 +48,9 @@ private fun Pattern.Predicate.getNamedBinding(): Pattern.RegularBinding? = when 
     is Pattern.Alts,
     is Pattern.Exact,
     is Pattern.GeneratedBinding,
-    is Pattern.Chain,
+    is Pattern.Sequence,
     is Pattern.UnboundAlts,
-    is Pattern.UnboundChain,
+    is Pattern.UnboundSequence,
     is Pattern.Negated,
     is Pattern.OneOrMore,
     is Pattern.ZeroOrMore -> null
