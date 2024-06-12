@@ -35,8 +35,12 @@ internal sealed class IncrementalPathState(
                         //  does not have to be altered further
                         segments.allConnectedEndTermsOf(start).map { mapping }
                     }
-                    // adding a null-length relation, meaning end == start
-                    (mapping + mappingOf(bo to start)) + base
+                    // adding a null-length relation, meaning end == start, if it has already been inserted
+                    if (start in segments.nodes) {
+                        (mapping + mappingOf(bo to start)) + base
+                    } else {
+                        base
+                    }
                 }
 
                 end != null -> {
@@ -45,8 +49,12 @@ internal sealed class IncrementalPathState(
                     } else {
                         segments.allConnectedStartTermsOf(end).map { mapping }
                     }
-                    // adding a null-length relation, meaning end == start
-                    (mapping + mappingOf(bs to end)) + base
+                    // adding a null-length relation, meaning end == start, if it has already been inserted
+                    if (end in segments.nodes) {
+                        (mapping + mappingOf(bs to end)) + base
+                    } else {
+                        base
+                    }
                 }
 
                 else -> {

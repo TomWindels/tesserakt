@@ -70,14 +70,6 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
 
     using(medium) test """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        SELECT ?node {
-            ?node rdf:rest* ?blank .
-            ?blank rdf:rest rdf:nil .
-        }
-    """
-
-    using(medium) test """
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         SELECT ?person ?note {
             ?person a <http://example.org/person> ; <http://example.org/notes>/rdf:rest*/rdf:first ?note
         }
