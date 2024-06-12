@@ -1,19 +1,19 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.core.Mapping
-import dev.tesserakt.sparql.runtime.core.pattern.TriplePattern
 import dev.tesserakt.sparql.runtime.incremental.pattern.IncrementalBasicGraphPattern
+import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
 import dev.tesserakt.sparql.runtime.util.Bitmask
 import dev.tesserakt.util.compatibleWith
 
 internal class IncrementalBasicGraphPatternState(parent: IncrementalBasicGraphPattern) {
 
     private val patterns = parent.patterns.map { it.createIncrementalPatternState() }
+    private val unions = parent.unions.map { union -> IncrementalUnionState(union) }
 
-    fun process(quad: Quad): List<Mapping> {
-        return patterns
+    fun delta(quad: Quad): List<Mapping> {
+        val base = patterns
             .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = patterns.size) to pattern.delta(quad) }
             .expanded()
             .flatMap { (mask, mappings) ->
@@ -21,24 +21,32 @@ internal class IncrementalBasicGraphPatternState(parent: IncrementalBasicGraphPa
                 //  before iterating over it
                 mask.inv().fold(mappings) { results, i -> patterns[i].join(results) }
             }
-            .also {
-                // inserting this input to all patterns
-                patterns.forEach { it.insert(quad) }
+        val first = unions.fold(initial = base) { results, u -> u.join(results) }
+        return first + unions
+            .mapIndexed { i, union -> Bitmask.onesAt(i, length = unions.size) to union.delta(quad) }
+            .expanded()
+            .flatMap { (mask, mappings) ->
+                // as we only need to iterate over the unions not yet managed, we need to inverse the bitmask
+                //  before iterating over it
+                mask.inv().fold(mappings) { results, i -> unions[i].join(results) }
             }
+            .let { patterns.fold(it) { results, p -> p.join(results) } }
     }
 
-}
+    fun process(quad: Quad): List<Mapping> {
+        val results = delta(quad)
+        insert(quad)
+        return results
+    }
 
-private fun TriplePattern.createIncrementalPatternState(): IncrementalTriplePatternState<*> = when (p) {
-    is Pattern.RepeatingPredicate -> IncrementalTriplePatternState.Repeating(s, p, o)
-    is Pattern.Exact -> IncrementalTriplePatternState.ExactPattern(s, p, o)
-    is Pattern.Alts -> TODO()
-    is Pattern.GeneratedBinding -> TODO()
-    is Pattern.RegularBinding -> TODO()
-    is Pattern.Chain -> TODO()
-    is Pattern.UnboundAlts -> TODO()
-    is Pattern.UnboundChain -> TODO()
-    is Pattern.UnboundInverse -> TODO()
+    fun insert(quad: Quad) {
+        patterns.forEach { it.insert(quad) }
+        unions.forEach { it.insert(quad) }
+    }
+
+    fun join(mappings: List<Mapping>): List<Mapping> = unions
+        .fold(initial = patterns.fold(mappings) { results, p -> p.join(results) }) { results, u -> u.join(results) }
+
 }
 
 /**

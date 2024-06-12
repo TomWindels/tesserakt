@@ -21,8 +21,7 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
 
     using(small) test """
         SELECT * {
-            # ?s (<http://example.org/path1>|<http://example.org/path2>) ?o
-            ?s (<path1>|<path2>) ?o
+            ?s (<http://example.org/path1>|<http://example.org/path2>) ?o
         }
     """
 
@@ -81,4 +80,17 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
             ?s (<http://example.org/>|!<http://example.org/>)* ?o
         }
     """
+
+    using(medium) test """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT ?person ?note ?decoy {
+            ?person a <http://example.org/person> .
+            {
+                ?person <http://example.org/notes>/rdf:rest*/rdf:first ?note
+            } UNION {
+                ?person <http://example.org/decoy>/rdf:rest*/rdf:first ?decoy
+            }
+        }
+    """
+
 }

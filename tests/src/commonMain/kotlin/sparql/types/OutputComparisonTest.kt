@@ -37,10 +37,13 @@ data class OutputComparisonTest(
 
         override fun exceptionOrNull(): Throwable? {
             return if (isNotEmpty()) {
-                AssertionError("Received results do not match expectations!\n * Got ${received.size} binding(s):\n\t$received\n * Expected ${expected.size} binding(s):\n\t$expected\n * The following ${leftOver.size} binding(s) are superfluous:\n\t$leftOver\n * The following ${missing.size} binding(s) are missing:\n\t$missing\n")
+                AssertionError("Received results do not match expectations!\n$this\n * The following ${leftOver.size} binding(s) are superfluous:\n\t$leftOver\n * The following ${missing.size} binding(s) are missing:\n\t$missing\n")
             } else null
         }
 
+        override fun toString(): String {
+            return " * Got ${received.size} binding(s):\n\t$received\n * Expected ${expected.size} bindings:\n\t$expected"
+        }
 
         companion object {
 

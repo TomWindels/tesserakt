@@ -4,7 +4,7 @@ import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.common.util.getTermOrNull
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
-import dev.tesserakt.sparql.runtime.core.pattern.TriplePattern.Companion.bindingName
+import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
 
 internal sealed class IncrementalPathState(

@@ -31,16 +31,18 @@ class TestEnvironment {
             println(summary)
             results.forEachIndexed { i, (test, result) ->
                 if (result.isSuccess()) {
-                    return@forEachIndexed
-                }
-                printerrln("Test ${i + 1} / ${results.size} failed!")
-                printerrln("Test setup:\n$test")
-                val reason = result.exceptionOrNull() ?: return@forEachIndexed
-                if (reason is AssertionError) {
-                    printerrln("Assertion failed: ${reason.message}")
+                    println("Test ${i + 1} / ${results.size} succeeded!")
+                    println(result)
                 } else {
-                    printerrln("Unexpected `${reason::class.simpleName}` was thrown!")
-                    reason.printStackTrace()
+                    printerrln("Test ${i + 1} / ${results.size} failed!")
+                    printerrln("Test setup:\n$test")
+                    val reason = result.exceptionOrNull() ?: return@forEachIndexed
+                    if (reason is AssertionError) {
+                        printerrln("Assertion failed: ${reason.message}")
+                    } else {
+                        printerrln("Unexpected `${reason::class.simpleName}` was thrown!")
+                        reason.printStackTrace()
+                    }
                 }
             }
         }
