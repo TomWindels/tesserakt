@@ -12,6 +12,7 @@ sealed class QueryAST: ASTNode {
         private val _globals = mutableListOf<PatternAST>()
         // filters applied to these ^ patterns
         private val _filters = mutableListOf<FilterAST>()
+        private val _bindingStatements = mutableListOf<ExpressionAST.BindingStatement>()
         // collections of sections not required to be being present (`OPTIONAL {}`)
         private val _optionals = mutableListOf<SegmentAST>()
         // collections of multiple segments where one or the other has to be present (`{} UNION {}`)
@@ -22,6 +23,7 @@ sealed class QueryAST: ASTNode {
             return QueryBodyAST(
                 patterns = PatternsAST(_globals),
                 filters = _filters,
+                bindingStatements = _bindingStatements,
                 unions = _unions.map { union -> UnionAST(union) },
                 optionals = _optionals.map { optional -> OptionalAST(optional) }
             )
@@ -34,6 +36,10 @@ sealed class QueryAST: ASTNode {
 
         fun addFilter(filter: FilterAST) {
             _filters.add(filter)
+        }
+
+        fun addBindStatement(statement: ExpressionAST.BindingStatement) {
+            _bindingStatements.add(statement)
         }
 
         /**
@@ -56,6 +62,8 @@ sealed class QueryAST: ASTNode {
         val patterns: PatternsAST,
         /** All filters applied to this pattern block (optional / union filters NOT included) **/
         val filters: List<FilterAST>,
+        /** All binding statements found inside this pattern block (similar to filters) **/
+        val bindingStatements: List<ExpressionAST.BindingStatement>,
         /** All requested unions, not yet flattened to allow for easier optimisation **/
         val unions: List<UnionAST>,
         /** Collection of pattern blocks that are optional **/

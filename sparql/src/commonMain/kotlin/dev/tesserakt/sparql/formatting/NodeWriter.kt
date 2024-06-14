@@ -243,7 +243,7 @@ abstract class NodeWriter<RT> {
                 }
             }
 
-            is Expression<*> -> {
+            is Expression -> {
                 add(Token.StringLiteral("EXPR"))
             }
 

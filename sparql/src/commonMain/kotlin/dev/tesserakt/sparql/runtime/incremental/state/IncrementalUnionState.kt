@@ -2,7 +2,6 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
-import dev.tesserakt.sparql.runtime.incremental.pattern.IncrementalBasicGraphPattern
 import dev.tesserakt.sparql.runtime.incremental.types.Segment
 import dev.tesserakt.sparql.runtime.incremental.types.SelectQuerySegment
 import dev.tesserakt.sparql.runtime.incremental.types.StatementsSegment
@@ -14,7 +13,7 @@ internal class IncrementalUnionState(union: Union) {
 
         class StatementsState(parent: StatementsSegment): Segment() {
 
-            private val state = IncrementalBasicGraphPatternState(IncrementalBasicGraphPattern(parent.statements))
+            private val state = IncrementalBasicGraphPatternState(parent.statements)
 
             override fun delta(quad: Quad): List<Mapping> {
                 return state.delta(quad)

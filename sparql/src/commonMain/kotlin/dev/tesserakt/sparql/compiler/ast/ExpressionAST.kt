@@ -133,6 +133,15 @@ sealed interface ExpressionAST : ASTNode {
         }
     }
 
+    /**
+     * BIND(`expression` AS ?`target`)
+     */
+    // not an ExpressionAST subtype as this cannot be directly used in other expressions
+    data class BindingStatement(
+        val expression: ExpressionAST,
+        val target: String
+    )
+
     @JvmInline
     value class BindingValues(val name: String) : ExpressionAST {
         override fun toString() = "?$name"

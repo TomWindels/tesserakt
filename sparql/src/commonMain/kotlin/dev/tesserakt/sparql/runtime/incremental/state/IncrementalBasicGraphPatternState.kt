@@ -2,14 +2,14 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
-import dev.tesserakt.sparql.runtime.incremental.pattern.IncrementalBasicGraphPattern
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
+import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.util.Bitmask
 
-internal class IncrementalBasicGraphPatternState(parent: IncrementalBasicGraphPattern) {
+internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
 
-    private val patterns = parent.patterns.map { it.createIncrementalPatternState() }
-    private val unions = parent.unions.map { union -> IncrementalUnionState(union) }
+    private val patterns = ast.patterns.map { it.createIncrementalPatternState() }
+    private val unions = ast.unions.map { union -> IncrementalUnionState(union) }
 
     fun delta(quad: Quad): List<Mapping> {
         val base = patterns

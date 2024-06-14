@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.sparql.compiler.ast.ExpressionAST
 import dev.tesserakt.sparql.compiler.ast.QueryAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
@@ -55,7 +56,7 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                     consume()
                     expectToken(Token.Symbol.RoundBracketEnd)
                     consume()
-                    // TODO: append to AST, finalizing current BGP & start new active BGP
+                    builder.addBindStatement(ExpressionAST.BindingStatement(expression = expression, target = target))
                 }
                 else -> expectedPatternElementOrBindingOrToken(
                     Token.Keyword.Filter,

@@ -1,25 +1,39 @@
 package dev.tesserakt.sparql.runtime.common.types
 
+import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.compiler.ast.ExpressionAST
+import dev.tesserakt.sparql.compiler.ast.FilterAST
 import dev.tesserakt.sparql.runtime.node.CommonNode
 
-fun interface Expression<T> : CommonNode {
+fun interface Expression : CommonNode {
 
-    fun execute(context: Context): T
+    fun execute(context: Context): Quad.Term?
 
     companion object {
 
+        fun convert(ast: FilterAST.Regex): Expression {
+            return object: Expression {
+                // TODO: consider `FilterAST::Regex::mode`
+                private val regex = Regex(ast.regex)
+                override fun execute(context: Context): Quad.Term {
+                    require(context is Context.Singular)
+                    return context.current[ast.input.name].isLiteralAnd<String> { regex.matches(it) }.asLiteralTerm()
+                }
+            }
+        }
+
         @Suppress("UNCHECKED_CAST")
-        fun convert(ast: ExpressionAST): Expression<*> = when (ast) {
+        fun convert(ast: ExpressionAST): Expression = when (ast) {
             is ExpressionAST.BindingValues -> Expression {
                 require(it is Context.Singular)
                 it.current[ast.name]
             }
 
-            is ExpressionAST.Conditional -> object : Expression<Boolean> {
+            is ExpressionAST.Conditional -> object : Expression {
                 val lhs = convert(ast.lhs)
                 val rhs = convert(ast.rhs)
-                override fun execute(context: Context): Boolean {
+                override fun execute(context: Context): Quad.Term {
                     val a = lhs.execute(context) as Comparable<Any>
                     val b = rhs.execute(context) as Comparable<Any>
                     return when (ast.operand) {
@@ -28,11 +42,11 @@ fun interface Expression<T> : CommonNode {
                         ExpressionAST.Conditional.Operand.LESS_THAN -> a < b
                         ExpressionAST.Conditional.Operand.LESS_THAN_OR_EQ -> a <= b
                         ExpressionAST.Conditional.Operand.EQUAL -> a == b
-                    }
+                    }.asLiteralTerm()
                 }
             }
 
-            is ExpressionAST.BindingAggregate -> object : Expression<Any> {
+            is ExpressionAST.BindingAggregate -> object : Expression {
                 val input = ast.input.name
                 val distinct = ast.distinct
                 val expr = when (ast.type) {
@@ -45,51 +59,56 @@ fun interface Expression<T> : CommonNode {
                     ExpressionAST.BindingAggregate.Type.SAMPLE -> TODO()
                 } as (Any) -> Any
 
-                override fun execute(context: Context): Any {
+                override fun execute(context: Context): Quad.Term {
                     // getting all values matching the provided binding values name
                     require(context is Context.Singular)
                     // FIXME: distinct
-                    return context.all.map { it[input]!! }.let(expr)
+                    return context.all.map { it[input]!! }.let(expr).asLiteralTerm()
                 }
             }
 
-            is ExpressionAST.NumericLiteralValue -> Expression { ast.value }
+            is ExpressionAST.NumericLiteralValue -> Expression { ast.value.asLiteralTerm() }
 
-            is ExpressionAST.StringLiteralValue -> Expression { ast.value }
+            is ExpressionAST.StringLiteralValue -> Expression { ast.value.asLiteralTerm() }
 
-            is ExpressionAST.MathOp.Mul -> object: Expression<Double> {
-                val lhs = convert(ast.lhs) as Expression<Number>
-                val rhs = convert(ast.rhs) as Expression<Number>
-                override fun execute(context: Context) = lhs.execute(context).toDouble() * rhs.execute(context).toDouble()
+            is ExpressionAST.MathOp.Mul -> object: Expression {
+                val lhs = convert(ast.lhs)
+                val rhs = convert(ast.rhs)
+                override fun execute(context: Context) =
+                    (lhs.execute(context)!!.numericalValue * rhs.execute(context)!!.numericalValue).asLiteralTerm()
             }
 
-            is ExpressionAST.MathOp.Sum -> object: Expression<Double> {
-                val lhs = convert(ast.lhs) as Expression<Number>
-                val rhs = convert(ast.rhs) as Expression<Number>
-                override fun execute(context: Context) = lhs.execute(context).toDouble() + rhs.execute(context).toDouble()
+            is ExpressionAST.MathOp.Sum -> object: Expression {
+                val lhs = convert(ast.lhs)
+                val rhs = convert(ast.rhs)
+                override fun execute(context: Context) =
+                    (lhs.execute(context)!!.numericalValue + rhs.execute(context)!!.numericalValue).asLiteralTerm()
             }
 
-            is ExpressionAST.MathOp.Diff -> object: Expression<Double> {
-                val lhs = convert(ast.lhs) as Expression<Number>
-                val rhs = convert(ast.rhs) as Expression<Number>
-                override fun execute(context: Context) = lhs.execute(context).toDouble() - rhs.execute(context).toDouble()
+            is ExpressionAST.MathOp.Diff -> object: Expression {
+                val lhs = convert(ast.lhs)
+                val rhs = convert(ast.rhs)
+                override fun execute(context: Context) =
+                    (lhs.execute(context)!!.numericalValue - rhs.execute(context)!!.numericalValue).asLiteralTerm()
             }
 
-            is ExpressionAST.MathOp.Div -> object: Expression<Double> {
-                val lhs = convert(ast.lhs) as Expression<Number>
-                val rhs = convert(ast.rhs) as Expression<Number>
-                override fun execute(context: Context) = lhs.execute(context).toDouble() / rhs.execute(context).toDouble()
+            is ExpressionAST.MathOp.Div -> object: Expression {
+                val lhs = convert(ast.lhs)
+                val rhs = convert(ast.rhs)
+                override fun execute(context: Context) =
+                    (lhs.execute(context)!!.numericalValue / rhs.execute(context)!!.numericalValue).asLiteralTerm()
             }
 
-            is ExpressionAST.MathOp.Negative -> object: Expression<Double> {
-                val expr = convert(ast.value) as Expression<Number>
-                override fun execute(context: Context) = - expr.execute(context).toDouble()
+            is ExpressionAST.MathOp.Negative -> object: Expression {
+                val expr = convert(ast.value)
+                override fun execute(context: Context) =
+                    (- expr.execute(context)!!.numericalValue).asLiteralTerm()
             }
 
-            is ExpressionAST.FuncCall -> object: Expression<Any> {
+            is ExpressionAST.FuncCall -> object: Expression {
                 val func = funcs[ast.name]!!
                 val args = ast.args.map { arg -> convert(arg) }
-                override fun execute(context: Context): Any = func(args.map { it.execute(context)!! })
+                override fun execute(context: Context) = func(args.map { it.execute(context)!! })
             }
 
         }
@@ -98,7 +117,25 @@ fun interface Expression<T> : CommonNode {
 
 }
 
-private val funcs = mapOf<String, (List<Any>) -> Any>(
-    "strlen" to { (it.single() as String).length },
-    "concat" to { it.joinToString() },
+private val funcs = mapOf<String, (List<Quad.Term>) -> Quad.Term>(
+    "strlen" to {
+        @Suppress("UNCHECKED_CAST")
+        (it.single() as Quad.Literal<String>).literal.length.asLiteralTerm()
+    },
+    "concat" to { args ->
+        @Suppress("UNCHECKED_CAST")
+        (args as List<Quad.Literal<String>>).joinToString { it.literal }.asLiteralTerm()
+    },
 )
+
+private inline fun <reified T> Quad.Term?.isLiteralAnd(condition: (T) -> Boolean) : Boolean {
+    if (this !is Quad.Literal<*>) {
+        return false
+    }
+    val v = literal
+    return v is T && condition(v)
+}
+
+@Suppress("UNCHECKED_CAST")
+private val Quad.Term.numericalValue: Double
+    get() = (this as Quad.Literal<Number>).literal.toDouble()

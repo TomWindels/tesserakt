@@ -268,6 +268,16 @@ class ASTWriter(private val indentStyle: String = "  ") {
                             process(filter)
                         }
                     }
+                    if (symbol.bindingStatements.isNotEmpty()) {
+                        writeLine("binding statements")
+                        symbol.bindingStatements.forEachIndexed { index, statement ->
+                            writeLine("target: ${statement.target}")
+                            writeLine("expression: ")
+                            indented {
+                                process(statement.expression)
+                            }
+                        }
+                    }
                     if (symbol.unions.isNotEmpty()) {
                         writeLine("unions")
                         symbol.unions.forEachIndexed { index, union ->
