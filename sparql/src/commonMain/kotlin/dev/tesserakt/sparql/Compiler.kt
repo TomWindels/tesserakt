@@ -8,8 +8,6 @@ import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalSelectQuery
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.incremental.types.SelectQuery
-import dev.tesserakt.sparql.runtime.incremental.validation.Validator
-import dev.tesserakt.sparql.runtime.incremental.validation.Validator.Companion.validate
 
 // `open` as it allows for custom queries with hooks for custom implementations between
 //  the input -> ast -> executable (continuous / incremental) query pipeline
@@ -32,15 +30,11 @@ abstract class Compiler {
 
     object Default: Compiler() {
 
-        private val validators = emptyList<Validator<*>>()
-
         override fun compile(raw: String): IncrementalQuery<*, *> {
             // compiling the input query
             val ast = raw.toAST()
             // converting it to a subset supported by the runtime
             val compat = QueryCompatLayer().convert(ast)
-            // validating if the resulting
-            validators.validate(compat)
             return compat.toIncrementalQuery()
         }
 
