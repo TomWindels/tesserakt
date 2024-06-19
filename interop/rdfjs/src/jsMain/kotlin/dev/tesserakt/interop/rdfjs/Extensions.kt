@@ -11,7 +11,7 @@ fun Store.toN3Store(): N3Store {
     return result
 }
 
-fun Quad.toN3Triple() = N3Triple(
+fun Quad.toN3Triple() = N3Quad(
     subject = s.toN3Term(),
     predicate = p.toN3Term(),
     `object` = o.toN3Term()
@@ -22,6 +22,12 @@ fun Quad.Term.toN3Term() = when (this) {
     is Quad.Literal<*> -> createN3Literal(value, createN3NamedNode(type.value))
     is Quad.BlankTerm -> createN3NamedNode("_:b_$id")
 }
+
+fun N3Quad.toQuad() = Quad(
+    s = subject.toTerm(),
+    p = predicate.toTerm() as Quad.NamedTerm,
+    o = `object`.toTerm()
+)
 
 fun N3Term.toTerm(): Quad.Term = when (termType) {
     "NamedNode" -> unsafeCast<N3NamedNode>().toTerm()

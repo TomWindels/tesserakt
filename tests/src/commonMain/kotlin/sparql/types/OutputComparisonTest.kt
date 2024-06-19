@@ -42,7 +42,7 @@ data class OutputComparisonTest(
         }
 
         override fun toString(): String {
-            return " * Got ${received.size} binding(s):\n\t$received\n * Expected ${expected.size} bindings:\n\t$expected"
+            return " * Got ${received.size} binding(s):\n\t$received\n * Expected ${expected.size} binding(s):\n\t$expected"
         }
 
         companion object {

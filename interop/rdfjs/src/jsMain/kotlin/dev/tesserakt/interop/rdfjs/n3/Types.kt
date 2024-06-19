@@ -3,7 +3,7 @@
 package dev.tesserakt.interop.rdfjs.n3
 
 @JsName("Triple")
-external class N3Triple(
+external class N3Quad(
     subject: N3Term,
     predicate: N3Term,
     `object`: N3Term,
@@ -53,15 +53,15 @@ external class N3Store {
 
     val size: Int
 
-    fun add(triple: N3Triple)
+    fun add(triple: N3Quad)
     @JsName("addQuad")
     fun add(subject: N3Term, predicate: N3Term, `object`: N3Term, graph: N3Term? = definedExternally)
     @JsName("addQuads")
-    fun addAll(triples: Array<N3Triple>)
-    fun has(triple: N3Triple)
-    fun delete(triple: N3Triple)
+    fun addAll(triples: Array<N3Quad>)
+    fun has(triple: N3Quad)
+    fun delete(triple: N3Quad)
     fun forEach(
-        callback: (N3Triple) -> Unit,
+        callback: (N3Quad) -> Unit,
         subject: N3Term? = definedExternally,
         predicate: N3Term? = definedExternally,
         `object`: N3Term? = definedExternally
@@ -74,6 +74,6 @@ external class N3Store {
         predicate: N3Term = definedExternally,
         `object`: N3Term = definedExternally,
         graph: N3Term = definedExternally
-    ): Array<N3Triple>
+    ): Array<N3Quad>
     fun createBlankNode(suggestedName: String = definedExternally): N3BlankNode
 }

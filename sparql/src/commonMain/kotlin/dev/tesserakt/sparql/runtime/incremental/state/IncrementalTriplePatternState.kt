@@ -138,15 +138,15 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
     }
 
     class StatelessRepeatingPattern(
-        subj: Pattern.Subject,
+        private val subj: Pattern.Subject,
         pred: Pattern.RepeatingPredicate,
-        obj: Pattern.Object
+        private val obj: Pattern.Object
     ) : RepeatingPattern(subj, pred, obj) {
 
         private val predicate = pred.element
 
         override fun Quad.toSegments(): Set<SegmentsList.Segment> {
-            if (!predicate.matches(p)) {
+            if (!subj.matches(s) || !predicate.matches(p) || !obj.matches(o)) {
                 return emptySet()
             }
             return setOf(SegmentsList.Segment(start = s, end = o))

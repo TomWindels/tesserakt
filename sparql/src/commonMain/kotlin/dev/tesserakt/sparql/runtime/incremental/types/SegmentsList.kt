@@ -44,8 +44,8 @@ internal class SegmentsList {
             // no impact, no new paths could be made
             return emptySet()
         }
-        val left = pathsEndingWithUsingSegments(end = segment.start)
-        val right = pathsStartingWithUsingSegments(start = segment.end)
+        val left = pathsEndingWithUsingSegments(segment)
+        val right = pathsStartingWithUsingSegments(segment)
         // all results from `before` are now connected with those `after`, with the new segment at least being part
         //  of the result
         val result = LinkedHashSet<Segment>((left.size + 1) * (right.size + 1))
@@ -53,7 +53,8 @@ internal class SegmentsList {
         // adding every permutation
         left.forEach { start -> result.add(Segment(start = start, end = segment.end)) }
         right.forEach { end -> result.add(Segment(start = segment.start, end = end)) }
-        left.forEach { start -> right.forEach { end -> result.add(Segment(start = start, end = end)) } }
+        // adding every in-between path that isn't a "zero-length" path (which can occur in circular graphs)
+        left.forEach { start -> right.forEach { end -> if (start != end) result.add(Segment(start = start, end = end)) } }
         // existing paths can't result in new sub-results
         return result - _paths
     }
@@ -72,22 +73,25 @@ internal class SegmentsList {
     fun allConnectedStartTermsOf(end: Quad.Term): List<Quad.Term> =
         _paths.mapNotNull { segment -> segment.start.takeIf { segment.end == end } }
 
-    /**
-     * Counts the number of path variations are currently available connecting `start` and `end`
-     */
-    fun nVariationsBetween(start: Quad.Term, end: Quad.Term): Int =
-        _paths.count { it.start == start && it.end == end }
+    fun isConnected(start: Quad.Term, end: Quad.Term): Boolean =
+        _paths.any { it.start == start && it.end == end }
 
     /**
      * Returns all points that can be formed by beginning with `start`: segments AB, BC, AD, BD and argument A yield
      *  the terms B, C, D, D
      */
-    private fun pathsStartingWithUsingSegments(start: Quad.Term): List<Quad.Term> {
-        val result = directlyConnectedEndTermsOf(start = start).toMutableList()
+    private fun pathsStartingWithUsingSegments(segment: Segment): List<Quad.Term> {
+        val result = directlyConnectedEndTermsOf(start = segment.end)
+            .filter { it != segment.start && it != segment.end }
+            .toMutableList()
         var new = result.flatMap { current -> directlyConnectedEndTermsOf(start = current) }
+            .filter { it != segment.start && it != segment.end }
+        val seen = mutableSetOf<Quad.Term>()
         while (new.isNotEmpty()) {
             result.addAll(new)
-            new = new.flatMap { current -> directlyConnectedEndTermsOf(start = current) }
+            seen.addAll(new)
+            new = (new.flatMap { current -> directlyConnectedEndTermsOf(start = current) } - seen)
+                .filter { it != segment.start && it != segment.end }
         }
         return result
     }
@@ -96,12 +100,18 @@ internal class SegmentsList {
      * Returns all paths that can be formed by ending with `end`: segments AB, BC, AD and argument C yield
      *  the terms B, A
      */
-    private fun pathsEndingWithUsingSegments(end: Quad.Term): List<Quad.Term> {
-        val result = directlyConnectedStartTermsOf(end = end).toMutableList()
+    private fun pathsEndingWithUsingSegments(segment: Segment): List<Quad.Term> {
+        val result = directlyConnectedStartTermsOf(end = segment.start)
+            .filter { it != segment.start && it != segment.end }
+            .toMutableList()
         var new = result.flatMap { current -> directlyConnectedStartTermsOf(end = current) }
+            .filter { it != segment.start && it != segment.end }
+        val seen = mutableSetOf<Quad.Term>()
         while (new.isNotEmpty()) {
             result.addAll(new)
-            new = new.flatMap { current -> directlyConnectedStartTermsOf(end = current) }
+            seen.addAll(new)
+            new = (new.flatMap { current -> directlyConnectedStartTermsOf(end = current) } - seen)
+                .filter { it != segment.start && it != segment.end }
         }
         return result
     }

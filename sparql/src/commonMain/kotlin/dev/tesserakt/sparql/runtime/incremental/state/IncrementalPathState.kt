@@ -12,6 +12,16 @@ internal sealed class IncrementalPathState(
     protected val end: Pattern.Object
 ) {
 
+    protected val segments = SegmentsList()
+    protected val bs = start.bindingName
+    protected val bo = end.bindingName
+
+    protected fun SegmentsList.Segment.toMapping() = mappingOf(bs to start, bo to end)
+
+    abstract fun join(mappings: List<Mapping>): List<Mapping>
+
+    abstract fun delta(segment: SegmentsList.Segment): List<Mapping>
+
     class ZeroOrMore(
         start: Pattern.Subject,
         end: Pattern.Object
@@ -22,8 +32,7 @@ internal sealed class IncrementalPathState(
             val end = end.getTermOrNull(mapping)
             when {
                 start != null && end != null -> {
-                    // resulting count no. of paths of the same binding are returned, no additional data required
-                    List(segments.nVariationsBetween(start, end)) { mapping }
+                    if (segments.isConnected(start, end)) listOf(mapping) else emptyList()
                 }
 
                 start != null -> {
@@ -99,8 +108,7 @@ internal sealed class IncrementalPathState(
             val end = end.getTermOrNull(mapping)
             when {
                 start != null && end != null -> {
-                    // resulting count no. of paths of the same binding are returned, no additional data required
-                    List(segments.nVariationsBetween(start, end)) { mapping }
+                    if (segments.isConnected(start, end)) listOf(mapping) else emptyList()
                 }
 
                 start != null -> {
@@ -131,16 +139,6 @@ internal sealed class IncrementalPathState(
         override fun delta(segment: SegmentsList.Segment) = segments.newPathsOnAdding(segment).map { it.toMapping() }
 
     }
-
-    protected val segments = SegmentsList()
-    protected val bs = start.bindingName
-    protected val bo = end.bindingName
-
-    protected fun SegmentsList.Segment.toMapping() = mappingOf(bs to start, bo to end)
-
-    abstract fun join(mappings: List<Mapping>): List<Mapping>
-
-    abstract fun delta(segment: SegmentsList.Segment): List<Mapping>
 
     fun insert(segment: SegmentsList.Segment) = segments.insert(segment)
 

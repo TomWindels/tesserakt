@@ -1,5 +1,11 @@
+
+import dev.tesserakt.interop.rdfjs.n3.N3Quad
+import dev.tesserakt.interop.rdfjs.toQuad
+import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler
-import kotlin.js.Promise
+import dev.tesserakt.sparql.Compiler.Default.asSPARQLQuery
+import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
+import dev.tesserakt.sparql.runtime.incremental.query.IncrementalSelectQuery
 
 // IMPORTANT: this file cannot be part of a package, as otherwise `parse` & `query` are not properly accessible in the
 //  exported module (they live in a matching namespace)
@@ -35,6 +41,29 @@ fun parse(queryString: String, options: Map<String, dynamic>) {
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-fun query(data: Array<Quad>, queryString: String, options: dynamic): Promise<QueryResult<*>> {
-    TODO()
+fun query(data: Array<N3Quad>, queryString: String, options: dynamic): QueryResult {
+    console.log("Executing the following query on ${data.size} triple(s): ```\n$queryString```")
+    val store = Store().also { it.addAll(data.map { n3Quad -> n3Quad.toQuad() }) }
+        .also { console.log(it.toString()) }
+    val query = try {
+        queryString.asSPARQLQuery()
+    } catch (t: Throwable) {
+        val msg = buildString {
+            appendLine("== Couldn't validate query output as the query did not compile!")
+            appendLine(queryString)
+            appendLine("Did not compile!")
+            append(t.stackTraceToString())
+        }
+        console.error(msg)
+        // making sure the test suite is aware of our happy little accident
+        throw t
+    }
+    return when (query) {
+        is IncrementalSelectQuery -> {
+            store
+                .query(query)
+                .also { console.log("It yielded ${it.size} binding(s)!") }
+                .let { createSelectResult(bindings = it) }
+        }
+    }
 }

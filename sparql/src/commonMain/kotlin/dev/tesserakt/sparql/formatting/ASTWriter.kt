@@ -85,14 +85,14 @@ class ASTWriter(private val indentStyle: String = "  ") {
         is ExpressionAST.NumericLiteralValue -> {
             writeLine("numeric literal")
             indented {
-                writeLine("value: ${symbol.value} [${symbol.value::class.qualifiedName}]")
+                writeLine("value: ${symbol.value} [${symbol.value::class.simpleName}]")
             }
         }
 
         is ExpressionAST.StringLiteralValue -> {
             writeLine("string literal")
             indented {
-                writeLine("value: ${symbol.value} [${symbol.value::class.qualifiedName}]")
+                writeLine("value: ${symbol.value} [${symbol.value::class.simpleName}]")
             }
         }
 

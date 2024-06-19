@@ -149,4 +149,35 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         }
     """
 
+    val fullyConnected = buildStore {
+        val a = "http://example.org/a".asNamedTerm()
+        val b = "http://example.org/b".asNamedTerm()
+        val c = "http://example.org/c".asNamedTerm()
+        val p = "http://example.org/p".asNamedTerm()
+        a has p being b
+        a has p being c
+        b has p being a
+        b has p being c
+        c has p being a
+        c has p being b
+    }
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            <http://example.org/a> <http://example.org/p>* <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a <http://example.org/p>* <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a <http://example.org/p>* ?b
+        }
+    """
+
 }
