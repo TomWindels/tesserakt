@@ -180,4 +180,46 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         }
     """
 
+    val unions = buildStore("http://www.example.org/") {
+        val a = local("a")
+        val b = local("b")
+        val c = local("c")
+        val d = local("d")
+        val e = local("e")
+
+        val p1 = local("p1")
+        val p2 = local("p2")
+        val p3 = local("p3")
+        val p4 = local("p4")
+
+        a has p1 being b
+        b has p4 being c
+        a has p2 being d
+        d has p3 being c
+        a has p1 being e
+    }
+
+    using(unions) test """
+        PREFIX : <http://www.example.org/>
+        SELECT ?s WHERE {
+            {
+                :a :p1 ?b .
+            } UNION {
+                :a :p2 ?b .
+            }
+            {
+                ?b :p3 ?s .
+            } UNION {
+                ?b :p4 ?s .
+            }
+        }
+    """
+
+    using(unions) test """
+        PREFIX : <http://www.example.org/>
+        SELECT ?s WHERE {
+            :a (:p1|:p2)/(:p3|:p4) ?s
+        }
+    """
+
 }

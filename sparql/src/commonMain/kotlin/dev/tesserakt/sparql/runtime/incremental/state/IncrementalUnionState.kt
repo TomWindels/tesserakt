@@ -64,7 +64,7 @@ internal class IncrementalUnionState(union: Union) {
     }
 
     fun join(mappings: List<Mapping>): List<Mapping> {
-        return state.fold(mappings) { results, s -> s.join(results) }
+        return state.flatMap { s -> s.join(mappings) }
     }
 
 }
