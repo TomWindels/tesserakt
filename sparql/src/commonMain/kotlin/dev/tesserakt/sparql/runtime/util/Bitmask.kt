@@ -80,6 +80,62 @@ class Bitmask private constructor(
         }
     }
 
+    /**
+     * Returns a copy of this bitmask, but with the bit at [index] set.
+     */
+    fun withOnesAt(index: Int): Bitmask {
+        return Bitmask(bits = bits or (1 shl index), length = length)
+    }
+
+    /**
+     * Returns a copy of this bitmask, but with the bits at [index] set.
+     */
+    fun withOnesAt(vararg index: Int): Bitmask {
+        return Bitmask(bits = index.fold(bits) { result, i -> result or (1 shl i) }, length = length)
+    }
+
+    /**
+     * Counts the number of ones inside this bitmask.
+     *
+     * Example: `0b0110` returns `2`
+     */
+    fun count() = bits.countOneBits()
+
+    /**
+     * Returns the length of this bitmask.
+     *
+     * Example: `0b0110` returns `4`
+     */
+    fun size() = length
+
+    /**
+     * Returns the index of the lowest non-zero bit.
+     *
+     * Example: `0b0010` returns 1
+     */
+    fun lowestOneBitIndex() = bits.countTrailingZeroBits()
+
+    /**
+     * Returns the index of the lowest zero bit.
+     *
+     * Example: `0b0011` returns 2
+     */
+    fun lowestZeroBitIndex() = bits.inv().countTrailingZeroBits()
+
+    /**
+     * Returns the index of the highest non-zero bit.
+     *
+     * Example: `0b1010` returns 3
+     */
+    fun highestOneBitIndex() = Int.SIZE_BITS - bits.countLeadingZeroBits()
+
+    /**
+     * Returns the index of the highest zero bit.
+     *
+     * Example: `0b0010` returns 3
+     */
+    fun highestZeroBitIndex() = Int.SIZE_BITS - bits.inv().countLeadingZeroBits()
+
     override fun toString(): String {
         return "0b${bits.toBinaryString(length)}"
     }
