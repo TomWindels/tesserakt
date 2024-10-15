@@ -19,6 +19,7 @@ kotlin {
                 implementation(project(":extra"))
                 implementation(project(":rdf"))
                 implementation(project(":rdf-dsl"))
+                implementation(project(":serialization"))
                 implementation(project(":sparql"))
             }
         }
@@ -29,7 +30,6 @@ kotlin {
         }
         val jvmTest by getting {
             dependencies {
-                implementation(project(":serialization"))
                 implementation(kotlin("test"))
             }
         }
