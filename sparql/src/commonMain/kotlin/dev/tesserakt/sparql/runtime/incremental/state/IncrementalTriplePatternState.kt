@@ -9,7 +9,6 @@ import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.matches
 import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
 import dev.tesserakt.sparql.runtime.util.Bitmask
-import dev.tesserakt.util.compatibleWith
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
@@ -22,16 +21,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
             data.addAll(delta(quad))
         }
 
-        final override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { bindings ->
-            data.mapNotNull { previous ->
-                // checking to see if there's any incompatibility in the input constraints
-                if (bindings.compatibleWith(previous)) {
-                    bindings + previous
-                } else {
-                    null
-                }
-            }
-        }
+        final override fun join(mappings: List<Mapping>): List<Mapping> = mergeCompatibleMappings(data, mappings)
 
     }
 

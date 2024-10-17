@@ -37,3 +37,11 @@ internal inline fun List<Pair<Bitmask, List<Mapping>>>.expandResultSet(): List<P
     }
     return result
 }
+
+internal inline fun mergeCompatibleMappings(a: List<Mapping>, b: List<Mapping>) = buildList(a.size + b.size) {
+    a.forEach { left ->
+        b.forEach { right ->
+            if (left.compatibleWith(right)) add(left + right)
+        }
+    }
+}

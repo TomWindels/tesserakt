@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.runtime.util
 
 class Bitmask private constructor(
     private val bits: Int,
-    private val length: Int
+    val length: Int
 ): Iterable<Int> {
 
     operator fun get(index: Int) = ((bits shr index) and 1) == 1
@@ -49,6 +49,8 @@ class Bitmask private constructor(
             }
             return Bitmask(bits = result, length = booleans.size)
         }
+
+        fun wrap(raw: Int, length: Int): Bitmask = Bitmask(bits = raw, length = length)
 
         fun onesAt(index: Int, length: Int? = null): Bitmask {
             val result = 1 shl index
@@ -127,7 +129,7 @@ class Bitmask private constructor(
      *
      * Example: `0b1010` returns 3
      */
-    fun highestOneBitIndex() = Int.SIZE_BITS - bits.countLeadingZeroBits()
+    fun highestOneBitIndex() = Int.SIZE_BITS - bits.countLeadingZeroBits() - 1
 
     /**
      * Returns the index of the highest zero bit.
