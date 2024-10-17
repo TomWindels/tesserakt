@@ -24,6 +24,37 @@ sealed class MappingCache {
     }
 
     /**
+     * A naive caching approach, caching every variant possible
+     */
+    class Full: MappingCache() {
+
+        private val cache = mutableMapOf<Bitmask, MutableList<Mapping>>()
+
+        override fun insert(bitmask: Bitmask, mappings: List<Mapping>) {
+            cache.getOrPut(bitmask) { mutableListOf() }.addAll(mappings)
+        }
+
+        // as we don't cache anything, the input becomes the output directly
+        override fun List<Pair<Bitmask, List<Mapping>>>.growUsingCache(): List<Pair<Bitmask, List<Mapping>>> {
+            return map { (mask, mappings) ->
+                val remaining = mask.inv()
+                if (remaining.count() == 1) {
+                    // this one isn't cached, so leaving it alone
+                    return@map mask to mappings
+                }
+                val cached = cache[remaining]
+                val satisfied = Bitmask.wrap(raw = (1 shl (mask.size() + 1)) - 1, length = mask.size())
+                if (cached != null) {
+                    satisfied to mergeCompatibleMappings(cached, mappings)
+                } else {
+                    mask to mappings
+                }
+            }
+        }
+
+    }
+
+    /**
      * A caching strategy only keeping intermediate mapping results cached that form a single chain starting from the
      *  very first element.
      */
@@ -73,7 +104,7 @@ sealed class MappingCache {
                 val result = mergeCompatibleMappings(cached, mappings)
                 // forming the new mask this result adheres to, which is
                 //  the original mask | ones (index based length)
-                val satisfied = Bitmask.wrap((1 shl (index + 2)) - 1, length = mask.length)
+                val satisfied = Bitmask.wrap((1 shl (index + 2)) - 1, length = mask.size())
                 val total = mask or satisfied
                 total to result
             }

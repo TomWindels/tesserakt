@@ -8,6 +8,8 @@ import dev.tesserakt.sparql.runtime.util.Bitmask
 
 internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
 
+//    private val patternCache = MappingCache.Full()
+//    private val patternCache = MappingCache.None
     private val patternCache = MappingCache.ChainStart()
     private val unionCache = MappingCache.ChainStart()
     private val patterns = ast.patterns.map { it.createIncrementalPatternState() }
@@ -92,6 +94,47 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                 }
             }
             .let { patterns.fold(it) { results, p -> p.join(results) } }
+
+        // FIXME: this doesn't work: maybe offload the single pattern results also in the cache,
+        //  and let the cache-specific method deal with the trickling down of all new sub-states;
+        //  the cache API then also would solely have to deal with all possible return values for a single pattern
+        //  group
+//        with (patternCache) {
+//            patterns
+//                .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = patterns.size) to pattern.delta(quad) }
+//                .expandResultSet()
+//                .growUsingCache()
+//                .flatMap { (mask, mappings) ->
+//                    // as we only need to iterate over the patterns not yet managed, we need to inverse the bitmask
+//                    //  before iterating over it
+//                    var currentMask = mask
+//                    mask.inv().fold(mappings) { results, i ->
+//                        val result = patterns[i].join(results)
+//                        currentMask = currentMask.withOnesAt(i)
+//                        patternCache.insert(currentMask, result)
+//                        result
+//                    }
+//                }
+//        }
+//        // updating the plan union-wise
+//        with (unionCache) {
+//            unions
+//                .mapIndexed { i, union -> Bitmask.onesAt(i, length = unions.size) to union.delta(quad) }
+//                .expandResultSet()
+//                .growUsingCache()
+//                .flatMap { (mask, mappings) ->
+//                    // as we only need to iterate over the unions not yet managed, we need to inverse the bitmask
+//                    //  before iterating over it
+//                    var currentMask = mask
+//                    mask.inv().fold(mappings) { results, i ->
+//                        val result = unions[i].join(results)
+//                        currentMask = currentMask.withOnesAt(i)
+//                        unionCache.insert(currentMask, result)
+//                        result
+//                    }
+//                }
+//                .let { patterns.fold(it) { results, p -> p.join(results) } }
+//        }
     }
 
 }

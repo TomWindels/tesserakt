@@ -1,5 +1,6 @@
 package comunica
 
+import dev.tesserakt.interop.rdfjs.n3.N3Store
 import dev.tesserakt.interop.rdfjs.n3.N3Term
 import dev.tesserakt.interop.rdfjs.toN3Store
 import dev.tesserakt.interop.rdfjs.toTerm
@@ -16,9 +17,12 @@ private fun ComunicaBinding.toBindings(): Bindings = js("Array")
     .associate { (name, term) -> name.value as String to term.unsafeCast<N3Term>().toTerm() }
 
 suspend fun Store.comunicaSelectQuery(query: String): List<Bindings> {
-    val n3store = toN3Store()
+    return toN3Store().comunicaSelectQuery(query)
+}
+
+suspend fun N3Store.comunicaSelectQuery(query: String): List<Bindings> {
     val opts: dynamic = Any()
-    opts.sources = arrayOf(n3store)
+    opts.sources = arrayOf(this)
     return engine
         .query(query, opts)
         .await()

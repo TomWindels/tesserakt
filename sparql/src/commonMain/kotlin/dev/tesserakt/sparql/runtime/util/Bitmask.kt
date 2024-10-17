@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.runtime.util
 
 class Bitmask private constructor(
     private val bits: Int,
-    val length: Int
+    private val length: Int
 ): Iterable<Int> {
 
     operator fun get(index: Int) = ((bits shr index) and 1) == 1

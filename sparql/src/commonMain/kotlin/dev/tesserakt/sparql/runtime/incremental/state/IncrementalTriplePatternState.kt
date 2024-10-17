@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.common.types.Pattern
+import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.common.util.getTermOrNull
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
@@ -21,7 +22,10 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
             data.addAll(delta(quad))
         }
 
-        final override fun join(mappings: List<Mapping>): List<Mapping> = mergeCompatibleMappings(data, mappings)
+        final override fun join(mappings: List<Mapping>): List<Mapping> {
+            Debug.onArrayPatternJoinExecuted()
+            return mergeCompatibleMappings(data, mappings)
+        }
 
     }
 
