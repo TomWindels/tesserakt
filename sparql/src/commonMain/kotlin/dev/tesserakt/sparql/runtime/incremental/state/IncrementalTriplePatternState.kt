@@ -24,7 +24,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
         final override fun join(mappings: List<Mapping>): List<Mapping> {
             Debug.onArrayPatternJoinExecuted()
-            return mergeCompatibleMappings(data, mappings)
+            return doNestedJoin(data, mappings)
         }
 
     }

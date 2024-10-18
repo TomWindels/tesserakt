@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
+import dev.tesserakt.util.toTruncatedString
 import sparql.ExternalQueryExecution
 import test.suite.Test
 import test.suite.runTest
@@ -62,7 +63,7 @@ data class OutputComparisonTest(
         }
 
         override fun toString(): String {
-            return " * Got ${received.size} binding(s) ($elapsedTime):\n\t$received\n * Expected ${expected.size} binding(s) ($referenceTime):\n\t$expected\n * $debugInformation"
+            return " * Got ${received.size} binding(s) ($elapsedTime):\n\t${received.toTruncatedString(500)}\n * Expected ${expected.size} binding(s) ($referenceTime):\n\t${expected.toTruncatedString(500)}\n * $debugInformation"
         }
 
         companion object {

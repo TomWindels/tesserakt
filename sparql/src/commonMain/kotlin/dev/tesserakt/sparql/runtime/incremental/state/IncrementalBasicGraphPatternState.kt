@@ -64,77 +64,48 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
     // TODO: may also benefit from the same original cache use as noted by the original "delta" above
     private fun updateCache(quad: Quad) {
         // updating the cache pattern-wise
-        patterns
-            .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = patterns.size) to pattern.delta(quad) }
-            .expandResultSet()
-            .flatMap { (mask, mappings) ->
-                // as we only need to iterate over the patterns not yet managed, we need to inverse the bitmask
-                //  before iterating over it
-                var currentMask = mask
-                mask.inv().fold(mappings) { results, i ->
-                    val result = patterns[i].join(results)
-                    currentMask = currentMask.withOnesAt(i)
-                    patternCache.insert(currentMask, result)
-                    result
+        with (patternCache) {
+            patterns
+                .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = patterns.size) to pattern.delta(quad) }
+                .expandResultSet()
+                .growUsingCache()
+                .flatMap { (mask, mappings) ->
+                    // inserting the new item(s) first - this iteration can be the result from `expandResultSet` and
+                    //  satisfy multiple triple patterns already
+                    patternCache.insert(mask, mappings)
+                    // as we only need to iterate over the patterns not yet managed, we need to inverse the bitmask
+                    //  before iterating over it
+                    var currentMask = mask
+                    mask.inv().fold(mappings) { results, i ->
+                        val result = patterns[i].join(results)
+                        currentMask = currentMask.withOnesAt(i)
+                        patternCache.insert(currentMask, result)
+                        result
+                    }
                 }
-            }
+        }
         // updating the plan union-wise
-        unions
-            .mapIndexed { i, union -> Bitmask.onesAt(i, length = unions.size) to union.delta(quad) }
-            .expandResultSet()
-            .flatMap { (mask, mappings) ->
-                // as we only need to iterate over the unions not yet managed, we need to inverse the bitmask
-                //  before iterating over it
-                var currentMask = mask
-                mask.inv().fold(mappings) { results, i ->
-                    val result = unions[i].join(results)
-                    currentMask = currentMask.withOnesAt(i)
-                    unionCache.insert(currentMask, result)
-                    result
+        with (unionCache) {
+            unions
+                .mapIndexed { i, union -> Bitmask.onesAt(i, length = unions.size) to union.delta(quad) }
+                .expandResultSet()
+                .growUsingCache()
+                .flatMap { (mask, mappings) ->
+                    // inserting the new item(s) first - this iteration can be the result from `expandResultSet` and
+                    //   satisfy multiple unions already
+                    unionCache.insert(mask, mappings)
+                    // as we only need to iterate over the unions not yet managed, we need to inverse the bitmask
+                    //  before iterating over it
+                    var currentMask = mask
+                    mask.inv().fold(mappings) { results, i ->
+                        val result = unions[i].join(results)
+                        currentMask = currentMask.withOnesAt(i)
+                        unionCache.insert(currentMask, result)
+                        result
+                    }
                 }
-            }
-            .let { patterns.fold(it) { results, p -> p.join(results) } }
-
-        // FIXME: this doesn't work: maybe offload the single pattern results also in the cache,
-        //  and let the cache-specific method deal with the trickling down of all new sub-states;
-        //  the cache API then also would solely have to deal with all possible return values for a single pattern
-        //  group
-//        with (patternCache) {
-//            patterns
-//                .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = patterns.size) to pattern.delta(quad) }
-//                .expandResultSet()
-//                .growUsingCache()
-//                .flatMap { (mask, mappings) ->
-//                    // as we only need to iterate over the patterns not yet managed, we need to inverse the bitmask
-//                    //  before iterating over it
-//                    var currentMask = mask
-//                    mask.inv().fold(mappings) { results, i ->
-//                        val result = patterns[i].join(results)
-//                        currentMask = currentMask.withOnesAt(i)
-//                        patternCache.insert(currentMask, result)
-//                        result
-//                    }
-//                }
-//        }
-//        // updating the plan union-wise
-//        with (unionCache) {
-//            unions
-//                .mapIndexed { i, union -> Bitmask.onesAt(i, length = unions.size) to union.delta(quad) }
-//                .expandResultSet()
-//                .growUsingCache()
-//                .flatMap { (mask, mappings) ->
-//                    // as we only need to iterate over the unions not yet managed, we need to inverse the bitmask
-//                    //  before iterating over it
-//                    var currentMask = mask
-//                    mask.inv().fold(mappings) { results, i ->
-//                        val result = unions[i].join(results)
-//                        currentMask = currentMask.withOnesAt(i)
-//                        unionCache.insert(currentMask, result)
-//                        result
-//                    }
-//                }
-//                .let { patterns.fold(it) { results, p -> p.join(results) } }
-//        }
+                .let { patterns.fold(it) { results, p -> p.join(results) } }
+        }
     }
 
 }

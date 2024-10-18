@@ -45,7 +45,7 @@ sealed class MappingCache {
                 val cached = cache[remaining]
                 val satisfied = Bitmask.wrap(raw = (1 shl (mask.size() + 1)) - 1, length = mask.size())
                 if (cached != null) {
-                    satisfied to mergeCompatibleMappings(cached, mappings)
+                    satisfied to doNestedJoin(cached, mappings)
                 } else {
                     mask to mappings
                 }
@@ -101,7 +101,7 @@ sealed class MappingCache {
                 val cached = cache.getOrNull(index)
                     // wasn't cached (no valid combination found thus far)
                     ?: return@map mask to mappings
-                val result = mergeCompatibleMappings(cached, mappings)
+                val result = doNestedJoin(cached, mappings)
                 // forming the new mask this result adheres to, which is
                 //  the original mask | ones (index based length)
                 val satisfied = Bitmask.wrap((1 shl (index + 2)) - 1, length = mask.size())
