@@ -14,9 +14,9 @@ import dev.tesserakt.sparql.runtime.util.Bitmask
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
     // FIXME set semantics: duplicate triples should be ignored!
-    sealed class ArrayBackedPattern<P : Pattern.Predicate> : IncrementalTriplePatternState<P>() {
+    sealed class ArrayBackedPattern<P : Pattern.Predicate>(bindings: List<String>) : IncrementalTriplePatternState<P>() {
 
-        private val data = mutableListOf<Mapping>()
+        private val data = HashJoinArray(bindings)
 
         final override fun insert(quad: Quad) {
             data.addAll(delta(quad))
@@ -24,7 +24,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
         final override fun join(mappings: List<Mapping>): List<Mapping> {
             Debug.onArrayPatternJoinExecuted()
-            return doNestedJoin(data, mappings)
+            return data.join(mappings)
         }
 
     }
@@ -74,7 +74,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
         val subj: Pattern.Subject,
         val pred: Pattern.Exact,
         val obj: Pattern.Object
-    ) : ArrayBackedPattern<Pattern.Exact>() {
+    ) : ArrayBackedPattern<Pattern.Exact>(bindings = bindingNamesOf(subj, pred, obj)) {
 
         override fun delta(quad: Quad): List<Mapping> {
             if (!subj.matches(quad.s) || !pred.matches(quad.p) || !obj.matches(quad.o)) {
@@ -94,7 +94,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
         val subj: Pattern.Subject,
         val pred: Pattern.Binding,
         val obj: Pattern.Object
-    ) : ArrayBackedPattern<Pattern.Exact>() {
+    ) : ArrayBackedPattern<Pattern.Exact>(bindings = bindingNamesOf(subj, pred, obj)) {
 
         override fun delta(quad: Quad): List<Mapping> {
             if (!subj.matches(quad.s) || !obj.matches(quad.o)) {
@@ -115,7 +115,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
         val subj: Pattern.Subject,
         val pred: Pattern.Negated,
         val obj: Pattern.Object
-    ) : ArrayBackedPattern<Pattern.Negated>() {
+    ) : ArrayBackedPattern<Pattern.Negated>(bindings = bindingNamesOf(subj, pred, obj)) {
 
         override fun delta(quad: Quad): List<Mapping> {
             if (!subj.matches(quad.s) || pred.term == quad.p || !obj.matches(quad.o)) {

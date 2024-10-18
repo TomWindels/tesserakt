@@ -58,7 +58,7 @@ data class OutputComparisonTest(
 
         override fun exceptionOrNull(): Throwable? {
             return if (isNotEmpty()) {
-                AssertionError("Received results do not match expectations!\n$this\n * The following ${leftOver.size} binding(s) are superfluous:\n\t$leftOver\n * The following ${missing.size} binding(s) are missing:\n\t$missing\n")
+                AssertionError("Received results do not match expectations!\n$this\n * The following ${leftOver.size} binding(s) are superfluous:\n\t${leftOver.toTruncatedString(500)}\n * The following ${missing.size} binding(s) are missing:\n\t${missing.toTruncatedString(500)}\n")
             } else null
         }
 
