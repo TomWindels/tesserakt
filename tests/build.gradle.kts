@@ -9,7 +9,7 @@ kotlin {
     jvm()
     js {
         nodejs()
-        binaries.library()
+        binaries.executable()
     }
     sourceSets {
         // core modules tested by all test targets
@@ -19,6 +19,7 @@ kotlin {
                 implementation(project(":extra"))
                 implementation(project(":rdf"))
                 implementation(project(":rdf-dsl"))
+                implementation(project(":serialization"))
                 implementation(project(":sparql"))
             }
         }
@@ -29,7 +30,6 @@ kotlin {
         }
         val jvmTest by getting {
             dependencies {
-                implementation(project(":serialization"))
                 implementation(kotlin("test"))
             }
         }
@@ -58,9 +58,32 @@ tasks.create("jsRdfTestSuite") {
     }
 }.also { it.dependsOn("jsRun") }
 
+tasks.create("prepareBenchmark") {
+    doLast {
+        exec {
+            workingDir(project.rootDir)
+            commandLine("git", "submodule", "update", "--remote")
+        }
+        exec {
+            val resources = "${projectDir.absolutePath}/src/commonMain/resources"
+            workingDir("$resources/benchmarks")
+            commandLine("bash", "configure.sh")
+        }
+    }
+}
+
 // required for `jsRun` to behave; does cause constant recompiles, but worth the test accuracy
-tasks.named("jsNodeDevelopmentRun").dependsOn("jsProductionLibraryCompileSync")
-tasks.named("jsNodeDevelopmentRun").dependsOn("jsDevelopmentLibraryCompileSync")
-tasks.named("jsNodeProductionRun").dependsOn("jsProductionLibraryCompileSync")
-tasks.named("jsNodeProductionRun").dependsOn("jsDevelopmentLibraryCompileSync")
-tasks.named("jsNodeRun").dependsOn("jsProductionLibraryCompileSync")
+tasks.named("jsNodeDevelopmentRun").dependsOn("jsProductionExecutableCompileSync")
+tasks.named("jsNodeDevelopmentRun").dependsOn("jsDevelopmentExecutableCompileSync")
+tasks.named("jsNodeProductionRun").dependsOn("jsProductionExecutableCompileSync")
+tasks.named("jsNodeProductionRun").dependsOn("jsDevelopmentExecutableCompileSync")
+tasks.named("jsNodeRun").dependsOn("jsProductionExecutableCompileSync")
+
+// making sure the benchmark preparations are done when running these
+tasks.named("jsNodeRun").dependsOn("prepareBenchmark")
+tasks.withType<JavaExec>().matching { it.name == "jvmRun" }.configureEach {
+    val resources = "${projectDir.absolutePath}/src/commonMain/resources"
+    args("$resources/benchmarks/watdiv/dataset.nt", "$resources/benchmarks/watdiv/queries/S1.txt")
+    dependsOn("prepareBenchmark")
+}
+

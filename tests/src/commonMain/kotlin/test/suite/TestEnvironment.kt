@@ -8,6 +8,10 @@ class TestEnvironment {
 
     private val tests = mutableListOf<Test>()
 
+    fun add(test: Test) {
+        tests.add(test)
+    }
+
     fun using(store: Store) = TestBuilder(store = store)
 
     inner class TestBuilder(private val store: Store) {

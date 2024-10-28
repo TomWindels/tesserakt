@@ -11,3 +11,5 @@ expect class ExternalQueryExecution(query: String, data: Store) {
     fun report(): String
 
 }
+
+internal expect fun readFile(filepath: String): Result<String>

@@ -8,7 +8,8 @@ import dev.tesserakt.sparql.runtime.common.types.Bindings
 import org.apache.jena.query.Dataset
 import org.apache.jena.query.QueryExecutionFactory
 import kotlin.time.measureTime
-
+import kotlin.io.path.Path
+import kotlin.io.path.readText
 
 actual class ExternalQueryExecution actual constructor(
     private val query: String,
@@ -40,4 +41,8 @@ actual class ExternalQueryExecution actual constructor(
         return " * Jena query execution\n\tPreparation took $duration"
     }
 
+}
+
+internal actual fun readFile(filepath: String): Result<String> = runCatching {
+    Path(filepath).readText()
 }

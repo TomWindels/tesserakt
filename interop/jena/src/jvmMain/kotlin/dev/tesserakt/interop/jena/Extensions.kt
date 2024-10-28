@@ -66,3 +66,9 @@ fun Node.toTerm() = when (this) {
     is Node_Blank -> Quad.BlankTerm(id = blankNodeLabel.takeLastWhile { it.isDigit() }.toInt())
     else -> throw IllegalArgumentException("Unknown node type `${this::class.simpleName}`")
 }
+
+fun Triple.toQuad() = Quad(
+    s = subject.toTerm(),
+    p = predicate.toTerm() as Quad.NamedTerm,
+    o = `object`.toTerm()
+)
