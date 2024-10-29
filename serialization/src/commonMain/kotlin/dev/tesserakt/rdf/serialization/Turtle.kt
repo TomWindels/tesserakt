@@ -38,6 +38,8 @@ object Turtle {
                 PrefixAnnotationA("@prefix"),
                 PrefixAnnotationB("PREFIX"),
                 TypePredicate("a"),
+                TrueLiteral("true"),
+                FalseLiteral("false"),
                 /* end of structural tokens */;
                 override fun toString() = "structural token `$syntax`"
                 companion object {
@@ -117,15 +119,9 @@ object Turtle {
         } else if (length == 0 && input.peek() == ':') {
             // special case
             Token.PrefixedTerm(prefix = "", value = "")
-        } else if (has(':')) {
-            val colon = findOrEnd(':')
-            // this term can end sooner than `end` through the use of structural tokens
-            Token.PrefixedTerm(
-                prefix = input.substring(0, colon),
-                value = input.substring(colon + 1, nextImplicitTermTerminator(colon + 1))
-            )
         } else if (input.peek() == '"') {
             val end = findNextOrBail('"')
+            val value = input.substring(1, end)
             val dataType: Quad.NamedTerm
             val additionalOffset: Int
             when {
@@ -135,8 +131,9 @@ object Turtle {
                     dataType = RDF.langString
                 }
                 input.peek(end + 1) == '^' && input.peek(end + 2) == '^' -> {
+                    input.consume(end + 3)
                     val datatype = nextToken()
-                    additionalOffset = datatype.syntaxLength + 2 // + "^^"
+                    additionalOffset = datatype.syntaxLength + 2 - end - 3 // plus "^^" minus what was consumed above
                     dataType = datatype.asNamedTermOrBail()
                 }
                 else -> {
@@ -144,17 +141,51 @@ object Turtle {
                     dataType = XSD.string
                 }
             }
-            Token.LiteralTerm(
-                value = input.substring(1, end),
-                syntaxLength = end + 1 + additionalOffset,
-                dataType = dataType
-            )
+            when (dataType) {
+                XSD.int -> Token.LiteralTerm(
+                    value = value.toInt(),
+                    syntaxLength = end + 1 + additionalOffset,
+                    dataType = dataType
+                )
+                XSD.long -> Token.LiteralTerm(
+                    value = value.toLong(),
+                    syntaxLength = end + 1 + additionalOffset,
+                    dataType = dataType
+                )
+                XSD.float -> Token.LiteralTerm(
+                    value = value.toFloat(),
+                    syntaxLength = end + 1 + additionalOffset,
+                    dataType = dataType
+                )
+                XSD.double -> Token.LiteralTerm(
+                    value = value.toDouble(),
+                    syntaxLength = end + 1 + additionalOffset,
+                    dataType = dataType
+                )
+                XSD.boolean -> Token.LiteralTerm(
+                    value = value.toBooleanStrict(),
+                    syntaxLength = end + 1 + additionalOffset,
+                    dataType = dataType
+                )
+                else -> Token.LiteralTerm(
+                    value = value,
+                    syntaxLength = end + 1 + additionalOffset,
+                    dataType = dataType
+                )
+            }
         } else if (input.peek()!!.isDigit()) {
             val end = nextImplicitTermTerminator()
             Token.LiteralTerm(
                 value = input.substring(0, end).toInt(),
                 syntaxLength = end,
                 dataType = XSD.int
+            )
+        } else if (has(':')) {
+            val colon = findOrEnd(':')
+            // this term can end sooner than `end` through the use of structural tokens
+            Token.PrefixedTerm(
+                prefix = input.substring(0, colon),
+                value = input.substring(colon + 1, nextImplicitTermTerminator(colon + 1))
             )
         } else {
             Token.StructuralToken
@@ -388,6 +419,8 @@ object Turtle {
                     is Token.PrefixedTerm -> c.resolveOrBail().toQuadTerm()
                     is Token.LiteralTerm<*> -> c.toQuadTerm()
                     is Token.Term -> c.toQuadTerm()
+                    Token.StructuralToken.TrueLiteral -> true.asLiteralTerm()
+                    Token.StructuralToken.FalseLiteral -> false.asLiteralTerm()
                     Token.EOF -> bailOnBadStructure()
                     is Token.StructuralToken -> bailOnBadStructure()
                 }

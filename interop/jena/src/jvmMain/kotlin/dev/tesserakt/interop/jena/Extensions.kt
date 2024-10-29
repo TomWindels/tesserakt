@@ -53,15 +53,11 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
     else -> throw IllegalArgumentException("Unknown type: `$value`")
 }
 
-// Jena has XSD data types defined using `http`, whereas tesserakt uses the `https` version
-private const val xsdJena = "http://www.w3.org/2001/XMLSchema#"
-private const val xsdTesserakt = "https://www.w3.org/2001/XMLSchema#"
-
 fun Node.toTerm() = when (this) {
     is Node_URI -> Quad.NamedTerm(value = uri)
     is Node_Literal -> Quad.Literal<Any>(
         literal = literalValue,
-        type = literalDatatype.uri.replace(xsdJena, xsdTesserakt).asNamedTerm()
+        type = literalDatatype.uri.asNamedTerm()
     )
     is Node_Blank -> Quad.BlankTerm(id = blankNodeLabel.takeLastWhile { it.isDigit() }.toInt())
     else -> throw IllegalArgumentException("Unknown node type `${this::class.simpleName}`")

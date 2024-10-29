@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.serialization.util.openAsBufferedReader
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.testing.testEnv
+import dev.tesserakt.util.toTruncatedString
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 
@@ -18,8 +19,10 @@ class TurtleTestRunner {
             val expected: List<Quad>
         ): dev.tesserakt.testing.Test.Result {
 
-            private val superfluous: List<Quad> = obtained - expected
-            private val missing: List<Quad> = expected - obtained
+            private val superfluous: List<Quad> = (obtained - expected)
+                .sortedBy { it.s.hashCode() }
+            private val missing: List<Quad> = (expected - obtained)
+                .sortedBy { it.s.hashCode() }
 
             override fun isSuccess(): Boolean {
                 return superfluous.isEmpty() && missing.isEmpty()
@@ -27,12 +30,12 @@ class TurtleTestRunner {
 
             override fun exceptionOrNull(): Throwable? {
                 return if (!isSuccess()) {
-                    AssertionError("Received results do not match expectations!\n$this\n * The following ${superfluous.size} quad(s) are superfluous:\n\t$superfluous\n * The following ${missing.size} quad(s) are missing:\n\t$missing\n")
+                    AssertionError("Received results do not match expectations!\n$this\n * The following ${superfluous.size} quad(s) are superfluous:\n\t${superfluous.toTruncatedString(500)}\n * The following ${missing.size} quad(s) are missing:\n\t${missing.toTruncatedString(500)}\n")
                 } else null
             }
 
             override fun toString(): String {
-                return " * Got ${obtained.size} quad(s):\n\t$obtained\n * Expected ${expected.size} quad(s):\n\t$expected"
+                return " * Got ${obtained.size} quad(s):\n\t${obtained.toTruncatedString(500)}\n * Expected ${expected.size} quad(s):\n\t${expected.toTruncatedString(500)}"
             }
         }
 
