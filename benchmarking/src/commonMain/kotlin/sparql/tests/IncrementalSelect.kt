@@ -3,7 +3,8 @@ package sparql.tests
 import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.Store
-import test.suite.testEnv
+import dev.tesserakt.testing.testEnv
+import sparql.types.using
 import kotlin.random.Random
 import kotlin.time.measureTime
 

@@ -1,8 +1,6 @@
-package test.suite
+package dev.tesserakt.testing
 
-import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.util.printerrln
-import sparql.types.OutputComparisonTest
 
 class TestEnvironment {
 
@@ -10,16 +8,6 @@ class TestEnvironment {
 
     fun add(test: Test) {
         tests.add(test)
-    }
-
-    fun using(store: Store) = TestBuilder(store = store)
-
-    inner class TestBuilder(private val store: Store) {
-
-        infix fun test(query: String) {
-            tests.add(OutputComparisonTest(query = query, store = store))
-        }
-
     }
 
     data class Results(

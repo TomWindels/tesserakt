@@ -4,7 +4,8 @@ import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import test.suite.testEnv
+import dev.tesserakt.testing.testEnv
+import sparql.types.using
 
 
 fun compareIncrementalBasicGraphPatternOutput() = testEnv {

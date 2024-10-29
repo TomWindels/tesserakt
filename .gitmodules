@@ -1,3 +1,0 @@
-[submodule "tests/src/commonMain/resources/benchmarks"]
-	path = tests/src/commonMain/resources/benchmarks
-	url = git@github.com:TomWindels/tesserakt-benchmarks

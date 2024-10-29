@@ -1,5 +1,3 @@
-package sparql
-
 import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.runtime.incremental.compat.QueryCompatLayer
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery

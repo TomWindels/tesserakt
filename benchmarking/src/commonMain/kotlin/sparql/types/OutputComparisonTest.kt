@@ -5,10 +5,10 @@ import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
+import dev.tesserakt.testing.Test
+import dev.tesserakt.testing.runTest
 import dev.tesserakt.util.toTruncatedString
 import sparql.ExternalQueryExecution
-import test.suite.Test
-import test.suite.runTest
 import kotlin.time.Duration
 import kotlin.time.measureTime
 

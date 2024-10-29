@@ -13,7 +13,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(project(":interop:jena"))
-                implementation(project(":tests"))
+                implementation(project(":testing:suite"))
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
             }
         }

@@ -3,20 +3,20 @@ import dev.tesserakt.rdf.serialization.Turtle
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.serialization.util.openAsBufferedReader
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.testing.testEnv
 import kotlinx.coroutines.runBlocking
-import test.suite.testEnv
 import kotlin.test.Test
 
 class TurtleTestRunner {
 
     data class TurtleTest(
         val filepath: String
-    ): test.suite.Test {
+    ): dev.tesserakt.testing.Test {
 
         data class Result(
             val obtained: List<Quad>,
             val expected: List<Quad>
-        ): test.suite.Test.Result {
+        ): dev.tesserakt.testing.Test.Result {
 
             private val superfluous: List<Quad> = obtained - expected
             private val missing: List<Quad> = expected - obtained

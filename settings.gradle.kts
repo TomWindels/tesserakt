@@ -6,13 +6,19 @@ plugins {
 
 rootProject.name = "tesserakt"
 include("common")
-include("rdf")
 include("extra")
+
+include("rdf")
 include("rdf-dsl")
+
 include("sparql")
+
 include("serialization")
 
 include("interop:jena")
 include("interop:rdfjs")
 
-include("tests")
+include("testing:suite")
+include("testing:rdf-test-suite-js")
+
+include("benchmarking")

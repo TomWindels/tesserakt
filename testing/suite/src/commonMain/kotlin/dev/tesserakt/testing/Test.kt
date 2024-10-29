@@ -1,4 +1,4 @@
-package test.suite
+package dev.tesserakt.testing
 
 import kotlin.jvm.JvmInline
 

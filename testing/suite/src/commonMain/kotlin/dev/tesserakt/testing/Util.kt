@@ -1,6 +1,6 @@
-package test.suite
+package dev.tesserakt.testing
 
-import test.suite.Test.Result.Companion.unbox
+import dev.tesserakt.testing.Test.Result.Companion.unbox
 
 inline fun runTest(block: () -> Test.Result): Test.Result = runCatching(block).unbox()
 

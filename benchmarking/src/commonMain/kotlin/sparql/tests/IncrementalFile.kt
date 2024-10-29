@@ -1,9 +1,10 @@
 package sparql.tests
 
 import dev.tesserakt.rdf.serialization.Turtle.parseTurtleString
+import dev.tesserakt.testing.testEnv
 import dev.tesserakt.util.printerrln
 import sparql.readFile
-import test.suite.testEnv
+import sparql.types.using
 
 fun compareIncrementalBasicGraphPatternOutput(datasetFilepath: String, queryFilepath: String) = testEnv {
     val store = readFile(datasetFilepath).getOrElse {
