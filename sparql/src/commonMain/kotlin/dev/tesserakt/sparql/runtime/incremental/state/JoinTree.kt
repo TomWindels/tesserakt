@@ -4,15 +4,14 @@ import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.util.Bitmask
 
 /**
- * A general mapping cache type, capable of caching a series of mappings with their corresponding "completion" bitmasks
- *  according to internal (cache-specific) rules
+ * A general join tree type, containing intermediate joined values depending on the tree implementation
  */
-sealed class MappingCache {
+sealed class JoinTree {
 
     /**
-     * A naive caching approach, not actually caching any intermediate results
+     * Non-existent join tree
      */
-    data object None: MappingCache() {
+    data object None: JoinTree() {
 
         override fun insert(bitmask: Bitmask, mappings: List<Mapping>) {
             // nothing to save, we don't cache anything
@@ -24,9 +23,9 @@ sealed class MappingCache {
     }
 
     /**
-     * A naive caching approach, caching every variant possible
+     * Caches all intermediate joined values, does not behave as an actual tree.
      */
-    class Full: MappingCache() {
+    class Full: JoinTree() {
 
         private val cache = mutableMapOf<Bitmask, MutableList<Mapping>>()
 
@@ -58,7 +57,7 @@ sealed class MappingCache {
      * A caching strategy only keeping intermediate mapping results cached that form a single chain starting from the
      *  very first element.
      */
-    class ChainStart: MappingCache() {
+    class LeftDeep: JoinTree() {
 
         private val cache = mutableListOf<MutableList<Mapping>?>()
 

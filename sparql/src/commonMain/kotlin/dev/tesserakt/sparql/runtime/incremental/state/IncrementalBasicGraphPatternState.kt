@@ -8,15 +8,13 @@ import dev.tesserakt.sparql.runtime.util.Bitmask
 
 internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
 
-//    private val patternCache = MappingCache.Full()
-//    private val patternCache = MappingCache.None
-    private val patternCache = MappingCache.ChainStart()
-    private val unionCache = MappingCache.ChainStart()
+    private val bodyTree = JoinTree.LeftDeep()
+    private val unionTree = JoinTree.LeftDeep()
     private val patterns = ast.patterns.map { it.createIncrementalPatternState() }
     private val unions = ast.unions.map { union -> IncrementalUnionState(union) }
 
     fun delta(quad: Quad): List<Mapping> {
-        val base = with (patternCache) {
+        val base = with (bodyTree) {
             patterns
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = patterns.size) to pattern.delta(quad) }
                 .expandResultSet()
@@ -28,7 +26,7 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                 }
         }
         val first = unions.fold(initial = base) { results, u -> u.join(results) }
-        return first + with (unionCache) {
+        return first + with (unionTree) {
             unions
                 .mapIndexed { i, union -> Bitmask.onesAt(i, length = unions.size) to union.delta(quad) }
                 .expandResultSet()
@@ -64,7 +62,7 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
     // TODO: may also benefit from the same original cache use as noted by the original "delta" above
     private fun updateCache(quad: Quad) {
         // updating the cache pattern-wise
-        with (patternCache) {
+        with (bodyTree) {
             patterns
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = patterns.size) to pattern.delta(quad) }
                 .expandResultSet()
@@ -72,20 +70,20 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                 .flatMap { (mask, mappings) ->
                     // inserting the new item(s) first - this iteration can be the result from `expandResultSet` and
                     //  satisfy multiple triple patterns already
-                    patternCache.insert(mask, mappings)
+                    bodyTree.insert(mask, mappings)
                     // as we only need to iterate over the patterns not yet managed, we need to inverse the bitmask
                     //  before iterating over it
                     var currentMask = mask
                     mask.inv().fold(mappings) { results, i ->
                         val result = patterns[i].join(results)
                         currentMask = currentMask.withOnesAt(i)
-                        patternCache.insert(currentMask, result)
+                        bodyTree.insert(currentMask, result)
                         result
                     }
                 }
         }
         // updating the plan union-wise
-        with (unionCache) {
+        with (unionTree) {
             unions
                 .mapIndexed { i, union -> Bitmask.onesAt(i, length = unions.size) to union.delta(quad) }
                 .expandResultSet()
@@ -93,14 +91,14 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                 .flatMap { (mask, mappings) ->
                     // inserting the new item(s) first - this iteration can be the result from `expandResultSet` and
                     //   satisfy multiple unions already
-                    unionCache.insert(mask, mappings)
+                    unionTree.insert(mask, mappings)
                     // as we only need to iterate over the unions not yet managed, we need to inverse the bitmask
                     //  before iterating over it
                     var currentMask = mask
                     mask.inv().fold(mappings) { results, i ->
                         val result = unions[i].join(results)
                         currentMask = currentMask.withOnesAt(i)
-                        unionCache.insert(currentMask, result)
+                        unionTree.insert(currentMask, result)
                         result
                     }
                 }
