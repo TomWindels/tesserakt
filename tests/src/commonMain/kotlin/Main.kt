@@ -1,6 +1,6 @@
-import sparql.tests.compareIncrementalBasicGraphPatternOutput
-
+import sparql.tests.compareIncrementalSelectOutput
 
 suspend fun main() {
-    compareIncrementalBasicGraphPatternOutput().run().report()
+    compareIncrementalSelectOutput().run(count = 1).report()
+//    compareIncrementalBasicGraphPatternOutput().run().report()
 }

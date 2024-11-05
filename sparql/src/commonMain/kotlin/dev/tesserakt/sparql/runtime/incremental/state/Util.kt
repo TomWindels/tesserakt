@@ -1,6 +1,8 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
+import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.util.Bitmask
 import dev.tesserakt.util.compatibleWith
 
@@ -37,3 +39,17 @@ internal inline fun List<Pair<Bitmask, List<Mapping>>>.expandResultSet(): List<P
     }
     return result
 }
+
+internal inline fun doNestedJoin(a: List<Mapping>, b: List<Mapping>) = buildList(a.size + b.size) {
+    a.forEach { left ->
+        b.forEach { right ->
+            if (left.compatibleWith(right)) add(left + right)
+        }
+    }
+}
+
+internal inline fun bindingNamesOf(
+    subject: Pattern.Subject,
+    predicate: Pattern.Predicate,
+    `object`: Pattern.Object
+): List<String> = listOfNotNull(subject.bindingName, predicate.bindingName, `object`.bindingName)

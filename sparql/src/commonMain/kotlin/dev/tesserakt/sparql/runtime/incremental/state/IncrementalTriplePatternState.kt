@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.common.types.Pattern
+import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.common.util.getTermOrNull
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
@@ -9,28 +10,21 @@ import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.matches
 import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
 import dev.tesserakt.sparql.runtime.util.Bitmask
-import dev.tesserakt.util.compatibleWith
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
 
     // FIXME set semantics: duplicate triples should be ignored!
-    sealed class ArrayBackedPattern<P : Pattern.Predicate> : IncrementalTriplePatternState<P>() {
+    sealed class ArrayBackedPattern<P : Pattern.Predicate>(bindings: List<String>) : IncrementalTriplePatternState<P>() {
 
-        private val data = mutableListOf<Mapping>()
+        private val data = HashJoinArray(bindings)
 
         final override fun insert(quad: Quad) {
             data.addAll(delta(quad))
         }
 
-        final override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { bindings ->
-            data.mapNotNull { previous ->
-                // checking to see if there's any incompatibility in the input constraints
-                if (bindings.compatibleWith(previous)) {
-                    bindings + previous
-                } else {
-                    null
-                }
-            }
+        final override fun join(mappings: List<Mapping>): List<Mapping> {
+            Debug.onArrayPatternJoinExecuted()
+            return data.join(mappings)
         }
 
     }
@@ -80,7 +74,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
         val subj: Pattern.Subject,
         val pred: Pattern.Exact,
         val obj: Pattern.Object
-    ) : ArrayBackedPattern<Pattern.Exact>() {
+    ) : ArrayBackedPattern<Pattern.Exact>(bindings = bindingNamesOf(subj, pred, obj)) {
 
         override fun delta(quad: Quad): List<Mapping> {
             if (!subj.matches(quad.s) || !pred.matches(quad.p) || !obj.matches(quad.o)) {
@@ -100,7 +94,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
         val subj: Pattern.Subject,
         val pred: Pattern.Binding,
         val obj: Pattern.Object
-    ) : ArrayBackedPattern<Pattern.Exact>() {
+    ) : ArrayBackedPattern<Pattern.Exact>(bindings = bindingNamesOf(subj, pred, obj)) {
 
         override fun delta(quad: Quad): List<Mapping> {
             if (!subj.matches(quad.s) || !obj.matches(quad.o)) {
@@ -121,7 +115,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate> {
         val subj: Pattern.Subject,
         val pred: Pattern.Negated,
         val obj: Pattern.Object
-    ) : ArrayBackedPattern<Pattern.Negated>() {
+    ) : ArrayBackedPattern<Pattern.Negated>(bindings = bindingNamesOf(subj, pred, obj)) {
 
         override fun delta(quad: Quad): List<Mapping> {
             if (!subj.matches(quad.s) || pred.term == quad.p || !obj.matches(quad.o)) {

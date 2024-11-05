@@ -3,10 +3,14 @@ package sparql.types
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
-import sparql.executeExternalQuery
+import dev.tesserakt.util.toTruncatedString
+import sparql.ExternalQueryExecution
 import test.suite.Test
 import test.suite.runTest
+import kotlin.time.Duration
+import kotlin.time.measureTime
 
 data class OutputComparisonTest(
     val query: String,
@@ -14,9 +18,23 @@ data class OutputComparisonTest(
 ) : Test {
 
     override suspend fun test() = runTest {
-        val actual = store.query(query.asSPARQLSelectQuery())
-        val expected = executeExternalQuery(query = query, data = store)
-        Result.from(received = actual, expected = expected)
+        val actual: List<Bindings>
+        Debug.reset()
+        val elapsedTime = measureTime {
+            actual = store.query(query.asSPARQLSelectQuery())
+        }
+        val external = ExternalQueryExecution(query, store)
+        val expected: List<Bindings>
+        val referenceTime = measureTime {
+            expected = external.execute()
+        }
+        Result.from(
+            received = actual,
+            expected = expected,
+            elapsedTime = elapsedTime,
+            referenceTime = referenceTime,
+            debugInformation = "${Debug.report()}${external.report()}"
+        )
     }
 
     override fun toString(): String =
@@ -28,7 +46,10 @@ data class OutputComparisonTest(
         val received: List<Bindings>,
         val expected: List<Bindings>,
         val leftOver: List<Bindings>,
-        val missing: List<Bindings>
+        val missing: List<Bindings>,
+        val elapsedTime: Duration,
+        val referenceTime: Duration,
+        val debugInformation: String
     ) : Test.Result {
 
         fun isNotEmpty() = leftOver.isNotEmpty() || missing.isNotEmpty()
@@ -37,19 +58,29 @@ data class OutputComparisonTest(
 
         override fun exceptionOrNull(): Throwable? {
             return if (isNotEmpty()) {
-                AssertionError("Received results do not match expectations!\n$this\n * The following ${leftOver.size} binding(s) are superfluous:\n\t$leftOver\n * The following ${missing.size} binding(s) are missing:\n\t$missing\n")
+                AssertionError("Received results do not match expectations!\n$this\n * The following ${leftOver.size} binding(s) are superfluous:\n\t${leftOver.toTruncatedString(500)}\n * The following ${missing.size} binding(s) are missing:\n\t${missing.toTruncatedString(500)}\n")
             } else null
         }
 
         override fun toString(): String {
-            return " * Got ${received.size} binding(s):\n\t$received\n * Expected ${expected.size} binding(s):\n\t$expected"
+            return " * Got ${received.size} binding(s) ($elapsedTime):\n\t${received.toTruncatedString(500)}\n * Expected ${expected.size} binding(s) ($referenceTime):\n\t${expected.toTruncatedString(500)}\n * $debugInformation"
         }
 
         companion object {
 
-            fun from(received: List<Bindings>, expected: List<Bindings>): Result {
-                return compare(received, expected)
-            }
+            fun from(
+                received: List<Bindings>,
+                expected: List<Bindings>,
+                elapsedTime: Duration,
+                referenceTime: Duration,
+                debugInformation: String
+            ): Result = compare(
+                received = received,
+                expected = expected,
+                elapsedTime = elapsedTime,
+                referenceTime = referenceTime,
+                debugInformation = debugInformation
+            )
         }
 
     }
@@ -59,7 +90,13 @@ data class OutputComparisonTest(
 /**
  * Returns the diff of the two series of bindings. Ideally, the returned list is empty
  */
-private fun compare(received: List<Bindings>, expected: List<Bindings>): OutputComparisonTest.Result {
+private fun compare(
+    received: List<Bindings>,
+    expected: List<Bindings>,
+    elapsedTime: Duration,
+    referenceTime: Duration,
+    debugInformation: String
+): OutputComparisonTest.Result {
     val leftOver = received.toMutableList()
     val missing = mutableListOf<Bindings>()
     expected.forEach { bindings ->
@@ -67,7 +104,15 @@ private fun compare(received: List<Bindings>, expected: List<Bindings>): OutputC
             missing.add(bindings)
         }
     }
-    return OutputComparisonTest.Result(received = received, expected = expected, leftOver = leftOver, missing = missing)
+    return OutputComparisonTest.Result(
+        received = received,
+        expected = expected,
+        leftOver = leftOver,
+        missing = missing,
+        elapsedTime = elapsedTime,
+        referenceTime = referenceTime,
+        debugInformation = debugInformation
+    )
 }
 
 private inline fun <T> MutableList<T>.removeFirst(predicate: (T) -> Boolean): Boolean {

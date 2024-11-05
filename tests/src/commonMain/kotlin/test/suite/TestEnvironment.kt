@@ -49,6 +49,8 @@ class TestEnvironment {
 
     }
 
-    suspend fun run() = Results(results = tests.map { it to it.test() })
+    suspend fun run(count: Int = 1) = Results(
+        results = (0..<count).flatMap { tests.map { it to it.test() } }
+    )
 
 }
