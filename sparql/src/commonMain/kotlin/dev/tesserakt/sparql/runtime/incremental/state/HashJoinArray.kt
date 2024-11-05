@@ -51,15 +51,11 @@ class HashJoinArray(bindings: Collection<String>) {
         }
         val start = backing.size
         backing.addAll(mappings)
-        mappings.first().forEach { (binding, value) ->
-            index[binding]!!
-                .getOrPut(value) { arrayListOf() }
-                .also { it.ensureCapacity(it.size + mappings.size) }
-                .add(start)
-        }
-        (1 ..< mappings.size).forEach { i ->
-            mappings[i].forEach { (binding, value) ->
-                index[binding]!![value]!!.add(start + i)
+        mappings.forEachIndexed { i, mapping ->
+            mapping.forEach { (binding, value) ->
+                index[binding]!!
+                    .getOrPut(value) { arrayListOf() }
+                    .add(start + i)
             }
         }
     }
@@ -92,14 +88,14 @@ class HashJoinArray(bindings: Collection<String>) {
      * Returns a list of mappings compatible with the provided mapping
      */
     private fun getCompatibleMappings(reference: Mapping): List<Mapping> {
-        val constraints = reference.keys.filter { it in index }
+        val constraints = reference.filter { it.key in index }
         // if there aren't any constraints, all mappings (the entire backing array) can be returned instead
         if (constraints.isEmpty()) {
             return backing
         }
         // getting all relevant indexes - if any of the mapping's values don't have an ID list present for the reference's
         //  value, we can bail early: none match the reference
-        val indexes = constraints.map { index[it]!![reference[it]!!] ?: return emptyList() }
+        val indexes = constraints.map { binding -> index[binding.key]!![binding.value] ?: return emptyList() }
         // the resulting array cannot be longer than the smallest index found, so if any of them are empty, no results
         //  are found
         if (indexes.any { it.isEmpty() }) {

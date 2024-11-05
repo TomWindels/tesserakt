@@ -59,9 +59,13 @@ sealed class JoinTree {
      */
     class LeftDeep: JoinTree() {
 
-        private val cache = mutableListOf<MutableList<Mapping>?>()
+        private val cache = mutableListOf<HashJoinArray?>()
 
         override fun insert(bitmask: Bitmask, mappings: List<Mapping>) {
+            // we can't do much here
+            if (mappings.isEmpty()) {
+                return
+            }
             // only saving those for which only a > 1 chain of LSBs are set (i.e. accepting 0b011, but not 0b010)
             //  but not those that are completely satisfied (complete solutions) as these can't be joined further
             val satisfied = bitmask.count()
@@ -78,7 +82,8 @@ sealed class JoinTree {
                 cache.add(null)
             }
             if (cache.size == index) {
-                cache.add(mutableListOf())
+                // all mappings should share binding names, so only using those of the first one
+                cache.add(HashJoinArray(mappings.first().keys))
             }
             cache[index]!!.addAll(mappings)
         }
@@ -100,7 +105,7 @@ sealed class JoinTree {
                 val cached = cache.getOrNull(index)
                     // wasn't cached (no valid combination found thus far)
                     ?: return@map mask to mappings
-                val result = doNestedJoin(cached, mappings)
+                val result = cached.join(mappings)
                 // forming the new mask this result adheres to, which is
                 //  the original mask | ones (index based length)
                 val satisfied = Bitmask.wrap((1 shl (index + 2)) - 1, length = mask.size())
