@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package dev.tesserakt.sparql.compiler.ast
 
 import kotlin.jvm.JvmInline

@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.common.types.Pattern
