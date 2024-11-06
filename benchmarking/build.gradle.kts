@@ -35,3 +35,19 @@ kotlin {
         }
     }
 }
+
+// src: https://stackoverflow.com/a/73844513
+tasks.withType<Jar> {
+    doFirst {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        val main by kotlin.jvm().compilations.getting
+        manifest {
+            attributes(
+                "Main-Class" to "Main_jvmKt",
+            )
+        }
+        from({
+            main.runtimeDependencyFiles.files.filter { it.name.endsWith("jar") }.map { zipTree(it) }
+        })
+    }
+}

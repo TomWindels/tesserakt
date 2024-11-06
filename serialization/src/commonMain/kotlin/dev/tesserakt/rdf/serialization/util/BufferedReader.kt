@@ -1,6 +1,8 @@
 package dev.tesserakt.rdf.serialization.util
 
-expect class BufferedReader: AutoCloseable
+expect class BufferedReader: AutoCloseable {
+    override fun close()
+}
 
 expect fun BufferedReader.read(count: Int): String?
 
