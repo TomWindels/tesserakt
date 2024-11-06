@@ -7,7 +7,7 @@ import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 object XSD: Ontology {
 
     override val prefix = "xsd"
-    override val base_uri = "https://www.w3.org/2001/XMLSchema#"
+    override val base_uri = "http://www.w3.org/2001/XMLSchema#"
 
     val string = "${base_uri}string".asNamedTerm()
     val boolean = "${base_uri}boolean".asNamedTerm()

@@ -11,5 +11,6 @@ object RDF: Ontology {
     val first = "${base_uri}first".asNamedTerm()
     val rest = "${base_uri}rest".asNamedTerm()
     val nil = "${base_uri}nil".asNamedTerm()
+    val langString = "${base_uri}langString".asNamedTerm()
 
 }
