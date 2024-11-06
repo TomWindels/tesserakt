@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.CompilerError

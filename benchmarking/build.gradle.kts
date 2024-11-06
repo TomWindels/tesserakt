@@ -9,6 +9,18 @@ kotlin {
         nodejs()
         binaries.executable()
     }
+
+    // silencing expect/actual warnings
+    targets.all {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    freeCompilerArgs.add("-Xexpect-actual-classes")
+                }
+            }
+        }
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {

@@ -1,8 +1,8 @@
 [versions]
 
 compileSdk = "33"
-android-plugin = "8.2.1"
-kotlin = "2.0.0"
+android-plugin = "8.7.0"
+kotlin = "2.0.21"
 
 [libraries]
 

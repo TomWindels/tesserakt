@@ -203,8 +203,12 @@ class RdfContext internal constructor(
             return Store().apply { insert(environment, block) }
         }
 
+        @OptIn(ExperimentalContracts::class)
         @JvmStatic
         fun Store.insert(environment: Environment, block: RdfContext.() -> Unit) {
+            contract {
+                callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+            }
             RdfContext(
                 environment = environment,
                 consumer = StoreAdapter(this)
