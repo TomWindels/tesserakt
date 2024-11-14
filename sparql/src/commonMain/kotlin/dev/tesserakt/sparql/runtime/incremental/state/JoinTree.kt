@@ -1,6 +1,5 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
-import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
@@ -123,30 +122,45 @@ sealed class JoinTree {
         }
 
         override fun sorted(patterns: Patterns): Patterns {
-            val lut = patterns.associateWith { it.getAllNamedBindings().map { it.name } }
-            // as this grows from the left, we need to sort the patterns so the most constraints on the most common
-            //  bindings are applied as soon as possible in the chain (earlier in the returned list)
-            val bindingsMap = patterns
-                .flatMap { pattern -> lut[pattern]!!.map { binding -> binding to pattern } }
-                .groupBy(keySelector = { it.first }, valueTransform = { it.second })
-                .mapValues { it.value.toMutableSet() }
-            // with the binding map established, we can select the pattern with the least amount of bindings, part of
-            //  the biggest binding group, with the most overlap of current bindings
-            val result = mutableListOf<Pattern>()
-            val bindings = mutableSetOf<String>()
-            while (result.size != patterns.size) {
-                // selecting the next binding from those using the most amount of to-be-referenced bindings
-                val max = bindingsMap.maxOf { it.value.size }
-                // filtering out all options having that maximum amount
-                val options = bindingsMap.filter { it.value.size == max }.flatMap { it.value }.distinct()
-                // getting the next pattern out of these options based on the amount of overlap it has with the
-                //  existing bindings
-                val next = options.minBy { (lut[it]!! - bindings).size }
-                // before we add the next item, we grow the traversed bindings state and the bindingsMap
-                bindings.addAll(lut[next]!!)
-                bindingsMap.values.forEach { it.remove(next) }
-                // now we can add it as the next item in the result set
-                result.add(next)
+            if (patterns.isEmpty()) {
+                return Patterns(emptyList())
+            }
+            val bindings = patterns.associateWith { it.getAllNamedBindings().map { it.name } }.toMutableMap()
+            // the first pattern part of the results is the one referencing the most common binding, whilst containing
+            //  the least amount of other bindings of its own
+            val all = bindings.values.flatten().distinct()
+            if (all.isEmpty()) {
+                // no bindings in this query, skipping...
+                return Patterns(patterns)
+            }
+            val maxBindingOccurrence = all
+                .maxOf { binding -> bindings.values.count { binding in it } }
+            val mostCommon = all
+                .filter { binding -> bindings.values.count { binding in it } == maxBindingOccurrence }.toSet()
+            val first = bindings
+                .maxBy { it.value.count { patternBinding -> patternBinding in mostCommon } - it.value.size }
+            val result = mutableListOf(first.key)
+            // always incrementing the value of "how explored" a binding is based on the # of other bindings are present
+            //  in the newly added pattern instance; 3 being the max amount of bindings in a single pattern instance
+            val exploredBias = first.value.associateWith { 3 - first.value.size }.toMutableMap()
+            bindings.remove(first.key)
+            // with the first pattern inserted, the rest follow based on the order of inserting the least new bindings,
+            //  having the most already in common with those already explored, and introducing bindings that are already
+            //  most popular
+            while (bindings.isNotEmpty()) {
+                // getting the next item that has (ordered by priority)
+                // the most bindings in common with those explored in large amounts
+                // the least # of bindings
+                val next = bindings.maxBy { (_, bindings) ->
+                    val relevance = bindings.fold(3f - bindings.size) { a, b -> exploredBias[b]?.times(a) ?: (a / 2f) }
+                    relevance
+                }
+                // further adapting the exploration bias using the same logic as the first pattern
+                next.value.forEach {
+                    exploredBias[it] = exploredBias.getOrElse(it) { 0 } + (3 - next.value.size)
+                }
+                bindings.remove(next.key)
+                result.add(next.key)
             }
             return Patterns(result)
         }
