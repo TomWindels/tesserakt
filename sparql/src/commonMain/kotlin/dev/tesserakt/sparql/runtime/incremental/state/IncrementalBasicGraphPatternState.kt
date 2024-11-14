@@ -80,7 +80,9 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                     var currentMask = mask
                     mask.inv().fold(mappings) { results, i ->
                         val result = patterns[i].join(results)
-                        // TODO: early bailout
+                        if (result.isEmpty()) {
+                            return@flatMap emptyList()
+                        }
                         currentMask = currentMask.withOnesAt(i)
                         bodyTree.insert(currentMask, result)
                         result

@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.common.types.Pattern
+import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
 import dev.tesserakt.sparql.runtime.util.Bitmask
@@ -107,8 +108,12 @@ sealed class JoinTree {
                 val index = mask.lowestOneBitIndex() - 2
                 val cached = cache.getOrNull(index)
                     // wasn't cached (no valid combination found thus far)
-                    ?: return@map mask to mappings
+                    ?: run {
+                        Debug.onJoinTreeMiss()
+                        return@map mask to mappings
+                    }
                 val result = cached.join(mappings)
+                Debug.onJoinTreeHit(result.size)
                 // forming the new mask this result adheres to, which is
                 //  the original mask | ones (index based length)
                 val satisfied = Bitmask.wrap((1 shl (index + 2)) - 1, length = mask.size())
