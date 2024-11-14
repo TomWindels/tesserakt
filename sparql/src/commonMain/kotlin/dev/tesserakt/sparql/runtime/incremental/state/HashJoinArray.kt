@@ -28,6 +28,12 @@ class HashJoinArray(bindings: Collection<String>) {
     }
 
     /**
+     * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
+     *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
+     */
+    val size: Int get() = backing.size
+
+    /**
      * Adds a mapping to the backing array and indexes it accordingly.
      *
      * IMPORTANT: the keys of the mapping should exactly match the binding names used to construct this join array!

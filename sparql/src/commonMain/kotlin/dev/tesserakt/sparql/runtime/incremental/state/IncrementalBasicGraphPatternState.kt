@@ -113,4 +113,12 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
         }
     }
 
+    fun debugInformation() = buildString {
+        appendLine("* Pattern states")
+        patterns.forEach { pattern ->
+            appendLine("\t$pattern")
+        }
+        appendLine(bodyTree.debugInfo())
+    }
+
 }

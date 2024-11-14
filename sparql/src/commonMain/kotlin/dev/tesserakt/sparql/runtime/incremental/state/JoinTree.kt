@@ -151,6 +151,13 @@ sealed class JoinTree {
             return Patterns(result)
         }
 
+        override fun debugInfo() = buildString {
+            appendLine(" * Join tree statistics (LeftDeep)")
+            cache.forEachIndexed { i, cache ->
+                appendLine("\tTree element ${i + 1} has cardinality ${cache?.size}")
+            }
+        }
+
     }
 
     /**
@@ -167,5 +174,10 @@ sealed class JoinTree {
      * Returns a sorted version of the provided [patterns], based on characteristics of the join tree implementation
      */
     open fun sorted(patterns: Patterns): Patterns = patterns
+
+    /**
+     * Returns a string containing debug information (runtime statistics)
+     */
+    open fun debugInfo(): String = " * Join tree statistics unavailable (implementation: ${this::class.simpleName})"
 
 }
