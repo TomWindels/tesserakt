@@ -151,16 +151,16 @@ sealed class JoinTree {
                 // getting the next item that has (ordered by priority)
                 // the most bindings in common with those explored in large amounts
                 // the least # of bindings
-                val next = bindings.maxBy { (_, bindings) ->
+                val (nextPattern, nextBindings) = bindings.maxBy { (_, bindings) ->
                     val relevance = bindings.fold(3f - bindings.size) { a, b -> exploredBias[b]?.times(a) ?: (a / 2f) }
                     relevance
                 }
                 // further adapting the exploration bias using the same logic as the first pattern
-                next.value.forEach {
-                    exploredBias[it] = exploredBias.getOrElse(it) { 0 } + (3 - next.value.size)
+                nextBindings.forEach {
+                    exploredBias[it] = exploredBias.getOrElse(it) { 0 } + (3 - nextBindings.size)
                 }
-                bindings.remove(next.key)
-                result.add(next.key)
+                bindings.remove(nextPattern)
+                result.add(nextPattern)
             }
             return Patterns(result)
         }
