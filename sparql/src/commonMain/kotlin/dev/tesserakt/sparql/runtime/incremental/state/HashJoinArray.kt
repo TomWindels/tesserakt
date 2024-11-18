@@ -27,6 +27,7 @@ class HashJoinArray(bindings: Collection<String>) {
         check(bindings.isNotEmpty()) { "Invalid use of hash join array! No bindings are used!" }
     }
 
+    val mappings: List<Mapping> get() = backing
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
      *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
