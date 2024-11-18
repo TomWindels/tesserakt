@@ -1,7 +1,10 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
+import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.incremental.types.Patterns
 import dev.tesserakt.sparql.runtime.util.Bitmask
+import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
 
 /**
  * A general join tree type, containing intermediate joined values depending on the tree implementation
@@ -104,13 +107,68 @@ sealed class JoinTree {
                 val index = mask.lowestOneBitIndex() - 2
                 val cached = cache.getOrNull(index)
                     // wasn't cached (no valid combination found thus far)
-                    ?: return@map mask to mappings
+                    ?: run {
+                        Debug.onJoinTreeMiss()
+                        return@map mask to mappings
+                    }
                 val result = cached.join(mappings)
+                Debug.onJoinTreeHit(result.size)
                 // forming the new mask this result adheres to, which is
                 //  the original mask | ones (index based length)
                 val satisfied = Bitmask.wrap((1 shl (index + 2)) - 1, length = mask.size())
                 val total = mask or satisfied
                 total to result
+            }
+        }
+
+        override fun sorted(patterns: Patterns): Patterns {
+            if (patterns.isEmpty()) {
+                return Patterns(emptyList())
+            }
+            val bindings = patterns.associateWith { it.getAllNamedBindings().map { it.name } }.toMutableMap()
+            // the first pattern part of the results is the one referencing the most common binding, whilst containing
+            //  the least amount of other bindings of its own
+            val all = bindings.values.flatten().distinct()
+            if (all.isEmpty()) {
+                // no bindings in this query, skipping...
+                return Patterns(patterns)
+            }
+            val maxBindingOccurrence = all
+                .maxOf { binding -> bindings.values.count { binding in it } }
+            val mostCommon = all
+                .filter { binding -> bindings.values.count { binding in it } == maxBindingOccurrence }.toSet()
+            val first = bindings
+                .maxBy { it.value.count { patternBinding -> patternBinding in mostCommon } - it.value.size }
+            val result = mutableListOf(first.key)
+            // always incrementing the value of "how explored" a binding is based on the # of other bindings are present
+            //  in the newly added pattern instance; 3 being the max amount of bindings in a single pattern instance
+            val exploredBias = first.value.associateWith { 3 - first.value.size }.toMutableMap()
+            bindings.remove(first.key)
+            // with the first pattern inserted, the rest follow based on the order of inserting the least new bindings,
+            //  having the most already in common with those already explored, and introducing bindings that are already
+            //  most popular
+            while (bindings.isNotEmpty()) {
+                // getting the next item that has (ordered by priority)
+                // the most bindings in common with those explored in large amounts
+                // the least # of bindings
+                val (nextPattern, nextBindings) = bindings.maxBy { (_, bindings) ->
+                    val relevance = bindings.fold(3f - bindings.size) { a, b -> exploredBias[b]?.times(a) ?: (a / 2f) }
+                    relevance
+                }
+                // further adapting the exploration bias using the same logic as the first pattern
+                nextBindings.forEach {
+                    exploredBias[it] = exploredBias.getOrElse(it) { 0 } + (3 - nextBindings.size)
+                }
+                bindings.remove(nextPattern)
+                result.add(nextPattern)
+            }
+            return Patterns(result)
+        }
+
+        override fun debugInfo() = buildString {
+            appendLine(" * Join tree statistics (LeftDeep)")
+            cache.forEachIndexed { i, cache ->
+                appendLine("\tTree element ${i + 1} has cardinality ${cache?.size}")
             }
         }
 
@@ -125,5 +183,15 @@ sealed class JoinTree {
      * Uses this cache to increase the number of satisfied mappings as much as possible, changing the number of mappings.
      */
     abstract fun List<Pair<Bitmask, List<Mapping>>>.growUsingCache(): List<Pair<Bitmask, List<Mapping>>>
+
+    /**
+     * Returns a sorted version of the provided [patterns], based on characteristics of the join tree implementation
+     */
+    open fun sorted(patterns: Patterns): Patterns = patterns
+
+    /**
+     * Returns a string containing debug information (runtime statistics)
+     */
+    open fun debugInfo(): String = " * Join tree statistics unavailable (implementation: ${this::class.simpleName})"
 
 }

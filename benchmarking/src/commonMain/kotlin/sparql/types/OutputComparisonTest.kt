@@ -19,7 +19,6 @@ data class OutputComparisonTest(
 
     override suspend fun test() = runTest {
         val actual: List<Bindings>
-        Debug.reset()
         val elapsedTime = measureTime {
             actual = store.query(query.asSPARQLSelectQuery())
         }

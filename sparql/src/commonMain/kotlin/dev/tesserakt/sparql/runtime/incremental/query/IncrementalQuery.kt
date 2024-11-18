@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.query
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalBasicGraphPatternState
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 
@@ -12,30 +13,36 @@ sealed class IncrementalQuery<ResultType, Q: Query>(
     companion object {
 
         fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>, callback: (RT) -> Unit) {
+            Debug.reset()
             val processor = with(query) { Processor(this@query) }
             var bindings = processor.next()
             while (bindings != null) {
                 callback(query.process(bindings))
                 bindings = processor.next()
             }
+            Debug.append(processor.debugInformation())
         }
 
         fun <RT> Sequence<Quad>.query(query: IncrementalQuery<RT, *>): Sequence<RT> = sequence {
+            Debug.reset()
             val processor = with(query) { Processor(this@query.iterator()) }
             var bindings = processor.next()
             while (bindings != null) {
                 yield(query.process(bindings))
                 bindings = processor.next()
             }
+            Debug.append(processor.debugInformation())
         }
 
         fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>): List<RT> = buildList {
+            Debug.reset()
             val processor = with(query) { Processor(this@query) }
             var bindings = processor.next()
             while (bindings != null) {
                 add(query.process(bindings))
                 bindings = processor.next()
             }
+            Debug.append(processor.debugInformation())
         }
 
     }
@@ -71,6 +78,8 @@ sealed class IncrementalQuery<ResultType, Q: Query>(
             }
             return null
         }
+
+        fun debugInformation() = state.debugInformation()
 
     }
 

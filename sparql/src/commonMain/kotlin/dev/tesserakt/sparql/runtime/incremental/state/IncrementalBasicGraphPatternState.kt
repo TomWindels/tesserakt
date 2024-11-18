@@ -10,7 +10,11 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
 
     private val bodyTree = JoinTree.LeftDeep()
     private val unionTree = JoinTree.LeftDeep()
-    private val patterns = ast.patterns.map { it.createIncrementalPatternState() }
+    private val patterns = ast.patterns
+        // sorting the patterns based on the used join tree implementation
+        .let { bodyTree.sorted(it) }
+        // and converting them into separate states, retaining that order
+        .map { it.createIncrementalPatternState() }
     private val unions = ast.unions.map { union -> IncrementalUnionState(union) }
 
     fun delta(quad: Quad): List<Mapping> {
@@ -22,7 +26,7 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                 .flatMap { (mask, mappings) ->
                     // as we only need to iterate over the patterns not yet managed, we need to inverse the bitmask
                     //  before iterating over it
-                    mask.inv().fold(mappings) { results, i -> patterns[i].join(results) }
+                    mask.inv().fold(mappings) { results, i -> if (results.isEmpty()) return@flatMap emptyList() else patterns[i].join(results) }
                 }
         }
         val first = unions.fold(initial = base) { results, u -> u.join(results) }
@@ -76,6 +80,9 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                     var currentMask = mask
                     mask.inv().fold(mappings) { results, i ->
                         val result = patterns[i].join(results)
+                        if (result.isEmpty()) {
+                            return@flatMap emptyList()
+                        }
                         currentMask = currentMask.withOnesAt(i)
                         bodyTree.insert(currentMask, result)
                         result
@@ -104,6 +111,14 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                 }
                 .let { patterns.fold(it) { results, p -> p.join(results) } }
         }
+    }
+
+    fun debugInformation() = buildString {
+        appendLine("* Pattern states")
+        patterns.forEach { pattern ->
+            appendLine("\t$pattern")
+        }
+        appendLine(bodyTree.debugInfo())
     }
 
 }

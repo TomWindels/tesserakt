@@ -20,6 +20,13 @@ internal sealed class IncrementalPathState(
 
     protected fun SegmentsList.Segment.toMapping() = mappingOf(bs to start, bo to end)
 
+    /**
+     * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
+     *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
+     */
+    // FIXME needs testing
+    val size: Int get() = segments.paths.size
+
     abstract fun join(mappings: List<Mapping>): List<Mapping>
 
     abstract fun delta(segment: SegmentsList.Segment): List<Mapping>
