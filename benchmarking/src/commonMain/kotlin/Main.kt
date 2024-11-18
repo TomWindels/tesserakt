@@ -1,3 +1,4 @@
+
 import dev.tesserakt.util.printerrln
 import sparql.tests.compareIncrementalBasicGraphPatternOutput
 import sparql.tests.compareIncrementalSelectOutput

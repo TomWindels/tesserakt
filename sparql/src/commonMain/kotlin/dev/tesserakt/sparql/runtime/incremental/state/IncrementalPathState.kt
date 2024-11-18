@@ -3,7 +3,6 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.common.types.Pattern
-import dev.tesserakt.sparql.runtime.common.util.getTermOrNull
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
@@ -15,94 +14,36 @@ internal sealed class IncrementalPathState(
 ) {
 
     protected val segments = SegmentsList()
-    protected val bs = start.bindingName
-    protected val bo = end.bindingName
+    private val bs = start.bindingName
+    private val bo = end.bindingName
 
     protected fun SegmentsList.Segment.toMapping() = mappingOf(bs to start, bo to end)
-
-    /**
-     * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
-     *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
-     */
-    // FIXME needs testing
-    val size: Int get() = segments.paths.size
-
-    abstract fun join(mappings: List<Mapping>): List<Mapping>
-
-    abstract fun delta(segment: SegmentsList.Segment): List<Mapping>
 
     class ZeroOrMore(
         start: Pattern.Subject,
         end: Pattern.Object
     ) : IncrementalPathState(start = start, end = end) {
 
-        override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { mapping ->
-            val start = start.getTermOrNull(mapping)
-            val end = end.getTermOrNull(mapping)
-            when {
-                start != null && end != null -> {
-                    if (segments.isConnected(start, end)) listOf(mapping) else emptyList()
-                }
-
-                start != null -> {
-                    val base = if (bo != null) {
-                        // object is bound, so adding it to the mapping
-                        segments.allConnectedEndTermsOf(start).map { mapping + (bo to it) }
-                    } else {
-                        // start was already part of the mapping or not bound, as it is non-null, thus the mapping
-                        //  does not have to be altered further
-                        segments.allConnectedEndTermsOf(start).map { mapping }
-                    }
-                    // adding a null-length relation, meaning end == start, if it has already been inserted
-                    if (start in segments.nodes) {
-                        (mapping + mappingOf(bo to start)) + base
-                    } else {
-                        base
-                    }
-                }
-
-                end != null -> {
-                    val base = if (bs != null) {
-                        segments.allConnectedStartTermsOf(end).map { mapping + (bs to it) }
-                    } else {
-                        segments.allConnectedStartTermsOf(end).map { mapping }
-                    }
-                    // adding a null-length relation, meaning end == start, if it has already been inserted
-                    if (end in segments.nodes) {
-                        (mapping + mappingOf(bs to end)) + base
-                    } else {
-                        base
-                    }
-                }
-
-                else -> {
-                    segments.paths.map { it.toMapping() + mapping }
-                }
+        override fun insert(segment: SegmentsList.Segment): List<Mapping> {
+            val result = segments.newPathsOnAdding(segment).toMutableList()
+            // only accepting all paths that adhere to the constraints above: if one represents a binding, it gets
+            //  added to the resulting mappings; else, it gets filtered out if it doesn't match in value
+            // FIXME can be done directly in segment list for efficiency
+            if (start is Pattern.Exact) {
+                result.removeAll { it.start != start.term }
             }
-        }
-
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
-            val result = segments.newPathsOnAdding(segment).let { paths ->
-                val base = ArrayList<Mapping>(paths.size + 2)
-                paths.mapTo(base) { it.toMapping() }
+            if (end is Pattern.Exact) {
+                result.removeAll { it.end != end.term }
             }
             if (segment.start !in segments.nodes) {
-                result.add(
-                    SegmentsList.Segment(
-                        start = segment.start,
-                        end = segment.start
-                    ).toMapping()
-                )
+                result += SegmentsList.Segment(start = segment.start, end = segment.start)
             }
-            if (segment.end !in segments.nodes) {
-                result.add(
-                    SegmentsList.Segment(
-                        start = segment.end,
-                        end = segment.end
-                    ).toMapping()
-                )
+            if (segment.start != segment.end && segment.end !in segments.nodes) {
+                result += SegmentsList.Segment(start = segment.end, end = segment.end)
             }
-            return result
+            val delta = result.map { it.toMapping() }.distinct()
+            segments.insert(segment)
+            return delta
         }
 
     }
@@ -112,44 +53,27 @@ internal sealed class IncrementalPathState(
         end: Pattern.Object
     ) : IncrementalPathState(start = start, end = end) {
 
-        override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { mapping ->
-            val start = start.getTermOrNull(mapping)
-            val end = end.getTermOrNull(mapping)
-            when {
-                start != null && end != null -> {
-                    if (segments.isConnected(start, end)) listOf(mapping) else emptyList()
-                }
-
-                start != null -> {
-                    if (bo != null) {
-                        // object is bound, so adding it to the mapping
-                        segments.allConnectedEndTermsOf(start).map { mapping + (bo to it) }
-                    } else {
-                        // start was already part of the mapping or not bound, as it is non-null, thus the mapping
-                        //  does not have to be altered further
-                        segments.allConnectedEndTermsOf(start).map { mapping }
-                    }
-                }
-
-                end != null -> {
-                    if (bs != null) {
-                        segments.allConnectedStartTermsOf(end).map { mapping + (bs to it) }
-                    } else {
-                        segments.allConnectedStartTermsOf(end).map { mapping }
-                    }
-                }
-
-                else -> {
-                    segments.paths.map { it.toMapping() + mapping }
-                }
+        override fun insert(segment: SegmentsList.Segment): List<Mapping> {
+            val result = segments.newPathsOnAdding(segment).toMutableList()
+            // only accepting all paths that adhere to the constraints above: if one represents a binding, it gets
+            //  added to the resulting mappings; else, it gets filtered out if it doesn't match in value
+            // FIXME can be done directly in segment list for efficiency
+            if (start is Pattern.Exact) {
+                result.removeAll { it.start != start.term }
             }
+            if (end is Pattern.Exact) {
+                result.removeAll { it.end != end.term }
+            }
+            val delta = result.map { it.toMapping() }.distinct()
+            segments.insert(segment)
+            return delta
         }
-
-        override fun delta(segment: SegmentsList.Segment) = segments.newPathsOnAdding(segment).map { it.toMapping() }
 
     }
 
-    fun insert(segment: SegmentsList.Segment) = segments.insert(segment)
+    abstract fun insert(segment: SegmentsList.Segment): List<Mapping>
+
+    final override fun toString() = "${this@IncrementalPathState::class.simpleName} - $segments"
 
 }
 

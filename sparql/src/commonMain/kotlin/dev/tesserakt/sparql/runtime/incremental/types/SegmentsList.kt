@@ -53,8 +53,8 @@ internal class SegmentsList {
         // adding every permutation
         left.forEach { start -> result.add(Segment(start = start, end = segment.end)) }
         right.forEach { end -> result.add(Segment(start = segment.start, end = end)) }
-        // adding every in-between path that isn't a "zero-length" path (which can occur in circular graphs)
-        left.forEach { start -> right.forEach { end -> if (start != end) result.add(Segment(start = start, end = end)) } }
+        // adding every in-between path
+        left.forEach { start -> right.forEach { end -> result.add(Segment(start = start, end = end)) } }
         // existing paths can't result in new sub-results
         return result - _paths
     }
@@ -75,6 +75,14 @@ internal class SegmentsList {
 
     fun isConnected(start: Quad.Term, end: Quad.Term): Boolean =
         _paths.any { it.start == start && it.end == end }
+
+    override fun toString() = buildString {
+        appendLine("SegmentList [")
+        appendLine(" * Nodes: $nodes")
+        appendLine(" * Segments: $segments")
+        appendLine(" * Paths: $paths")
+        append("]")
+    }
 
     /**
      * Returns all points that can be formed by beginning with `start`: segments AB, BC, AD, BD and argument A yield

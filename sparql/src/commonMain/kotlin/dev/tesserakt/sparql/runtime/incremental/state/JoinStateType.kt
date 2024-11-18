@@ -7,9 +7,11 @@ import dev.tesserakt.sparql.runtime.core.Mapping
  * Represents a state type that can be joined with other states of the same (sub-) type, such as triple patterns or
  *  union blocks.
  */
-interface JoinStateType<J: JoinStateType<J>> {
+interface JoinStateType {
 
-    fun join(other: J): List<Mapping>
+    val bindings: Set<String>
+
+    fun join(mappings: List<Mapping>): List<Mapping>
 
     fun insert(quad: Quad): List<Mapping>
 

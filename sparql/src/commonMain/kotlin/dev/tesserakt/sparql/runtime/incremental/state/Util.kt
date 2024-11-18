@@ -1,5 +1,3 @@
-@file:Suppress("NOTHING_TO_INLINE")
-
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.common.types.Pattern
@@ -42,16 +40,8 @@ internal inline fun List<Pair<Bitmask, List<Mapping>>>.expandResultSet(): List<P
     return result
 }
 
-internal inline fun doNestedJoin(a: List<Mapping>, b: List<Mapping>) = buildList(a.size + b.size) {
-    a.forEach { left ->
-        b.forEach { right ->
-            if (left.compatibleWith(right)) add(left + right)
-        }
-    }
-}
-
 internal inline fun bindingNamesOf(
     subject: Pattern.Subject,
     predicate: Pattern.Predicate,
     `object`: Pattern.Object
-): List<String> = listOfNotNull(subject.bindingName, predicate.bindingName, `object`.bindingName)
+): Set<String> = setOfNotNull(subject.bindingName, predicate.bindingName, `object`.bindingName)

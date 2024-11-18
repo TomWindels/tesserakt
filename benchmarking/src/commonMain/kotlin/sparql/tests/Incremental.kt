@@ -223,4 +223,27 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         }
     """
 
+    val extra = buildStore {
+        val a = "http://www.example.org/a".asNamedTerm()
+        val b = "http://www.example.org/b".asNamedTerm()
+        val c = "http://www.example.org/c".asNamedTerm()
+        val d = "http://www.example.org/d".asNamedTerm()
+        val p = "http://www.example.org/p".asNamedTerm()
+
+        a has p being 11
+        a has p being b
+        b has p being 12
+        b has p being c
+        c has p being 13
+        c has p being d
+        d has p being 14
+    }
+
+    using (extra) test """
+        PREFIX : <http://www.example.org/>
+        SELECT ?v WHERE {
+            ?a :p* ?v
+        }
+    """
+
 }

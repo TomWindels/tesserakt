@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql.runtime.incremental.state
+package dev.tesserakt.sparql.runtime.incremental.collection
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
@@ -7,7 +7,7 @@ import dev.tesserakt.sparql.runtime.core.Mapping
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
  *  algorithm. Hash tables are created for every binding name passed in the constructor.
  */
-class HashJoinArray(bindings: Collection<String>) {
+internal class HashJoinArray(bindings: Set<String>): JoinCollection {
 
     // the backing structure, contains all mappings ever received
     private val backing = mutableListOf<Mapping>()
@@ -27,7 +27,8 @@ class HashJoinArray(bindings: Collection<String>) {
         check(bindings.isNotEmpty()) { "Invalid use of hash join array! No bindings are used!" }
     }
 
-    val mappings: List<Mapping> get() = backing
+    override val mappings: List<Mapping> get() = backing
+
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
      *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
@@ -39,7 +40,7 @@ class HashJoinArray(bindings: Collection<String>) {
      *
      * IMPORTANT: the keys of the mapping should exactly match the binding names used to construct this join array!
      */
-    fun add(mapping: Mapping) {
+    override fun add(mapping: Mapping) {
         val pos = backing.size
         backing.add(mapping)
         mapping.forEach { (binding, value) ->
@@ -52,7 +53,7 @@ class HashJoinArray(bindings: Collection<String>) {
      *
      * IMPORTANT: the keys of every mapping should exactly match the binding names used to construct this join array!
      */
-    fun addAll(mappings: List<Mapping>) {
+    override fun addAll(mappings: Collection<Mapping>) {
         if (mappings.isEmpty()) {
             return
         }
@@ -67,9 +68,17 @@ class HashJoinArray(bindings: Collection<String>) {
         }
     }
 
-    fun join(other: List<Mapping>): List<Mapping> {
-        val compatible = getCompatibleMappings(other)
-        return compatible.indices.flatMap { i -> compatible[i].map { it + other[i] } }
+    override fun join(mappings: List<Mapping>): List<Mapping> {
+        val compatible = getCompatibleMappings(mappings)
+        return compatible.indices.flatMap { i -> compatible[i].map { it + mappings[i] } }
+    }
+
+    override fun join(other: JoinCollection): List<Mapping> {
+        return if (other is HashJoinArray && other.index.size > index.size) {
+            other.join(backing)
+        } else {
+            join(other.mappings)
+        }
     }
 
     /**

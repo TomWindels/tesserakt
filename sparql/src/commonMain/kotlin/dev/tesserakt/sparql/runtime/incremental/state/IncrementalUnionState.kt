@@ -7,20 +7,18 @@ import dev.tesserakt.sparql.runtime.incremental.types.SelectQuerySegment
 import dev.tesserakt.sparql.runtime.incremental.types.StatementsSegment
 import dev.tesserakt.sparql.runtime.incremental.types.Union
 
-internal class IncrementalUnionState(union: Union) {
+internal class IncrementalUnionState(union: Union): JoinStateType {
 
-    sealed class Segment {
+    private sealed class Segment {
 
         class StatementsState(parent: StatementsSegment): Segment() {
 
             private val state = IncrementalBasicGraphPatternState(parent.statements)
 
-            override fun delta(quad: Quad): List<Mapping> {
-                return state.delta(quad)
-            }
+            override val bindings: Set<String> get() = state.bindings
 
-            override fun insert(quad: Quad) {
-                state.insert(quad)
+            override fun insert(quad: Quad): List<Mapping> {
+                return state.insert(quad)
             }
 
             override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -31,11 +29,9 @@ internal class IncrementalUnionState(union: Union) {
 
         class SubqueryState(parent: SelectQuerySegment): Segment() {
 
-            override fun delta(quad: Quad): List<Mapping> {
-                TODO("Not yet implemented")
-            }
+            override val bindings: Set<String> = parent.query.output.map { it.name }.toSet()
 
-            override fun insert(quad: Quad) {
+            override fun insert(quad: Quad): List<Mapping> {
                 TODO("Not yet implemented")
             }
 
@@ -45,9 +41,9 @@ internal class IncrementalUnionState(union: Union) {
 
         }
 
-        abstract fun delta(quad: Quad): List<Mapping>
+        abstract val bindings: Set<String>
 
-        abstract fun insert(quad: Quad)
+        abstract fun insert(quad: Quad): List<Mapping>
 
         abstract fun join(mappings: List<Mapping>): List<Mapping>
 
@@ -55,23 +51,24 @@ internal class IncrementalUnionState(union: Union) {
 
     private val state = union.map { it.createIncrementalSegmentState() }
 
-    fun delta(quad: Quad): List<Mapping> {
-        return state.flatMap { it.delta(quad) }
+    override val bindings: Set<String> = buildSet { state.forEach { addAll(it.bindings) } }
+
+    override fun insert(quad: Quad): List<Mapping> {
+        return state.flatMap { it.insert(quad) }
     }
 
-    fun insert(quad: Quad) {
-        return state.forEach { it.insert(quad) }
-    }
-
-    fun join(mappings: List<Mapping>): List<Mapping> {
+    override fun join(mappings: List<Mapping>): List<Mapping> {
         return state.flatMap { s -> s.join(mappings) }
     }
 
-}
+    companion object {
 
-/* helpers */
+        /* helpers */
 
-private fun Segment.createIncrementalSegmentState(): IncrementalUnionState.Segment = when (this) {
-    is SelectQuerySegment -> IncrementalUnionState.Segment.SubqueryState(this)
-    is StatementsSegment -> IncrementalUnionState.Segment.StatementsState(this)
+        private fun dev.tesserakt.sparql.runtime.incremental.types.Segment.createIncrementalSegmentState() = when (this) {
+            is SelectQuerySegment -> Segment.SubqueryState(this)
+            is StatementsSegment -> Segment.StatementsState(this)
+        }
+    }
+
 }
