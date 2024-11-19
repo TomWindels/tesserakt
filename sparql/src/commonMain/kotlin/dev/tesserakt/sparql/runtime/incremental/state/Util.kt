@@ -34,8 +34,10 @@ internal inline fun List<Pair<Bitmask, List<Mapping>>>.merge(): List<Pair<Bitmas
             // if any have been made, its combination can be appended to this result
             if (merged.isNotEmpty()) {
                 result.add(current.first or contender.first to merged)
-                result.removeAt(j)
-                result.removeAt(i)
+                // removing them like this - it's already possible the current element has been removed from a prior
+                //  iteration with another contender
+                result.remove(current)
+                result.remove(contender)
             } else {
                 ++j
             }
