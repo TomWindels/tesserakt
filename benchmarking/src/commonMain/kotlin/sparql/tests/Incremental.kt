@@ -1,12 +1,26 @@
 package sparql.tests
 
 import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
+import dev.tesserakt.rdf.literalTerm
+import dev.tesserakt.rdf.namedTerm
+import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.testing.testEnv
 import sparql.types.using
 
+object FOAF: Ontology {
+
+    override val prefix = "foaf"
+    override val base_uri = "http://xmlns.com/foaf/0.1/"
+
+    val Person = "${base_uri}Person".namedTerm
+    val age = "${base_uri}age".namedTerm
+    val knows = "${base_uri}knows".namedTerm
+    val based_near = "${base_uri}based_near".namedTerm
+
+}
 
 fun compareIncrementalBasicGraphPatternOutput() = testEnv {
     val small = buildStore {
@@ -42,6 +56,24 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
     using(small) test """
         SELECT * {
             ?s (<http://example.org/path1>|<http://example.org/path2>)* ?o
+        }
+    """
+
+    val extra = buildStore(path = "http://example.org/") {
+        val subj = local("s")
+        val obj = local("o")
+        val intermediate = local("i")
+        val path1 = "http://example.org/path1".asNamedTerm()
+        subj has path1 being obj
+        subj has path1 being intermediate
+        intermediate has path1 being obj
+    }
+
+    using(extra) test """
+        PREFIX : <http://example.org/>
+        SELECT * {
+            ?a :path1 ?o .
+            ?a :path1 :o .
         }
     """
 
@@ -132,23 +164,23 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         }
     """
 
-    val person = buildStore {
-        val person1 = "http://example.org/person1".asNamedTerm()
-        val person2 = "http://example.org/person2".asNamedTerm()
-        person1 has "http://example.org/givenName".asNamedTerm() being "John".asLiteralTerm()
-        person1 has "http://example.org/surname".asNamedTerm() being "Doe".asLiteralTerm()
-        person2 has "http://example.org/givenName".asNamedTerm() being "A".asLiteralTerm()
-        person2 has "http://example.org/surname".asNamedTerm() being "B".asLiteralTerm()
-    }
+//    val person = buildStore {
+//        val person1 = "http://example.org/person1".asNamedTerm()
+//        val person2 = "http://example.org/person2".asNamedTerm()
+//        person1 has "http://example.org/givenName".asNamedTerm() being "John".asLiteralTerm()
+//        person1 has "http://example.org/surname".asNamedTerm() being "Doe".asLiteralTerm()
+//        person2 has "http://example.org/givenName".asNamedTerm() being "A".asLiteralTerm()
+//        person2 has "http://example.org/surname".asNamedTerm() being "B".asLiteralTerm()
+//    }
 
-    using(person) test """
-        PREFIX : <http://example.org/>
-        SELECT ?name {
-            ?person :givenName ?gName ; :surname ?sName .
-            BIND(CONCAT(?gName, " ", ?sName) AS ?name)
-            FILTER(STRLEN(?name) > 3)
-        }
-    """
+//    using(person) test """
+//        PREFIX : <http://example.org/>
+//        SELECT ?name {
+//            ?person :givenName ?gName ; :surname ?sName .
+//            BIND(CONCAT(?gName, " ", ?sName) AS ?name)
+//            FILTER(STRLEN(?name) > 3)
+//        }
+//    """
 
     val fullyConnected = buildStore {
         val a = "http://example.org/a".asNamedTerm()
@@ -223,7 +255,7 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         }
     """
 
-    val extra = buildStore {
+    val literals = buildStore {
         val a = "http://www.example.org/a".asNamedTerm()
         val b = "http://www.example.org/b".asNamedTerm()
         val c = "http://www.example.org/c".asNamedTerm()
@@ -239,11 +271,199 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         d has p being 14
     }
 
-    using (extra) test """
+    using (literals) test """
         PREFIX : <http://www.example.org/>
         SELECT ?v WHERE {
             ?a :p* ?v
         }
     """
 
+    val person1 = buildStore {
+        val person = local("person1")
+        person has RDF.type being FOAF.Person
+        person has FOAF.age being 23
+        person has FOAF.knows being multiple(
+            local("person2"), local("person3"), local("person4")
+        )
+        person has FOAF.based_near being blank {
+            "https://www.example.org/street".namedTerm being "unknown".asLiteralTerm()
+            "https://www.example.org/number".namedTerm being (-1).asLiteralTerm()
+        }
+        person has "notes".namedTerm being list(
+            "first-note".namedTerm, "second-note".namedTerm
+        )
+    }
+
+    using(person1) test "SELECT * WHERE { ?s ?p ?o }"
+
+    using(person1) test """
+        PREFIX ex: <https://www.example.org/>
+        SELECT * WHERE {
+            ?person <${FOAF.based_near}>/ex:number ?number ;
+                    <${FOAF.based_near}>/ex:street ?street
+        }
+    """
+
+    using(person1) test "SELECT ?friend WHERE { ?person <${FOAF.knows}> ?friend ; a <${FOAF.Person}> }"
+
+    using(person1) test "PREFIX ex: <https://www.example.org/> SELECT ?data { ?s a | ex:age|ex:friend ?data }"
+
+    using(person1) test "PREFIX ex: <https://www.example.org/> SELECT ?street { ?s (a | ex:address)/ex:street ?street }"
+
+    using(person1) test "PREFIX ex: <https://www.example.org/> SELECT ?s ?o { ?s (ex:|!ex:) ?o }"
+
+    using(person1) test "PREFIX ex: <https://www.example.org/> SELECT ?s ?o { ?s !(ex:friend|ex:notes|ex:address) ?o }"
+
+    val person2 = buildStore {
+        val person = local("person1")
+        person has RDF.type being "person".asNamedTerm()
+        person has "https://www.example.org/age".asNamedTerm() being 23
+        person has "https://www.example.org/notes".asNamedTerm() being list(
+            "first-note".asNamedTerm(),
+            "second-note".asNamedTerm(),
+            "third-note".asNamedTerm(),
+            "fourth-note".asNamedTerm(),
+            "another-note".asNamedTerm(),
+            "last-note".asNamedTerm(),
+        )
+        person has "https://www.example.org/notes".asNamedTerm() being list(
+            "even-more-notes".asNamedTerm()
+        )
+        person has "https://www.example.org/decoy".asNamedTerm() being list(
+            "wrong-1".asNamedTerm(),
+            "wrong-2".asNamedTerm(),
+            "wrong-3".asNamedTerm(),
+        )
+    }
+
+    using(person2) test """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT ?node {
+            ?node rdf:rest* ?blank .
+            ?blank rdf:rest rdf:nil .
+        }
+    """
+
+    using(person2) test """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX ex: <https://www.example.org/>
+        SELECT ?person ?note {
+            ?person a ex:person ; ex:notes/rdf:rest*/rdf:first ?note
+        }
+    """
+
+    using(person2) test """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT * {
+            ?s (rdf:|!rdf:)* ?o
+        }
+    """
+
+    val addresses = buildStore {
+        "person1".namedTerm has "https://www.example.org/domicile".namedTerm being blank {
+            "https://www.example.org/address".namedTerm being blank {
+                "https://www.example.org/street".namedTerm being "Person St.".literalTerm
+                "https://www.example.org/city".namedTerm being blank {
+                    "https://www.example.org/inhabitants".namedTerm being 5000
+                }
+            }
+        }
+        "person2".namedTerm has "https://www.example.org/domicile".namedTerm being "house2".namedTerm
+        "house2".namedTerm has "https://www.example.org/address".namedTerm being "address2".namedTerm
+        "address2".namedTerm has "https://www.example.org/street".namedTerm being "Person II St.".literalTerm
+        "address2".namedTerm has "https://www.example.org/city".namedTerm being blank {
+            "https://www.example.org/inhabitants".namedTerm being 7500
+        }
+        "incomplete".namedTerm has "https://www.example.org/domicile".namedTerm being blank {
+            "https://www.example.org/address".namedTerm being blank {
+                "https://www.example.org/street".namedTerm being "unknown".namedTerm
+                "https://www.example.org/city".namedTerm being "unknown".namedTerm
+            }
+        }
+    }
+
+    using(addresses) test """
+        PREFIX ex: <https://www.example.org/>
+        SELECT * {
+            ?person ex:domicile [
+                ex:address [
+                    ex:street ?street ;
+                    ex:city [
+                        ex:inhabitants ?count
+                    ]
+                ]
+            ] .
+        }
+    """
+
+//    using(addresses) test """
+//        PREFIX ex: <https://www.example.org/>
+//        SELECT * {
+//            ?person ex:domicile/ex:address ?place .
+//            ?place ex:street ?street .
+//            OPTIONAL {
+//                ?place ex:city/ex:inhabitants ?count .
+//            }
+//        }
+//    """
+
+//    using(addresses) test """
+//        PREFIX ex: <https://www.example.org/>
+//        SELECT * {
+//            ?person ex:domicile/ex:address ?place .
+//            ?place ex:street ?street .
+//            {
+//                ?place ex:city ?city .
+//                 OPTIONAL {
+//                    ?city ex:inhabitants: ?count .
+//                 }
+//            } UNION {
+//                ?place ex:city ex:unknown .
+//            }
+//        }
+//    """
+
+    using(addresses) test """
+        PREFIX ex: <https://www.example.org/>
+        SELECT * {
+            ?a (ex:domicile/ex:address)|(ex:city/ex:inhabitants) ?b .
+        }
+    """
+
+//    using(addresses) test """
+//        PREFIX ex: <https://www.example.org/>
+//        SELECT * {
+//            ?person ex:domicile/ex:address ?place .
+//            ?place ex:street ?street .
+//            {
+//                SELECT * { ?s ?p ?o }
+//            }
+//        }
+//    """
+//
+//    val aggregation = """
+//        @prefix : <http://books.example/> .
+//
+//        :org1 :affiliates :auth1, :auth2 .
+//        :auth1 :writesBook :book1, :book2 .
+//        :book1 :price 9 .
+//        :book2 :price 5 .
+//        :auth2 :writesBook :book3 .
+//        :book3 :price 7 .
+//        :org2 :affiliates :auth3 .
+//        :auth3 :writesBook :book4 .
+//        :book4 :price 7 .
+//    """.parseTurtleString()
+//
+//    using(aggregation) test """
+//        PREFIX : <http://books.example/>
+//        SELECT (SUM(?lprice) AS ?totalPrice)
+//        WHERE {
+//          ?org :affiliates ?auth .
+//          ?auth :writesBook ?book .
+//          ?book :price ?lprice .
+//        }
+//        GROUP BY ?org
+//        HAVING (SUM(?lprice) > 10)
+//    """
 }

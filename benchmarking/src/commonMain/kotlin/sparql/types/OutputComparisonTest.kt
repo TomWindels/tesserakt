@@ -25,7 +25,11 @@ data class OutputComparisonTest(
         val external = ExternalQueryExecution(query, store)
         val expected: List<Bindings>
         val referenceTime = measureTime {
-            expected = external.execute()
+            try {
+                expected = external.execute()
+            } catch (t: Throwable) {
+                return Test.Result.Failure(RuntimeException("Failed to use external implementation reference: ${t.message}", t))
+            }
         }
         Result.from(
             received = actual,

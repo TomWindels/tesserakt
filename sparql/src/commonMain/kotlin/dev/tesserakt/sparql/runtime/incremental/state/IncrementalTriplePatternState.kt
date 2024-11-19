@@ -9,7 +9,6 @@ import dev.tesserakt.sparql.runtime.core.mappingOf
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.matches
 import dev.tesserakt.sparql.runtime.incremental.collection.HashJoinArray
-import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
 import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
 import dev.tesserakt.sparql.runtime.util.Bitmask
 
@@ -17,15 +16,13 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     protected val s: Pattern.Subject, protected val p: P, protected val o: Pattern.Object
 ): JoinStateType {
 
-    protected abstract val mappings: List<Mapping>
-
     final override val bindings: Set<String> = bindingNamesOf(s, p, o)
 
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
      *  on an empty solution results in [cardinality] results, or a size of 0 guarantees no results will get generated)
      */
-    private val cardinality: Int get() = mappings.size
+    protected abstract val cardinality: Int
 
     sealed class ArrayBackedPattern<P : Pattern.Predicate>(
         subj: Pattern.Subject,
@@ -35,7 +32,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val data = HashJoinArray(bindingNamesOf(subj, pred, obj).toSet())
 
-        override val mappings get() = data.mappings
+        override val cardinality get() = data.mappings.size
 
         final override fun insert(quad: Quad): List<Mapping> {
             val new = delta(quad)
@@ -120,23 +117,21 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     ) : IncrementalTriplePatternState<Pattern.RepeatingPredicate>(subj, pred, obj) {
 
         protected val state = when (pred) {
-            is Pattern.ZeroOrMore -> IncrementalPathState.ZeroOrMore(
+            is Pattern.ZeroOrMore -> IncrementalPathState.zeroOrMore(
                 start = subj,
                 end = obj
             )
 
-            is Pattern.OneOrMore -> IncrementalPathState.OneOrMore(
+            is Pattern.OneOrMore -> IncrementalPathState.oneOrMore(
                 start = subj,
                 end = obj
             )
         }
 
-        protected val arr = mutableJoinCollection(subj.bindingName, obj.bindingName)
-
-        override val mappings get() = arr.mappings
+        override val cardinality: Int get() = state.cardinality
 
         final override fun join(mappings: List<Mapping>): List<Mapping> {
-            return arr.join(mappings)
+            return state.join(mappings)
         }
 
     }
@@ -154,9 +149,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
                 return emptyList()
             }
             val segment = SegmentsList.Segment(start = quad.s, end = quad.o)
-            val new = state.insert(segment)
-            arr.addAll(new)
-            return new
+            return state.insert(segment)
         }
     }
 
@@ -176,9 +169,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
                     end = this@StatefulRepeatingPattern.o.getTermOrNull(it)!!
                 )
             }
-            val new = segments.flatMap { segment -> state.insert(segment) }
-            arr.addAll(new)
-            return new
+            return segments.flatMap { segment -> state.insert(segment) }
         }
 
     }
@@ -191,12 +182,12 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val states = p.allowed.map { p -> Pattern(s, p, o).createIncrementalPatternState() }
 
-        private val _mappings = mutableListOf<Mapping>()
-        override val mappings: List<Mapping> = _mappings
+        private val mappings = mutableListOf<Mapping>()
+        override val cardinality: Int get() = mappings.size
 
         override fun insert(quad: Quad): List<Mapping> {
             val new = states.flatMap { it.insert(quad) }
-            _mappings.addAll(new)
+            mappings.addAll(new)
             return new
         }
 
@@ -214,12 +205,12 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val states = p.allowed.map { p -> Pattern(s, p, o).createIncrementalPatternState() }
 
-        private val _mappings = mutableListOf<Mapping>()
-        override val mappings: List<Mapping> = _mappings
+        private val mappings = mutableListOf<Mapping>()
+        override val cardinality: Int get() = mappings.size
 
         override fun insert(quad: Quad): List<Mapping> {
             val new = states.flatMap { it.insert(quad) }
-            _mappings.addAll(new)
+            mappings.addAll(new)
             return new
         }
 
@@ -237,8 +228,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val chain: List<IncrementalTriplePatternState<*>>
 
-        private val _mappings = mutableListOf<Mapping>()
-        override val mappings: List<Mapping> get() = _mappings
+        private val mappings = mutableListOf<Mapping>()
+        override val cardinality: Int get() = mappings.size
 
         init {
             require(p.chain.size > 1)
@@ -257,11 +248,11 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             // TODO: join tree
             val new = chain
                 .mapIndexed { i, element -> Bitmask.onesAt(i, length = chain.size) to element.insert(quad) }
-                .expandResultSet()
+                .merge()
                 .flatMap { (mask, mappings) ->
                     mask.inv().fold(mappings) { results, i -> chain[i].join(results) }
                 }
-            _mappings.addAll(new)
+            mappings.addAll(new)
             return new
         }
 
@@ -279,8 +270,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val chain: List<IncrementalTriplePatternState<*>>
 
-        private val _mappings = mutableListOf<Mapping>()
-        override val mappings: List<Mapping> get() = _mappings
+        private val mappings = mutableListOf<Mapping>()
+        override val cardinality: Int get() = mappings.size
 
         init {
             require(pred.chain.size > 1)
@@ -299,11 +290,11 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             // TODO: join tree
             val new = chain
                 .mapIndexed { i, element -> Bitmask.onesAt(i, length = chain.size) to element.insert(quad) }
-                .expandResultSet()
+                .merge()
                 .flatMap { (mask, mappings) ->
                     mask.inv().fold(mappings) { results, i -> chain[i].join(results) }
                 }
-            _mappings.addAll(new)
+            mappings.addAll(new)
             chain.forEach { it.insert(quad) }
             return new
         }

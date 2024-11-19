@@ -46,6 +46,7 @@ fun N3NamedNode.toTerm() = Quad.NamedTerm(value = value)
 private object N3XSD {
     val string = XSD.string.toN3Term()
     val int = XSD.int.toN3Term()
+    val integer = XSD.integer.toN3Term()
     val long = XSD.long.toN3Term()
     val float = XSD.float.toN3Term()
     val double = XSD.double.toN3Term()
@@ -54,12 +55,12 @@ private object N3XSD {
 
 fun N3Literal.toTerm() = when (datatype) {
     N3XSD.string -> Quad.Literal(value, type = XSD.string)
-    N3XSD.int -> Quad.Literal(value.toInt(), type = XSD.int)
+    N3XSD.int, N3XSD.integer -> Quad.Literal(value.toInt(), type = XSD.int)
     N3XSD.long -> Quad.Literal(value.toLong(), type = XSD.long)
     N3XSD.float -> Quad.Literal(value.toFloat(), type = XSD.float)
     N3XSD.double -> Quad.Literal(value.toDouble(), type = XSD.double)
     N3XSD.boolean -> Quad.Literal(value.toBoolean(), type = XSD.boolean)
-    else -> throw IllegalArgumentException("Unknown datatype `$datatype`")
+    else -> throw IllegalArgumentException("Unknown datatype `${datatype.value}`")
 }
 
 fun N3BlankNode.toTerm() = Quad.BlankTerm(id = value.takeLastWhile { it.isDigit() }.toInt())

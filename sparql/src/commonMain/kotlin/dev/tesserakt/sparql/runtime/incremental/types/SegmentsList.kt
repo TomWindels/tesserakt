@@ -53,10 +53,24 @@ internal class SegmentsList {
         // adding every permutation
         left.forEach { start -> result.add(Segment(start = start, end = segment.end)) }
         right.forEach { end -> result.add(Segment(start = segment.start, end = end)) }
-        // adding every in-between path
-        left.forEach { start -> right.forEach { end -> result.add(Segment(start = start, end = end)) } }
+        // adding every in-between path that isn't a "zero-length" path (which can occur in circular graphs)
+        left.forEach { start -> right.forEach { end -> if (start != end) result.add(Segment(start = start, end = end)) } }
         // existing paths can't result in new sub-results
         return result - _paths
+    }
+
+    fun newReachableStartNodesOnAdding(segment: Segment): Set<Quad.Term> {
+        // FIXME can be improved - maybe make this a regular insert method?
+        val before = _paths.map { it.start }.toSet()
+        val after = (_paths + newPathsOnAdding(segment)).map { it.start }.toSet()
+        return after - before
+    }
+
+    fun newReachableEndNodesOnAdding(segment: Segment): Set<Quad.Term> {
+        // FIXME can be improved - maybe make this a regular insert method?
+        val before = _paths.map { it.end }.toSet()
+        val after = (_paths + newPathsOnAdding(segment)).map { it.end }.toSet()
+        return after - before
     }
 
     /**
@@ -70,8 +84,8 @@ internal class SegmentsList {
      * Returns all terms that are connected by a path variation ending with `end`: segments AB, BC, AD and argument C yield
      *  the terms B, A
      */
-    fun allConnectedStartTermsOf(end: Quad.Term): List<Quad.Term> =
-        _paths.mapNotNull { segment -> segment.start.takeIf { segment.end == end } }
+    fun allConnectedStartTermsOf(end: Quad.Term, paths: Set<Segment> = _paths): List<Quad.Term> =
+        paths.mapNotNull { segment -> segment.start.takeIf { segment.end == end } }
 
     fun isConnected(start: Quad.Term, end: Quad.Term): Boolean =
         _paths.any { it.start == start && it.end == end }

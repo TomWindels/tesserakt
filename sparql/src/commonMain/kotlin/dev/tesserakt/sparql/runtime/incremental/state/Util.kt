@@ -7,20 +7,21 @@ import dev.tesserakt.sparql.runtime.util.Bitmask
 import dev.tesserakt.util.compatibleWith
 
 /**
- * Adds all results found inside `this` list together where compatible as additional contenders for complete result
- *  generation (for input quads matching multiple patterns at once)
+ * Merges the results found in the receiving collection to a new set of candidate results that guarantee no overlap
  */
-internal inline fun List<Pair<Bitmask, List<Mapping>>>.expandResultSet(): List<Pair<Bitmask, List<Mapping>>> {
+internal inline fun List<Pair<Bitmask, List<Mapping>>>.merge(): List<Pair<Bitmask, List<Mapping>>> {
     // estimating about half of them match for initial capacity
     val result = toMutableList()
     var i = 0
     while (i < result.size - 1) {
         val current = result[i]
-        (i + 1 until result.size).forEach { j ->
+        var j = i + 1
+        while (j < result.size) {
             val contender = result[j]
+            // cannot be already partially applied
             if (!current.first.and(contender.first).isZero()) {
-                // pattern (partially) already applied, no merging should be done
-                return@forEach
+                ++j
+                continue
             }
             // creating all mappings that result from combining these two sub-results
             val merged = current.second.flatMap { mapping ->
@@ -33,6 +34,10 @@ internal inline fun List<Pair<Bitmask, List<Mapping>>>.expandResultSet(): List<P
             // if any have been made, its combination can be appended to this result
             if (merged.isNotEmpty()) {
                 result.add(current.first or contender.first to merged)
+                result.removeAt(i)
+                result.removeAt(j)
+            } else {
+                ++j
             }
         }
         ++i

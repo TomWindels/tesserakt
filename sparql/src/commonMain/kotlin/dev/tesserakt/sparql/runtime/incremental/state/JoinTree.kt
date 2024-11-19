@@ -25,7 +25,7 @@ internal sealed interface JoinTree {
         override fun insert(quad: Quad): List<Mapping> {
             val new = states
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = states.size) to pattern.insert(quad) }
-                .expandResultSet()
+                .merge()
                 .flatMap { (completed, mappings) -> join(completed, mappings) }
             return new
         }
