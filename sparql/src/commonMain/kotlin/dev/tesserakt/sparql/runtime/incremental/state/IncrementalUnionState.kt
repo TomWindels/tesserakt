@@ -2,7 +2,6 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
-import dev.tesserakt.sparql.runtime.incremental.types.Segment
 import dev.tesserakt.sparql.runtime.incremental.types.SelectQuerySegment
 import dev.tesserakt.sparql.runtime.incremental.types.StatementsSegment
 import dev.tesserakt.sparql.runtime.incremental.types.Union
@@ -17,8 +16,12 @@ internal class IncrementalUnionState(union: Union): JoinStateType {
 
             override val bindings: Set<String> get() = state.bindings
 
-            override fun insert(quad: Quad): List<Mapping> {
-                return state.insert(quad)
+            override fun process(quad: Quad) {
+                return state.process(quad)
+            }
+
+            override fun delta(quad: Quad): List<Mapping> {
+                return state.delta(quad)
             }
 
             override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -31,7 +34,11 @@ internal class IncrementalUnionState(union: Union): JoinStateType {
 
             override val bindings: Set<String> = parent.query.output.map { it.name }.toSet()
 
-            override fun insert(quad: Quad): List<Mapping> {
+            override fun process(quad: Quad) {
+                TODO("Not yet implemented")
+            }
+
+            override fun delta(quad: Quad): List<Mapping> {
                 TODO("Not yet implemented")
             }
 
@@ -43,7 +50,9 @@ internal class IncrementalUnionState(union: Union): JoinStateType {
 
         abstract val bindings: Set<String>
 
-        abstract fun insert(quad: Quad): List<Mapping>
+        abstract fun delta(quad: Quad): List<Mapping>
+
+        abstract fun process(quad: Quad)
 
         abstract fun join(mappings: List<Mapping>): List<Mapping>
 
@@ -53,8 +62,12 @@ internal class IncrementalUnionState(union: Union): JoinStateType {
 
     override val bindings: Set<String> = buildSet { state.forEach { addAll(it.bindings) } }
 
-    override fun insert(quad: Quad): List<Mapping> {
-        return state.flatMap { it.insert(quad) }
+    override fun process(quad: Quad) {
+        state.forEach { it.process(quad) }
+    }
+
+    override fun delta(quad: Quad): List<Mapping> {
+        return state.flatMap { it.delta(quad) }
     }
 
     override fun join(mappings: List<Mapping>): List<Mapping> {

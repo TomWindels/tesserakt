@@ -17,9 +17,20 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
     val bindings: Set<String> = ast.getAllNamedBindings().map { it.name }.toSet()
 
     fun insert(quad: Quad): List<Mapping> {
-        val first = patterns.insert(quad)
-        val second = unions.insert(quad)
+        val total = delta(quad)
+        process(quad)
+        return total
+    }
+
+    fun delta(quad: Quad): List<Mapping> {
+        val first = patterns.delta(quad)
+        val second = unions.delta(quad)
         return patterns.join(second) + unions.join(first)
+    }
+
+    fun process(quad: Quad) {
+        patterns.process(quad)
+        unions.process(quad)
     }
 
     fun join(mappings: List<Mapping>): List<Mapping> {

@@ -13,6 +13,14 @@ interface JoinStateType {
 
     fun join(mappings: List<Mapping>): List<Mapping>
 
-    fun insert(quad: Quad): List<Mapping>
+    /**
+     * Returns the delta the provided [quad] produces upon insertion
+     */
+    fun delta(quad: Quad): List<Mapping>
+
+    /**
+     * Processes an insertion of the [quad] to this state type
+     */
+    fun process(quad: Quad)
 
 }
