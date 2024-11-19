@@ -60,7 +60,12 @@ data class Pattern(
 
     @JvmInline
     value class Alts(val allowed: List<Predicate>) : Predicate {
-        override fun toString() = allowed.joinToString(" | ")
+        override fun toString() = allowed.joinToString(
+            separator = " | ",
+            prefix = "(",
+            postfix = ")",
+            transform = { "($it)" }
+        )
     }
 
     @JvmInline

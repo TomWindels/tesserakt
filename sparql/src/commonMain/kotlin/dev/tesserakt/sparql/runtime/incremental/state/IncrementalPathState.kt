@@ -1,5 +1,3 @@
-@file:Suppress("NOTHING_TO_INLINE")
-
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.common.types.Pattern
@@ -115,28 +113,101 @@ internal sealed class IncrementalPathState {
 
     }
 
-//    class OneOrMore(
-//        start: Pattern.Subject,
-//        end: Pattern.Object
-//    ) : IncrementalPathState(start = start, end = end) {
-//
-//        override fun insert(segment: SegmentsList.Segment): List<Mapping> {
-//            val result = segments.newPathsOnAdding(segment).toMutableList()
-//            // only accepting all paths that adhere to the constraints above: if one represents a binding, it gets
-//            //  added to the resulting mappings; else, it gets filtered out if it doesn't match in value
-//            // FIXME can be done directly in segment list for efficiency
-//            if (start is Pattern.Exact) {
-//                result.removeAll { it.start != start.term }
-//            }
-//            if (end is Pattern.Exact) {
-//                result.removeAll { it.end != end.term }
-//            }
-//            val delta = result.map { it.toMapping() }.distinct()
-//            segments.insert(segment)
-//            return delta
-//        }
-//
-//    }
+    class OneOrMoreBinding(
+        val start: Pattern.Binding,
+        val end: Pattern.Binding
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList()
+        private val arr = mutableJoinCollection(start.name, end.name)
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun insert(segment: SegmentsList.Segment): List<Mapping> {
+            val delta = segments.newPathsOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(start.name to it.start, end.name to it.end) }
+            segments.insert(segment)
+            arr.addAll(delta)
+            return delta
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+    }
+
+    class OneOrMoreBindingExact(
+        val start: Pattern.Binding,
+        val end: Pattern.Exact
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList()
+        private val arr = mutableJoinCollection(start.name)
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun insert(segment: SegmentsList.Segment): List<Mapping> {
+            val delta = segments.newReachableStartNodesOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(start.name to it) }
+            segments.insert(segment)
+            arr.addAll(delta)
+            return delta
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+    }
+
+    class OneOrMoreExactBinding(
+        val start: Pattern.Exact,
+        val end: Pattern.Binding
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList()
+        private val arr = mutableJoinCollection(end.name)
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun insert(segment: SegmentsList.Segment): List<Mapping> {
+            val delta = segments.newReachableEndNodesOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(end.name to it) }
+            segments.insert(segment)
+            arr.addAll(delta)
+            return delta
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+    }
+
+    class OneOrMoreExact(
+        val start: Pattern.Exact,
+        val end: Pattern.Exact
+    ) : IncrementalPathState() {
+
+        private var satisfied = false
+
+        override val cardinality: Int get() = if (satisfied) 1 else 0
+
+        override fun insert(segment: SegmentsList.Segment): List<Mapping> {
+            return if (!satisfied) {
+                satisfied = true
+                listOf(emptyMapping())
+            } else {
+                emptyList()
+            }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return if (satisfied) mappings else emptyList()
+        }
+
+    }
 
     abstract val cardinality: Int
 
@@ -160,14 +231,14 @@ internal sealed class IncrementalPathState {
         fun oneOrMore(
             start: Pattern.Subject,
             end: Pattern.Object
-        ): Nothing = when {
+        ) = when {
+            start is Pattern.Exact && end is Pattern.Exact -> OneOrMoreExact(start, end)
+            start is Pattern.Binding && end is Pattern.Binding -> OneOrMoreBinding(start, end)
+            start is Pattern.Exact && end is Pattern.Binding -> OneOrMoreExactBinding(start, end)
+            start is Pattern.Binding && end is Pattern.Exact -> OneOrMoreBindingExact(start, end)
             else -> throw IllegalStateException("Unknown subject / pattern combination for `OneOrMore` predicate construct: $start -> $end")
         }
 
     }
 
 }
-
-// helper for ZeroOrMore above
-private inline operator fun <T> T.plus(collection: Collection<T>): List<T> = ArrayList<T>(collection.size + 1)
-    .also { it.add(this); it.addAll(collection) }

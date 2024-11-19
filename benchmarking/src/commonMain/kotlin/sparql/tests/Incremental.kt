@@ -213,6 +213,24 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         }
     """
 
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            <http://example.org/a> <http://example.org/p>+ <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a <http://example.org/p>+ <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a <http://example.org/p>+ ?b
+        }
+    """
+
     val unions = buildStore("http://www.example.org/") {
         val a = local("a")
         val b = local("b")
@@ -275,6 +293,13 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
         PREFIX : <http://www.example.org/>
         SELECT ?v WHERE {
             ?a :p* ?v
+        }
+    """
+
+    using (literals) test """
+        PREFIX : <http://www.example.org/>
+        SELECT ?v WHERE {
+            ?a :p+ ?v
         }
     """
 
@@ -346,6 +371,14 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
 
     using(person2) test """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT ?node {
+            ?node rdf:rest+ ?blank .
+            ?blank rdf:rest rdf:nil .
+        }
+    """
+
+    using(person2) test """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX ex: <https://www.example.org/>
         SELECT ?person ?note {
             ?person a ex:person ; ex:notes/rdf:rest*/rdf:first ?note
@@ -354,8 +387,23 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
 
     using(person2) test """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX ex: <https://www.example.org/>
+        SELECT ?person ?note {
+            ?person a ex:person ; ex:notes/rdf:rest+/rdf:first ?note
+        }
+    """
+
+    using(person2) test """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         SELECT * {
             ?s (rdf:|!rdf:)* ?o
+        }
+    """
+
+    using(person2) test """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT * {
+            ?s (rdf:|!rdf:)+ ?o
         }
     """
 
@@ -466,4 +514,49 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
 //        GROUP BY ?org
 //        HAVING (SUM(?lprice) > 10)
 //    """
+
+    val aux1 = buildStore("http://example.org/") {
+        val s0 = local("s0")
+        val s1 = local("s1")
+        val p1 = local("p1")
+        val p2 = local("p2")
+        val o = local("o")
+        val x = local("x")
+
+        s0 has p2 being x
+        x has p1 being o
+        s1 has p1 being o
+    }
+
+    using(aux1) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?a :p1 ?b .
+            ?d :p2 ?c .
+            ?c :p1|:p2 :o
+        }
+    """
+
+    val aux2 = buildStore("http://example.org/") {
+        val s0 = local("s0")
+        val s1 = local("s1")
+        val p1 = local("p1")
+        val p2 = local("p2")
+        val o = local("o")
+        val x = local("x")
+
+        s0 has p2 being x
+        s1 has p2 being o
+        x has p1 being o
+    }
+
+    using(aux2) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?a :p1 ?b .
+            ?d :p2 ?c .
+            ?c :p1|:p2 :o
+        }
+    """
+
 }
