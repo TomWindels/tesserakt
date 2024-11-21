@@ -20,6 +20,7 @@ internal sealed class IncrementalPathState {
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
             val delta = delta(segment)
             segments.insert(segment)
             arr.addAll(delta)
@@ -49,6 +50,7 @@ internal sealed class IncrementalPathState {
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
             val delta = delta(segment)
             segments.insert(segment)
             arr.addAll(delta)
@@ -76,6 +78,7 @@ internal sealed class IncrementalPathState {
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
             val delta = delta(segment)
             segments.insert(segment)
             arr.addAll(delta)
@@ -132,6 +135,7 @@ internal sealed class IncrementalPathState {
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
             val delta = delta(segment)
             segments.insert(segment)
             arr.addAll(delta)
@@ -161,6 +165,7 @@ internal sealed class IncrementalPathState {
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
             val delta = delta(segment)
             segments.insert(segment)
             arr.addAll(delta)
@@ -188,6 +193,7 @@ internal sealed class IncrementalPathState {
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
             val delta = delta(segment)
             segments.insert(segment)
             arr.addAll(delta)
