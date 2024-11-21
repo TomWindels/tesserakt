@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.types
 
 import dev.tesserakt.rdf.types.Quad
 
-internal class SegmentsList {
+internal sealed class SegmentsList {
 
     data class Segment(
         val start: Quad.Term,
@@ -12,14 +12,77 @@ internal class SegmentsList {
     }
 
     // the individual already-visited nodes
-    private val _nodes = mutableSetOf<Quad.Term>()
+    protected val _nodes = mutableSetOf<Quad.Term>()
     val nodes: Set<Quad.Term> get() = _nodes
     // segments connecting the nodes from above
-    private val _segments = mutableSetOf<Segment>()
+    protected val _segments = mutableSetOf<Segment>()
     val segments: Set<Segment> get() = _segments
     // all paths that can be formed using the segments from above
-    private val _paths = mutableSetOf<Segment>()
+    protected val _paths = mutableSetOf<Segment>()
     val paths: Set<Segment> get() = _paths
+
+    /**
+     * A segment list implementation that accepts "zero-length" segments as valid paths, creating them whenever a
+     *  new segment node is added
+     */
+    class ZeroLength: SegmentsList() {
+
+        override fun newPathsOnAdding(segment: Segment): Set<Segment> {
+            if (segment in _segments) {
+                // no impact, no new paths could be made
+                return emptySet()
+            }
+            val left = pathsEndingWithUsingSegments(segment)
+            val right = pathsStartingWithUsingSegments(segment)
+            // all results from `before` are now connected with those `after`, with the new segment at least being part
+            //  of the result
+            val result = LinkedHashSet<Segment>((left.size + 1) * (right.size + 1))
+            result.add(segment)
+            // adding every permutation
+            left.forEach { start -> result.add(Segment(start = start, end = segment.end)) }
+            right.forEach { end -> result.add(Segment(start = segment.start, end = end)) }
+            // adding every in-between path that isn't a "zero-length" path (which can occur in circular graphs)
+            left.forEach { start -> right.forEach { end -> if (start != end) result.add(Segment(start = start, end = end)) } }
+            // if any of the nodes of the new segment are new, they should be considered as zero length paths of their own
+            if (segment.start !in _nodes) {
+                result.add(Segment(start = segment.start, end = segment.start))
+            }
+            if (segment.end !in _nodes) {
+                result.add(Segment(start = segment.end, end = segment.end))
+            }
+            // existing paths can't result in new sub-results
+            return result - _paths
+        }
+
+    }
+
+    /**
+     * A segment list implementation that does not accept "zero-length" segments as valid paths, resulting in nodes
+     *  only considered as connected upon full path connection
+     */
+    class SingleLength: SegmentsList() {
+
+        override fun newPathsOnAdding(segment: Segment): Set<Segment> {
+            if (segment in _segments) {
+                // no impact, no new paths could be made
+                return emptySet()
+            }
+            val left = pathsEndingWithUsingSegments(segment)
+            val right = pathsStartingWithUsingSegments(segment)
+            // all results from `before` are now connected with those `after`, with the new segment at least being part
+            //  of the result
+            val result = LinkedHashSet<Segment>((left.size + 1) * (right.size + 1))
+            result.add(segment)
+            // adding every permutation
+            left.forEach { start -> result.add(Segment(start = start, end = segment.end)) }
+            right.forEach { end -> result.add(Segment(start = segment.start, end = end)) }
+            // adding every in-between path, including those that have start == end, as that is now a valid path
+            left.forEach { start -> right.forEach { end -> result.add(Segment(start = start, end = end)) } }
+            // existing paths can't result in new sub-results
+            return result - _paths
+        }
+
+    }
 
     /**
      * Adds the `segment` to the list of segments, allowing it to be used when calculating the delta, and expands
@@ -39,56 +102,19 @@ internal class SegmentsList {
      * Calculates all path variations that can be formed when adding the new `segment` to this segment store,
      *  WITHOUT actually adding it. Uses segments to calculate all new variations.
      */
-    fun newPathsOnAdding(segment: Segment): Set<Segment> {
-        if (segment in segments) {
-            // no impact, no new paths could be made
-            return emptySet()
-        }
-        val left = pathsEndingWithUsingSegments(segment)
-        val right = pathsStartingWithUsingSegments(segment)
-        // all results from `before` are now connected with those `after`, with the new segment at least being part
-        //  of the result
-        val result = LinkedHashSet<Segment>((left.size + 1) * (right.size + 1))
-        result.add(segment)
-        // adding every permutation
-        left.forEach { start -> result.add(Segment(start = start, end = segment.end)) }
-        right.forEach { end -> result.add(Segment(start = segment.start, end = end)) }
-        // adding every in-between path that isn't a "zero-length" path (which can occur in circular graphs)
-        left.forEach { start -> right.forEach { end -> if (start != end) result.add(Segment(start = start, end = end)) } }
-        // existing paths can't result in new sub-results
-        return result - _paths
-    }
+    abstract fun newPathsOnAdding(segment: Segment): Set<Segment>
 
     fun newReachableStartNodesOnAdding(segment: Segment): Set<Quad.Term> {
-        // FIXME can be improved - maybe make this a regular insert method?
         val before = _paths.map { it.start }.toSet()
         val after = (_paths + newPathsOnAdding(segment)).map { it.start }.toSet()
         return after - before
     }
 
     fun newReachableEndNodesOnAdding(segment: Segment): Set<Quad.Term> {
-        // FIXME can be improved - maybe make this a regular insert method?
         val before = _paths.map { it.end }.toSet()
         val after = (_paths + newPathsOnAdding(segment)).map { it.end }.toSet()
         return after - before
     }
-
-    /**
-     * Returns all points that can be formed by beginning with `start`: segments AB, BC, AD, BD and argument A yield
-     *  the segments AB, AC, AD, AD
-     */
-    fun allConnectedEndTermsOf(start: Quad.Term): List<Quad.Term> =
-        _paths.mapNotNull { segment -> segment.end.takeIf { segment.start == start } }
-
-    /**
-     * Returns all terms that are connected by a path variation ending with `end`: segments AB, BC, AD and argument C yield
-     *  the terms B, A
-     */
-    fun allConnectedStartTermsOf(end: Quad.Term, paths: Set<Segment> = _paths): List<Quad.Term> =
-        paths.mapNotNull { segment -> segment.start.takeIf { segment.end == end } }
-
-    fun isConnected(start: Quad.Term, end: Quad.Term): Boolean =
-        _paths.any { it.start == start && it.end == end }
 
     override fun toString() = buildString {
         appendLine("SegmentList [")
@@ -98,11 +124,7 @@ internal class SegmentsList {
         append("]")
     }
 
-    /**
-     * Returns all points that can be formed by beginning with `start`: segments AB, BC, AD, BD and argument A yield
-     *  the terms B, C, D, D
-     */
-    private fun pathsStartingWithUsingSegments(segment: Segment): List<Quad.Term> {
+    protected fun pathsStartingWithUsingSegments(segment: Segment): List<Quad.Term> {
         val result = directlyConnectedEndTermsOf(start = segment.end)
             .filter { it != segment.start && it != segment.end }
             .toMutableList()
@@ -118,11 +140,7 @@ internal class SegmentsList {
         return result
     }
 
-    /**
-     * Returns all paths that can be formed by ending with `end`: segments AB, BC, AD and argument C yield
-     *  the terms B, A
-     */
-    private fun pathsEndingWithUsingSegments(segment: Segment): List<Quad.Term> {
+    protected fun pathsEndingWithUsingSegments(segment: Segment): List<Quad.Term> {
         val result = directlyConnectedStartTermsOf(end = segment.start)
             .filter { it != segment.start && it != segment.end }
             .toMutableList()
