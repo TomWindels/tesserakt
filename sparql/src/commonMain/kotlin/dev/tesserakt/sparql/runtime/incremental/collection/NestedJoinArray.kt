@@ -31,6 +31,8 @@ internal value class NestedJoinArray(
         this.mappings.addAll(mappings)
     }
 
+    override fun toString() = "NestedJoinArray (cardinality ${mappings.size})"
+
 }
 
 @Suppress("NOTHING_TO_INLINE")

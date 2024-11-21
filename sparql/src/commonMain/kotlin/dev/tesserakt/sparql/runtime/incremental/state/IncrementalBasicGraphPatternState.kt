@@ -7,8 +7,8 @@ import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
 
 internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
 
-    private val patterns = JoinTree.None(ast.patterns)
-    private val unions = JoinTree.None(ast.unions)
+    private val patterns = JoinTree(ast.patterns)
+    private val unions = JoinTree(ast.unions)
 
     /**
      * A collection of all bindings found inside this query body; it is not guaranteed that all solutions generated

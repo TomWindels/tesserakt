@@ -6,7 +6,7 @@ import dev.tesserakt.sparql.runtime.incremental.types.SelectQuerySegment
 import dev.tesserakt.sparql.runtime.incremental.types.StatementsSegment
 import dev.tesserakt.sparql.runtime.incremental.types.Union
 
-internal class IncrementalUnionState(union: Union): JoinStateType {
+internal class IncrementalUnionState(union: Union): MutableJoinState {
 
     private sealed class Segment {
 

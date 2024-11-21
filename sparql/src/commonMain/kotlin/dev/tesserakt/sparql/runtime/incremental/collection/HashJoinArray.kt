@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.collection
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.util.compatibleWith
 
 /**
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
@@ -37,21 +38,20 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
 
     /**
      * Adds a mapping to the backing array and indexes it accordingly.
-     *
-     * IMPORTANT: the keys of the mapping should exactly match the binding names used to construct this join array!
      */
     override fun add(mapping: Mapping) {
         val pos = backing.size
         backing.add(mapping)
-        mapping.forEach { (binding, value) ->
-            index[binding]!!.getOrPut(value) { arrayListOf() }.add(pos)
+        index.forEach { index ->
+            val value = mapping[index.key]!!
+            index.value
+                .getOrPut(value) { arrayListOf() }
+                .add(pos)
         }
     }
 
     /**
      * Adds all mappings to the backing array and indexes it accordingly.
-     *
-     * IMPORTANT: the keys of every mapping should exactly match the binding names used to construct this join array!
      */
     override fun addAll(mappings: Collection<Mapping>) {
         if (mappings.isEmpty()) {
@@ -60,8 +60,9 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         val start = backing.size
         backing.addAll(mappings)
         mappings.forEachIndexed { i, mapping ->
-            mapping.forEach { (binding, value) ->
-                index[binding]!!
+            index.forEach { index ->
+                val value = mapping[index.key]!!
+                index.value
                     .getOrPut(value) { arrayListOf() }
                     .add(start + i)
             }
@@ -70,7 +71,9 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
 
     override fun join(mappings: List<Mapping>): List<Mapping> {
         val compatible = getCompatibleMappings(mappings)
-        return compatible.indices.flatMap { i -> compatible[i].map { it + mappings[i] } }
+        return compatible.indices.flatMap { i ->
+            compatible[i].mapNotNull { if (it.compatibleWith(mappings[i])) it + mappings[i] else null }
+        }
     }
 
     override fun join(other: JoinCollection): List<Mapping> {
@@ -80,6 +83,9 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
             join(other.mappings)
         }
     }
+
+    override fun toString(): String =
+        "HashJoinArray (cardinality ${mappings.size}, indexed on ${index.keys.joinToString()})"
 
     /**
      * Returns a list of all compatible mappings using the provided reference mappings.

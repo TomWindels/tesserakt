@@ -13,7 +13,7 @@ import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     protected val s: Pattern.Subject, protected val p: P, protected val o: Pattern.Object
-): JoinStateType {
+): MutableJoinState {
 
     final override val bindings: Set<String> = bindingNamesOf(s, p, o)
 
@@ -262,8 +262,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
                 start = end.toSubject()
             }
             chain.add(Pattern(start, p.chain.last(), o))
-            // FIXME
-            tree = JoinTree.None(chain)
+            tree = JoinTree(chain)
         }
 
         override fun process(quad: Quad) {
@@ -302,8 +301,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
                 start = end.toSubject()
             }
             chain.add(Pattern(start, pred.chain.last(), obj))
-            // FIXME
-            tree = JoinTree.None(chain)
+            tree = JoinTree(chain)
         }
 
         override fun process(quad: Quad) {
