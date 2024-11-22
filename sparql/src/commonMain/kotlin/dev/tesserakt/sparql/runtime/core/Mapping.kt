@@ -17,3 +17,5 @@ fun mappingOf(vararg pairs: Pair<String?, Quad.Term>): Mapping = HashMap<String,
             }
         }
     }
+
+fun emptyMapping(): Mapping = emptyMap()

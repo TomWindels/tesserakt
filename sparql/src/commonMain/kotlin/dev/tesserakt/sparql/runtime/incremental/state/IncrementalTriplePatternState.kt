@@ -8,12 +8,20 @@ import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.matches
+import dev.tesserakt.sparql.runtime.incremental.collection.HashJoinArray
 import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
-import dev.tesserakt.sparql.runtime.util.Bitmask
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     protected val s: Pattern.Subject, protected val p: P, protected val o: Pattern.Object
-) {
+): MutableJoinState {
+
+    final override val bindings: Set<String> = bindingNamesOf(s, p, o)
+
+    /**
+     * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
+     *  on an empty solution results in [cardinality] results, or a size of 0 guarantees no results will get generated)
+     */
+    protected abstract val cardinality: Int
 
     sealed class ArrayBackedPattern<P : Pattern.Predicate>(
         subj: Pattern.Subject,
@@ -21,61 +29,19 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         obj: Pattern.Object
     ) : IncrementalTriplePatternState<P>(subj, pred, obj) {
 
-        private val data = HashJoinArray(bindingNamesOf(subj, pred, obj))
+        private val data = HashJoinArray(bindingNamesOf(subj, pred, obj).toSet())
 
-        final override val cardinality: Int get() = data.size
+        override val cardinality get() = data.mappings.size
 
-        final override fun insert(quad: Quad) {
-            data.addAll(delta(quad))
+        final override fun process(quad: Quad) {
+            val new = delta(quad)
+            data.addAll(new)
         }
 
         final override fun join(mappings: List<Mapping>): List<Mapping> {
             Debug.onArrayPatternJoinExecuted()
             return data.join(mappings)
         }
-
-    }
-
-    sealed class RepeatingPattern(
-        subj: Pattern.Subject,
-        pred: Pattern.RepeatingPredicate,
-        obj: Pattern.Object
-    ) : IncrementalTriplePatternState<Pattern.RepeatingPredicate>(subj, pred, obj) {
-
-        private val state = when (pred) {
-            is Pattern.ZeroOrMore -> IncrementalPathState.ZeroOrMore(
-                start = subj,
-                end = obj
-            )
-
-            is Pattern.OneOrMore -> IncrementalPathState.OneOrMore(
-                start = subj,
-                end = obj
-            )
-        }
-
-        final override val cardinality: Int get() = state.size
-
-        final override fun delta(quad: Quad): List<Mapping> {
-            return quad.toSegments()
-                .flatMap { state.delta(it) }
-                // it is possible for multiple segments to be returned, yielding duplicate available paths in this delta;
-                //  distinct removes these superfluous duplicates
-                .distinct()
-        }
-
-        final override fun join(mappings: List<Mapping>): List<Mapping> {
-            return state.join(mappings)
-        }
-
-        override fun insert(quad: Quad) {
-            quad.toSegments().forEach { state.insert(it) }
-        }
-
-        /**
-         * Processes the incoming quad, returns an empty list if no matches are found, or its various segment objects
-         */
-        protected abstract fun Quad.toSegments(): Set<SegmentsList.Segment>
 
     }
 
@@ -140,21 +106,55 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
     }
 
-    class StatelessRepeatingPattern(
-        private val subj: Pattern.Subject,
+    sealed class RepeatingPattern(
+        subj: Pattern.Subject,
         pred: Pattern.RepeatingPredicate,
-        private val obj: Pattern.Object
+        obj: Pattern.Object
+    ) : IncrementalTriplePatternState<Pattern.RepeatingPredicate>(subj, pred, obj) {
+
+        protected val state = when (pred) {
+            is Pattern.ZeroOrMore -> IncrementalPathState.zeroOrMore(
+                start = subj,
+                end = obj
+            )
+
+            is Pattern.OneOrMore -> IncrementalPathState.oneOrMore(
+                start = subj,
+                end = obj
+            )
+        }
+
+        override val cardinality: Int get() = state.cardinality
+
+        final override fun join(mappings: List<Mapping>): List<Mapping> {
+            return state.join(mappings)
+        }
+
+    }
+
+    class StatelessRepeatingPattern(
+        subj: Pattern.Subject,
+        pred: Pattern.RepeatingPredicate,
+        obj: Pattern.Object
     ) : RepeatingPattern(subj, pred, obj) {
 
         private val predicate = pred.element
 
-        override fun Quad.toSegments(): Set<SegmentsList.Segment> {
-            if (!subj.matches(s) || !predicate.matches(p) || !obj.matches(o)) {
-                return emptySet()
+        override fun process(quad: Quad) {
+            if (!predicate.matches(quad.p)) {
+                return
             }
-            return setOf(SegmentsList.Segment(start = s, end = o))
+            val segment = SegmentsList.Segment(start = quad.s, end = quad.o)
+            state.process(segment)
         }
 
+        override fun delta(quad: Quad): List<Mapping> {
+            if (!predicate.matches(quad.p)) {
+                return emptyList()
+            }
+            val segment = SegmentsList.Segment(start = quad.s, end = quad.o)
+            return state.delta(segment)
+        }
     }
 
     class StatefulRepeatingPattern(
@@ -163,24 +163,31 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         o: Pattern.Object
     ) : RepeatingPattern(s, p, o) {
 
-        private val predicate = p.element
-        private val state = Pattern(s, predicate, o).createIncrementalPatternState()
+        private val predicate = Pattern(s, p.element, o).createIncrementalPatternState()
 
-        override fun Quad.toSegments(): Set<SegmentsList.Segment> {
-            return state
-                .delta(this)
-                .map {
-                    SegmentsList.Segment(
-                        start = this@StatefulRepeatingPattern.s.getTermOrNull(it)!!,
-                        end = this@StatefulRepeatingPattern.o.getTermOrNull(it)!!
-                    )
-                }
-                .toSet()
+        override fun process(quad: Quad) {
+            val new = predicate.delta(quad)
+            val segments = new.map {
+                SegmentsList.Segment(
+                    start = this@StatefulRepeatingPattern.s.getTermOrNull(it)!!,
+                    end = this@StatefulRepeatingPattern.o.getTermOrNull(it)!!
+                )
+            }
+            predicate.process(quad)
+            segments.forEach { segment -> state.process(segment) }
         }
 
-        override fun insert(quad: Quad) {
-            state.insert(quad)
-            super.insert(quad)
+        override fun delta(quad: Quad): List<Mapping> {
+            val new = predicate.delta(quad)
+            val segments = new.map {
+                SegmentsList.Segment(
+                    start = this@StatefulRepeatingPattern.s.getTermOrNull(it)!!,
+                    end = this@StatefulRepeatingPattern.o.getTermOrNull(it)!!
+                )
+            }
+            return segments
+                .flatMapTo(mutableSetOf()) { segment -> state.delta(segment) }
+                .toList()
         }
 
     }
@@ -193,14 +200,14 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val states = p.allowed.map { p -> Pattern(s, p, o).createIncrementalPatternState() }
 
-        override val cardinality: Int = states.sumOf { it.cardinality }
+        override val cardinality: Int get() = states.sumOf { it.cardinality }
+
+        override fun process(quad: Quad) {
+            states.forEach { it.process(quad) }
+        }
 
         override fun delta(quad: Quad): List<Mapping> {
             return states.flatMap { it.delta(quad) }
-        }
-
-        override fun insert(quad: Quad) {
-            states.forEach { it.insert(quad) }
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -217,14 +224,14 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val states = p.allowed.map { p -> Pattern(s, p, o).createIncrementalPatternState() }
 
-        override val cardinality: Int = states.sumOf { it.cardinality }
+        override val cardinality: Int get() = states.sumOf { it.cardinality }
+
+        override fun process(quad: Quad) {
+            states.forEach { it.process(quad) }
+        }
 
         override fun delta(quad: Quad): List<Mapping> {
             return states.flatMap { it.delta(quad) }
-        }
-
-        override fun insert(quad: Quad) {
-            states.forEach { it.insert(quad) }
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -239,42 +246,35 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         o: Pattern.Object
     ) : IncrementalTriplePatternState<Pattern.Sequence>(s, p, o) {
 
-        private val chain: List<IncrementalTriplePatternState<*>>
+        private val tree: JoinTree
 
-        override var cardinality: Int = 0
-            private set
+        private val mappings = mutableListOf<Mapping>()
+        override val cardinality: Int get() = mappings.size
 
         init {
             require(p.chain.size > 1)
-            chain = ArrayList(p.chain.size)
+            val chain = ArrayList<Pattern>(p.chain.size)
             var start = s
             (0 until p.chain.size - 1).forEach { i ->
                 val p = p.chain[i]
                 val end = generateBinding()
-                chain.add(Pattern(start, p, end).createIncrementalPatternState())
+                chain.add(Pattern(start, p, end))
                 start = end.toSubject()
             }
-            chain.add(Pattern(start, p.chain.last(), o).createIncrementalPatternState())
+            chain.add(Pattern(start, p.chain.last(), o))
+            tree = JoinTree(chain)
+        }
+
+        override fun process(quad: Quad) {
+            tree.process(quad)
         }
 
         override fun delta(quad: Quad): List<Mapping> {
-            // delta per chain element, joined with all other segments individually
-            return chain
-                .mapIndexed { i, element -> Bitmask.onesAt(i, length = chain.size) to element.delta(quad) }
-                .expandResultSet()
-                .flatMap { (mask, mappings) ->
-                    mask.inv().fold(mappings) { results, i -> chain[i].join(results) }
-                }
-        }
-
-        override fun insert(quad: Quad) {
-            // FIXME not ideal
-            cardinality += delta(quad).size
-            chain.forEach { it.insert(quad) }
+            return tree.delta(quad)
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
-            return chain.fold(mappings) { results, element -> element.join(results) }
+            return tree.join(mappings)
         }
 
     }
@@ -285,65 +285,38 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         obj: Pattern.Object
     ) : IncrementalTriplePatternState<Pattern.UnboundSequence>(subj, pred, obj) {
 
-        private val chain: List<IncrementalTriplePatternState<*>>
+        private val tree: JoinTree
 
-        override var cardinality: Int = 0
-            private set
+        private val mappings = mutableListOf<Mapping>()
+        override val cardinality: Int get() = mappings.size
 
         init {
             require(pred.chain.size > 1)
-            chain = ArrayList(pred.chain.size)
+            val chain = ArrayList<Pattern>(pred.chain.size)
             var start = subj
             (0 until pred.chain.size - 1).forEach { i ->
                 val p = pred.chain[i]
                 val end = generateBinding()
-                chain.add(Pattern(start, p, end).createIncrementalPatternState())
+                chain.add(Pattern(start, p, end))
                 start = end.toSubject()
             }
-            chain.add(Pattern(start, pred.chain.last(), obj).createIncrementalPatternState())
+            chain.add(Pattern(start, pred.chain.last(), obj))
+            tree = JoinTree(chain)
+        }
+
+        override fun process(quad: Quad) {
+            tree.process(quad)
         }
 
         override fun delta(quad: Quad): List<Mapping> {
-            // delta per chain element, joined with all other segments individually
-            return chain
-                .mapIndexed { i, element -> Bitmask.onesAt(i, length = chain.size) to element.delta(quad) }
-                .expandResultSet()
-                .flatMap { (mask, mappings) -> mask.inv().fold(mappings) { results, i -> chain[i].join(results) } }
-        }
-
-        override fun insert(quad: Quad) {
-            // FIXME not ideal
-            cardinality += delta(quad).size
-            chain.forEach { it.insert(quad) }
+            return tree.delta(quad)
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
-            return chain.fold(mappings) { results, element -> element.join(results) }
+            return tree.join(mappings)
         }
 
     }
-
-    /**
-     * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
-     *  on an empty solution results in [cardinality] results, or a size of 0 guarantees no results will get generated)
-     */
-    abstract val cardinality: Int
-
-    /**
-     * Processes the incoming `input` `Quad`, calculating its impact as a `delta`, generating new resulting `Mapping`(s)
-     *  if successful. IMPORTANT: this does **not** alter this state; see `insert(quad)`
-     */
-    abstract fun delta(quad: Quad): List<Mapping>
-
-    /**
-     * Updates the state to also account for the presence of the `input` `Quad`.
-     */
-    abstract fun insert(quad: Quad)
-
-    /**
-     * Joins the `input` list of `Mapping`s to generate new combined results using this state as a data reference
-     */
-    abstract fun join(mappings: List<Mapping>): List<Mapping>
 
     final override fun toString() = "$s $p $o - cardinality $cardinality"
 

@@ -1,158 +1,276 @@
-@file:Suppress("NOTHING_TO_INLINE")
-
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.common.types.Pattern
-import dev.tesserakt.sparql.runtime.common.util.getTermOrNull
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.core.emptyMapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
-import dev.tesserakt.sparql.runtime.core.pattern.bindingName
+import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
 import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
 
-internal sealed class IncrementalPathState(
-    protected val start: Pattern.Subject,
-    protected val end: Pattern.Object
-) {
+internal sealed class IncrementalPathState {
 
-    protected val segments = SegmentsList()
-    protected val bs = start.bindingName
-    protected val bo = end.bindingName
+    class ZeroOrMoreBinding(
+        val start: Pattern.Binding,
+        val end: Pattern.Binding
+    ) : IncrementalPathState() {
 
-    protected fun SegmentsList.Segment.toMapping() = mappingOf(bs to start, bo to end)
+        private val segments = SegmentsList.ZeroLength()
+        private val arr = mutableJoinCollection(start.name, end.name)
 
-    /**
-     * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
-     *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
-     */
-    // FIXME needs testing
-    val size: Int get() = segments.paths.size
+        override val cardinality: Int get() = arr.mappings.size
 
-    abstract fun join(mappings: List<Mapping>): List<Mapping>
-
-    abstract fun delta(segment: SegmentsList.Segment): List<Mapping>
-
-    class ZeroOrMore(
-        start: Pattern.Subject,
-        end: Pattern.Object
-    ) : IncrementalPathState(start = start, end = end) {
-
-        override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { mapping ->
-            val start = start.getTermOrNull(mapping)
-            val end = end.getTermOrNull(mapping)
-            when {
-                start != null && end != null -> {
-                    if (segments.isConnected(start, end)) listOf(mapping) else emptyList()
-                }
-
-                start != null -> {
-                    val base = if (bo != null) {
-                        // object is bound, so adding it to the mapping
-                        segments.allConnectedEndTermsOf(start).map { mapping + (bo to it) }
-                    } else {
-                        // start was already part of the mapping or not bound, as it is non-null, thus the mapping
-                        //  does not have to be altered further
-                        segments.allConnectedEndTermsOf(start).map { mapping }
-                    }
-                    // adding a null-length relation, meaning end == start, if it has already been inserted
-                    if (start in segments.nodes) {
-                        (mapping + mappingOf(bo to start)) + base
-                    } else {
-                        base
-                    }
-                }
-
-                end != null -> {
-                    val base = if (bs != null) {
-                        segments.allConnectedStartTermsOf(end).map { mapping + (bs to it) }
-                    } else {
-                        segments.allConnectedStartTermsOf(end).map { mapping }
-                    }
-                    // adding a null-length relation, meaning end == start, if it has already been inserted
-                    if (end in segments.nodes) {
-                        (mapping + mappingOf(bs to end)) + base
-                    } else {
-                        base
-                    }
-                }
-
-                else -> {
-                    segments.paths.map { it.toMapping() + mapping }
-                }
-            }
+        override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
+            val delta = delta(segment)
+            segments.insert(segment)
+            arr.addAll(delta)
         }
 
         override fun delta(segment: SegmentsList.Segment): List<Mapping> {
-            val result = segments.newPathsOnAdding(segment).let { paths ->
-                val base = ArrayList<Mapping>(paths.size + 2)
-                paths.mapTo(base) { it.toMapping() }
-            }
-            if (segment.start !in segments.nodes) {
-                result.add(
-                    SegmentsList.Segment(
-                        start = segment.start,
-                        end = segment.start
-                    ).toMapping()
-                )
-            }
-            if (segment.end !in segments.nodes) {
-                result.add(
-                    SegmentsList.Segment(
-                        start = segment.end,
-                        end = segment.end
-                    ).toMapping()
-                )
-            }
-            return result
+            return segments.newPathsOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(start.name to it.start, end.name to it.end) }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+        override fun toString() = segments.toString()
+
+    }
+
+    class ZeroOrMoreBindingExact(
+        val start: Pattern.Binding,
+        val end: Pattern.Exact
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList.ZeroLength()
+        private val arr = mutableJoinCollection(start.name)
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
+            val delta = delta(segment)
+            segments.insert(segment)
+            arr.addAll(delta)
+        }
+
+        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+            return segments.newReachableStartNodesOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(start.name to it) }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
         }
 
     }
 
-    class OneOrMore(
-        start: Pattern.Subject,
-        end: Pattern.Object
-    ) : IncrementalPathState(start = start, end = end) {
+    class ZeroOrMoreExactBinding(
+        val start: Pattern.Exact,
+        val end: Pattern.Binding
+    ) : IncrementalPathState() {
 
-        override fun join(mappings: List<Mapping>): List<Mapping> = mappings.flatMap { mapping ->
-            val start = start.getTermOrNull(mapping)
-            val end = end.getTermOrNull(mapping)
-            when {
-                start != null && end != null -> {
-                    if (segments.isConnected(start, end)) listOf(mapping) else emptyList()
-                }
+        private val segments = SegmentsList.ZeroLength()
+        private val arr = mutableJoinCollection(end.name)
 
-                start != null -> {
-                    if (bo != null) {
-                        // object is bound, so adding it to the mapping
-                        segments.allConnectedEndTermsOf(start).map { mapping + (bo to it) }
-                    } else {
-                        // start was already part of the mapping or not bound, as it is non-null, thus the mapping
-                        //  does not have to be altered further
-                        segments.allConnectedEndTermsOf(start).map { mapping }
-                    }
-                }
+        override val cardinality: Int get() = arr.mappings.size
 
-                end != null -> {
-                    if (bs != null) {
-                        segments.allConnectedStartTermsOf(end).map { mapping + (bs to it) }
-                    } else {
-                        segments.allConnectedStartTermsOf(end).map { mapping }
-                    }
-                }
-
-                else -> {
-                    segments.paths.map { it.toMapping() + mapping }
-                }
-            }
+        override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
+            val delta = delta(segment)
+            segments.insert(segment)
+            arr.addAll(delta)
         }
 
-        override fun delta(segment: SegmentsList.Segment) = segments.newPathsOnAdding(segment).map { it.toMapping() }
+        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+            return segments.newReachableEndNodesOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(end.name to it) }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
 
     }
 
-    fun insert(segment: SegmentsList.Segment) = segments.insert(segment)
+    class ZeroOrMoreExact(
+        val start: Pattern.Exact,
+        val end: Pattern.Exact
+    ) : IncrementalPathState() {
+
+        private var satisfied = false
+
+        override val cardinality: Int get() = if (satisfied) 1 else 0
+
+        override fun process(segment: SegmentsList.Segment) {
+            satisfied = true
+        }
+
+        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+            // it's expected that a call to `process` will happen soon after,
+            //  so not changing it here
+            return if (!satisfied) {
+                listOf(emptyMapping())
+            } else {
+                emptyList()
+            }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return if (satisfied) mappings else emptyList()
+        }
+
+    }
+
+    class OneOrMoreBinding(
+        val start: Pattern.Binding,
+        val end: Pattern.Binding
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList.SingleLength()
+        private val arr = mutableJoinCollection(start.name, end.name)
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
+            val delta = delta(segment)
+            segments.insert(segment)
+            arr.addAll(delta)
+        }
+
+        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+            return segments.newPathsOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(start.name to it.start, end.name to it.end) }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+        override fun toString() = segments.toString()
+
+    }
+
+    class OneOrMoreBindingExact(
+        val start: Pattern.Binding,
+        val end: Pattern.Exact
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList.SingleLength()
+        private val arr = mutableJoinCollection(start.name)
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
+            val delta = delta(segment)
+            segments.insert(segment)
+            arr.addAll(delta)
+        }
+
+        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+            return segments.newReachableStartNodesOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(start.name to it) }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+    }
+
+    class OneOrMoreExactBinding(
+        val start: Pattern.Exact,
+        val end: Pattern.Binding
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList.SingleLength()
+        private val arr = mutableJoinCollection(end.name)
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun process(segment: SegmentsList.Segment) {
+            // TODO(perf): this delta's the segments list twice, can be optimised
+            val delta = delta(segment)
+            segments.insert(segment)
+            arr.addAll(delta)
+        }
+
+        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+            return segments.newReachableEndNodesOnAdding(segment)
+                .mapTo(ArrayList()) { mappingOf(end.name to it) }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+    }
+
+    class OneOrMoreExact(
+        val start: Pattern.Exact,
+        val end: Pattern.Exact
+    ) : IncrementalPathState() {
+
+        private var satisfied = false
+
+        override val cardinality: Int get() = if (satisfied) 1 else 0
+
+        override fun process(segment: SegmentsList.Segment) {
+            satisfied = true
+        }
+
+        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+            // it's expected that a call to `process` will happen soon after,
+            //  so not changing it here
+            return if (!satisfied) {
+                listOf(emptyMapping())
+            } else {
+                emptyList()
+            }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return if (satisfied) mappings else emptyList()
+        }
+
+    }
+
+    abstract val cardinality: Int
+
+    abstract fun process(segment: SegmentsList.Segment)
+
+    abstract fun delta(segment: SegmentsList.Segment): List<Mapping>
+
+    abstract fun join(mappings: List<Mapping>): List<Mapping>
+
+    companion object {
+
+        fun zeroOrMore(
+            start: Pattern.Subject,
+            end: Pattern.Object
+        ) = when {
+            start is Pattern.Exact && end is Pattern.Exact -> ZeroOrMoreExact(start, end)
+            start is Pattern.Binding && end is Pattern.Binding -> ZeroOrMoreBinding(start, end)
+            start is Pattern.Exact && end is Pattern.Binding -> ZeroOrMoreExactBinding(start, end)
+            start is Pattern.Binding && end is Pattern.Exact -> ZeroOrMoreBindingExact(start, end)
+            else -> throw IllegalStateException("Unknown subject / pattern combination for `ZeroOrMore` predicate construct: $start -> $end")
+        }
+
+        fun oneOrMore(
+            start: Pattern.Subject,
+            end: Pattern.Object
+        ) = when {
+            start is Pattern.Exact && end is Pattern.Exact -> OneOrMoreExact(start, end)
+            start is Pattern.Binding && end is Pattern.Binding -> OneOrMoreBinding(start, end)
+            start is Pattern.Exact && end is Pattern.Binding -> OneOrMoreExactBinding(start, end)
+            start is Pattern.Binding && end is Pattern.Exact -> OneOrMoreBindingExact(start, end)
+            else -> throw IllegalStateException("Unknown subject / pattern combination for `OneOrMore` predicate construct: $start -> $end")
+        }
+
+    }
 
 }
-
-// helper for ZeroOrMore above
-private inline operator fun <T> T.plus(collection: Collection<T>): List<T> = ArrayList<T>(collection.size + 1)
-    .also { it.add(this); it.addAll(collection) }

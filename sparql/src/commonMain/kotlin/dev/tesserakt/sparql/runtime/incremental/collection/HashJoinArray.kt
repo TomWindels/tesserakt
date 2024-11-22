@@ -1,13 +1,14 @@
-package dev.tesserakt.sparql.runtime.incremental.state
+package dev.tesserakt.sparql.runtime.incremental.collection
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.util.compatibleWith
 
 /**
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
  *  algorithm. Hash tables are created for every binding name passed in the constructor.
  */
-class HashJoinArray(bindings: Collection<String>) {
+internal class HashJoinArray(bindings: Set<String>): JoinCollection {
 
     // the backing structure, contains all mappings ever received
     private val backing = mutableListOf<Mapping>()
@@ -27,6 +28,8 @@ class HashJoinArray(bindings: Collection<String>) {
         check(bindings.isNotEmpty()) { "Invalid use of hash join array! No bindings are used!" }
     }
 
+    override val mappings: List<Mapping> get() = backing
+
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
      *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
@@ -35,41 +38,54 @@ class HashJoinArray(bindings: Collection<String>) {
 
     /**
      * Adds a mapping to the backing array and indexes it accordingly.
-     *
-     * IMPORTANT: the keys of the mapping should exactly match the binding names used to construct this join array!
      */
-    fun add(mapping: Mapping) {
+    override fun add(mapping: Mapping) {
         val pos = backing.size
         backing.add(mapping)
-        mapping.forEach { (binding, value) ->
-            index[binding]!!.getOrPut(value) { arrayListOf() }.add(pos)
+        index.forEach { index ->
+            val value = mapping[index.key]!!
+            index.value
+                .getOrPut(value) { arrayListOf() }
+                .add(pos)
         }
     }
 
     /**
      * Adds all mappings to the backing array and indexes it accordingly.
-     *
-     * IMPORTANT: the keys of every mapping should exactly match the binding names used to construct this join array!
      */
-    fun addAll(mappings: List<Mapping>) {
+    override fun addAll(mappings: Collection<Mapping>) {
         if (mappings.isEmpty()) {
             return
         }
         val start = backing.size
         backing.addAll(mappings)
         mappings.forEachIndexed { i, mapping ->
-            mapping.forEach { (binding, value) ->
-                index[binding]!!
+            index.forEach { index ->
+                val value = mapping[index.key]!!
+                index.value
                     .getOrPut(value) { arrayListOf() }
                     .add(start + i)
             }
         }
     }
 
-    fun join(other: List<Mapping>): List<Mapping> {
-        val compatible = getCompatibleMappings(other)
-        return compatible.indices.flatMap { i -> compatible[i].map { it + other[i] } }
+    override fun join(mappings: List<Mapping>): List<Mapping> {
+        val compatible = getCompatibleMappings(mappings)
+        return compatible.indices.flatMap { i ->
+            compatible[i].mapNotNull { if (it.compatibleWith(mappings[i])) it + mappings[i] else null }
+        }
     }
+
+    override fun join(other: JoinCollection): List<Mapping> {
+        return if (other is HashJoinArray && other.index.size > index.size) {
+            other.join(backing)
+        } else {
+            join(other.mappings)
+        }
+    }
+
+    override fun toString(): String =
+        "HashJoinArray (cardinality ${mappings.size}, indexed on ${index.keys.joinToString()})"
 
     /**
      * Returns a list of all compatible mappings using the provided reference mappings.

@@ -55,17 +55,27 @@ data class Pattern(
     // FIXME: inverse can either be the inverse of a term (this case) AS WELL AS the inverse of a path (^iri)
     @JvmInline
     value class Negated(val term: Quad.Term) : UnboundPredicate {
-        override fun toString() = "!$term"
+        override fun toString() = "!($term)"
     }
 
     @JvmInline
     value class Alts(val allowed: List<Predicate>) : Predicate {
-        override fun toString() = allowed.joinToString(" | ")
+        override fun toString() = allowed.joinToString(
+            separator = " | ",
+            prefix = "(",
+            postfix = ")",
+            transform = { "($it)" }
+        )
     }
 
     @JvmInline
     value class UnboundAlts(val allowed: List<UnboundPredicate>) : UnboundPredicate {
-        override fun toString() = allowed.joinToString(" | ")
+        override fun toString() = allowed.joinToString(
+            separator = " | ",
+            prefix = "(",
+            postfix = ")",
+            transform = { "($it)" }
+        )
     }
 
     /*
@@ -74,7 +84,12 @@ data class Pattern(
     */
     @JvmInline
     value class Sequence(val chain: List<Predicate>) : Predicate {
-        override fun toString() = chain.joinToString(" / ")
+        override fun toString() = chain.joinToString(
+            separator = " / ",
+            prefix = "(",
+            postfix = ")",
+            transform = { "($it)" }
+        )
     }
 
     /*
@@ -87,12 +102,12 @@ data class Pattern(
 
     @JvmInline
     value class ZeroOrMore(override val element: UnboundPredicate): RepeatingPredicate, UnboundPredicate {
-        override fun toString() = "$element*"
+        override fun toString() = "($element)*"
     }
 
     @JvmInline
     value class OneOrMore(override val element: UnboundPredicate): RepeatingPredicate, UnboundPredicate {
-        override fun toString() = "$element+"
+        override fun toString() = "($element)+"
     }
 
     override fun toString() = "$s $p $o"

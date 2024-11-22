@@ -64,7 +64,7 @@ sealed class IncrementalQuery<ResultType, Q: Query>(
             }
             while (iterator.hasNext()) {
                 val triple = iterator.next()
-                val results = state.process(triple)
+                val results = state.insert(triple)
                 return when (results.size) {
                     // continuing looping
                     0 -> continue

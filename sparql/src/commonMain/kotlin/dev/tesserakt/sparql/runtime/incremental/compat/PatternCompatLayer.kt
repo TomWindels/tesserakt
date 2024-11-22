@@ -67,16 +67,13 @@ class PatternCompatLayer(
     ) {
         when (pred) {
             is PatternAST.Alts -> {
-                val segments = pred.allowed.map { alt ->
-                    val builder = StatementsBuilder()
-                    builder.insert(
-                        subj = subj,
-                        pred = alt,
-                        obj = obj
+                insert(
+                    Pattern(
+                        s = subj.toPatternSubject(),
+                        Pattern.Alts(pred.allowed.map { it.toPatternPredicate() }),
+                        o = obj.toPatternObject(this)
                     )
-                    builder.build()
-                }
-                insert(segments)
+                )
             }
 
             is PatternAST.Chain -> {
