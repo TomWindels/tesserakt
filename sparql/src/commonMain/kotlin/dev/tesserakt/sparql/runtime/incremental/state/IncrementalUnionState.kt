@@ -1,7 +1,6 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.incremental.delta.Delta
 import dev.tesserakt.sparql.runtime.incremental.types.SelectQuerySegment
 import dev.tesserakt.sparql.runtime.incremental.types.StatementsSegment
 import dev.tesserakt.sparql.runtime.incremental.types.Union
@@ -16,16 +15,16 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
 
             override val bindings: Set<String> get() = state.bindings
 
-            override fun process(quad: Quad) {
-                return state.process(quad)
+            override fun peek(delta: Delta.Data): List<Delta.Bindings> {
+                return state.peek(delta)
             }
 
-            override fun delta(quad: Quad): List<Mapping> {
-                return state.delta(quad)
+            override fun process(delta: Delta.Data) {
+                return state.process(delta)
             }
 
-            override fun join(mappings: List<Mapping>): List<Mapping> {
-                return state.join(mappings)
+            override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+                return state.join(delta)
             }
 
         }
@@ -34,15 +33,15 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
 
             override val bindings: Set<String> = parent.query.output.map { it.name }.toSet()
 
-            override fun process(quad: Quad) {
+            override fun peek(delta: Delta.Data): List<Delta.Bindings> {
                 TODO("Not yet implemented")
             }
 
-            override fun delta(quad: Quad): List<Mapping> {
+            override fun process(delta: Delta.Data) {
                 TODO("Not yet implemented")
             }
 
-            override fun join(mappings: List<Mapping>): List<Mapping> {
+            override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
                 TODO("Not yet implemented")
             }
 
@@ -50,11 +49,11 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
 
         abstract val bindings: Set<String>
 
-        abstract fun delta(quad: Quad): List<Mapping>
+        abstract fun peek(delta: Delta.Data): List<Delta.Bindings>
 
-        abstract fun process(quad: Quad)
+        abstract fun process(delta: Delta.Data)
 
-        abstract fun join(mappings: List<Mapping>): List<Mapping>
+        abstract fun join(delta: Delta.Bindings): List<Delta.Bindings>
 
     }
 
@@ -62,16 +61,16 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
 
     override val bindings: Set<String> = buildSet { state.forEach { addAll(it.bindings) } }
 
-    override fun process(quad: Quad) {
-        state.forEach { it.process(quad) }
+    override fun process(delta: Delta.Data) {
+        state.forEach { it.process(delta) }
     }
 
-    override fun delta(quad: Quad): List<Mapping> {
-        return state.flatMap { it.delta(quad) }
+    override fun peek(delta: Delta.Data): List<Delta.Bindings> {
+        return state.flatMap { it.peek(delta) }
     }
 
-    override fun join(mappings: List<Mapping>): List<Mapping> {
-        return state.flatMap { s -> s.join(mappings) }
+    override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+        return state.flatMap { s -> s.join(delta) }
     }
 
     companion object {

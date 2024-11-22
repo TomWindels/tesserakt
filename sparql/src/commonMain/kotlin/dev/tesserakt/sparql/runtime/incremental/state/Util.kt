@@ -1,17 +1,16 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.common.types.Pattern
-import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
+import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.delta.plus
 import dev.tesserakt.sparql.runtime.util.Bitmask
-import dev.tesserakt.util.compatibleWith
 
 /**
  * Adds all results found inside `this` list together where compatible as additional contenders for complete result
  *  generation (for input quads matching multiple patterns at once)
  */
-internal inline fun List<Pair<Bitmask, List<Mapping>>>.expandResultSet(): List<Pair<Bitmask, List<Mapping>>> {
-    // estimating about half of them match for initial capacity
+internal inline fun List<Pair<Bitmask, List<Delta.Bindings>>>.expandBindingDeltas(): List<Pair<Bitmask, List<Delta.Bindings>>> {
     val result = toMutableList()
     var i = 0
     while (i < result.size - 1) {
@@ -23,12 +22,8 @@ internal inline fun List<Pair<Bitmask, List<Mapping>>>.expandResultSet(): List<P
                 return@forEach
             }
             // creating all mappings that result from combining these two sub-results
-            val merged = current.second.flatMap { mapping ->
-                contender.second.mapNotNull { candidate ->
-                    if (mapping.compatibleWith(candidate)) {
-                        mapping + candidate
-                    } else null
-                }
+            val merged = current.second.flatMap { solution ->
+                contender.second.mapNotNull { candidate -> solution + candidate }
             }
             // if any have been made, its combination can be appended to this result
             if (merged.isNotEmpty()) {
@@ -45,3 +40,7 @@ internal inline fun bindingNamesOf(
     predicate: Pattern.Predicate,
     `object`: Pattern.Object
 ): Set<String> = setOfNotNull(subject.bindingName, predicate.bindingName, `object`.bindingName)
+
+internal inline fun JoinTree.join(deltas: List<Delta.Bindings>): List<Delta.Bindings> {
+    return deltas.flatMap { delta -> join(delta) }
+}
