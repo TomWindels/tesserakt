@@ -21,12 +21,12 @@ internal sealed class IncrementalPathState {
 
         override fun process(segment: SegmentsList.Segment) {
             // TODO(perf): this delta's the segments list twice, can be optimised
-            val delta = delta(segment)
+            val delta = peek(segment)
             segments.insert(segment)
             arr.addAll(delta)
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+        override fun peek(segment: SegmentsList.Segment): List<Mapping> {
             return segments.newPathsOnAdding(segment)
                 .mapTo(ArrayList()) { mappingOf(start.name to it.start, end.name to it.end) }
         }
@@ -51,12 +51,12 @@ internal sealed class IncrementalPathState {
 
         override fun process(segment: SegmentsList.Segment) {
             // TODO(perf): this delta's the segments list twice, can be optimised
-            val delta = delta(segment)
+            val delta = peek(segment)
             segments.insert(segment)
             arr.addAll(delta)
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+        override fun peek(segment: SegmentsList.Segment): List<Mapping> {
             return segments.newReachableStartNodesOnAdding(segment)
                 .mapTo(ArrayList()) { mappingOf(start.name to it) }
         }
@@ -79,12 +79,12 @@ internal sealed class IncrementalPathState {
 
         override fun process(segment: SegmentsList.Segment) {
             // TODO(perf): this delta's the segments list twice, can be optimised
-            val delta = delta(segment)
+            val delta = peek(segment)
             segments.insert(segment)
             arr.addAll(delta)
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+        override fun peek(segment: SegmentsList.Segment): List<Mapping> {
             return segments.newReachableEndNodesOnAdding(segment)
                 .mapTo(ArrayList()) { mappingOf(end.name to it) }
         }
@@ -108,7 +108,7 @@ internal sealed class IncrementalPathState {
             satisfied = true
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+        override fun peek(segment: SegmentsList.Segment): List<Mapping> {
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
             return if (!satisfied) {
@@ -136,12 +136,12 @@ internal sealed class IncrementalPathState {
 
         override fun process(segment: SegmentsList.Segment) {
             // TODO(perf): this delta's the segments list twice, can be optimised
-            val delta = delta(segment)
+            val delta = peek(segment)
             segments.insert(segment)
             arr.addAll(delta)
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+        override fun peek(segment: SegmentsList.Segment): List<Mapping> {
             return segments.newPathsOnAdding(segment)
                 .mapTo(ArrayList()) { mappingOf(start.name to it.start, end.name to it.end) }
         }
@@ -166,12 +166,12 @@ internal sealed class IncrementalPathState {
 
         override fun process(segment: SegmentsList.Segment) {
             // TODO(perf): this delta's the segments list twice, can be optimised
-            val delta = delta(segment)
+            val delta = peek(segment)
             segments.insert(segment)
             arr.addAll(delta)
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+        override fun peek(segment: SegmentsList.Segment): List<Mapping> {
             return segments.newReachableStartNodesOnAdding(segment)
                 .mapTo(ArrayList()) { mappingOf(start.name to it) }
         }
@@ -194,12 +194,12 @@ internal sealed class IncrementalPathState {
 
         override fun process(segment: SegmentsList.Segment) {
             // TODO(perf): this delta's the segments list twice, can be optimised
-            val delta = delta(segment)
+            val delta = peek(segment)
             segments.insert(segment)
             arr.addAll(delta)
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+        override fun peek(segment: SegmentsList.Segment): List<Mapping> {
             return segments.newReachableEndNodesOnAdding(segment)
                 .mapTo(ArrayList()) { mappingOf(end.name to it) }
         }
@@ -223,7 +223,7 @@ internal sealed class IncrementalPathState {
             satisfied = true
         }
 
-        override fun delta(segment: SegmentsList.Segment): List<Mapping> {
+        override fun peek(segment: SegmentsList.Segment): List<Mapping> {
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
             return if (!satisfied) {
@@ -243,7 +243,7 @@ internal sealed class IncrementalPathState {
 
     abstract fun process(segment: SegmentsList.Segment)
 
-    abstract fun delta(segment: SegmentsList.Segment): List<Mapping>
+    abstract fun peek(segment: SegmentsList.Segment): List<Mapping>
 
     abstract fun join(mappings: List<Mapping>): List<Mapping>
 

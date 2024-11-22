@@ -69,7 +69,16 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         }
     }
 
+    override fun join(mapping: Mapping): List<Mapping> {
+        val compatible = getCompatibleMappings(mapping)
+        return compatible.mapNotNull { if (it.compatibleWith(mapping)) it + mapping else null }
+    }
+
     override fun join(mappings: List<Mapping>): List<Mapping> {
+        when (mappings.size) {
+            0 -> return emptyList()
+            1 -> return join(mappings.first())
+        }
         val compatible = getCompatibleMappings(mappings)
         return compatible.indices.flatMap { i ->
             compatible[i].mapNotNull { if (it.compatibleWith(mappings[i])) it + mappings[i] else null }

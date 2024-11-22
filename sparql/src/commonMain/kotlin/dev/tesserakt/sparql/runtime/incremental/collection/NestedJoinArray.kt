@@ -19,6 +19,16 @@ internal value class NestedJoinArray(
         }
     }
 
+    override fun join(mapping: Mapping): List<Mapping> {
+        return buildList(mappings.size) {
+            mappings.forEach { contender ->
+                if (contender.compatibleWith(mapping)) {
+                    add(contender + mapping)
+                }
+            }
+        }
+    }
+
     override fun join(mappings: List<Mapping>): List<Mapping> {
         return doNestedJoin(a = this.mappings, b = mappings)
     }

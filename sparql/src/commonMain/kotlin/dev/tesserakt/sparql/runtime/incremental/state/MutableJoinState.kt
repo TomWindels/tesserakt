@@ -1,26 +1,26 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.incremental.delta.Delta
 
 /**
  * Represents a state type that can be joined with other states of the same (sub-) type, such as triple patterns or
  *  union blocks, and can process changes to the underlying data being queried.
  */
-interface MutableJoinState {
+internal interface MutableJoinState {
 
     val bindings: Set<String>
 
-    fun join(mappings: List<Mapping>): List<Mapping>
+    fun join(delta: Delta.Bindings): List<Delta.Bindings>
 
     /**
-     * Returns the delta the provided [quad] produces upon insertion
+     * Returns the [Delta.Bindings] changes that occur when [process]ing the [delta] in this state, without
+     *  actually modifying it (see [process] for mutating the state)
      */
-    fun delta(quad: Quad): List<Mapping>
+    fun peek(delta: Delta.Data): List<Delta.Bindings>
 
     /**
-     * Processes an insertion of the [quad] to this state type
+     * Updates the internal state according to the [delta] change.
      */
-    fun process(quad: Quad)
+    fun process(delta: Delta.Data)
 
 }
