@@ -41,6 +41,14 @@ internal value class NestedJoinArray(
         this.mappings.addAll(mappings)
     }
 
+    override fun remove(mapping: Mapping) {
+        this.mappings.remove(mapping)
+    }
+
+    override fun removeAll(mappings: Collection<Mapping>) {
+        this.mappings.removeAll(mappings)
+    }
+
     override fun toString() = "NestedJoinArray (cardinality ${mappings.size})"
 
 }

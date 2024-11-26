@@ -4,7 +4,7 @@ import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.common.util.Debug
-import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
+import dev.tesserakt.sparql.runtime.incremental.evaluation.query
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import dev.tesserakt.util.toTruncatedString
@@ -65,8 +65,23 @@ data class OutputComparisonTest(
             } else null
         }
 
-        override fun toString(): String {
-            return " * Got ${received.size} binding(s) ($elapsedTime):\n\t${received.toTruncatedString(500)}\n * Expected ${expected.size} binding(s) ($referenceTime):\n\t${expected.toTruncatedString(500)}\n * $debugInformation"
+        override fun toString(): String = buildString {
+            append(" * Got ")
+            append(received.size)
+            append(" binding(s) (")
+            append(elapsedTime)
+            append("):\n\t")
+            append(received.toTruncatedString(500))
+            append("\n * Expected ")
+            append(expected.size)
+            append(" binding(s) (")
+            append(referenceTime)
+            append("):\n\t")
+            append(expected.toTruncatedString(500))
+            if (debugInformation.isNotBlank()) {
+                append("\n * ")
+                append(debugInformation)
+            }
         }
 
         companion object {
@@ -88,43 +103,4 @@ data class OutputComparisonTest(
 
     }
 
-}
-
-/**
- * Returns the diff of the two series of bindings. Ideally, the returned list is empty
- */
-private fun compare(
-    received: List<Bindings>,
-    expected: List<Bindings>,
-    elapsedTime: Duration,
-    referenceTime: Duration,
-    debugInformation: String
-): OutputComparisonTest.Result {
-    val leftOver = received.toMutableList()
-    val missing = mutableListOf<Bindings>()
-    expected.forEach { bindings ->
-        if (!leftOver.removeFirst { it == bindings }) {
-            missing.add(bindings)
-        }
-    }
-    return OutputComparisonTest.Result(
-        received = received,
-        expected = expected,
-        leftOver = leftOver,
-        missing = missing,
-        elapsedTime = elapsedTime,
-        referenceTime = referenceTime,
-        debugInformation = debugInformation
-    )
-}
-
-private inline fun <T> MutableList<T>.removeFirst(predicate: (T) -> Boolean): Boolean {
-    val it = listIterator()
-    while (it.hasNext()) {
-        if (predicate(it.next())) {
-            it.remove()
-            return true
-        }
-    }
-    return false
 }

@@ -16,4 +16,8 @@ interface JoinCollection {
 
     fun addAll(mappings: Collection<Mapping>)
 
+    fun remove(mapping: Mapping)
+
+    fun removeAll(mappings: Collection<Mapping>)
+
 }

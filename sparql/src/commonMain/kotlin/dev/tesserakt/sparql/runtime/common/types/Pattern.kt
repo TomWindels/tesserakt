@@ -17,6 +17,11 @@ data class Pattern(
     sealed interface Object : CommonNode
 
     /**
+     * Subset of predicates: those that can function (peek functionality) w/o maintaining state
+     */
+    sealed interface StatelessPredicate: Predicate
+
+    /**
      * Subset of predicates: those that are guaranteed to not contain any bindings
      */
     sealed interface UnboundPredicate : Predicate
@@ -48,18 +53,18 @@ data class Pattern(
     }
 
     @JvmInline
-    value class Exact(val term: Quad.Term) : Subject, UnboundPredicate, Object {
+    value class Exact(val term: Quad.Term) : Subject, UnboundPredicate, StatelessPredicate, Object {
         override fun toString() = term.toString()
     }
 
     // FIXME: inverse can either be the inverse of a term (this case) AS WELL AS the inverse of a path (^iri)
     @JvmInline
-    value class Negated(val term: Quad.Term) : UnboundPredicate {
+    value class Negated(val term: Quad.Term) : UnboundPredicate, StatelessPredicate {
         override fun toString() = "!($term)"
     }
 
     @JvmInline
-    value class Alts(val allowed: List<Predicate>) : Predicate {
+    value class Alts(val allowed: List<UnboundPredicate>) : UnboundPredicate {
         override fun toString() = allowed.joinToString(
             separator = " | ",
             prefix = "(",
@@ -69,7 +74,7 @@ data class Pattern(
     }
 
     @JvmInline
-    value class UnboundAlts(val allowed: List<UnboundPredicate>) : UnboundPredicate {
+    value class SimpleAlts(val allowed: List<StatelessPredicate>) : UnboundPredicate, StatelessPredicate {
         override fun toString() = allowed.joinToString(
             separator = " | ",
             prefix = "(",

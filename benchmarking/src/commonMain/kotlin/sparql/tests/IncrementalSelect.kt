@@ -4,8 +4,7 @@ import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.testing.testEnv
-import sparql.types.using
+import sparql.types.tests
 import kotlin.random.Random
 import kotlin.time.measureTime
 
@@ -17,7 +16,7 @@ import kotlin.time.measureTime
  *  subjects have to be generated, directly affecting the number of outputted bindings due to overlap: a higher
  *  [entropy] yields closer to [size] / 2 resulting bindings.
  */
-fun compareIncrementalChainSelectOutput(size: Int = 500, depth: Int = 7, entropy: Float = 3f, seed: Int = Random.nextInt()) = testEnv {
+fun compareIncrementalChainSelectOutput(size: Int = 500, depth: Int = 7, entropy: Float = 3f, seed: Int = Random.nextInt()) = tests {
     val store: Store
     val predicates = (0 ..< depth).map { "http://example.org/p_$it".asNamedTerm() }
     val rng = Random(seed)
@@ -58,7 +57,7 @@ fun compareIncrementalChainSelectOutput(size: Int = 500, depth: Int = 7, entropy
  * Generates a random graph with a series of relationships and creates a test with a matching query using that graph.
  * [depth] denotes the number of relationships generated for any given subject (and triple patterns in the query)
  */
-fun compareIncrementalStarSelectOutput(size: Int = 200, depth: Int = 5, entropy: Float = 3f, seed: Int = Random.nextInt()) = testEnv {
+fun compareIncrementalStarSelectOutput(size: Int = 200, depth: Int = 5, entropy: Float = 3f, seed: Int = Random.nextInt()) = tests {
     val store: Store
     val predicates: List<Quad.NamedTerm>
     val rng = Random(seed)

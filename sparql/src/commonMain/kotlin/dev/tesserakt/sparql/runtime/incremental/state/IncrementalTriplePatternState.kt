@@ -3,17 +3,17 @@ package dev.tesserakt.sparql.runtime.incremental.state
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.common.util.Debug
-import dev.tesserakt.sparql.runtime.common.util.getTermOrNull
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.matches
 import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
-import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
-    protected val s: Pattern.Subject, protected val p: P, protected val o: Pattern.Object
+    val s: Pattern.Subject,
+    val p: P,
+    val o: Pattern.Object
 ): MutableJoinState {
 
     sealed class ArrayBackedPattern<P : Pattern.Predicate>(
@@ -31,6 +31,11 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
                 is Delta.DataAddition -> {
                     val new = peek(delta)
                     data.addAll(new)
+                }
+
+                is Delta.DataDeletion -> {
+                    val removed = peek(delta)
+                    data.removeAll(removed)
                 }
             }
         }
@@ -111,99 +116,44 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
     }
 
-    sealed class RepeatingPattern(
+    class RepeatingPattern(
         subj: Pattern.Subject,
         pred: Pattern.RepeatingPredicate,
         obj: Pattern.Object
     ) : IncrementalTriplePatternState<Pattern.RepeatingPredicate>(subj, pred, obj) {
 
-        protected val state = when (pred) {
+        private val state = when (pred) {
             is Pattern.ZeroOrMore -> IncrementalPathState.zeroOrMore(
                 start = subj,
+                predicate = pred,
                 end = obj
             )
 
             is Pattern.OneOrMore -> IncrementalPathState.oneOrMore(
                 start = subj,
+                predicate = pred,
                 end = obj
             )
         }
 
         override val cardinality: Int get() = state.cardinality
 
-        final override fun join(mapping: Mapping): List<Mapping> {
+        override fun process(delta: Delta.Data) {
+            state.process(delta.value)
+        }
+
+        override fun peek(delta: Delta.DataAddition): List<Mapping> {
+            return state.peek(delta.value)
+        }
+
+        override fun peek(delta: Delta.DataDeletion): List<Mapping> {
+            // TODO()
+            return emptyList()
+        }
+
+        override fun join(mapping: Mapping): List<Mapping> {
             // TODO(perf) state API improvements re: single mapping insertion
             return state.join(listOf(mapping))
-        }
-
-    }
-
-    class StatelessRepeatingPattern(
-        subj: Pattern.Subject,
-        pred: Pattern.RepeatingPredicate,
-        obj: Pattern.Object
-    ) : RepeatingPattern(subj, pred, obj) {
-
-        private val predicate = pred.element
-
-        override fun process(delta: Delta.Data) {
-            val quad = delta.value
-            if (!predicate.matches(quad.p)) {
-                return
-            }
-            when (delta) {
-                is Delta.DataAddition -> {
-                    val segment = SegmentsList.Segment(start = quad.s, end = quad.o)
-                    state.process(segment)
-                }
-            }
-        }
-
-        override fun peek(delta: Delta.DataAddition): List<Mapping> {
-            val quad = delta.value
-            if (!predicate.matches(quad.p)) {
-                return emptyList()
-            }
-            val segment = SegmentsList.Segment(start = quad.s, end = quad.o)
-            return state.peek(segment)
-        }
-    }
-
-    class StatefulRepeatingPattern(
-        s: Pattern.Subject,
-        p: Pattern.RepeatingPredicate,
-        o: Pattern.Object
-    ) : RepeatingPattern(s, p, o) {
-
-        private val predicate = Pattern(s, p.element, o).createIncrementalPatternState()
-
-        override fun process(delta: Delta.Data) {
-            when (delta) {
-                is Delta.DataAddition -> {
-                    val new = predicate.peek(delta)
-                    val segments = new.map {
-                        SegmentsList.Segment(
-                            start = this@StatefulRepeatingPattern.s.getTermOrNull(it)!!,
-                            end = this@StatefulRepeatingPattern.o.getTermOrNull(it)!!
-                        )
-                    }
-                    predicate.process(delta)
-                    segments.forEach { segment -> state.process(segment) }
-                }
-            }
-        }
-
-        override fun peek(delta: Delta.DataAddition): List<Mapping> {
-            val new = predicate.peek(delta)
-            val segments = new.map {
-                SegmentsList.Segment(
-                    start = this@StatefulRepeatingPattern.s.getTermOrNull(it)!!,
-                    end = this@StatefulRepeatingPattern.o.getTermOrNull(it)!!
-                )
-            }
-            return segments
-                .flatMapTo(mutableSetOf()) { segment -> state.peek(segment) }
-                .toList()
         }
 
     }
@@ -226,17 +176,21 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             return states.flatMap { it.peek(delta) }
         }
 
+        override fun peek(delta: Delta.DataDeletion): List<Mapping> {
+            return states.flatMap { it.peek(delta) }
+        }
+
         override fun join(mapping: Mapping): List<Mapping> {
             return states.flatMap { it.join(mapping) }
         }
 
     }
 
-    class UnboundedAltPattern(
+    class SimpleAltPattern(
         s: Pattern.Subject,
-        p: Pattern.UnboundAlts,
+        p: Pattern.SimpleAlts,
         o: Pattern.Object
-    ) : IncrementalTriplePatternState<Pattern.UnboundAlts>(s, p, o) {
+    ) : IncrementalTriplePatternState<Pattern.SimpleAlts>(s, p, o) {
 
         private val states = p.allowed.map { p -> Pattern(s, p, o).createIncrementalPatternState() }
 
@@ -247,6 +201,10 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         }
 
         override fun peek(delta: Delta.DataAddition): List<Mapping> {
+            return states.flatMap { it.peek(delta) }
+        }
+
+        override fun peek(delta: Delta.DataDeletion): List<Mapping> {
             return states.flatMap { it.peek(delta) }
         }
 
@@ -352,6 +310,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
     abstract fun peek(delta: Delta.DataAddition): List<Mapping>
 
+    open fun peek(delta: Delta.DataDeletion): List<Mapping> = peek(delta = Delta.DataAddition(delta.value))
+
     abstract fun join(mapping: Mapping): List<Mapping>
 
     // triple patterns can only get new results upon getting new data and lose results upon removing data, so two
@@ -359,6 +319,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     final override fun peek(delta: Delta.Data): List<Delta.Bindings> {
         return when (delta) {
             is Delta.DataAddition -> peek(delta).map { Delta.BindingsAddition(it) }
+            is Delta.DataDeletion -> peek(delta).map { Delta.BindingsDeletion(it) }
         }
     }
 
@@ -367,6 +328,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     final override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
         return when (delta) {
             is Delta.BindingsAddition -> join(delta.value).map { Delta.BindingsAddition(it) }
+            is Delta.BindingsDeletion -> join(delta.value).map { Delta.BindingsDeletion(it) }
         }
     }
 
@@ -375,23 +337,12 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     companion object {
 
         fun Pattern.createIncrementalPatternState(): IncrementalTriplePatternState<*> = when (p) {
-            is Pattern.RepeatingPredicate -> {
-                when (p.element) {
-                    is Pattern.Exact,
-                    is Pattern.Negated -> StatelessRepeatingPattern(s, p, o)
-
-                    is Pattern.UnboundAlts,
-                    is Pattern.UnboundSequence,
-                    is Pattern.OneOrMore,
-                    is Pattern.ZeroOrMore -> StatefulRepeatingPattern(s, p, o)
-                }
-            }
-
             is Pattern.Exact -> ExactPattern(s, p, o)
             is Pattern.Negated -> NegatedPattern(s, p, o)
             is Pattern.Alts -> AltPattern(s, p, o)
-            is Pattern.UnboundAlts -> UnboundedAltPattern(s, p, o)
+            is Pattern.SimpleAlts -> SimpleAltPattern(s, p, o)
             is Pattern.Sequence -> SequencePattern(s, p, o)
+            is Pattern.RepeatingPredicate -> RepeatingPattern(s, p, o)
             is Pattern.UnboundSequence -> UnboundedSequencePattern(s, p, o)
             is Pattern.Binding -> BindingPattern(s, p, o)
         }

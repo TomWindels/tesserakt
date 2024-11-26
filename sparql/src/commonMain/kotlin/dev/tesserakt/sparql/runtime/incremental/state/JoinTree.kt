@@ -64,6 +64,17 @@ internal sealed interface JoinTree {
                     }
                     results
                 }
+
+                is Delta.BindingsDeletion -> {
+                    var results: List<Delta.Bindings> = listOf(delta)
+                    completed.inv().forEach { i ->
+                        results = results.flatMap { states[i].join(it) }
+                        if (results.isEmpty()) {
+                            return emptyList()
+                        }
+                    }
+                    results
+                }
             }
         }
 
@@ -192,6 +203,7 @@ internal sealed interface JoinTree {
             bindings.forEach { binding ->
                 when (binding) {
                     is Delta.BindingsAddition -> cache.add(binding.value)
+                    is Delta.BindingsDeletion -> TODO()
                 }
             }
         }
@@ -307,14 +319,14 @@ internal sealed interface JoinTree {
         @JvmName("forPatterns")
         operator fun invoke(patterns: List<Pattern>) = when {
             // TODO also based on binding overlap
-            patterns.size >= 3 -> LeftDeep(patterns)
+//            patterns.size >= 3 -> LeftDeep(patterns)
             else -> None(patterns)
         }
 
         @JvmName("forUnions")
         operator fun invoke(unions: List<Union>) = when {
             // TODO also based on binding overlap
-            unions.size >= 3 -> LeftDeep(unions)
+//            unions.size >= 3 -> LeftDeep(unions)
             else -> None(unions)
         }
 

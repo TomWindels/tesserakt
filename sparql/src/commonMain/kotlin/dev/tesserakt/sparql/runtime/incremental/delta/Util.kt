@@ -21,9 +21,11 @@ operator fun Delta.Bindings.plus(other: Delta.Bindings): Delta.Bindings? {
 
 inline fun Delta.Bindings.map(transform: (Mapping) -> Mapping) = when (this) {
     is Delta.BindingsAddition -> Delta.BindingsAddition(transform(value))
+    is Delta.BindingsDeletion -> Delta.BindingsDeletion(transform(value))
 }
 
 
 inline fun Delta.Bindings.transform(transform: (Mapping) -> Collection<Mapping>) = when (this) {
     is Delta.BindingsAddition -> transform(value).map { Delta.BindingsAddition(it) }
+    is Delta.BindingsDeletion -> transform(value).map { Delta.BindingsDeletion(it) }
 }
