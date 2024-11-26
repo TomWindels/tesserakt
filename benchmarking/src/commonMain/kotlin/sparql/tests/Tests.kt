@@ -214,6 +214,18 @@ fun builtinTests() = tests {
 
     using(fullyConnected) test """
         SELECT * WHERE {
+            ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)* <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)* ?b
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
             <http://example.org/a> <http://example.org/p>+ <http://example.org/b>
         }
     """
@@ -227,6 +239,18 @@ fun builtinTests() = tests {
     using(fullyConnected) test """
         SELECT * WHERE {
             ?a <http://example.org/p>+ ?b
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)+ <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)+ ?b
         }
     """
 
