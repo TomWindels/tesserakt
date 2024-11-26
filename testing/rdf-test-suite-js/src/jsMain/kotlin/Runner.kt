@@ -4,7 +4,7 @@ import dev.tesserakt.interop.rdfjs.toQuad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
-import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
+import dev.tesserakt.sparql.runtime.incremental.evaluation.query
 
 // IMPORTANT: this file cannot be part of a package, as otherwise `parse` & `query` are not properly accessible in the
 //  exported module (they live in a matching namespace)

@@ -7,10 +7,10 @@ class IncrementalSelectQuery internal constructor(ast: SelectQuery): Incremental
 
     val variables = ast.output.mapTo(mutableSetOf()) { it.name }.toSet()
 
-    override fun process(change: ResultChange): Bindings {
+    override fun process(change: ResultChange<Bindings>): ResultChange<Bindings> {
         return when (change) {
-            is ResultChange.New -> change.bindings.filterKeys { name -> name in variables }
-            is ResultChange.Removed -> TODO()
+            is ResultChange.New -> ResultChange.New(change.value.filterKeys { name -> name in variables })
+            is ResultChange.Removed -> ResultChange.Removed(change.value.filterKeys { name -> name in variables })
         }
     }
 

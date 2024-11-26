@@ -3,17 +3,16 @@ package sparql
 import dev.tesserakt.interop.jena.toJenaDataset
 import dev.tesserakt.interop.jena.toTerm
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 import org.apache.jena.query.Dataset
 import org.apache.jena.query.QueryExecutionFactory
-import kotlin.time.measureTime
 import kotlin.io.path.Path
 import kotlin.io.path.readText
+import kotlin.time.measureTime
 
 actual class ExternalQueryExecution actual constructor(
     private val query: String,
-    data: Store
+    data: Collection<Quad>
 ) {
 
     private val store: Dataset

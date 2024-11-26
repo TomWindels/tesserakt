@@ -4,13 +4,18 @@ package dev.tesserakt.rdf.types
 
 import dev.tesserakt.util.fit
 
-// TODO: make fully immutable
+class MutableStore(quads: Collection<Quad> = emptyList()): Collection<Quad> {
 
-class Store: Collection<Quad> {
+    interface Listener {
+        fun onQuadAdded(quad: Quad)
+        fun onQuadRemoved(quad: Quad)
+    }
 
     // TODO: actually performant implementation
     // stored quads utilize set semantics, duplicates are not allowed
-    private val quads = mutableSetOf<Quad>()
+    private val quads = quads.toMutableSet()
+
+    private val listeners = mutableListOf<Listener>()
 
     override val size: Int
         get() = quads.size
@@ -29,19 +34,25 @@ class Store: Collection<Quad> {
         return quads.contains(element)
     }
 
-    fun addAll(quad: Iterable<Quad>) {
-        quads.addAll(quad)
-    }
-
-    fun addAll(quad: Collection<Quad>) {
-        quads.addAll(quad)
-    }
-
     fun add(quad: Quad) {
-        quads.add(quad)
+        if (quads.add(quad)) {
+            listeners.forEach { it.onQuadAdded(quad) }
+        }
     }
 
-    fun toMutableStore() = MutableStore(quads)
+    fun remove(quad: Quad) {
+        if (quads.remove(quad)) {
+            listeners.forEach { it.onQuadRemoved(quad) }
+        }
+    }
+
+    fun addListener(listener: Listener) {
+        listeners.add(listener)
+    }
+
+    fun removeListener(listener: Listener) {
+        listeners.remove(listener)
+    }
 
     override fun toString() = buildString {
         val s = quads.map { it.s.toString() }
