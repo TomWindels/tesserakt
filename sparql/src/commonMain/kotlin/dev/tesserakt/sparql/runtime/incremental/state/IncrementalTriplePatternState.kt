@@ -220,24 +220,9 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         o: Pattern.Object
     ) : IncrementalTriplePatternState<Pattern.Sequence>(s, p, o) {
 
-        private val tree: JoinTree
-
+        private val tree = JoinTree(p.unfold(start = s, end = o))
         private val mappings = mutableListOf<Mapping>()
         override val cardinality: Int get() = mappings.size
-
-        init {
-            require(p.chain.size > 1)
-            val chain = ArrayList<Pattern>(p.chain.size)
-            var start = s
-            (0 until p.chain.size - 1).forEach { i ->
-                val p = p.chain[i]
-                val end = generateBinding()
-                chain.add(Pattern(start, p, end))
-                start = end.toSubject()
-            }
-            chain.add(Pattern(start, p.chain.last(), o))
-            tree = JoinTree(chain)
-        }
 
         override fun process(delta: Delta.Data) {
             tree.process(delta)
@@ -263,24 +248,9 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         obj: Pattern.Object
     ) : IncrementalTriplePatternState<Pattern.UnboundSequence>(subj, pred, obj) {
 
-        private val tree: JoinTree
-
+        private val tree = JoinTree(pred.unfold(start = subj, end = obj))
         private val mappings = mutableListOf<Mapping>()
         override val cardinality: Int get() = mappings.size
-
-        init {
-            require(pred.chain.size > 1)
-            val chain = ArrayList<Pattern>(pred.chain.size)
-            var start = subj
-            (0 until pred.chain.size - 1).forEach { i ->
-                val p = pred.chain[i]
-                val end = generateBinding()
-                chain.add(Pattern(start, p, end))
-                start = end.toSubject()
-            }
-            chain.add(Pattern(start, pred.chain.last(), obj))
-            tree = JoinTree(chain)
-        }
 
         override fun process(delta: Delta.Data) {
             tree.process(delta)
@@ -350,15 +320,3 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     }
 
 }
-
-/* helpers */
-
-private fun Pattern.Object.toSubject(): Pattern.Subject = when (this) {
-    is Pattern.GeneratedBinding -> this
-    is Pattern.RegularBinding -> this
-    is Pattern.Exact -> this
-}
-
-private var generatedBindingIndex = 0
-
-private fun generateBinding() = Pattern.GeneratedBinding(id = generatedBindingIndex++)

@@ -44,3 +44,41 @@ internal inline fun bindingNamesOf(
 internal inline fun JoinTree.join(deltas: List<Delta.Bindings>): List<Delta.Bindings> {
     return deltas.flatMap { delta -> join(delta) }
 }
+
+internal inline fun Pattern.UnboundSequence.unfold(start: Pattern.Subject, end: Pattern.Object): List<Pattern> {
+    require(chain.size >= 2)
+    val result = ArrayList<Pattern>(chain.size)
+    var subj = start
+    (0 until chain.size - 1).forEach { i ->
+        val p = chain[i]
+        val obj = createAnonymousBinding()
+        result.add(Pattern(subj, p, obj))
+        subj = obj.toSubject()
+    }
+    result.add(Pattern(subj, chain.last(), end))
+    return result
+}
+
+internal inline fun Pattern.Sequence.unfold(start: Pattern.Subject, end: Pattern.Object): List<Pattern> {
+    require(chain.size >= 2)
+    val result = ArrayList<Pattern>(chain.size)
+    var subj = start
+    (0 until chain.size - 1).forEach { i ->
+        val p = chain[i]
+        val obj = createAnonymousBinding()
+        result.add(Pattern(subj, p, obj))
+        subj = obj.toSubject()
+    }
+    result.add(Pattern(subj, chain.last(), end))
+    return result
+}
+
+private fun Pattern.Object.toSubject(): Pattern.Subject = when (this) {
+    is Pattern.GeneratedBinding -> this
+    is Pattern.RegularBinding -> this
+    is Pattern.Exact -> this
+}
+
+private var generatedBindingIndex = 0
+
+internal fun createAnonymousBinding() = Pattern.GeneratedBinding(id = generatedBindingIndex++)
