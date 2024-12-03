@@ -43,7 +43,8 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         val pos = backing.size
         backing.add(mapping)
         index.forEach { index ->
-            val value = mapping[index.key]!!
+            val value = mapping[index.key]
+                ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
             index.value
                 .getOrPut(value) { arrayListOf() }
                 .add(pos)
@@ -61,7 +62,8 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         backing.addAll(mappings)
         mappings.forEachIndexed { i, mapping ->
             index.forEach { index ->
-                val value = mapping[index.key]!!
+                val value = mapping[index.key]
+                    ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
                 index.value
                     .getOrPut(value) { arrayListOf() }
                     .add(start + i)
