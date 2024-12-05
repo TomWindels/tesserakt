@@ -169,7 +169,7 @@ internal sealed class IncrementalPathState {
         private val arr = mutableJoinCollection(start.name)
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
-        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match C
+        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
 
@@ -274,7 +274,7 @@ internal sealed class IncrementalPathState {
         private val arr = mutableJoinCollection(end.name)
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
-        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match C
+        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(bridge, inner, end).createIncrementalPatternState()
 
@@ -361,28 +361,41 @@ internal sealed class IncrementalPathState {
 
         private var satisfied = false
 
-        // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
-        //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
-        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match C
-        private val bridge = createAnonymousBinding()
-        private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
+        // "bridge" bindings, responsible for keeping the inner predicate's connection points variable, allowing for
+        //  more matches that in turn can produce additional results only obtainable by combining these additional
+        //  matches; i.e.
+        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
+        private val intermediateStart = createAnonymousBinding()
+        private val intermediateEnd = createAnonymousBinding()
+        private val inner = Pattern(intermediateStart, inner, intermediateEnd).createIncrementalPatternState()
         override val cardinality: Int get() = if (satisfied) 1 else 0
+        // these inner results have to be connected as it's possible for multiple quads to form the path
+        //  we're looking for
+        private val segments = SegmentsList()
 
         override fun process(quad: Quad) {
+            val peek = inner.peek(Delta.DataAddition(quad))
+            val new = peek
+                .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[intermediateStart.name]!!, end = it[intermediateEnd.name]!!) }
             if (!satisfied) {
-                satisfied = inner.peek(Delta.DataAddition(quad)).any { it[bridge.name]!! == end.term }
+                satisfied = segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }
             }
             inner.process(Delta.DataAddition(quad))
+            segments.insert(new)
         }
 
         override fun peek(quad: Quad): List<Mapping> {
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
-            return if (!satisfied && inner.peek(Delta.DataAddition(quad)).any { it[bridge.name]!! == end.term }) {
-                listOf(emptyMapping())
-            } else {
-                emptyList()
+            if (!satisfied) {
+                val peek = inner.peek(Delta.DataAddition(quad))
+                val new = peek
+                    .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[intermediateStart.name]!!, end = it[intermediateEnd.name]!!) }
+                if (segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }) {
+                    return listOf(emptyMapping())
+                }
             }
+            return emptyList()
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
