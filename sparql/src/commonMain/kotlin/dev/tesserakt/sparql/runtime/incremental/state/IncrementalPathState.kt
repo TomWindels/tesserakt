@@ -172,11 +172,17 @@ internal sealed class IncrementalPathState {
         //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
+        // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
+        //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
+        //  (inner repeating paths may return too many results due to the bridge binding)
+        private val reached = mutableSetOf<Quad.Term>()
 
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(quad: Quad) {
-            arr.addAll(peek(quad))
+            val peeked = peekNewlyReachable(quad)
+            arr.addAll(peeked.map { mappingOf(start.name to it) })
+            reached.addAll(peeked)
             inner.process(Delta.DataAddition(quad))
             segments.insert(getNewSegments(quad))
             // only the first represents a binding, so adding the end, but only if it matches exactly
@@ -186,20 +192,37 @@ internal sealed class IncrementalPathState {
         }
 
         override fun peek(quad: Quad): List<Mapping> {
+            val result = peekNewlyReachable(quad)
+            return result.map { mappingOf(start.name to it) }
+        }
+
+        private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<Quad.Term>()
             segments.newPathsOnAdding(new)
-                .filter { it.end == end.term }
-                .mapTo(result) { mappingOf(start.name to it.start) }
+                .forEach {
+                    if (it.end != end.term) {
+                        return@forEach
+                    }
+                    if (it.start !in reached) {
+                        result.add(it.start)
+                    }
+                }
             // only adding the end as a zero length binding if it matches the end term
             if (end.matches(quad.o)) {
                 segments.newPathsOnAdding(SegmentsList.Segment(quad.o, quad.o))
-                    .filter { it.end == end.term }
-                    .forEach { result.add(mappingOf(start.name to it.start)) }
+                    .forEach {
+                        if (it.end != end.term) {
+                            return@forEach
+                        }
+                        if (it.start !in reached) {
+                            result.add(it.start)
+                        }
+                    }
             }
-            return result.toList()
+            return result
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -277,11 +300,17 @@ internal sealed class IncrementalPathState {
         //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(bridge, inner, end).createIncrementalPatternState()
+        // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
+        //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
+        //  (inner repeating paths may return too many results due to the bridge binding)
+        private val reached = mutableSetOf<Quad.Term>()
 
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(quad: Quad) {
-            arr.addAll(peek(quad))
+            val peeked = peekNewlyReachable(quad)
+            arr.addAll(peeked.map { mappingOf(end.name to it) })
+            reached.addAll(peeked)
             inner.process(Delta.DataAddition(quad))
             segments.insert(getNewSegments(quad))
             // only the last represents a binding, so adding the end, but only if it matches exactly
@@ -291,20 +320,37 @@ internal sealed class IncrementalPathState {
         }
 
         override fun peek(quad: Quad): List<Mapping> {
+            val result = peekNewlyReachable(quad)
+            return result.map { mappingOf(end.name to it) }
+        }
+
+        private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<Quad.Term>()
             segments.newPathsOnAdding(new)
-                .filter { it.start == start.term }
-                .mapTo(result) { mappingOf(end.name to it.end) }
+                .forEach {
+                    if (it.start != start.term) {
+                        return@forEach
+                    }
+                    if (it.end !in reached) {
+                        result.add(it.end)
+                    }
+                }
             // only adding the end as a zero length binding if it matches the end term
             if (start.matches(quad.s)) {
                 segments.newPathsOnAdding(SegmentsList.Segment(quad.s, quad.s))
-                    .filter { it.start == start.term }
-                    .forEach { result.add(mappingOf(end.name to it.end)) }
+                    .forEach {
+                        if (it.start != start.term) {
+                            return@forEach
+                        }
+                        if (it.end !in reached) {
+                            result.add(it.end)
+                        }
+                    }
             }
-            return result.toList()
+            return result
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -538,24 +584,41 @@ internal sealed class IncrementalPathState {
         //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
+        // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
+        //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
+        //  (inner repeating paths may return too many results due to the bridge binding)
+        private val reached = mutableSetOf<Quad.Term>()
 
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(quad: Quad) {
-            arr.addAll(peek(quad))
+            val peeked = peekNewlyReachable(quad)
+            arr.addAll(peeked.map { mappingOf(start.name to it) })
+            reached.addAll(peeked)
             inner.process(Delta.DataAddition(quad))
             segments.insert(getNewSegments(quad))
         }
 
         override fun peek(quad: Quad): List<Mapping> {
+            val result = peekNewlyReachable(quad)
+            return result.map { mappingOf(start.name to it) }
+        }
+
+        private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<Quad.Term>()
             segments.newPathsOnAdding(new)
-                .filter { it.end == end.term }
-                .mapTo(result) { mappingOf(start.name to it.start) }
-            return result.toList()
+                .forEach {
+                    if (it.end != end.term) {
+                        return@forEach
+                    }
+                    if (it.start !in reached) {
+                        result.add(it.start)
+                    }
+                }
+            return result
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -624,24 +687,41 @@ internal sealed class IncrementalPathState {
         //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(bridge, inner, end).createIncrementalPatternState()
+        // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
+        //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
+        //  (inner repeating paths may return too many results due to the bridge binding)
+        private val reached = mutableSetOf<Quad.Term>()
 
         override val cardinality: Int get() = arr.mappings.size
 
         override fun process(quad: Quad) {
-            arr.addAll(peek(quad))
+            val peeked = peekNewlyReachable(quad)
+            arr.addAll(peeked.map { mappingOf(end.name to it) })
+            reached.addAll(peeked)
             inner.process(Delta.DataAddition(quad))
             segments.insert(getNewSegments(quad))
         }
 
         override fun peek(quad: Quad): List<Mapping> {
+            val result = peekNewlyReachable(quad)
+            return result.map { mappingOf(end.name to it) }
+        }
+
+        private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<Quad.Term>()
             segments.newPathsOnAdding(new)
-                .filter { it.start == start.term }
-                .mapTo(result) { mappingOf(end.name to it.end) }
-            return result.toList()
+                .forEach {
+                    if (it.start != start.term) {
+                        return@forEach
+                    }
+                    if (it.end !in reached) {
+                        result.add(it.end)
+                    }
+                }
+            return result
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
