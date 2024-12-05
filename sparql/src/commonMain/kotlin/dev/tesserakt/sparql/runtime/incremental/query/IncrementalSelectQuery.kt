@@ -5,9 +5,10 @@ import dev.tesserakt.sparql.runtime.incremental.types.SelectQuery
 
 class IncrementalSelectQuery internal constructor(ast: SelectQuery): IncrementalQuery<Bindings, SelectQuery>(ast) {
 
+    val variables = ast.output.mapTo(mutableSetOf()) { it.name }.toSet()
+
     override fun process(bindings: Bindings): Bindings {
-        val output = ast.output.map { it.name }.toSet()
-        return bindings.filterKeys { name -> name in output }
+        return bindings.filterKeys { name -> name in variables }
     }
 
 }

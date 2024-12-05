@@ -27,13 +27,17 @@ kotlin {
     }
 }
 
-tasks.create("jsRdfTestSuite") {
+tasks.create("rdf-test-suite-js") {
     doLast {
         exec {
-            workingDir("${project.rootDir}/build/js/packages/tesserakt-tests")
-            // w/o -c, nothing gets executed :C
-            commandLine("npx", "rdf-test-suite", "kotlin/tesserakt-tests.js", "http://w3c.github.io/rdf-tests/sparql/sparql11/manifest-all.ttl", "-c")
+            workingDir(project.rootDir)
+            commandLine("mkdir", "-p", ".cache/rdf-test-suite")
         }
+        exec {
+            workingDir("${project.rootDir}/build/js/packages/tesserakt-testing-rdf-test-suite-js")
+            commandLine("node", "../../node_modules/rdf-test-suite/bin/Runner.js", "kotlin/tesserakt-testing-rdf-test-suite-js.js", "http://w3c.github.io/rdf-tests/sparql/sparql11/manifest-all.ttl", "-c", "../../../../.cache/rdf-test-suite", "-s", "http://www.w3.org/TR/sparql11-query/")
+        }
+        // other suites can be added here as well
     }
 }.also { it.dependsOn("jsRun") }
 
