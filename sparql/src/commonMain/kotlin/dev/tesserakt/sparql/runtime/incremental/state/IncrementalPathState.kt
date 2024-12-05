@@ -320,7 +320,7 @@ internal sealed class IncrementalPathState {
 
     }
 
-    class ZeroOrMoreExact(
+    class ZeroOrMoreStatelessExact(
         val start: Pattern.Exact,
         val inner: Pattern.StatelessPredicate,
         val end: Pattern.Exact
@@ -444,6 +444,47 @@ internal sealed class IncrementalPathState {
 
     }
 
+    class OneOrMoreStatefulBindings(
+        val start: Pattern.Binding,
+        inner: Pattern.Predicate,
+        val end: Pattern.Binding,
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList()
+        private val arr = mutableJoinCollection(start.name, end.name)
+        private val inner = Pattern(start, inner, end).createIncrementalPatternState()
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun process(quad: Quad) {
+            arr.addAll(peek(quad))
+            inner.process(Delta.DataAddition(quad))
+            segments.insert(getNewSegments(quad))
+        }
+
+        override fun peek(quad: Quad): List<Mapping> {
+            val new = getNewSegments(quad)
+            // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
+            //  cause some paths to come back in duplicates, we make it instantly distinct
+            val result = mutableSetOf<Mapping>()
+            segments.newPathsOnAdding(new)
+                .mapTo(result) { mappingOf(start.name to it.start, end.name to it.end) }
+            return result.toList()
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+        override fun toString() = segments.toString()
+
+        private fun getNewSegments(quad: Quad): Set<SegmentsList.Segment> {
+            return inner.peek(Delta.DataAddition(quad))
+                .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[start.name]!!, end = it[end.name]!!) }
+        }
+
+    }
+
     class OneOrMoreStatelessBindingExact(
         val start: Pattern.Binding,
         val inner: Pattern.StatelessPredicate,
@@ -481,6 +522,52 @@ internal sealed class IncrementalPathState {
         }
 
         override fun toString() = segments.toString()
+
+    }
+
+    class OneOrMoreStatefulBindingExact(
+        val start: Pattern.Binding,
+        inner: Pattern.Predicate,
+        val end: Pattern.Exact,
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList()
+        private val arr = mutableJoinCollection(start.name)
+        // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
+        //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
+        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
+        private val bridge = createAnonymousBinding()
+        private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun process(quad: Quad) {
+            arr.addAll(peek(quad))
+            inner.process(Delta.DataAddition(quad))
+            segments.insert(getNewSegments(quad))
+        }
+
+        override fun peek(quad: Quad): List<Mapping> {
+            val new = getNewSegments(quad)
+            // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
+            //  cause some paths to come back in duplicates, we make it instantly distinct
+            val result = mutableSetOf<Mapping>()
+            segments.newPathsOnAdding(new)
+                .filter { it.end == end.term }
+                .mapTo(result) { mappingOf(start.name to it.start) }
+            return result.toList()
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+        override fun toString() = segments.toString()
+
+        private fun getNewSegments(quad: Quad): Set<SegmentsList.Segment> {
+            return inner.peek(Delta.DataAddition(quad))
+                .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[start.name]!!, end = it[bridge.name]!!) }
+        }
 
     }
 
@@ -524,7 +611,53 @@ internal sealed class IncrementalPathState {
 
     }
 
-    class OneOrMoreExact(
+    class OneOrMoreStatefulExactBinding(
+        val start: Pattern.Exact,
+        inner: Pattern.Predicate,
+        val end: Pattern.Binding,
+    ) : IncrementalPathState() {
+
+        private val segments = SegmentsList()
+        private val arr = mutableJoinCollection(end.name)
+        // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
+        //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
+        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
+        private val bridge = createAnonymousBinding()
+        private val inner = Pattern(bridge, inner, end).createIncrementalPatternState()
+
+        override val cardinality: Int get() = arr.mappings.size
+
+        override fun process(quad: Quad) {
+            arr.addAll(peek(quad))
+            inner.process(Delta.DataAddition(quad))
+            segments.insert(getNewSegments(quad))
+        }
+
+        override fun peek(quad: Quad): List<Mapping> {
+            val new = getNewSegments(quad)
+            // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
+            //  cause some paths to come back in duplicates, we make it instantly distinct
+            val result = mutableSetOf<Mapping>()
+            segments.newPathsOnAdding(new)
+                .filter { it.start == start.term }
+                .mapTo(result) { mappingOf(end.name to it.end) }
+            return result.toList()
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return arr.join(mappings)
+        }
+
+        override fun toString() = segments.toString()
+
+        private fun getNewSegments(quad: Quad): Set<SegmentsList.Segment> {
+            return inner.peek(Delta.DataAddition(quad))
+                .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[bridge.name]!!, end = it[end.name]!!) }
+        }
+
+    }
+
+    class OneOrMoreStatelessExact(
         val start: Pattern.Exact,
         val inner: Pattern.StatelessPredicate,
         val end: Pattern.Exact
@@ -549,6 +682,57 @@ internal sealed class IncrementalPathState {
             } else {
                 emptyList()
             }
+        }
+
+        override fun join(mappings: List<Mapping>): List<Mapping> {
+            return if (satisfied) mappings else emptyList()
+        }
+
+    }
+
+    class OneOrMoreStatefulExact(
+        val start: Pattern.Exact,
+        inner: Pattern.Predicate,
+        val end: Pattern.Exact
+    ) : IncrementalPathState() {
+
+        private var satisfied = false
+
+        // "bridge" bindings, responsible for keeping the inner predicate's connection points variable, allowing for
+        //  more matches that in turn can produce additional results only obtainable by combining these additional
+        //  matches; i.e.
+        //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
+        private val intermediateStart = createAnonymousBinding()
+        private val intermediateEnd = createAnonymousBinding()
+        private val inner = Pattern(intermediateStart, inner, intermediateEnd).createIncrementalPatternState()
+        override val cardinality: Int get() = if (satisfied) 1 else 0
+        // these inner results have to be connected as it's possible for multiple quads to form the path
+        //  we're looking for
+        private val segments = SegmentsList()
+
+        override fun process(quad: Quad) {
+            val peek = inner.peek(Delta.DataAddition(quad))
+            val new = peek
+                .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[intermediateStart.name]!!, end = it[intermediateEnd.name]!!) }
+            if (!satisfied) {
+                satisfied = segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }
+            }
+            inner.process(Delta.DataAddition(quad))
+            segments.insert(new)
+        }
+
+        override fun peek(quad: Quad): List<Mapping> {
+            // it's expected that a call to `process` will happen soon after,
+            //  so not changing it here
+            if (!satisfied) {
+                val peek = inner.peek(Delta.DataAddition(quad))
+                val new = peek
+                    .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[intermediateStart.name]!!, end = it[intermediateEnd.name]!!) }
+                if (segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }) {
+                    return listOf(emptyMapping())
+                }
+            }
+            return emptyList()
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -597,7 +781,7 @@ internal sealed class IncrementalPathState {
                         )
 
                     start is Pattern.Exact && end is Pattern.Exact ->
-                        ZeroOrMoreExact(
+                        ZeroOrMoreStatelessExact(
                             start = start,
                             inner = inner,
                             end = end,
@@ -671,7 +855,7 @@ internal sealed class IncrementalPathState {
                         )
 
                     start is Pattern.Exact && end is Pattern.Exact ->
-                        OneOrMoreExact(
+                        OneOrMoreStatelessExact(
                             start = start,
                             inner = inner,
                             end = end,
@@ -681,13 +865,37 @@ internal sealed class IncrementalPathState {
                         throw IllegalStateException("Internal error: unknown subject / pattern combination for `OneOrMore` predicate construct: $start -> $end")
                 }
 
-                is Pattern.UnboundSequence -> {
-                    // FIXME
-                    throw IllegalStateException("Repeating sequence patterns are currently not supported!\nOffending triple pattern: ${Pattern(start, predicate, end)}")
-                }
+                else -> when {
+                    start is Pattern.Binding && end is Pattern.Binding ->
+                        OneOrMoreStatefulBindings(
+                            start = start,
+                            inner = inner,
+                            end = end,
+                        )
 
-                else -> {
-                    throw IllegalStateException("Invalid query: predicate element `${inner}` cannot be used as a repeating (+) element!\nOffending pattern: ${Pattern(start, predicate, end)}")
+                    start is Pattern.Binding && end is Pattern.Exact ->
+                        OneOrMoreStatefulBindingExact(
+                            start = start,
+                            inner = inner,
+                            end = end,
+                        )
+
+                    start is Pattern.Exact && end is Pattern.Binding ->
+                        OneOrMoreStatefulExactBinding(
+                            start = start,
+                            inner = inner,
+                            end = end,
+                        )
+
+                    start is Pattern.Exact && end is Pattern.Exact ->
+                        OneOrMoreStatefulExact(
+                            start = start,
+                            inner = inner,
+                            end = end,
+                        )
+
+                    else ->
+                        throw IllegalStateException("Internal error: unknown subject / pattern combination for `OneOrMore` predicate construct: $start -> $end")
                 }
             }
         }
