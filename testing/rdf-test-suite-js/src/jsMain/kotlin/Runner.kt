@@ -26,5 +26,5 @@ fun query(data: Array<N3Quad>, queryString: String, options: dynamic): QueryResu
     val query = queryString.asSPARQLSelectQuery()
     return store
         .query(query)
-        .let { QueryResultBindings(variables = query.variables.toTypedArray(), bindings = it) }
+        .let { QueryResultBindings(variables = query.variables, bindings = it) }
 }

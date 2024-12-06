@@ -43,9 +43,9 @@ data class QueryResultBindings(
     val value: Array<dynamic>
 ): QueryResult {
 
-    internal constructor(variables: Array<String>, bindings: List<Bindings>): this(
-        variables = variables,
-        value = bindings.map { it.toJsObject() }.toTypedArray(),
+    internal constructor(variables: Iterable<String>, bindings: List<Bindings>): this(
+        variables = variables.map { "?$it" }.toTypedArray(),
+        value = bindings.map { it.mapKeys { "?${it.key}" }.toJsObject() }.toTypedArray(),
     )
 
     val type: String = "bindings"
