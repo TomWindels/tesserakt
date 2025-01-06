@@ -24,19 +24,27 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
             // TODO(perf): this delta's the segments list twice, can be optimised
             if (!inner.matches(quad.p)) {
                 return
             }
-            arr.addAll(peek(quad))
-            segments.insert(quad.toSegment())
-            // two bindings, so adding both ends
-            segments.insert(SegmentsList.Segment(quad.s, quad.s))
-            segments.insert(SegmentsList.Segment(quad.o, quad.o))
+            when (delta) {
+                is Delta.DataAddition -> {
+                    arr.addAll(peek(delta))
+                    segments.insert(quad.toSegment())
+                    // two bindings, so adding both ends
+                    segments.insert(SegmentsList.Segment(quad.s, quad.s))
+                    segments.insert(SegmentsList.Segment(quad.o, quad.o))
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             if (!inner.matches(quad.p)) {
                 return emptyList()
             }
@@ -51,6 +59,10 @@ internal sealed class IncrementalPathState {
             segments.newPathsOnAdding(SegmentsList.Segment(quad.o, quad.o))
                 .forEach { result.add(mappingOf(start.name to it.start, end.name to it.end)) }
             return result.toList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -73,16 +85,24 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
-            arr.addAll(peek(quad))
-            inner.process(Delta.DataAddition(quad))
-            segments.insert(getNewSegments(quad))
-            // two bindings, so adding both ends
-            segments.insert(SegmentsList.Segment(quad.s, quad.s))
-            segments.insert(SegmentsList.Segment(quad.o, quad.o))
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
+            when (delta) {
+                is Delta.DataAddition -> {
+                    arr.addAll(peek(delta))
+                    inner.process(Delta.DataAddition(quad))
+                    segments.insert(getNewSegments(quad))
+                    // two bindings, so adding both ends
+                    segments.insert(SegmentsList.Segment(quad.s, quad.s))
+                    segments.insert(SegmentsList.Segment(quad.o, quad.o))
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
@@ -95,6 +115,10 @@ internal sealed class IncrementalPathState {
             segments.newPathsOnAdding(SegmentsList.Segment(quad.o, quad.o))
                 .forEach { result.add(mappingOf(start.name to it.start, end.name to it.end)) }
             return result.toList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -121,20 +145,28 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
             // TODO(perf): this delta's the segments list twice, can be optimised
             if (!inner.matches(quad.p)) {
                 return
             }
-            arr.addAll(peek(quad))
-            segments.insert(quad.toSegment())
-            // only the first represents a binding, so adding the end, but only if it matches exactly
-            if (end.matches(quad.o)) {
-                segments.insert(SegmentsList.Segment(quad.o, quad.o))
+            when (delta) {
+                is Delta.DataAddition -> {
+                    arr.addAll(peek(delta))
+                    segments.insert(quad.toSegment())
+                    // only the first represents a binding, so adding the end, but only if it matches exactly
+                    if (end.matches(quad.o)) {
+                        segments.insert(SegmentsList.Segment(quad.o, quad.o))
+                    }
+                }
+
+                is Delta.DataDeletion -> TODO()
             }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             if (!inner.matches(quad.p)) {
                 return emptyList()
             }
@@ -149,6 +181,10 @@ internal sealed class IncrementalPathState {
                     .forEach { result.add(mappingOf(start.name to it)) }
             }
             return result.toList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -167,11 +203,13 @@ internal sealed class IncrementalPathState {
 
         private val segments = SegmentsList()
         private val arr = mutableJoinCollection(start.name)
+
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
         //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
+
         // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
         //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
         //  (inner repeating paths may return too many results due to the bridge binding)
@@ -179,21 +217,33 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
-            val peeked = peekNewlyReachable(quad)
-            arr.addAll(peeked.map { mappingOf(start.name to it) })
-            reached.addAll(peeked)
-            inner.process(Delta.DataAddition(quad))
-            segments.insert(getNewSegments(quad))
-            // only the first represents a binding, so adding the end, but only if it matches exactly
-            if (end.matches(quad.o)) {
-                segments.insert(SegmentsList.Segment(quad.o, quad.o))
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
+            when (delta) {
+                is Delta.DataAddition -> {
+                    val peeked = peekNewlyReachable(quad)
+                    arr.addAll(peeked.map { mappingOf(start.name to it) })
+                    reached.addAll(peeked)
+                    inner.process(Delta.DataAddition(quad))
+                    segments.insert(getNewSegments(quad))
+                    // only the first represents a binding, so adding the end, but only if it matches exactly
+                    if (end.matches(quad.o)) {
+                        segments.insert(SegmentsList.Segment(quad.o, quad.o))
+                    }
+                }
+
+                is Delta.DataDeletion -> TODO()
             }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             val result = peekNewlyReachable(quad)
             return result.map { mappingOf(start.name to it) }
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
@@ -249,20 +299,28 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
             // TODO(perf): this delta's the segments list twice, can be optimised
             if (!inner.matches(quad.p)) {
                 return
             }
-            arr.addAll(peek(quad))
-            segments.insert(quad.toSegment())
-            // only the last represents a binding, so adding the end, but only if it matches exactly
-            if (start.matches(quad.s)) {
-                segments.insert(SegmentsList.Segment(quad.s, quad.s))
+            when (delta) {
+                is Delta.DataAddition -> {
+                    arr.addAll(peek(delta))
+                    segments.insert(quad.toSegment())
+                    // only the last represents a binding, so adding the end, but only if it matches exactly
+                    if (start.matches(quad.s)) {
+                        segments.insert(SegmentsList.Segment(quad.s, quad.s))
+                    }
+                }
+
+                is Delta.DataDeletion -> TODO()
             }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             if (!inner.matches(quad.p)) {
                 return emptyList()
             }
@@ -277,6 +335,10 @@ internal sealed class IncrementalPathState {
                     .forEach { result.add(mappingOf(end.name to it)) }
             }
             return result.toList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -295,11 +357,13 @@ internal sealed class IncrementalPathState {
 
         private val segments = SegmentsList()
         private val arr = mutableJoinCollection(end.name)
+
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
         //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(bridge, inner, end).createIncrementalPatternState()
+
         // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
         //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
         //  (inner repeating paths may return too many results due to the bridge binding)
@@ -307,21 +371,33 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
-            val peeked = peekNewlyReachable(quad)
-            arr.addAll(peeked.map { mappingOf(end.name to it) })
-            reached.addAll(peeked)
-            inner.process(Delta.DataAddition(quad))
-            segments.insert(getNewSegments(quad))
-            // only the last represents a binding, so adding the end, but only if it matches exactly
-            if (start.matches(quad.s)) {
-                segments.insert(SegmentsList.Segment(quad.s, quad.s))
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
+            when (delta) {
+                is Delta.DataAddition -> {
+                    val peeked = peekNewlyReachable(quad)
+                    arr.addAll(peeked.map { mappingOf(end.name to it) })
+                    reached.addAll(peeked)
+                    inner.process(Delta.DataAddition(quad))
+                    segments.insert(getNewSegments(quad))
+                    // only the last represents a binding, so adding the end, but only if it matches exactly
+                    if (start.matches(quad.s)) {
+                        segments.insert(SegmentsList.Segment(quad.s, quad.s))
+                    }
+                }
+
+                is Delta.DataDeletion -> TODO()
             }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             val result = peekNewlyReachable(quad)
             return result.map { mappingOf(end.name to it) }
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
@@ -376,14 +452,22 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = if (satisfied) 1 else 0
 
-        override fun process(quad: Quad) {
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
             if (!inner.matches(quad.p)) {
                 return
             }
-            satisfied = true
+            when (delta) {
+                is Delta.DataAddition -> {
+                    satisfied = true
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
             return if (!satisfied && inner.matches(quad.p)) {
@@ -391,6 +475,10 @@ internal sealed class IncrementalPathState {
             } else {
                 emptyList()
             }
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -415,33 +503,56 @@ internal sealed class IncrementalPathState {
         private val intermediateEnd = createAnonymousBinding()
         private val inner = Pattern(intermediateStart, inner, intermediateEnd).createIncrementalPatternState()
         override val cardinality: Int get() = if (satisfied) 1 else 0
+
         // these inner results have to be connected as it's possible for multiple quads to form the path
         //  we're looking for
         private val segments = SegmentsList()
 
-        override fun process(quad: Quad) {
-            val peek = inner.peek(Delta.DataAddition(quad))
-            val new = peek
-                .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[intermediateStart.name]!!, end = it[intermediateEnd.name]!!) }
-            if (!satisfied) {
-                satisfied = segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
+            when (delta) {
+                is Delta.DataAddition -> {
+                    val peek = inner.peek(delta)
+                    val new = peek
+                        .mapTo(mutableSetOf()) {
+                            SegmentsList.Segment(
+                                start = it[intermediateStart.name]!!,
+                                end = it[intermediateEnd.name]!!
+                            )
+                        }
+                    if (!satisfied) {
+                        satisfied = segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }
+                    }
+                    inner.process(Delta.DataAddition(quad))
+                    segments.insert(new)
+                }
+
+                is Delta.DataDeletion -> TODO()
             }
-            inner.process(Delta.DataAddition(quad))
-            segments.insert(new)
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
             if (!satisfied) {
                 val peek = inner.peek(Delta.DataAddition(quad))
                 val new = peek
-                    .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[intermediateStart.name]!!, end = it[intermediateEnd.name]!!) }
+                    .mapTo(mutableSetOf()) {
+                        SegmentsList.Segment(
+                            start = it[intermediateStart.name]!!,
+                            end = it[intermediateEnd.name]!!
+                        )
+                    }
                 if (segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }) {
                     return listOf(emptyMapping())
                 }
             }
             return emptyList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -461,16 +572,24 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
             // TODO(perf): this delta's the segments list twice, can be optimised
             if (!inner.matches(quad.p)) {
                 return
             }
-            arr.addAll(peek(quad))
-            segments.insert(quad.toSegment())
+            when (delta) {
+                is Delta.DataAddition -> {
+                    arr.addAll(peek(delta))
+                    segments.insert(quad.toSegment())
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             if (!inner.matches(quad.p)) {
                 return emptyList()
             }
@@ -480,6 +599,10 @@ internal sealed class IncrementalPathState {
             segments.newPathsOnAdding(quad.toSegment())
                 .mapTo(result) { mappingOf(start.name to it.start, end.name to it.end) }
             return result.toList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -502,13 +625,21 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
-            arr.addAll(peek(quad))
-            inner.process(Delta.DataAddition(quad))
-            segments.insert(getNewSegments(quad))
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
+            when (delta) {
+                is Delta.DataAddition -> {
+                    arr.addAll(peek(delta))
+                    inner.process(delta)
+                    segments.insert(getNewSegments(quad))
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
@@ -516,6 +647,10 @@ internal sealed class IncrementalPathState {
             segments.newPathsOnAdding(new)
                 .mapTo(result) { mappingOf(start.name to it.start, end.name to it.end) }
             return result.toList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -542,16 +677,24 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
             // TODO(perf): this delta's the segments list twice, can be optimised
             if (!inner.matches(quad.p)) {
                 return
             }
-            arr.addAll(peek(quad))
-            segments.insert(quad.toSegment())
+            when (delta) {
+                is Delta.DataAddition -> {
+                    arr.addAll(peek(delta))
+                    segments.insert(quad.toSegment())
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             if (!inner.matches(quad.p)) {
                 return emptyList()
             }
@@ -561,6 +704,10 @@ internal sealed class IncrementalPathState {
             segments.newReachableStartNodesOnAdding(quad.toSegment())
                 .mapTo(result) { mappingOf(start.name to it) }
             return result.toList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -579,11 +726,13 @@ internal sealed class IncrementalPathState {
 
         private val segments = SegmentsList()
         private val arr = mutableJoinCollection(start.name)
+
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
         //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
+
         // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
         //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
         //  (inner repeating paths may return too many results due to the bridge binding)
@@ -591,17 +740,29 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
-            val peeked = peekNewlyReachable(quad)
-            arr.addAll(peeked.map { mappingOf(start.name to it) })
-            reached.addAll(peeked)
-            inner.process(Delta.DataAddition(quad))
-            segments.insert(getNewSegments(quad))
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
+            when (delta) {
+                is Delta.DataAddition -> {
+                    val peeked = peekNewlyReachable(quad)
+                    arr.addAll(peeked.map { mappingOf(start.name to it) })
+                    reached.addAll(peeked)
+                    inner.process(delta)
+                    segments.insert(getNewSegments(quad))
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             val result = peekNewlyReachable(quad)
             return result.map { mappingOf(start.name to it) }
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
@@ -645,16 +806,24 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
             // TODO(perf): this delta's the segments list twice, can be optimised
             if (!inner.matches(quad.p)) {
                 return
             }
-            arr.addAll(peek(quad))
-            segments.insert(quad.toSegment())
+            when (delta) {
+                is Delta.DataAddition -> {
+                    arr.addAll(peek(delta))
+                    segments.insert(quad.toSegment())
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             if (!inner.matches(quad.p)) {
                 return emptyList()
             }
@@ -664,6 +833,10 @@ internal sealed class IncrementalPathState {
             segments.newReachableEndNodesOnAdding(quad.toSegment())
                 .mapTo(result) { mappingOf(end.name to it) }
             return result.toList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -682,11 +855,13 @@ internal sealed class IncrementalPathState {
 
         private val segments = SegmentsList()
         private val arr = mutableJoinCollection(end.name)
+
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
         //  A -> B and B -> C should yield A -> C, which is only possible if we don't enforce an exact match B
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(bridge, inner, end).createIncrementalPatternState()
+
         // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
         //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
         //  (inner repeating paths may return too many results due to the bridge binding)
@@ -694,17 +869,29 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = arr.mappings.size
 
-        override fun process(quad: Quad) {
-            val peeked = peekNewlyReachable(quad)
-            arr.addAll(peeked.map { mappingOf(end.name to it) })
-            reached.addAll(peeked)
-            inner.process(Delta.DataAddition(quad))
-            segments.insert(getNewSegments(quad))
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
+            when (delta) {
+                is Delta.DataAddition -> {
+                    val peeked = peekNewlyReachable(quad)
+                    arr.addAll(peeked.map { mappingOf(end.name to it) })
+                    reached.addAll(peeked)
+                    inner.process(Delta.DataAddition(quad))
+                    segments.insert(getNewSegments(quad))
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             val result = peekNewlyReachable(quad)
             return result.map { mappingOf(end.name to it) }
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
@@ -747,14 +934,22 @@ internal sealed class IncrementalPathState {
 
         override val cardinality: Int get() = if (satisfied) 1 else 0
 
-        override fun process(quad: Quad) {
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
             if (!inner.matches(quad.p)) {
                 return
             }
-            satisfied = true
+            when (delta) {
+                is Delta.DataAddition -> {
+                    satisfied = true
+                }
+
+                is Delta.DataDeletion -> TODO()
+            }
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
             return if (!satisfied && inner.matches(quad.p)) {
@@ -762,6 +957,10 @@ internal sealed class IncrementalPathState {
             } else {
                 emptyList()
             }
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -786,33 +985,56 @@ internal sealed class IncrementalPathState {
         private val intermediateEnd = createAnonymousBinding()
         private val inner = Pattern(intermediateStart, inner, intermediateEnd).createIncrementalPatternState()
         override val cardinality: Int get() = if (satisfied) 1 else 0
+
         // these inner results have to be connected as it's possible for multiple quads to form the path
         //  we're looking for
         private val segments = SegmentsList()
 
-        override fun process(quad: Quad) {
-            val peek = inner.peek(Delta.DataAddition(quad))
-            val new = peek
-                .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[intermediateStart.name]!!, end = it[intermediateEnd.name]!!) }
-            if (!satisfied) {
-                satisfied = segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }
+        override fun process(delta: Delta.Data) {
+            val quad = delta.value
+            when (delta) {
+                is Delta.DataAddition -> {
+                    val peek = inner.peek(delta)
+                    val new = peek
+                        .mapTo(mutableSetOf()) {
+                            SegmentsList.Segment(
+                                start = it[intermediateStart.name]!!,
+                                end = it[intermediateEnd.name]!!
+                            )
+                        }
+                    if (!satisfied) {
+                        satisfied = segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }
+                    }
+                    inner.process(Delta.DataAddition(quad))
+                    segments.insert(new)
+                }
+
+                is Delta.DataDeletion -> TODO()
             }
-            inner.process(Delta.DataAddition(quad))
-            segments.insert(new)
         }
 
-        override fun peek(quad: Quad): List<Mapping> {
+        override fun peek(addition: Delta.DataAddition): List<Mapping> {
+            val quad = addition.value
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
             if (!satisfied) {
                 val peek = inner.peek(Delta.DataAddition(quad))
                 val new = peek
-                    .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[intermediateStart.name]!!, end = it[intermediateEnd.name]!!) }
+                    .mapTo(mutableSetOf()) {
+                        SegmentsList.Segment(
+                            start = it[intermediateStart.name]!!,
+                            end = it[intermediateEnd.name]!!
+                        )
+                    }
                 if (segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }) {
                     return listOf(emptyMapping())
                 }
             }
             return emptyList()
+        }
+
+        override fun peek(deletion: Delta.DataDeletion): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
@@ -824,9 +1046,11 @@ internal sealed class IncrementalPathState {
 
     abstract val cardinality: Int
 
-    abstract fun process(quad: Quad)
+    abstract fun process(delta: Delta.Data)
 
-    abstract fun peek(quad: Quad): List<Mapping>
+    abstract fun peek(addition: Delta.DataAddition): List<Mapping>
+
+    abstract fun peek(deletion: Delta.DataDeletion): List<Mapping>
 
     abstract fun join(mappings: List<Mapping>): List<Mapping>
 

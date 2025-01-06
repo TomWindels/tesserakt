@@ -139,16 +139,15 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         override val cardinality: Int get() = state.cardinality
 
         override fun process(delta: Delta.Data) {
-            state.process(delta.value)
+            state.process(delta)
         }
 
         override fun peek(delta: Delta.DataAddition): List<Mapping> {
-            return state.peek(delta.value)
+            return state.peek(delta)
         }
 
         override fun peek(delta: Delta.DataDeletion): List<Mapping> {
-            // TODO()
-            return emptyList()
+            return state.peek(delta)
         }
 
         override fun join(mapping: Mapping): List<Mapping> {
