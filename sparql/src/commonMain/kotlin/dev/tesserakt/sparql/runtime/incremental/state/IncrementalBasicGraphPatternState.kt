@@ -33,7 +33,7 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
     }
 
     fun join(delta: Delta.Bindings): List<Delta.Bindings> {
-        return patterns.join(delta)
+        return unions.join(patterns.join(delta))
     }
 
     fun debugInformation() = buildString {
