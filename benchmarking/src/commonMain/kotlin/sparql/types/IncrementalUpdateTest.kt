@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.incremental.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.runtime.incremental.evaluation.query
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
@@ -32,7 +33,15 @@ data class IncrementalUpdateTest(
             }
             return elapsed to results
         }
-        val ongoing = input.query(query.asSPARQLSelectQuery())
+        val ongoing: OngoingQueryEvaluation<Bindings>
+        val setupTime= measureTime {
+            ongoing = input.query(query.asSPARQLSelectQuery())
+        }
+        // checking the initial state (no data)
+        builder.add(
+            self = setupTime to ongoing.results,
+            reference = reference()
+        )
         // building it up
         store.forEach { quad ->
             val current: List<Bindings>
@@ -102,11 +111,21 @@ data class IncrementalUpdateTest(
             }
             return AssertionError(
                 buildString {
-                    appendLine("First failure occurred at incremental change #${index + 1}")
-                    if (index >= store.size) {
-                        appendLine("\t[-] ${store.elementAt(index - store.size)}")
-                    } else {
-                        appendLine("\t[+] ${store.elementAt(index)}")
+                    when {
+                        index == 0 -> {
+                            // initial state failed
+                            appendLine("Comparison failed without any data")
+                        }
+                        index <= store.size -> {
+                            // insertion failed
+                            appendLine("First failure occurred at incremental change #$index")
+                            appendLine("\t[+] ${store.elementAt(index - 1)}")
+                        }
+                        else -> {
+                            // deletion failed
+                            appendLine("First failure occurred at incremental change #$index")
+                            appendLine("\t[-] ${store.elementAt(index - store.size - 1)}")
+                        }
                     }
                     append(outputs[index].exceptionOrNull()?.message ?: "Detailed contents unavailable")
                 }

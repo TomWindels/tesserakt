@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.query
 
 import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.runtime.core.emptyMapping
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.ResultChange.Companion.into
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalBasicGraphPatternState
@@ -14,6 +15,18 @@ sealed class IncrementalQuery<ResultType, Q: Query>(
     internal inner class Processor {
 
         private val state = IncrementalBasicGraphPatternState(ast = ast.body)
+
+        /**
+         * Required when setting up the initial state: sets up initial state
+         *  combinations (i.e. triple patterns such as "?a <p>* <b>", yielding ?a = <b>)
+         */
+        fun state(): List<ResultType> {
+            return state
+                // getting all current results by joining with an empty new mapping
+                .join(Delta.BindingsAddition(emptyMapping()))
+                // mapping them to insertion changes, combining them into the expected return type
+                .map { bindings -> this@IncrementalQuery.process(ResultChange.New(bindings.value)).value }
+        }
 
         fun process(data: Delta.Data): List<ResultChange<Bindings>> {
             return state.insert(data).map { it.into() }

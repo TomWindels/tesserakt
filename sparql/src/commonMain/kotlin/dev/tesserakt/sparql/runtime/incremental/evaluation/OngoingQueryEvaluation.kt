@@ -24,6 +24,11 @@ class OngoingQueryEvaluation<RT>(private val query: IncrementalQuery<RT, *>) {
         }
     }
 
+    init {
+        // setting the query state as the current results
+        _results.addAll(processor.state())
+    }
+
     fun subscribe(store: MutableStore) {
         store.forEach { quad ->
             processor.process(Delta.DataAddition(quad)).forEach { process(it) }

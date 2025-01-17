@@ -36,13 +36,29 @@ class MutableStore(quads: Collection<Quad> = emptyList()): Collection<Quad> {
 
     fun add(quad: Quad) {
         if (quads.add(quad)) {
-            listeners.forEach { it.onQuadAdded(quad) }
+            listeners.forEach {
+                try {
+                    it.onQuadAdded(quad)
+                } catch (e: Throwable) {
+                    // TODO: maybe rollback for local data and other listeners?
+                    // TODO: better exception type, or return a result type?
+                    throw RuntimeException("Failed to add `$quad`", e)
+                }
+            }
         }
     }
 
     fun remove(quad: Quad) {
         if (quads.remove(quad)) {
-            listeners.forEach { it.onQuadRemoved(quad) }
+            listeners.forEach {
+                try {
+                    it.onQuadRemoved(quad)
+                } catch (e: Throwable) {
+                    // TODO: maybe rollback for local data and other listeners?
+                    // TODO: better exception type, or return a result type?
+                    throw RuntimeException("Failed to remove `$quad`", e)
+                }
+            }
         }
     }
 
@@ -54,7 +70,7 @@ class MutableStore(quads: Collection<Quad> = emptyList()): Collection<Quad> {
         listeners.remove(listener)
     }
 
-    override fun toString() = buildString {
+    override fun toString() = if (isEmpty()) "Empty store" else buildString {
         val s = quads.map { it.s.toString() }
         val p = quads.map { it.p.toString() }
         val o = quads.map { it.o.toString() }

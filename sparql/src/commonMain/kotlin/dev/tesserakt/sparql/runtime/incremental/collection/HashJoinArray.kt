@@ -76,6 +76,7 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         //  have to be removed; then a dedicated rebalance method can fill multiple slots at once (avoiding an unnecessarily
         //  large backing collection)
         val pos = backing.indexOfLast { it == mapping }
+        require(pos != -1) { "$mapping cannot be removed from HashJoinArray - not found!" }
         backing.removeAt(pos)
         // the indexes of this mapping have to be removed
         index.forEach { index ->
