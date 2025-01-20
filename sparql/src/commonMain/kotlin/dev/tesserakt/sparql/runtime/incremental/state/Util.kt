@@ -32,6 +32,7 @@ internal inline fun List<Pair<Bitmask, List<Delta.Bindings>>>.expandBindingDelta
         }
         ++i
     }
+    // TODO(perf): simplify the result: [+ {a}, + {b}, - {a}] == [+ {b}]
     return result
 }
 

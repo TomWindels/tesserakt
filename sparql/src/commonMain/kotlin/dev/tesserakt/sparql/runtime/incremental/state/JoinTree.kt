@@ -155,6 +155,12 @@ internal sealed interface JoinTree {
         }
 
         fun joinUsingTree(completed: Bitmask, bindings: List<Delta.Bindings>): Pair<Bitmask, List<Delta.Bindings>> {
+            // checking to see if we're currently matching with an unmatched
+            //  result (i.e. from another union, or the empty state check)
+            if (completed.isZero()) {
+                // TODO(perf) use the last cached type so the fallback structure isn't recreating unnecessary combinations
+                return completed to bindings
+            }
             // mask 0b0..1 isn't stored, so only applying cache when there's zeroes at 0..1+
             if (completed.lowestOneBitIndex() < 2) {
                 return completed to bindings
@@ -203,7 +209,7 @@ internal sealed interface JoinTree {
             bindings.forEach { binding ->
                 when (binding) {
                     is Delta.BindingsAddition -> cache.add(binding.value)
-                    is Delta.BindingsDeletion -> TODO()
+                    is Delta.BindingsDeletion -> cache.remove(binding.value)
                 }
             }
         }
@@ -318,15 +324,17 @@ internal sealed interface JoinTree {
 
         @JvmName("forPatterns")
         operator fun invoke(patterns: List<Pattern>) = when {
-            // TODO also based on binding overlap
-//            patterns.size >= 3 -> LeftDeep(patterns)
+            // TODO(perf) specialised empty case
+            // TODO(perf) also based on binding overlap
+            patterns.size >= 3 -> LeftDeep(patterns)
             else -> None(patterns)
         }
 
         @JvmName("forUnions")
         operator fun invoke(unions: List<Union>) = when {
-            // TODO also based on binding overlap
-//            unions.size >= 3 -> LeftDeep(unions)
+            // TODO(perf) specialised empty case
+            // TODO(perf) also based on binding overlap
+            unions.size >= 3 -> LeftDeep(unions)
             else -> None(unions)
         }
 
