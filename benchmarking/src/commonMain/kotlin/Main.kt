@@ -23,10 +23,14 @@ suspend fun run(args: Array<String>) {
             val four = builtinTests()
                 .test(QueryExecutionTest::toIncrementalUpdateTest)
                 .run()
+            val five = builtinTests()
+                .test(QueryExecutionTest::toRandomUpdateTest)
+                .run()
             one.report()
             two.report()
             three.report()
             four.report()
+            five.report()
         }
         2 -> {
             val (dataset, querypath) = args

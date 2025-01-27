@@ -4,7 +4,7 @@ package dev.tesserakt.rdf.types
 
 import dev.tesserakt.util.fit
 
-class MutableStore(quads: Collection<Quad> = emptyList()): Collection<Quad> {
+class MutableStore(quads: Collection<Quad> = emptyList()): Set<Quad> {
 
     interface Listener {
         fun onQuadAdded(quad: Quad)

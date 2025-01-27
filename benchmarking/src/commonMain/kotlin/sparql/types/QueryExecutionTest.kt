@@ -11,4 +11,6 @@ data class QueryExecutionTest(
 
     fun toIncrementalUpdateTest() = IncrementalUpdateTest(query = query, store = store)
 
+    fun toRandomUpdateTest() = RandomUpdateTest(query = query, store = store)
+
 }

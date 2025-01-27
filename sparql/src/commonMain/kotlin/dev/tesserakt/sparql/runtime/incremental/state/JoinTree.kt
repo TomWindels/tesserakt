@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
+import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
@@ -100,6 +101,12 @@ internal sealed interface JoinTree {
      */
     class LeftDeep<J: MutableJoinState>(private val states: List<J>): JoinTree {
 
+        private data class CacheUpdate(
+            val addition: Boolean,
+            val index: Int,
+            val data: Bindings
+        )
+
         private val cache = buildList(states.size - 2) {
             val available = mutableSetOf<String>()
             available.addAll(states[0].bindings)
@@ -123,24 +130,27 @@ internal sealed interface JoinTree {
 
         override fun process(delta: Delta.Data) {
             // first recalculating the delta for the quad, inserting all intermediate results
+            val updates = mutableListOf<CacheUpdate>()
             states
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = states.size) to pattern.peek(delta) }
                 .expandBindingDeltas()
                 // now iterating over every new individual result
                 .forEach individualResult@ { (completed, solutions) ->
                     // first inserting the expanded result as is, could be already relevant on its own
-                    process(completed, solutions)
+                    updates.addAll(process(completed, solutions))
                     // now accelerating using the tree, these new results can then be inserted as-is
                     var (mask, results) = joinUsingTree(completed, solutions)
                     // continuing one-by-one to further extend the tree completely, which the mask should allow
                     //  for based on the `joinUsingTree` already limiting its result to those with 0b...1 variants
                     mask.inv().forEach { i ->
                         if (results.isEmpty()) return@individualResult
-                        process(mask, results)
+                        updates.addAll(process(mask, results))
                         mask = mask.withOnesAt(i)
                         results = results.flatMap { result -> states[i].join(result) }
                     }
                 }
+            // applying the join tree cache updates
+            apply(updates)
             // now also updating the individual states
             states.forEach { it.process(delta) }
         }
@@ -188,10 +198,10 @@ internal sealed interface JoinTree {
             return total to result
         }
 
-        private fun process(bitmask: Bitmask, bindings: List<Delta.Bindings>) {
+        private fun process(bitmask: Bitmask, bindings: List<Delta.Bindings>): List<CacheUpdate> {
             // we can't do much here
             if (bindings.isEmpty()) {
-                return
+                return emptyList()
             }
             // only saving those for which only a > 1 chain of LSBs are set (i.e. accepting 0b011, but not 0b010)
             //  but not those that are completely satisfied (complete solutions) as these can't be joined further
@@ -201,15 +211,25 @@ internal sealed interface JoinTree {
                 bitmask.size() == satisfied ||
                 bitmask.lowestZeroBitIndex() < bitmask.highestOneBitIndex()
             ) {
-                return
+                return emptyList()
             }
             // shifting the index by one as we don't cache 0b0..1
             val index = bitmask.highestOneBitIndex() - 1
-            val cache = cache[index]
-            bindings.forEach { binding ->
-                when (binding) {
-                    is Delta.BindingsAddition -> cache.add(binding.value)
-                    is Delta.BindingsDeletion -> cache.remove(binding.value)
+            return bindings.map { binding ->
+                CacheUpdate(
+                    index = index,
+                    addition = binding is Delta.BindingsAddition,
+                    data = binding.value
+                )
+            }
+        }
+
+        private fun apply(updates: List<CacheUpdate>) {
+            updates.forEach { update ->
+                val cache = cache[update.index]
+                when (update.addition) {
+                    true -> cache.add(update.data)
+                    false -> cache.remove(update.data)
                 }
             }
         }

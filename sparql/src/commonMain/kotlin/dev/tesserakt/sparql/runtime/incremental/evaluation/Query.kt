@@ -10,6 +10,11 @@ import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery
 fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>, callback: (IncrementalQuery.ResultChange<RT>) -> Unit) {
     Debug.reset()
     val processor = query.Processor()
+    // setting initial state
+    processor.state().forEach {
+        callback(IncrementalQuery.ResultChange.New(it))
+    }
+    // now incrementally evaluating the input
     val it = iterator()
     while (it.hasNext()) {
         processor.process(Delta.DataAddition(it.next())).forEach {
@@ -23,6 +28,9 @@ fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>, callback: (Increme
 fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>): List<RT> = buildList {
     Debug.reset()
     val processor = query.Processor()
+    // setting initial state
+    addAll(processor.state())
+    // now incrementally evaluating the input
     val it = this@query.iterator()
     while (it.hasNext()) {
         processor.process(Delta.DataAddition(it.next())).forEach {

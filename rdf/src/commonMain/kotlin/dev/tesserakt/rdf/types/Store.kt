@@ -6,7 +6,7 @@ import dev.tesserakt.util.fit
 
 // TODO: make fully immutable
 
-class Store: Collection<Quad> {
+class Store: Set<Quad> {
 
     // TODO: actually performant implementation
     // stored quads utilize set semantics, duplicates are not allowed
