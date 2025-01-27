@@ -58,6 +58,28 @@ fun builtinTests() = tests {
         }
     """
 
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o
+            OPTIONAL {
+                ?s <http://example.org/path2> ?o2
+            }
+        }        
+    """
+
+    using(small) test """
+        SELECT * {
+            {
+                ?s <http://example.org/path2> ?o
+            } UNION {
+                ?s <http://example.org/path1> ?o            
+            }
+            OPTIONAL {
+                ?o <http://example.org/path1> ?o2
+            }
+        }        
+    """
+
     val extra = buildStore(path = "http://example.org/") {
         val subj = local("s")
         val obj = local("o")
@@ -379,6 +401,15 @@ fun builtinTests() = tests {
         SELECT * WHERE {
             ?person <${FOAF.based_near}>/ex:number ?number ;
                     <${FOAF.based_near}>/ex:street ?street
+        }
+    """
+
+    using(person1) test """
+        PREFIX ex: <https://www.example.org/>
+        SELECT * WHERE {
+            ?person <${FOAF.based_near}> ?location .
+            ?location ex:number ?number .
+            OPTIONAL { ?location ex:street ?street }
         }
     """
 

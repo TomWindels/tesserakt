@@ -7,7 +7,9 @@ import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
 import dev.tesserakt.sparql.runtime.incremental.delta.transform
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
+import dev.tesserakt.sparql.runtime.incremental.types.Optional
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
+import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.incremental.types.Union
 import dev.tesserakt.sparql.runtime.util.Bitmask
 import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
@@ -89,6 +91,11 @@ internal sealed interface JoinTree {
             @JvmName("forUnions")
             operator fun invoke(unions: List<Union>) = None(
                 states = unions.map { IncrementalUnionState(it) }
+            )
+
+            @JvmName("forOptionals")
+            operator fun invoke(query: Query.QueryBody, optionals: List<Optional>) = None(
+                states = optionals.map { IncrementalOptionalState(query, it) }
             )
 
         }
@@ -290,6 +297,11 @@ internal sealed interface JoinTree {
                 states = unions.map { IncrementalUnionState(it) }
             )
 
+            @JvmName("forOptionals")
+            operator fun invoke(query: Query.QueryBody, optionals: List<Optional>) = LeftDeep(
+                states = optionals.map { IncrementalOptionalState(query, it) }
+            )
+
         }
 
         override fun debugInformation() = buildString {
@@ -356,6 +368,14 @@ internal sealed interface JoinTree {
             // TODO(perf) also based on binding overlap
             unions.size >= 3 -> LeftDeep(unions)
             else -> None(unions)
+        }
+
+        @JvmName("forUnions")
+        operator fun invoke(parent: Query.QueryBody, optionals: List<Optional>) = when {
+            // TODO(perf) specialised empty case
+            // TODO(perf) also based on binding overlap
+            optionals.size >= 3 -> LeftDeep(parent, optionals)
+            else -> None(parent, optionals)
         }
 
     }

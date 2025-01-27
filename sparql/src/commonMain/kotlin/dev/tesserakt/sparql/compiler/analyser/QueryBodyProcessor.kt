@@ -33,8 +33,14 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 Token.Keyword.Optional -> {
                     // consuming the "OPTIONAL" keyword before extracting the segment
                     consume()
+                    // also consuming its brackets
+                    expectToken(Token.Symbol.CurlyBracketStart)
+                    consume()
                     // extracting the segment and inserting it
-                    builder.addOptional(use(SegmentProcessor()))
+                    builder.addOptional(use(PatternProcessor()))
+                    // now eating the closing syntax
+                    expectToken(Token.Symbol.CurlyBracketEnd)
+                    consume()
                 }
                 Token.Symbol.CurlyBracketStart -> {
                     builder.addUnion(use(UnionProcessor()))

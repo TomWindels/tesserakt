@@ -154,10 +154,10 @@ abstract class NodeWriter<RT> {
             }
 
             is Optional -> {
-                when (symbol.segment) {
-                    is SelectQuerySegment -> { process(symbol.segment) }
-                    is StatementsSegment -> { process(symbol.segment) }
-                }
+                add(Token.Keyword.Optional)
+                add(Token.Symbol.CurlyBracketStart)
+                process(symbol.patterns)
+                add(Token.Symbol.CurlyBracketEnd)
             }
 
             is Union -> {
