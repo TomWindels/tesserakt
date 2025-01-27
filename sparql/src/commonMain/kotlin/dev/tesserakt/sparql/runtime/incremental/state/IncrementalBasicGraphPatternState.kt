@@ -3,18 +3,25 @@ package dev.tesserakt.sparql.runtime.incremental.state
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
 import dev.tesserakt.sparql.runtime.incremental.types.Query
-import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
+import kotlin.jvm.JvmInline
 
-internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
+@JvmInline
+internal value class IncrementalBasicGraphPatternState(private val state: JoinTree) {
 
-    private val patterns = JoinTree(ast.patterns)
-    private val unions = JoinTree(ast.unions)
+    constructor(ast: Query.QueryBody): this(
+        state = JoinTree(
+            IncrementalPatternsState(ast.patterns),
+            JoinTree(ast.unions),
+            JoinTree(ast, ast.optional)
+        )
+    )
 
     /**
      * A collection of all bindings found inside this query body; it is not guaranteed that all solutions generated
      *  through [insert]ion have a value for all of these bindings, as this depends on the query itself
      */
-    val bindings: Set<String> = ast.getAllNamedBindings().map { it.name }.toSet()
+    val bindings: Set<String>
+        get() = state.bindings
 
     fun insert(delta: DataDelta): List<MappingDelta> {
         val total = peek(delta)
@@ -23,23 +30,20 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
     }
 
     fun peek(delta: DataDelta): List<MappingDelta> {
-        val first = patterns.peek(delta)
-        val second = unions.peek(delta)
-        return patterns.join(second) + unions.join(first)
+        return state.peek(delta)
     }
 
     fun process(delta: DataDelta) {
-        patterns.process(delta)
-        unions.process(delta)
+        state.process(delta)
     }
 
     fun join(delta: MappingDelta): List<MappingDelta> {
-        return unions.join(patterns.join(delta))
+        return state.join(delta)
     }
 
     fun debugInformation() = buildString {
         appendLine("* Pattern state")
-        append(patterns.debugInformation())
+        append(state.debugInformation())
     }
 
 }

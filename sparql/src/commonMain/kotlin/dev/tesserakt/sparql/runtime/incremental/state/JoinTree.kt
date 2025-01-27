@@ -7,7 +7,9 @@ import dev.tesserakt.sparql.runtime.core.toMapping
 import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
 import dev.tesserakt.sparql.runtime.incremental.delta.*
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
+import dev.tesserakt.sparql.runtime.incremental.types.Optional
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
+import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.incremental.types.Union
 import dev.tesserakt.sparql.runtime.util.Bitmask
 import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
@@ -17,9 +19,12 @@ import kotlin.jvm.JvmName
 /**
  * A general join tree type, containing intermediate joined values depending on the tree implementation
  */
-internal sealed interface JoinTree {
+internal sealed interface JoinTree: MutableJoinState {
 
     data object Empty: JoinTree {
+
+        override val bindings: Set<String>
+            get() = emptySet()
 
         override fun peek(delta: DataDelta): List<MappingDelta> {
             return emptyList()
@@ -42,6 +47,9 @@ internal sealed interface JoinTree {
      */
     @JvmInline
     value class None<J: MutableJoinState>(private val states: List<J>): JoinTree {
+
+        override val bindings: Set<String>
+            get() = states.flatMapTo(mutableSetOf()) { it.bindings }
 
         override fun peek(delta: DataDelta): List<MappingDelta> {
             val deltas = states
@@ -107,6 +115,11 @@ internal sealed interface JoinTree {
             @JvmName("forUnions")
             operator fun invoke(unions: List<Union>) = None(
                 states = unions.map { IncrementalUnionState(it) }
+            )
+
+            @JvmName("forOptionals")
+            operator fun invoke(query: Query.QueryBody, optionals: List<Optional>) = None(
+                states = optionals.map { IncrementalOptionalState(query, it) }
             )
 
         }
@@ -334,6 +347,11 @@ internal sealed interface JoinTree {
 
         }
 
+        constructor(states: List<J>): this(build(states))
+
+        override val bindings: Set<String>
+            get() = root.bindings
+
         override fun peek(delta: DataDelta): List<MappingDelta> {
             return root.peek(delta)
         }
@@ -363,6 +381,13 @@ internal sealed interface JoinTree {
             @JvmName("forUnions")
             operator fun invoke(unions: List<Union>): Dynamic<IncrementalUnionState> {
                 val states = unions.map { IncrementalUnionState(it) }
+                val root = build(states)
+                return Dynamic(root)
+            }
+
+            @JvmName("forOptionals")
+            operator fun invoke(query: Query.QueryBody, optionals: List<Optional>): Dynamic<IncrementalOptionalState> {
+                val states = optionals.map { IncrementalOptionalState(query, it) }
                 val root = build(states)
                 return Dynamic(root)
             }
@@ -414,6 +439,8 @@ internal sealed interface JoinTree {
 
         // using a fallback "none" join tree type to fill in the gaps after applying the left deep cache
         private val fallback = None(states)
+
+        override val bindings: Set<String> = fallback.bindings
 
         override fun peek(delta: DataDelta): List<MappingDelta> {
             return states
@@ -584,6 +611,11 @@ internal sealed interface JoinTree {
                 states = unions.map { IncrementalUnionState(it) }
             )
 
+            @JvmName("forOptionals")
+            operator fun invoke(query: Query.QueryBody, optionals: List<Optional>) = LeftDeep(
+                states = optionals.map { IncrementalOptionalState(query, it) }
+            )
+
         }
 
         override fun debugInformation() = buildString {
@@ -617,17 +649,17 @@ internal sealed interface JoinTree {
      * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in child states part of the tree, without
      *  actually modifying the tree
      */
-    fun peek(delta: DataDelta): List<MappingDelta>
+    override fun peek(delta: DataDelta): List<MappingDelta>
 
     /**
      * Processes the [delta], updating the tree accordingly
      */
-    fun process(delta: DataDelta)
+    override fun process(delta: DataDelta)
 
     /**
      * Returns the result of [join]ing the [delta] with its own internal state
      */
-    fun join(delta: MappingDelta): List<MappingDelta>
+    override fun join(delta: MappingDelta): List<MappingDelta>
 
     /**
      * Returns a string containing debug information (runtime statistics)
@@ -652,6 +684,29 @@ internal sealed interface JoinTree {
             unions.size >= 2 -> Dynamic(unions)
             unions.isEmpty() -> Empty
             else -> None(unions)
+        }
+
+        @JvmName("forUnions")
+        operator fun invoke(parent: Query.QueryBody, optionals: List<Optional>) = when {
+            // TODO(perf) specialised empty case
+            // TODO(perf) also based on binding overlap
+            optionals.size >= 2 -> Dynamic(parent, optionals)
+            optionals.isEmpty() -> Empty
+            else -> None(parent, optionals)
+        }
+
+        @JvmName("forTrees")
+        operator fun invoke(trees: List<JoinTree>) = when {
+            trees.isEmpty() -> Empty
+            trees.size == 1 -> trees.single()
+            else -> Dynamic(trees)
+        }
+
+        @JvmName("forTrees")
+        operator fun invoke(vararg states: MutableJoinState) = when {
+            states.isEmpty() -> Empty
+            states.size == 1 -> None(listOf(states[0]))
+            else -> Dynamic(states.toList())
         }
 
     }
