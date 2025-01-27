@@ -7,8 +7,7 @@ import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.testing.testEnv
-import sparql.types.using
+import sparql.types.tests
 
 object FOAF: Ontology {
 
@@ -22,7 +21,7 @@ object FOAF: Ontology {
 
 }
 
-fun compareIncrementalBasicGraphPatternOutput() = testEnv {
+fun builtinTests() = tests {
     val small = buildStore {
         val subj = local("s")
         val obj = local("o")
@@ -215,6 +214,36 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
 
     using(fullyConnected) test """
         SELECT * WHERE {
+            ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)* <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a ((<http://example.org/p>/<http://example.org/p>)*/<http://example.org/p>)* <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            <http://example.org/a> (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)* ?b
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)* ?b
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            <http://example.org/c> (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)* <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
             <http://example.org/a> <http://example.org/p>+ <http://example.org/b>
         }
     """
@@ -228,6 +257,30 @@ fun compareIncrementalBasicGraphPatternOutput() = testEnv {
     using(fullyConnected) test """
         SELECT * WHERE {
             ?a <http://example.org/p>+ ?b
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)+ <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)+ ?b
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a ((<http://example.org/p>/<http://example.org/p>)+/<http://example.org/p>)* <http://example.org/b>
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
+            ?a ((<http://example.org/p>/<http://example.org/p>)*/<http://example.org/p>)+ <http://example.org/b>
         }
     """
 

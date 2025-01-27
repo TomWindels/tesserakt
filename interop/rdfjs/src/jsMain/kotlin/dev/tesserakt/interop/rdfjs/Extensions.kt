@@ -3,9 +3,8 @@ package dev.tesserakt.interop.rdfjs
 import dev.tesserakt.interop.rdfjs.n3.*
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
 
-fun Store.toN3Store(): N3Store {
+fun Collection<Quad>.toN3Store(): N3Store {
     val result = N3Store()
     result.addAll(map { it.toN3Triple() }.toTypedArray())
     return result

@@ -3,7 +3,6 @@ package dev.tesserakt.interop.jena
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.rdf.types.Store
 import org.apache.jena.datatypes.RDFDatatype
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.*
@@ -11,7 +10,7 @@ import org.apache.jena.query.Dataset
 import org.apache.jena.query.DatasetFactory
 import org.apache.jena.query.ReadWrite
 
-fun Store.toJenaDataset(): Dataset {
+fun Collection<Quad>.toJenaDataset(): Dataset {
     val store = DatasetFactory.createTxnMem()
     store.begin(ReadWrite.WRITE)
     try {

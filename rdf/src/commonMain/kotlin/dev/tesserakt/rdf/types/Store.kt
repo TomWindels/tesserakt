@@ -4,16 +4,30 @@ package dev.tesserakt.rdf.types
 
 import dev.tesserakt.util.fit
 
-class Store: Iterable<Quad> {
+// TODO: make fully immutable
+
+class Store: Set<Quad> {
 
     // TODO: actually performant implementation
     // stored quads utilize set semantics, duplicates are not allowed
     private val quads = mutableSetOf<Quad>()
 
+    override val size: Int
+        get() = quads.size
+
     override fun iterator() = quads.iterator()
 
-    val size: Int
-        get() = quads.size
+    override fun isEmpty(): Boolean {
+        return quads.isEmpty()
+    }
+
+    override fun containsAll(elements: Collection<Quad>): Boolean {
+        return quads.containsAll(elements)
+    }
+
+    override fun contains(element: Quad): Boolean {
+        return quads.contains(element)
+    }
 
     fun addAll(quad: Iterable<Quad>) {
         quads.addAll(quad)
@@ -26,6 +40,8 @@ class Store: Iterable<Quad> {
     fun add(quad: Quad) {
         quads.add(quad)
     }
+
+    fun toMutableStore() = MutableStore(quads)
 
     override fun toString() = buildString {
         val s = quads.map { it.s.toString() }

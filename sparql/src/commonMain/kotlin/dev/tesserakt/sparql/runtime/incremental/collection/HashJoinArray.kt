@@ -43,7 +43,8 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         val pos = backing.size
         backing.add(mapping)
         index.forEach { index ->
-            val value = mapping[index.key]!!
+            val value = mapping[index.key]
+                ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
             index.value
                 .getOrPut(value) { arrayListOf() }
                 .add(pos)
@@ -61,7 +62,8 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         backing.addAll(mappings)
         mappings.forEachIndexed { i, mapping ->
             index.forEach { index ->
-                val value = mapping[index.key]!!
+                val value = mapping[index.key]
+                    ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
                 index.value
                     .getOrPut(value) { arrayListOf() }
                     .add(start + i)
@@ -69,7 +71,45 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         }
     }
 
+    override fun remove(mapping: Mapping) {
+        // TODO(perf): it might be beneficial to simply replace this element `i` with `null`, so only its own indexes
+        //  have to be removed; then a dedicated rebalance method can fill multiple slots at once (avoiding an unnecessarily
+        //  large backing collection)
+        val pos = backing.indexOfLast { it == mapping }
+        require(pos != -1) { "$mapping cannot be removed from HashJoinArray - not found!" }
+        backing.removeAt(pos)
+        // the indexes of this mapping have to be removed
+        index.forEach { index ->
+            val value = mapping[index.key]!!
+            index.value[value]!!.remove(pos)
+        }
+        // all subsequent indexes have to be updated as its backing element has been moved
+        index.forEach { index ->
+            index.value.forEach {
+                it.value.forEachIndexed { index, value ->
+                    if (value > pos) {
+                        it.value[index] = value - 1
+                    }
+                }
+            }
+        }
+    }
+
+    override fun removeAll(mappings: Collection<Mapping>) {
+        // TODO(perf): can be improved, see note at single `remove`
+        mappings.forEach { remove(it) }
+    }
+
+    override fun join(mapping: Mapping): List<Mapping> {
+        val compatible = getCompatibleMappings(mapping)
+        return compatible.mapNotNull { if (it.compatibleWith(mapping)) it + mapping else null }
+    }
+
     override fun join(mappings: List<Mapping>): List<Mapping> {
+        when (mappings.size) {
+            0 -> return emptyList()
+            1 -> return join(mappings.first())
+        }
         val compatible = getCompatibleMappings(mappings)
         return compatible.indices.flatMap { i ->
             compatible[i].mapNotNull { if (it.compatibleWith(mappings[i])) it + mappings[i] else null }

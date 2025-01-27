@@ -70,7 +70,7 @@ class PatternCompatLayer(
                 insert(
                     Pattern(
                         s = subj.toPatternSubject(),
-                        Pattern.Alts(pred.allowed.map { it.toPatternPredicate() }),
+                        p = Pattern.Alts(pred.allowed.map { it.toPatternPredicate() as Pattern.UnboundPredicate }),
                         o = obj.toPatternObject(this)
                     )
                 )
@@ -155,10 +155,12 @@ class PatternCompatLayer(
     private fun PatternAST.Predicate.toPatternPredicate(): Pattern.Predicate = when (this) {
         is PatternAST.Alts -> {
             val mapped = allowed.map { it.toPatternPredicate() }
-            if (mapped.all { it is Pattern.UnboundPredicate }) {
-                Pattern.UnboundAlts(mapped.unsafeCast())
+            if (mapped.all { it is Pattern.StatelessPredicate }) {
+                Pattern.SimpleAlts(mapped.unsafeCast())
+            } else if (mapped.all { it is Pattern.UnboundPredicate }) {
+                Pattern.Alts(mapped.unsafeCast())
             } else {
-                Pattern.Alts(mapped)
+                throw IllegalArgumentException("Invalid combination of predicates found inside of alternate pattern group: $mapped")
             }
         }
 
@@ -179,7 +181,7 @@ class PatternCompatLayer(
     }
 
     private fun PatternAST.Predicate.toUnboundPatternPredicateOrBail(): Pattern.UnboundPredicate = when (this) {
-        is PatternAST.Alts -> Pattern.UnboundAlts(allowed = allowed.map { it.toUnboundPatternPredicateOrBail() })
+        is PatternAST.Alts -> toPatternPredicate() as Pattern.UnboundPredicate
         is PatternAST.Chain -> Pattern.UnboundSequence(chain = chain.map { it.toUnboundPatternPredicateOrBail() })
         is PatternAST.Exact -> Pattern.Exact(term)
         is PatternAST.Not -> Pattern.Negated(term = predicate.termOrBail())

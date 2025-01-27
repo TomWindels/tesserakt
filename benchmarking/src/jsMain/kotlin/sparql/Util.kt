@@ -3,14 +3,14 @@ package sparql
 import comunica.comunicaSelectQuery
 import dev.tesserakt.interop.rdfjs.n3.N3Store
 import dev.tesserakt.interop.rdfjs.toN3Store
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 import kotlin.time.measureTime
 
 
 actual class ExternalQueryExecution actual constructor(
     private val query: String,
-    data: Store
+    data: Collection<Quad>
 ) {
 
     private val store: N3Store

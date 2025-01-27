@@ -1,10 +1,10 @@
 package sparql
 
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 
 
-expect class ExternalQueryExecution(query: String, data: Store) {
+expect class ExternalQueryExecution(query: String, data: Collection<Quad>) {
 
     suspend fun execute(): List<Bindings>
 

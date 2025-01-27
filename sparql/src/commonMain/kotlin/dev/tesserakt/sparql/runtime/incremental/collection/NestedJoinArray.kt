@@ -19,6 +19,16 @@ internal value class NestedJoinArray(
         }
     }
 
+    override fun join(mapping: Mapping): List<Mapping> {
+        return buildList(mappings.size) {
+            mappings.forEach { contender ->
+                if (contender.compatibleWith(mapping)) {
+                    add(contender + mapping)
+                }
+            }
+        }
+    }
+
     override fun join(mappings: List<Mapping>): List<Mapping> {
         return doNestedJoin(a = this.mappings, b = mappings)
     }
@@ -29,6 +39,14 @@ internal value class NestedJoinArray(
 
     override fun addAll(mappings: Collection<Mapping>) {
         this.mappings.addAll(mappings)
+    }
+
+    override fun remove(mapping: Mapping) {
+        this.mappings.remove(mapping)
+    }
+
+    override fun removeAll(mappings: Collection<Mapping>) {
+        this.mappings.removeAll(mappings)
     }
 
     override fun toString() = "NestedJoinArray (cardinality ${mappings.size})"
