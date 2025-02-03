@@ -12,6 +12,7 @@ include("rdf")
 include("rdf-dsl")
 
 include("n3")
+include("n3-dsl")
 
 include("sparql")
 

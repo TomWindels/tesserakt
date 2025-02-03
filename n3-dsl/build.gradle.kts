@@ -6,7 +6,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(project(":rdf"))
+                api(project(":n3"))
             }
         }
     }
