@@ -9,6 +9,7 @@ import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.matches
 import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.types.DebugWriter
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     val s: Pattern.Subject,
@@ -301,7 +302,9 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         }
     }
 
-    final override fun toString() = "$s $p $o - cardinality $cardinality"
+    final override fun debugInformation(writer: DebugWriter) {
+        writer.appendLine("$s $p $o - cardinality $cardinality")
+    }
 
     companion object {
 

@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
 import dev.tesserakt.sparql.runtime.incremental.delta.plus
 import dev.tesserakt.sparql.runtime.util.Bitmask
+import dev.tesserakt.util.compatibleWith
 
 /**
  * Adds all results found inside `this` list together where compatible as additional contenders for complete result
@@ -32,8 +33,18 @@ internal inline fun List<Pair<Bitmask, List<Delta.Bindings>>>.expandBindingDelta
         }
         ++i
     }
-    // TODO(perf): simplify the result: [+ {a}, + {b}, - {a}] == [+ {b}]
     return result
+    // removing all additions that are fully compatible with removals, but keeping the removals for further propagation
+    val deletions = result.flatMapTo(mutableSetOf()) { (_, deltas) ->
+        deltas.filterIsInstance<Delta.BindingsDeletion>()
+    }
+    val filtered = result.map { (bitmask, deltas) ->
+        bitmask to deltas.filter { delta ->
+            delta !is Delta.BindingsAddition || deletions.none { deletion -> delta.value.compatibleWith(deletion.value) }
+        }
+    }
+    // TODO(perf): simplify the result: [+ {a}, + {b}, - {a}] == [+ {b}]
+    return filtered
 }
 
 internal inline fun bindingNamesOf(

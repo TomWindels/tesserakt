@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.types.DebugWriter
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.util.Bitmask
 import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
@@ -26,10 +27,9 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
     fun peek(delta: Delta.Data): List<Delta.Bindings> {
         // applying peek logic similar to the None join tree type, where overlapping compatibilities are also expanded
         //  upon before joined with prior data found in the remaining sections of the query body
-        return listOf(
-            Bitmask.onesAt(0, length = 3) to patterns.peek(delta),
-            Bitmask.onesAt(1, length = 3) to unions.peek(delta),
-            Bitmask.onesAt(2, length = 3) to optionals.peek(delta)
+        val matches = listOf(
+            Bitmask.onesAt(0, length = 2) to patterns.peek(delta),
+            Bitmask.onesAt(1, length = 2) to unions.peek(delta),
         )
             .expandBindingDeltas()
             .flatMap { (completed, delta) ->
@@ -42,12 +42,20 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
                 if (1 !in completed) {
                     result = unions.join(result)
                 }
-                // 2 = optionals in the list
-                if (2 !in completed) {
-                    result = optionals.join(result)
-                }
                 result
             }
+        // temporarily adding it to the optionals
+        val three = optionals.peek(delta)
+        optionals.process(delta)
+        // and joining it as such
+        val results = optionals.join(matches)
+        // tossing it out again
+        val inverse = when (delta) {
+            is Delta.DataAddition -> Delta.DataDeletion(value = delta.value)
+            is Delta.DataDeletion -> Delta.DataAddition(value = delta.value)
+        }
+        optionals.process(inverse)
+        return results + unions.join(patterns.join(three))
     }
 
     fun process(delta: Delta.Data) {
@@ -60,9 +68,19 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
         return optionals.join(unions.join(patterns.join(delta)))
     }
 
-    fun debugInformation() = buildString {
-        appendLine("* Pattern state")
-        append(patterns.debugInformation())
+    fun debugInformation(writer: DebugWriter) {
+        writer.block(" * ") {
+            appendLine("Pattern state")
+            patterns.debugInformation(writer)
+        }
+        writer.block(" * ") {
+            appendLine("Optional state")
+            optionals.debugInformation(writer)
+        }
+        writer.block(" * ") {
+            appendLine("Union state")
+            unions.debugInformation(writer)
+        }
     }
 
 }

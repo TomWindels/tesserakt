@@ -1,11 +1,15 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.types.DebugWriter
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
+import dev.tesserakt.sparql.runtime.util.getAllBindings
 
-class IncrementalPatternsState(ast: Patterns) {
+internal class IncrementalPatternsState(ast: Patterns): MutableJoinState {
 
     private val state = JoinTree(ast)
+
+    override val bindings: Set<String> = ast.getAllBindings().mapTo(mutableSetOf()) { it.name }
 
     fun peek(delta: Delta.DataAddition): List<Delta.BindingsAddition> {
         // we can guarantee it in this case
@@ -19,15 +23,15 @@ class IncrementalPatternsState(ast: Patterns) {
         return state.peek(delta) as List<Delta.BindingsDeletion>
     }
 
-    fun peek(delta: Delta.Data): List<Delta.Bindings> {
+    override fun peek(delta: Delta.Data): List<Delta.Bindings> {
         return state.peek(delta)
     }
 
-    fun process(delta: Delta.Data) {
+    override fun process(delta: Delta.Data) {
         return state.process(delta)
     }
 
-    fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+    override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
         return state.join(delta)
     }
 
@@ -35,6 +39,6 @@ class IncrementalPatternsState(ast: Patterns) {
         return state.join(delta)
     }
 
-    fun debugInformation() = state.debugInformation()
+    override fun debugInformation(writer: DebugWriter) = state.debugInformation(writer)
 
 }

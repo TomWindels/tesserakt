@@ -7,10 +7,7 @@ import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
 import dev.tesserakt.sparql.runtime.incremental.delta.transform
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
-import dev.tesserakt.sparql.runtime.incremental.types.Optional
-import dev.tesserakt.sparql.runtime.incremental.types.Patterns
-import dev.tesserakt.sparql.runtime.incremental.types.Query
-import dev.tesserakt.sparql.runtime.incremental.types.Union
+import dev.tesserakt.sparql.runtime.incremental.types.*
 import dev.tesserakt.sparql.runtime.util.Bitmask
 import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
 import kotlin.jvm.JvmInline
@@ -43,10 +40,12 @@ internal sealed interface JoinTree {
             return join(completed = Bitmask.wrap(0, length = states.size), delta)
         }
 
-        override fun debugInformation() = buildString {
-            appendLine(" * Join tree statistics (None)")
-            states.forEach { state ->
-                appendLine("\t || $state")
+        override fun debugInformation(writer: DebugWriter) {
+            writer.block(" * ", " | ") {
+                appendLine("Join tree statistics (None)")
+                states.forEach { state ->
+                    state.debugInformation(writer)
+                }
             }
         }
 
@@ -91,11 +90,6 @@ internal sealed interface JoinTree {
             @JvmName("forUnions")
             operator fun invoke(unions: List<Union>) = None(
                 states = unions.map { IncrementalUnionState(it) }
-            )
-
-            @JvmName("forOptionals")
-            operator fun invoke(query: Query.QueryBody, optionals: List<Optional>) = None(
-                states = optionals.map { IncrementalOptionalState(query, it) }
             )
 
         }
@@ -297,36 +291,28 @@ internal sealed interface JoinTree {
                 states = unions.map { IncrementalUnionState(it) }
             )
 
-            @JvmName("forOptionals")
-            operator fun invoke(query: Query.QueryBody, optionals: List<Optional>) = LeftDeep(
-                states = optionals.map { IncrementalOptionalState(query, it) }
-            )
-
         }
 
-        override fun debugInformation() = buildString {
-            appendLine(" * Join tree statistics (LeftDeep)")
-            // first line
-            appendLine("    ${states.first()}")
-            // middle lines
-            (1 until states.size - 1).forEach { i ->
-                append("   ")
-                append("  ".repeat(i))
-                append('└')
-                append("|| ")
-                appendLine(states[i])
-                append("   ")
-                append("  ".repeat(i))
-                append(' ')
-                append("|| ")
-                appendLine("joined into ${cache[i - 1]}")
+        override fun debugInformation(writer: DebugWriter) {
+            writer.block(startIndent = " * ", nextIndent = "   ") {
+                appendLine("Join tree statistics (LeftDeep)")
+                // first line
+                appendLine(states.first())
+                // all subsequent states, recursive for correct block (indent) placement
+                fun visitState(i: Int) {
+                    writer.block("└| ", " | ") {
+                        if (i < states.size - 1) {
+                            states[i].debugInformation(writer)
+                            appendLine("joined into ${cache[i - 1]}")
+                            visitState(i + 1)
+                        } else {
+                            // final line (doesn't have its own state)
+                            states.last().debugInformation(writer)
+                        }
+                    }
+                }
+                visitState(1)
             }
-            // final line (doesn't have its own state)
-            append("   ")
-            append("  ".repeat(states.size - 1))
-            append('└')
-            append(' ')
-            appendLine(states.last())
         }
 
     }
@@ -350,7 +336,11 @@ internal sealed interface JoinTree {
     /**
      * Returns a string containing debug information (runtime statistics)
      */
-    fun debugInformation(): String = " * Join tree statistics unavailable (implementation: ${this::class.simpleName})"
+    fun debugInformation(writer: DebugWriter) {
+        writer.block(" * ") {
+            append("Join tree statistics unavailable (implementation: ${this::class.simpleName})")
+        }
+    }
 
     companion object {
 
@@ -370,12 +360,15 @@ internal sealed interface JoinTree {
             else -> None(unions)
         }
 
-        @JvmName("forUnions")
-        operator fun invoke(parent: Query.QueryBody, optionals: List<Optional>) = when {
-            // TODO(perf) specialised empty case
-            // TODO(perf) also based on binding overlap
-            optionals.size >= 3 -> LeftDeep(parent, optionals)
-            else -> None(parent, optionals)
+        @JvmName("forOptionals")
+        operator fun invoke(parent: Query.QueryBody, optionals: List<Optional>): JoinTree {
+            val states = optionals.map { IncrementalOptionalState(parent, it) }
+            return when {
+                // TODO(perf) specialised empty case
+                // TODO(perf) also based on binding overlap
+                states.size >= 3 -> LeftDeep(states)
+                else -> None(states)
+            }
         }
 
     }
