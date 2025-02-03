@@ -11,11 +11,14 @@ include("extra")
 include("rdf")
 include("rdf-dsl")
 
+include("n3")
+
 include("sparql")
 
 include("serialization:core")
 include("serialization:n-triples")
 include("serialization:turtle")
+include("serialization:n3")
 include("serialization")
 
 include("interop:jena")

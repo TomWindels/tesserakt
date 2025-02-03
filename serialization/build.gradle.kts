@@ -9,6 +9,7 @@ kotlin {
                 api(project(":rdf"))
                 api(project(":serialization:n-triples"))
                 api(project(":serialization:turtle"))
+                api(project(":serialization:n3"))
             }
         }
     }
