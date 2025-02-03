@@ -13,6 +13,9 @@ include("rdf-dsl")
 
 include("sparql")
 
+include("serialization:core")
+include("serialization:n-triples")
+include("serialization:turtle")
 include("serialization")
 
 include("interop:jena")

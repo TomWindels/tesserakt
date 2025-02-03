@@ -6,9 +6,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(project(":rdf"))
-                api(project(":serialization:n-triples"))
-                api(project(":serialization:turtle"))
+                implementation(project(":serialization:core"))
             }
         }
     }

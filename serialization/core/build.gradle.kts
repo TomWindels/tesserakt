@@ -1,4 +1,5 @@
 plugins {
+    // not distributed as a package
     id("package-conventions")
 }
 
@@ -7,8 +8,6 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":rdf"))
-                api(project(":serialization:n-triples"))
-                api(project(":serialization:turtle"))
             }
         }
     }
