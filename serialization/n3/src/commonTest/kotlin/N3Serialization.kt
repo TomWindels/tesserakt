@@ -47,4 +47,21 @@ class N3Serialization {
         println(N3Serializer.serialize(store))
     }
 
+    @Test
+    fun serialize3() {
+        val store = N3 {
+            repeat(5) { index ->
+                val current = local("change$index")
+                current has RDF.type being if (index % 2 == 0) local("Addition") else local("Deletion")
+                current has local("order") being 0
+                current has local("data") being statements {
+                    repeat(10) { data ->
+                        local("s$data") has local("p$data") being local("p$data")
+                    }
+                }
+            }
+        }
+        println(N3Serializer.serialize(store))
+    }
+
 }

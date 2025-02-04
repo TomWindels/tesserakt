@@ -27,68 +27,43 @@ data class PrettyFormatter(
      * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
      *  a set of spaces or tabs
      */
-    val indent: String = "    ",
+    val indent: Indent = SimpleIndent("    "),
 ): Formatter() {
 
-    override fun format(tokens: Iterator<N3Token>) = iterator {
-        if (!tokens.hasNext()) {
-            return@iterator
+    /**
+     * A small token buffer, buffering two values of the underlying token iterator source
+     */
+    private class TokenBuffer(private val iterator: Iterator<N3Token>) {
+
+        var current: N3Token = iterator.next()
+            private set
+
+        var next: N3Token? = if (iterator.hasNext()) iterator.next() else null
+            private set
+
+        /**
+         * Advances [current] and [next] read tokens, returning `true` if [current] has been updated, or false if the
+         *  end has been reached
+         */
+        fun advance(): Boolean {
+            current = next ?: return false
+            next = if (iterator.hasNext()) iterator.next() else null
+            return true
         }
-        // stack position, with its # of elements representing the # of stack depth, and the actual number inside
-        //  representing its own position inside of this stack
-        val stack = Stack()
-        var current = tokens.next()
-        while (true) {
-            // doing changes based on the token, before we emit it
-            when {
-                current.isStructuralSegmentEnd() -> {
-                    stack.stopFrame()
-                    yield("\n")
-                    yield(indent.repeat(stack.indent))
-                }
-                else -> { /* nothing to do */ }
-            }
-            // actually emitting the token itself
-            yield(current.syntax)
-            // updating the structure using additional characters, but only if other tokens will follow
-            if (!tokens.hasNext()) {
-                return@iterator
-            }
-            val next = tokens.next()
-            when {
-                current.isStructuralSegmentStart() -> {
-                    stack.startFrame()
-                    yield("\n")
-                    yield(indent.repeat(stack.indent))
-                }
-                (current.isPredicateEnd() || current.isStatementEnd()) && next.isStructuralSegmentEnd() -> {
-                    /* nothing to do, next iteration will adjust position */
-                }
-                current.isStatementEnd() -> {
-                    stack.set(Stack.Position.SUBJECT)
-                    yield("\n")
-                    yield(indent.repeat(stack.indent))
-                }
-                current.isPredicateEnd() -> {
-                    stack.set(Stack.Position.PREDICATE)
-                    yield("\n")
-                    yield(indent.repeat(stack.indent))
-                }
-                current.isObjectEnd() -> {
-                    stack.set(Stack.Position.OBJECT)
-                    yield("\n")
-                    yield(indent.repeat(stack.indent))
-                }
-                next is N3Token.TermToken -> {
-                    stack.advance()
-                    yield(" ")
-                }
-                else -> {
-                    yield(" ")
-                }
-            }
-            current = next
+
+        override fun toString(): String {
+            return "TokenBuffer { current: $current, next: $next }"
         }
+
+    }
+
+    fun interface Indent {
+        fun create(depth: Int): String
+    }
+
+    @JvmInline
+    value class SimpleIndent(private val pattern: String): Indent {
+        override fun create(depth: Int) = pattern.repeat(depth)
     }
 
     @JvmInline
@@ -111,6 +86,9 @@ data class PrettyFormatter(
                 else -> current.size
             }
 
+        val position: Position
+            get() = current.last()
+
         fun set(target: Position) {
             current[current.size - 1] = target
         }
@@ -131,21 +109,100 @@ data class PrettyFormatter(
             current.removeLast()
         }
 
+        override fun toString() = current.joinToString(" => ")
+
     }
 
-    private fun N3Token.isStructuralSegmentStart() =
-        this == N3Token.Structural.BlankStart || this == N3Token.Structural.StatementsListStart
+    private fun processStatements(stack: Stack, buffer: TokenBuffer): Iterator<String> = iterator {
+        while (true) {
+            if (stack.position == Stack.Position.SUBJECT) {
+                yieldAll(formatToken(stack, buffer))
+                yield(" ")
+                stack.advance()
+            }
+            if (stack.position == Stack.Position.PREDICATE) {
+                yieldAll(formatToken(stack, buffer))
+                yield(" ")
+                stack.advance()
+            }
+            // object is guaranteed
+            check(stack.position == Stack.Position.OBJECT) {
+                "Stack corruption encountered! Current stack layout: $stack"
+            }
+            yieldAll(formatToken(stack, buffer))
+            when (buffer.current) {
+                N3Token.Structural.StatementTermination -> {
+                    yield(" ")
+                    yield(buffer.current.syntax)
+                    stack.set(Stack.Position.SUBJECT)
+                }
+                N3Token.Structural.PredicateTermination -> {
+                    yield(" ")
+                    yield(buffer.current.syntax)
+                    stack.set(Stack.Position.PREDICATE)
+                }
+                N3Token.Structural.ObjectTermination -> {
+                    yield(" ")
+                    yield(buffer.current.syntax)
+                    stack.set(Stack.Position.OBJECT)
+                }
+                else -> throw IllegalStateException("Unexpected token: ${buffer.current}")
+            }
+            if (!buffer.advance()) {
+                // reached our own end
+                return@iterator
+            }
+            if (buffer.current == N3Token.Structural.StatementsListEnd || buffer.current == N3Token.Structural.BlankEnd) {
+                // reached the block's end
+                return@iterator
+            }
+            // preparing for next iteration
+            yield("\n")
+            yield(indent.create(stack.indent))
+        }
+    }
 
-    private fun N3Token.isStructuralSegmentEnd() =
-        this == N3Token.Structural.BlankEnd || this == N3Token.Structural.StatementsListEnd
+    private fun formatToken(stack: Stack, buffer: TokenBuffer) = iterator {
+        when (buffer.current) {
+            N3Token.Structural.BlankStart -> {
+                TODO("Implementation required, similar to statements list, terminating statements with `;` tokens")
+            }
+            N3Token.Structural.StatementsListStart -> {
+                yieldAll(formatStatementsBlock(stack, buffer))
+            }
+            is N3Token.TermToken -> {
+                yield(buffer.current.syntax)
+                buffer.advance()
+            }
+            else -> {
+                throw IllegalStateException("Unexpected buffer state: $buffer")
+            }
+        }
+    }
 
-    private fun N3Token.isPredicateEnd() =
-        this == N3Token.Structural.PredicateTermination
+    private fun formatStatementsBlock(stack: Stack, buffer: TokenBuffer) = iterator {
+        require(buffer.current == N3Token.Structural.StatementsListStart)
+        // adjusting current statement
+        yield(buffer.current.syntax)
+        buffer.advance()
+        // starting the next statements (yielding relevant tokens) inside a new frame
+        stack.startFrame()
+        yield("\n")
+        yield(indent.create(stack.indent))
+        yieldAll(processStatements(stack, buffer))
+        if (buffer.current != N3Token.Structural.StatementsListEnd) {
+            throw IllegalStateException("Did reach the end of the statements list properly!")
+        }
+        // terminating this frame
+        stack.stopFrame()
+        yield("\n")
+        yield(indent.create(stack.indent))
+        yield(buffer.current.syntax)
+        check(buffer.advance())
+    }
 
-    private fun N3Token.isObjectEnd() =
-        this == N3Token.Structural.ObjectTermination
-
-    private fun N3Token.isStatementEnd() =
-        this == N3Token.Structural.StatementTermination
+    override fun format(tokens: Iterator<N3Token>): Iterator<String> {
+        return processStatements(Stack(), TokenBuffer(tokens))
+    }
 
 }
