@@ -126,7 +126,7 @@ data class PrettyFormatter(
     }
 
     @JvmInline
-    private value class Stack private constructor(private val current: MutableList<Position>) {
+    private value class Stack private constructor(private val frames: MutableList<Position>) {
 
         enum class Position {
             SUBJECT,
@@ -137,51 +137,46 @@ data class PrettyFormatter(
         constructor(): this(mutableListOf(Position.SUBJECT))
 
         val indent: Int
-            get() = when {
-                current.isEmpty() -> 0
-                current.size == 1 && current.last() == Position.SUBJECT -> 0
-                current.size == 1 && current.last() != Position.SUBJECT -> 1
-                current[current.size - 2] == Position.SUBJECT -> current.size - 1
-                else -> current.size
-            }
+            get() = frames.count { it != Position.SUBJECT } + frames.size - 1
 
         val position: Position
-            get() = current.last()
+            get() = frames.last()
 
         fun set(target: Position) {
-            current[current.size - 1] = target
+            frames[frames.size - 1] = target
         }
 
         fun advance() {
-            when (current[current.size - 1]) {
-                Position.SUBJECT -> current[current.size - 1] = Position.PREDICATE
-                Position.PREDICATE -> current[current.size - 1] = Position.OBJECT
+            when (frames[frames.size - 1]) {
+                Position.SUBJECT -> frames[frames.size - 1] = Position.PREDICATE
+                Position.PREDICATE -> frames[frames.size - 1] = Position.OBJECT
                 Position.OBJECT -> throw IllegalStateException("Formatting error, encountered an invalid stack position!")
             }
         }
 
         fun startFrame() {
-            current.add(Position.SUBJECT)
+            frames.add(Position.SUBJECT)
         }
 
         fun stopFrame() {
-            current.removeLast()
+            check(frames.size > 1) { "Invalid frame termination request! Root frame cannot be removed!" }
+            frames.removeLast()
         }
 
-        override fun toString() = current.joinToString(" => ")
+        override fun toString() = frames.joinToString(" => ")
 
     }
 
     override fun format(tokens: Iterator<N3Token>) = processStatements(
         stack = Stack(),
         buffer = TokenBuffer(tokens),
-        newlines = true
+        multiline = true
     )
 
     private fun processStatements(
         stack: Stack,
         buffer: TokenBuffer,
-        newlines: Boolean,
+        multiline: Boolean,
     ): Iterator<String> = iterator {
         while (true) {
             if (stack.position == Stack.Position.SUBJECT) {
@@ -226,7 +221,7 @@ data class PrettyFormatter(
                 return@iterator
             }
             // preparing for next iteration
-            if (newlines) {
+            if (multiline) {
                 yield("\n")
                 yield(indent.create(stack.indent))
             } else {
@@ -241,7 +236,7 @@ data class PrettyFormatter(
                 TODO("Implementation required, similar to statements list, terminating statements with `;` tokens")
             }
             N3Token.Structural.StatementsListStart -> {
-                yieldAll(formatStatementsBlock(stack, buffer))
+                yieldAll(formatStatementsList(stack, buffer))
             }
             is N3Token.TermToken -> {
                 yield(buffer.current.syntax)
@@ -253,7 +248,7 @@ data class PrettyFormatter(
         }
     }
 
-    private fun formatStatementsBlock(stack: Stack, buffer: TokenBuffer) = iterator {
+    private fun formatStatementsList(stack: Stack, buffer: TokenBuffer) = iterator {
         require(buffer.current == N3Token.Structural.StatementsListStart)
         // scanning ahead for the next tokens, deciding what formatting strategy should be applied
         // 1: taking all terms part of this block, until we start a new block or end this one
@@ -261,9 +256,9 @@ data class PrettyFormatter(
         val upcoming = buffer.upcoming
         // 2: scanning the tokens to ensure we don't create a new block inside this one
         val index = upcoming.indexOfFirst { it.isBlockToken() }
-        val newlines =
+        val multiline =
             // the first block token should be the one ending this statement list, so we don't have any child block
-            upcoming[index] == N3Token.Structural.StatementsListEnd &&
+            upcoming[index] != N3Token.Structural.StatementsListEnd ||
             // if we don't have a child block, we can ask the configured strategy what to do with this block layout
             !flattenStrategy.shouldBeFlattened(upcoming.take(index))
         // adjusting current statement
@@ -271,19 +266,19 @@ data class PrettyFormatter(
         buffer.advance()
         // starting the next statements (yielding relevant tokens) inside a new frame
         stack.startFrame()
-        if (newlines) {
+        if (multiline) {
             yield("\n")
             yield(indent.create(stack.indent))
         } else {
             yield(" ")
         }
-        yieldAll(processStatements(stack, buffer, newlines = newlines))
+        yieldAll(processStatements(stack, buffer, multiline = multiline))
         if (buffer.current != N3Token.Structural.StatementsListEnd) {
             throw IllegalStateException("Did reach the end of the statements list properly!")
         }
         // terminating this frame
         stack.stopFrame()
-        if (newlines) {
+        if (multiline) {
             yield("\n")
             yield(indent.create(stack.indent))
         } else {

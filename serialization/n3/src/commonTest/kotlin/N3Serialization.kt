@@ -40,7 +40,7 @@ class N3Serialization {
             change has local("order") being 0
             change has local("data") being statements {
                 repeat(10) {
-                    local("s$it") has local("p$it") being local("p$it")
+                    local("s$it") has local("p$it") being local("o$it")
                 }
             }
         }
@@ -50,14 +50,18 @@ class N3Serialization {
     @Test
     fun serialize3() {
         val store = N3 {
-            repeat(5) { index ->
-                val current = local("change$index")
-                current has RDF.type being if (index % 2 == 0) local("Addition") else local("Deletion")
-                current has local("order") being 0
-                current has local("data") being statements {
-                    repeat(10) { data ->
-                        local("s$data") has local("p$data") being local("p$data")
+            val changes = local("changeset")
+            changes has RDF.type being local("ChangeSet")
+            changes has local("changes") being statements {
+                repeat(5) { index ->
+                    val subject = statements {
+                        repeat(2) { i ->
+                            val data = index + i
+                            local("s$data") has local("p$data") being local("o$data")
+                        }
                     }
+                    subject has RDF.type being if (index % 2 == 0) local("Addition") else local("Deletion")
+                    subject has local("order") being index
                 }
             }
         }
