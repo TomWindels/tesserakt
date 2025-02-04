@@ -7,9 +7,11 @@ import dev.tesserakt.rdf.n3.Store
 @ExperimentalN3Api
 object N3Serializer {
 
-    fun serialize(store: Store): String {
+    val DefaultFormatter = PrettyFormatter()
+
+    fun serialize(store: Store, formatter: Formatter = DefaultFormatter): String {
         val serializer = Tokenizer(store)
-        return serializer.iterator().writeToString()
+        return serializer.iterator().writeToString(formatter)
     }
 
     private class Tokenizer(store: Store) : Iterable<N3Token> {
@@ -65,12 +67,11 @@ object N3Serializer {
 
     }
 
-    private fun Iterator<N3Token>.writeToString(): String {
+    private fun Iterator<N3Token>.writeToString(formatter: Formatter): String {
         val result = StringBuilder()
-        forEach { token ->
-            result.append(token.syntax)
-            result.append(' ')
-        }
+        formatter
+            .format(this)
+            .forEach { text -> result.append(text) }
         return result.toString()
     }
 

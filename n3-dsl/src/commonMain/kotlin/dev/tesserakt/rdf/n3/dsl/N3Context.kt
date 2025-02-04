@@ -5,11 +5,7 @@ import dev.tesserakt.rdf.n3.Quad
 import dev.tesserakt.rdf.n3.Store
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 import kotlin.jvm.JvmInline
-import kotlin.jvm.JvmStatic
 import dev.tesserakt.rdf.types.Quad as RdfQuad
 
 @ExperimentalN3Api
@@ -68,6 +64,8 @@ class N3Context internal constructor(
     fun local(name: String) = "${environment.path}$name".asNamedTerm()
 
     infix fun Quad.Term.has(predicate: Quad.Term) = Statement(this, predicate)
+
+    infix fun Quad.Term.has(predicate: RdfQuad.Term) = Statement(this, predicate.toN3Term())
 
     inner class Statement(val _s: Quad.Term, val _p: Quad.Term) {
 
@@ -162,37 +160,6 @@ class N3Context internal constructor(
     fun String.asLiteralTerm(type: RdfQuad.NamedTerm): Quad.Term = dev.tesserakt.rdf.types.Quad.Literal(literal = this@asLiteralTerm, type = type).toN3Term()
 
     companion object {
-
-        @OptIn(ExperimentalContracts::class)
-        @JvmStatic
-        fun buildStore(path: String = "", block: N3Context.() -> Unit): Store {
-            contract {
-                callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-            }
-            return Store().apply { insert(Environment(path = path), block) }
-        }
-
-        @OptIn(ExperimentalContracts::class)
-        @JvmStatic
-        fun buildStore(environment: Environment, block: N3Context.() -> Unit): Store {
-            contract {
-                callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-            }
-            return Store().apply { insert(environment, block) }
-        }
-
-        @OptIn(ExperimentalContracts::class)
-        @JvmStatic
-        fun Store.insert(environment: Environment, block: N3Context.() -> Unit) {
-            contract {
-                callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-            }
-            N3Context(
-                environment = environment,
-                consumer = StoreAdapter(this)
-            )
-            .apply(block)
-        }
 
     }
 
