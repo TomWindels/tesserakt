@@ -12,7 +12,7 @@ object NTriples {
     private fun Quad.Term.encoded(): String {
         return when (this) {
             is Quad.BlankTerm -> "_:b$id"
-            is Quad.Literal<*> -> toString()
+            is Quad.Literal -> toString()
             is Quad.NamedTerm -> "<$value>"
         }
     }

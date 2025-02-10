@@ -88,11 +88,7 @@ abstract class NodeWriter<RT> {
 
             is Pattern.Exact -> when (symbol.term) {
                 is Quad.BlankTerm -> throw UnsupportedOperationException()
-                is Quad.Literal<*> -> {
-                    (symbol.term.literal as? String)?.let { add(Token.StringLiteral(it)) }
-                    ?: (symbol.term.literal as? Number)?.let { add(Token.NumericLiteral(it)) }
-                    ?: throw UnsupportedOperationException()
-                }
+                is Quad.Literal -> add(Token.StringLiteral(symbol.term.value))
                 is Quad.NamedTerm -> add(Token.Term(symbol.term.value))
             }
 
@@ -110,12 +106,7 @@ abstract class NodeWriter<RT> {
                 add(Token.Symbol.ExclamationMark)
                 when (symbol.term) {
                     is Quad.BlankTerm -> throw UnsupportedOperationException()
-                    is Quad.Literal<*> -> {
-                        (symbol.term.literal as? String)?.let { add(Token.StringLiteral(it)) }
-                            ?: (symbol.term.literal as? Number)?.let { add(Token.NumericLiteral(it)) }
-                            ?: throw UnsupportedOperationException()
-                    }
-
+                    is Quad.Literal -> add(Token.StringLiteral(symbol.term.value))
                     is Quad.NamedTerm -> add(Token.Term(symbol.term.value))
                 }
             }
