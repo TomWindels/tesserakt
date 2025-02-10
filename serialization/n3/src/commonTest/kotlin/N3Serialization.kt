@@ -3,7 +3,7 @@ import dev.tesserakt.rdf.n3.ExperimentalN3Api
 import dev.tesserakt.rdf.n3.dsl.N3
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.serialization.N3Serializer
+import dev.tesserakt.rdf.n3.serialization.N3Serializer
 import kotlin.test.Test
 
 @OptIn(ExperimentalN3Api::class)

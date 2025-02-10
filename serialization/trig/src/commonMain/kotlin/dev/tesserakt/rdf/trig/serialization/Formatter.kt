@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.serialization
+package dev.tesserakt.rdf.trig.serialization
 
 import dev.tesserakt.util.addFront
 import kotlin.jvm.JvmInline
@@ -6,12 +6,12 @@ import kotlin.jvm.JvmInline
 
 sealed class Formatter {
 
-    internal abstract fun format(tokens: Iterator<N3Token>): Iterator<String>
+    internal abstract fun format(tokens: Iterator<TriGToken>): Iterator<String>
 
 }
 
 data object SimpleFormatter: Formatter() {
-    override fun format(tokens: Iterator<N3Token>) = iterator {
+    override fun format(tokens: Iterator<TriGToken>) = iterator {
         if (!tokens.hasNext()) {
             return@iterator
         }
@@ -24,6 +24,7 @@ data object SimpleFormatter: Formatter() {
 }
 
 data class PrettyFormatter(
+    val prefixes: TriGSerializer.Prefixes,
     /**
      * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
      *  a set of spaces or tabs
@@ -38,15 +39,15 @@ data class PrettyFormatter(
     /**
      * A small token buffer, buffering two values of the underlying token iterator source
      */
-    private class TokenBuffer(private val iterator: Iterator<N3Token>) {
+    private inner class TokenBuffer(private val iterator: Iterator<TriGToken>) {
 
-        var current: N3Token = iterator.next()
+        var current: TriGToken = iterator.next().mapped(prefixes)
             private set
 
-        var next: N3Token? = if (iterator.hasNext()) iterator.next() else null
+        var next: TriGToken? = if (iterator.hasNext()) iterator.next().mapped(prefixes) else null
             private set
 
-        private val buf = mutableListOf<N3Token>()
+        private val buf = mutableListOf<TriGToken>()
 
         /**
          * A list of upcoming tokens, starting from [next], containing all following tokens matching those peeked in
@@ -54,7 +55,7 @@ data class PrettyFormatter(
          *
          * IMPORTANT: this can include more non-matching tokens, if [peekUntil] is used more frequently than [advance]
          */
-        val upcoming: List<N3Token>
+        val upcoming: List<TriGToken>
             // if next == null, the buf should be guaranteed empty
             get() = next?.let { next -> buf.addFront(next) } ?: emptyList()
 
@@ -66,7 +67,7 @@ data class PrettyFormatter(
             current = next ?: return false
             next = when {
                 buf.isNotEmpty() -> buf.removeFirst()
-                iterator.hasNext() -> iterator.next()
+                iterator.hasNext() -> iterator.next().mapped(prefixes)
                 else -> null
             }
             return true
@@ -77,14 +78,14 @@ data class PrettyFormatter(
          *  tokens are stored for future use through [current], [next] and [advance], including the one resulting
          *  in `false`.
          */
-        inline fun peekUntil(predicate: (N3Token) -> Boolean) {
+        inline fun peekUntil(predicate: (TriGToken) -> Boolean) {
             val next = next ?: /* end was reached */ return
             if (!predicate(next)) {
                 // first one already doesn't match, not consuming any further
                 return
             }
             while (iterator.hasNext()) {
-                val current = iterator.next()
+                val current = iterator.next().mapped(prefixes)
                 buf.add(current)
                 if (!predicate(current)) {
                     break
@@ -94,6 +95,10 @@ data class PrettyFormatter(
 
         override fun toString(): String {
             return "TokenBuffer { current: $current, next: $next, buf: $buf }"
+        }
+
+        private fun TriGToken.mapped(prefixes: TriGSerializer.Prefixes): TriGToken {
+            return prefixes.format(this)
         }
 
     }
@@ -112,15 +117,15 @@ data class PrettyFormatter(
      *  Note: blocks containing blocks themselves are never subject to this check
      */
     sealed class FlattenStrategy {
-        internal abstract fun shouldBeFlattened(content: List<N3Token>): Boolean
+        internal abstract fun shouldBeFlattened(content: List<TriGToken>): Boolean
     }
 
     data object NoFlattening: FlattenStrategy() {
-        override fun shouldBeFlattened(content: List<N3Token>) = false
+        override fun shouldBeFlattened(content: List<TriGToken>) = false
     }
 
     data class LengthBasedFlattening(private val maxLength: Int): FlattenStrategy() {
-        override fun shouldBeFlattened(content: List<N3Token>): Boolean {
+        override fun shouldBeFlattened(content: List<TriGToken>): Boolean {
             return content.sumOf { it.syntax.length } <= maxLength
         }
     }
@@ -167,11 +172,37 @@ data class PrettyFormatter(
 
     }
 
-    override fun format(tokens: Iterator<N3Token>) = processStatements(
-        stack = Stack(),
-        buffer = TokenBuffer(tokens),
-        multiline = true
-    )
+    override fun format(tokens: Iterator<TriGToken>) = iterator {
+        // first writing all prefixes
+        prefixes.forEach { (base, uri) ->
+            yield(TriGToken.Structural.PrefixAnnotationA.syntax)
+            yield(" ")
+            yield(base)
+            yield(":")
+            yield(" ")
+            yield("<")
+            yield(uri)
+            yield(">")
+            yield(" ")
+            yield(TriGToken.Structural.StatementTermination.syntax)
+            yield("\n")
+        }
+        val stack = Stack()
+        val buffer = TokenBuffer(tokens)
+        while (buffer.next != null) {
+            when (buffer.next) {
+                TriGToken.Structural.GraphStatementStart -> {
+                    yieldAll(formatGraph(stack, buffer))
+                    if (tokens.hasNext()) {
+                        yield("\n")
+                    }
+                }
+                else -> {
+                    yieldAll(processStatements(stack = stack, buffer = buffer, multiline = false))
+                }
+            }
+        }
+    }
 
     private fun processStatements(
         stack: Stack,
@@ -184,6 +215,7 @@ data class PrettyFormatter(
                 yield(" ")
                 stack.advance()
             }
+            check(buffer.current != TriGToken.Structural.GraphStatementStart)
             if (stack.position == Stack.Position.PREDICATE) {
                 yieldAll(formatToken(stack, buffer))
                 yield(" ")
@@ -194,18 +226,25 @@ data class PrettyFormatter(
                 "Stack corruption encountered! Current stack layout: $stack"
             }
             yieldAll(formatToken(stack, buffer))
+            while (!multiline && buffer.current == TriGToken.Structural.ObjectTermination) {
+                yield(" ")
+                yield(buffer.current.syntax) // ","
+                yield(" ")
+                buffer.advance()
+                yieldAll(formatToken(stack, buffer))
+            }
             when (buffer.current) {
-                N3Token.Structural.StatementTermination -> {
+                TriGToken.Structural.StatementTermination -> {
                     yield(" ")
                     yield(buffer.current.syntax)
                     stack.set(Stack.Position.SUBJECT)
                 }
-                N3Token.Structural.PredicateTermination -> {
+                TriGToken.Structural.PredicateTermination -> {
                     yield(" ")
                     yield(buffer.current.syntax)
                     stack.set(Stack.Position.PREDICATE)
                 }
-                N3Token.Structural.ObjectTermination -> {
+                TriGToken.Structural.ObjectTermination -> {
                     yield(" ")
                     yield(buffer.current.syntax)
                     stack.set(Stack.Position.OBJECT)
@@ -216,7 +255,7 @@ data class PrettyFormatter(
                 // reached our own end
                 return@iterator
             }
-            if (buffer.current == N3Token.Structural.StatementsListEnd || buffer.current == N3Token.Structural.BlankEnd) {
+            if (buffer.current == TriGToken.Structural.GraphStatementEnd || buffer.current == TriGToken.Structural.BlankEnd) {
                 // reached the block's end
                 return@iterator
             }
@@ -232,13 +271,10 @@ data class PrettyFormatter(
 
     private fun formatToken(stack: Stack, buffer: TokenBuffer) = iterator {
         when (buffer.current) {
-            N3Token.Structural.BlankStart -> {
+            TriGToken.Structural.BlankStart -> {
                 TODO("Implementation required, similar to statements list, terminating statements with `;` tokens")
             }
-            N3Token.Structural.StatementsListStart -> {
-                yieldAll(formatStatementsList(stack, buffer))
-            }
-            is N3Token.TermToken -> {
+            is TriGToken.TermToken -> {
                 yield(buffer.current.syntax)
                 buffer.advance()
             }
@@ -248,8 +284,12 @@ data class PrettyFormatter(
         }
     }
 
-    private fun formatStatementsList(stack: Stack, buffer: TokenBuffer) = iterator {
-        require(buffer.current == N3Token.Structural.StatementsListStart)
+    private fun formatGraph(stack: Stack, buffer: TokenBuffer) = iterator {
+        require(buffer.current is TriGToken.TermToken)
+        require(buffer.next == TriGToken.Structural.GraphStatementStart)
+        yield(buffer.current.syntax)
+        yield(" ")
+        buffer.advance()
         // scanning ahead for the next tokens, deciding what formatting strategy should be applied
         // 1: taking all terms part of this block, until we start a new block or end this one
         buffer.peekUntil { token -> !token.isBlockToken() }
@@ -258,7 +298,7 @@ data class PrettyFormatter(
         val index = upcoming.indexOfFirst { it.isBlockToken() }
         val multiline =
             // the first block token should be the one ending this statement list, so we don't have any child block
-            upcoming[index] != N3Token.Structural.StatementsListEnd ||
+            upcoming[index] != TriGToken.Structural.GraphStatementEnd ||
             // if we don't have a child block, we can ask the configured strategy what to do with this block layout
             !flattenStrategy.shouldBeFlattened(upcoming.take(index))
         // adjusting current statement
@@ -273,7 +313,7 @@ data class PrettyFormatter(
             yield(" ")
         }
         yieldAll(processStatements(stack, buffer, multiline = multiline))
-        if (buffer.current != N3Token.Structural.StatementsListEnd) {
+        if (buffer.current != TriGToken.Structural.GraphStatementEnd) {
             throw IllegalStateException("Did reach the end of the statements list properly!")
         }
         // terminating this frame
@@ -285,16 +325,16 @@ data class PrettyFormatter(
             yield(" ")
         }
         yield(buffer.current.syntax) // "}"
-        check(buffer.advance())
+        buffer.advance()
     }
 
     /**
      * Returns true if this token denotes the start/end of a "block": `[`, `]`, `{` & `}`
      */
-    private fun N3Token.isBlockToken() =
-        this == N3Token.Structural.BlankStart ||
-        this == N3Token.Structural.BlankEnd ||
-        this == N3Token.Structural.StatementsListStart ||
-        this == N3Token.Structural.StatementsListEnd
+    private fun TriGToken.isBlockToken() =
+        this == TriGToken.Structural.BlankStart ||
+        this == TriGToken.Structural.BlankEnd ||
+        this == TriGToken.Structural.GraphStatementStart ||
+        this == TriGToken.Structural.GraphStatementEnd
 
 }

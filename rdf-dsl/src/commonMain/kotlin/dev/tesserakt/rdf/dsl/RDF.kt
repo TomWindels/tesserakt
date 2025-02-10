@@ -4,20 +4,17 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.rdf.types.Store
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 import kotlin.jvm.JvmInline
-import kotlin.jvm.JvmStatic
 
 @Suppress("NOTHING_TO_INLINE", "PropertyName", "unused")
-class RdfContext internal constructor(
+class RDF internal constructor(
     private val environment: Environment,
     val consumer: Consumer
 ) {
 
     var _blank_index = 0
+
+    internal val prefixes = mutableMapOf<String, String>()
 
     interface Consumer {
 
@@ -25,20 +22,22 @@ class RdfContext internal constructor(
         fun process(
             subject: Quad.NamedTerm,
             predicate: Quad.NamedTerm,
-            `object`: Quad.Term
+            `object`: Quad.Term,
+            graph: Quad.Graph = Quad.DefaultGraph,
         )
 
         /** Blank-node triple receiver **/
         fun process(
             subject: Quad.BlankTerm,
             predicate: Quad.NamedTerm,
-            `object`: Quad.Term
+            `object`: Quad.Term,
+            graph: Quad.Graph = Quad.DefaultGraph,
         )
 
         /** A method processing incoming RDF lists, returning a term pointing to that list **/
         // default impl creates blank nodes acting like the list, no optimisation in representation (like turtle)
         //  out of the box
-        fun process(context: RdfContext, list: List): Quad.Term = with(context) {
+        fun process(context: dev.tesserakt.rdf.dsl.RDF, list: List): Quad.Term = with(context) {
             return if (list.data.isEmpty()) {
                 RDF.nil
             } else {
@@ -69,6 +68,18 @@ class RdfContext internal constructor(
             get() = value.removePrefix(path)
     }
 
+    class Prefix(
+        private val prefix: String,
+        private val base: String,
+    ) {
+        operator fun invoke(iri: String) = Quad.NamedTerm("$base$iri")
+    }
+
+    val type get() = RDF.type
+
+    fun prefix(prefix: String, base: String) = Prefix(prefix, base)
+        .also { prefixes[prefix] = base }
+
     /** Creates an environment-aware `NamedTerm`, e.g. "shape" on "localhost:3000/" becomes `http://localhost:3000/shape` **/
     fun local(name: String) = "${environment.path}$name".asNamedTerm()
 
@@ -96,8 +107,32 @@ class RdfContext internal constructor(
             }
         }
 
-        inline infix fun being(list: List) = consumer.process(_s, _p, consumer.process(this@RdfContext, list))
+        inline infix fun being(list: List) = consumer.process(_s, _p, consumer.process(this@RDF, list))
 
+    }
+
+    fun graph(term: Quad.NamedTerm, producer: dev.tesserakt.rdf.dsl.RDF.() -> Unit) {
+        graph(term as Quad.Graph, producer)
+    }
+
+    fun graph(iri: String, producer: dev.tesserakt.rdf.dsl.RDF.() -> Unit) {
+        graph(iri.asNamedTerm(), producer)
+    }
+
+    fun graph(identifier: Quad.BlankTerm, producer: dev.tesserakt.rdf.dsl.RDF.() -> Unit) {
+        graph(identifier as Quad.Graph, producer)
+    }
+
+    private fun graph(name: Quad.Graph, producer: dev.tesserakt.rdf.dsl.RDF.() -> Unit) {
+        RDF(environment, consumer = object: Consumer {
+            override fun process(subject: Quad.NamedTerm, predicate: Quad.NamedTerm, `object`: Quad.Term, graph: Quad.Graph) {
+                consumer.process(subject, predicate, `object`, name)
+            }
+
+            override fun process(subject: Quad.BlankTerm, predicate: Quad.NamedTerm, `object`: Quad.Term, graph: Quad.Graph) {
+                consumer.process(subject, predicate, `object`, name)
+            }
+        }).apply(producer)
     }
 
     inner class BlankStatement(val _s: Quad.BlankTerm, val _p: Quad.NamedTerm) {
@@ -120,7 +155,7 @@ class RdfContext internal constructor(
             }
         }
 
-        inline infix fun being(list: List) = consumer.process(_s, _p, consumer.process(this@RdfContext, list))
+        inline infix fun being(list: List) = consumer.process(_s, _p, consumer.process(this@RDF, list))
 
     }
 
@@ -158,7 +193,7 @@ class RdfContext internal constructor(
         }
 
         inline infix fun Quad.NamedTerm.being(list: List) {
-            consumer.process(subject = _name, predicate = this, `object`= consumer.process(this@RdfContext, list))
+            consumer.process(subject = _name, predicate = this, `object`= consumer.process(this@RDF, list))
         }
 
     }
@@ -183,39 +218,6 @@ class RdfContext internal constructor(
 
     fun multiple(vararg data: Quad.Term) = Multiple(data)
 
-    companion object {
-
-        @OptIn(ExperimentalContracts::class)
-        @JvmStatic
-        fun buildStore(path: String = "", block: RdfContext.() -> Unit): Store {
-            contract {
-                callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-            }
-            return Store().apply { insert(Environment(path = path), block) }
-        }
-
-        @OptIn(ExperimentalContracts::class)
-        @JvmStatic
-        fun buildStore(environment: Environment, block: RdfContext.() -> Unit): Store {
-            contract {
-                callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-            }
-            return Store().apply { insert(environment, block) }
-        }
-
-        @OptIn(ExperimentalContracts::class)
-        @JvmStatic
-        fun Store.insert(environment: Environment, block: RdfContext.() -> Unit) {
-            contract {
-                callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-            }
-            RdfContext(
-                environment = environment,
-                consumer = StoreAdapter(this)
-            )
-            .apply(block)
-        }
-
-    }
+    companion object
 
 }

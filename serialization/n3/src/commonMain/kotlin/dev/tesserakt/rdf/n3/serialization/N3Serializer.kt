@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.serialization
+package dev.tesserakt.rdf.n3.serialization
 
 import dev.tesserakt.rdf.n3.ExperimentalN3Api
 import dev.tesserakt.rdf.n3.Quad

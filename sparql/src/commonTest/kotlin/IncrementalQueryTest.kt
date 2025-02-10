@@ -1,34 +1,33 @@
-import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
-import dev.tesserakt.rdf.literalTerm
-import dev.tesserakt.rdf.namedTerm
+import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.serialization.Turtle.parseTurtleString
+import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.BindingsTable.Companion.tabulate
-import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.Companion.query
+import dev.tesserakt.sparql.runtime.incremental.evaluation.query
 import kotlin.test.Test
 
 class IncrementalQueryTest {
 
     private fun buildAddressesStore() = buildStore {
-        "person1".namedTerm has "domicile".namedTerm being blank {
-            "address".namedTerm being blank {
-                "street".namedTerm being "Person St.".literalTerm
-                "city".namedTerm being blank {
-                    "inhabitants".namedTerm being 5000
+        "person1".asNamedTerm() has "domicile".asNamedTerm() being blank {
+            "address".asNamedTerm() being blank {
+                "street".asNamedTerm() being "Person St.".asLiteralTerm()
+                "city".asNamedTerm() being blank {
+                    "inhabitants".asNamedTerm() being 5000
                 }
             }
         }
-        "person2".namedTerm has "domicile".namedTerm being "house2".namedTerm
-        "house2".namedTerm has "address".namedTerm being "address2".namedTerm
-        "address2".namedTerm has "street".namedTerm being "Person II St.".literalTerm
-        "address2".namedTerm has "city".namedTerm being blank {
-            "inhabitants".namedTerm being 7500
+        "person2".asNamedTerm() has "domicile".asNamedTerm() being "house2".asNamedTerm()
+        "house2".asNamedTerm() has "address".asNamedTerm() being "address2".asNamedTerm()
+        "address2".asNamedTerm() has "street".asNamedTerm() being "Person II St.".asLiteralTerm()
+        "address2".asNamedTerm() has "city".asNamedTerm() being blank {
+            "inhabitants".asNamedTerm() being 7500
         }
-        "incomplete".namedTerm has "domicile".namedTerm being blank {
-            "address".namedTerm being blank {
-                "street".namedTerm being "unknown".namedTerm
-                "city".namedTerm being "unknown".namedTerm
+        "incomplete".asNamedTerm() has "domicile".asNamedTerm() being blank {
+            "address".asNamedTerm() being blank {
+                "street".asNamedTerm() being "unknown".asNamedTerm()
+                "city".asNamedTerm() being "unknown".asNamedTerm()
             }
         }
     }

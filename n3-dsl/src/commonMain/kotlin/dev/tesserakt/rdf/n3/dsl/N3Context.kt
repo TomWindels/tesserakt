@@ -155,12 +155,10 @@ class N3Context internal constructor(
 
     fun String.asNamedTerm(): Quad.Term = with(dev.tesserakt.rdf.types.Quad) { asNamedTerm() }.toN3Term()
 
-    fun String.asLiteralTerm(type: String): Quad.Term = with(dev.tesserakt.rdf.types.Quad) { dev.tesserakt.rdf.types.Quad.Literal(literal = this@asLiteralTerm, type = type.asNamedTerm()) }.toN3Term()
+    fun String.asLiteralTerm(type: String): Quad.Term = with(dev.tesserakt.rdf.types.Quad) { dev.tesserakt.rdf.types.Quad.Literal(value = this@asLiteralTerm, type = type.asNamedTerm()) }.toN3Term()
 
-    fun String.asLiteralTerm(type: RdfQuad.NamedTerm): Quad.Term = dev.tesserakt.rdf.types.Quad.Literal(literal = this@asLiteralTerm, type = type).toN3Term()
+    fun String.asLiteralTerm(type: RdfQuad.NamedTerm): Quad.Term = dev.tesserakt.rdf.types.Quad.Literal(value = this@asLiteralTerm, type = type).toN3Term()
 
-    companion object {
-
-    }
+    companion object
 
 }
