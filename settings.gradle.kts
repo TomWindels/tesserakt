@@ -23,10 +23,13 @@ include("serialization:trig")
 include("serialization:n3")
 include("serialization")
 
+include("stream:ldes")
+
 include("interop:jena")
 include("interop:rdfjs")
 
 include("testing:suite")
 include("testing:rdf-test-suite-js")
 
+include("benchmarking:store-replay")
 include("benchmarking")

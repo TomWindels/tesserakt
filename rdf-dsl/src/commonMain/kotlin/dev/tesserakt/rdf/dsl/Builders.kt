@@ -7,9 +7,10 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+typealias RDF_DSL = RDF.() -> Unit
 
 @OptIn(ExperimentalContracts::class)
-fun (RDF.() -> Unit).extractPrefixes(): Map<String, String> {
+fun RDF_DSL.extractPrefixes(): Map<String, String> {
     contract {
         callsInPlace(this@extractPrefixes, InvocationKind.EXACTLY_ONCE)
     }

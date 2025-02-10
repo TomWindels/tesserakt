@@ -274,7 +274,7 @@ data class PrettyFormatter(
         }
         yieldAll(processStatements(stack, buffer, multiline = multiline))
         if (buffer.current != N3Token.Structural.StatementsListEnd) {
-            throw IllegalStateException("Did reach the end of the statements list properly!")
+            throw IllegalStateException("Did not reach the end of the statements list properly!")
         }
         // terminating this frame
         stack.stopFrame()

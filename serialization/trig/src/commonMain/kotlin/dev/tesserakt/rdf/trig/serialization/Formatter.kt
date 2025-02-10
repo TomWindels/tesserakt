@@ -187,24 +187,27 @@ data class PrettyFormatter(
             yield(TriGToken.Structural.StatementTermination.syntax)
             yield("\n")
         }
+        if (prefixes.isNotEmpty()) {
+            yield("\n")
+        }
         val stack = Stack()
         val buffer = TokenBuffer(tokens)
         while (buffer.next != null) {
             when (buffer.next) {
                 TriGToken.Structural.GraphStatementStart -> {
                     yieldAll(formatGraph(stack, buffer))
-                    if (tokens.hasNext()) {
-                        yield("\n")
-                    }
                 }
                 else -> {
-                    yieldAll(processStatements(stack = stack, buffer = buffer, multiline = false))
+                    yieldAll(processStatement(stack = stack, buffer = buffer, multiline = true))
                 }
+            }
+            if (buffer.next != null) {
+                yield("\n\n")
             }
         }
     }
 
-    private fun processStatements(
+    private fun processStatement(
         stack: Stack,
         buffer: TokenBuffer,
         multiline: Boolean,
@@ -215,7 +218,6 @@ data class PrettyFormatter(
                 yield(" ")
                 stack.advance()
             }
-            check(buffer.current != TriGToken.Structural.GraphStatementStart)
             if (stack.position == Stack.Position.PREDICATE) {
                 yieldAll(formatToken(stack, buffer))
                 yield(" ")
@@ -226,7 +228,9 @@ data class PrettyFormatter(
                 "Stack corruption encountered! Current stack layout: $stack"
             }
             yieldAll(formatToken(stack, buffer))
-            while (!multiline && buffer.current == TriGToken.Structural.ObjectTermination) {
+            // TODO: add additional flag/change the multiline argument type to better configure when/how to
+            //  inline multiple objects
+            while (buffer.current == TriGToken.Structural.ObjectTermination) {
                 yield(" ")
                 yield(buffer.current.syntax) // ","
                 yield(" ")
@@ -238,16 +242,13 @@ data class PrettyFormatter(
                     yield(" ")
                     yield(buffer.current.syntax)
                     stack.set(Stack.Position.SUBJECT)
+                    buffer.advance()
+                    break
                 }
                 TriGToken.Structural.PredicateTermination -> {
                     yield(" ")
                     yield(buffer.current.syntax)
                     stack.set(Stack.Position.PREDICATE)
-                }
-                TriGToken.Structural.ObjectTermination -> {
-                    yield(" ")
-                    yield(buffer.current.syntax)
-                    stack.set(Stack.Position.OBJECT)
                 }
                 else -> throw IllegalStateException("Unexpected token: ${buffer.current}")
             }
@@ -312,9 +313,18 @@ data class PrettyFormatter(
         } else {
             yield(" ")
         }
-        yieldAll(processStatements(stack, buffer, multiline = multiline))
+        yieldAll(processStatement(stack, buffer, multiline = multiline))
+        while (buffer.current != TriGToken.Structural.GraphStatementEnd) {
+            if (multiline) {
+                yield("\n\n")
+                yield(indent.create(stack.indent))
+            } else {
+                yield(" ")
+            }
+            yieldAll(processStatement(stack, buffer, multiline = multiline))
+        }
         if (buffer.current != TriGToken.Structural.GraphStatementEnd) {
-            throw IllegalStateException("Did reach the end of the statements list properly!")
+            throw IllegalStateException("Did not reach the end of the graph statement properly!")
         }
         // terminating this frame
         stack.stopFrame()

@@ -1,5 +1,6 @@
 package dev.tesserakt.rdf.trig.serialization
 
+import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import kotlin.jvm.JvmInline
@@ -35,7 +36,7 @@ object TriGSerializer {
     }
 
     @JvmInline
-    value class Prefixes(private val map: Map<String /* prefix */, String /* uri */>): Iterable<Map.Entry<String, String>> {
+    value class Prefixes(private val map: Map<String /* prefix */, String /* uri */>): Collection<Map.Entry<String, String>> {
         internal fun format(term: Quad.NamedTerm): TriGToken.TermToken {
             map.forEach { (prefix, uri) ->
                 // FIXME needs more accurate testing, i.e. remainder does not contain `/` etc
@@ -62,6 +63,25 @@ object TriGSerializer {
 
         override fun iterator(): Iterator<Map.Entry<String, String>> {
             return map.iterator()
+        }
+
+        override val size: Int
+            get() = map.size
+
+        override fun containsAll(elements: Collection<Map.Entry<String, String>>) =
+            map.entries.containsAll(elements)
+
+        override fun contains(element: Map.Entry<String, String>) = map.entries.contains(element)
+
+        override fun isEmpty() = map.isEmpty()
+
+        operator fun plus(other: Prefixes) = Prefixes(map + other.map)
+
+        companion object {
+
+            fun createFor(vararg ontology: Ontology): Prefixes =
+                Prefixes(map = ontology.associate { it.prefix to it.base_uri })
+
         }
     }
 
