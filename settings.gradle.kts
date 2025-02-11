@@ -17,6 +17,7 @@ include("n3-dsl")
 include("sparql")
 
 include("serialization:core")
+include("serialization:common")
 include("serialization:n-triples")
 include("serialization:turtle")
 include("serialization:trig")

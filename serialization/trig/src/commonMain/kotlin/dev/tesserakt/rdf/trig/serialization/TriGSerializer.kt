@@ -1,16 +1,15 @@
 package dev.tesserakt.rdf.trig.serialization
 
-import dev.tesserakt.rdf.ontology.Ontology
+import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import kotlin.jvm.JvmInline
 
 object TriGSerializer {
 
     val NoPrefixes = Prefixes(emptyMap())
 
     fun serialize(
-        store: Store,
+        store: Collection<Quad>,
         prefixes: Prefixes = NoPrefixes,
     ): String {
         val formatter = PrettyFormatter(prefixes)
@@ -19,7 +18,7 @@ object TriGSerializer {
     }
 
     fun serialize(
-        store: Store,
+        store: Collection<Quad>,
         prefixes: Map<String, String>,
     ): String {
         val formatter = PrettyFormatter(Prefixes(prefixes))
@@ -35,57 +34,7 @@ object TriGSerializer {
         return serializer.iterator().writeToString(formatter)
     }
 
-    @JvmInline
-    value class Prefixes(private val map: Map<String /* prefix */, String /* uri */>): Collection<Map.Entry<String, String>> {
-        internal fun format(term: Quad.NamedTerm): TriGToken.TermToken {
-            map.forEach { (prefix, uri) ->
-                // FIXME needs more accurate testing, i.e. remainder does not contain `/` etc
-                if (term.value.startsWith(uri)) {
-                    return TriGToken.PrefixedTerm(prefix, term.value.drop(uri.length))
-                }
-            }
-            return TriGToken.Term(term.value)
-        }
-
-        internal fun format(term: TriGToken.Term): TriGToken.TermToken {
-            map.forEach { (prefix, uri) ->
-                // FIXME needs more accurate testing, i.e. remainder does not contain `/` etc
-                if (term.value.startsWith(uri)) {
-                    return TriGToken.PrefixedTerm(prefix, term.value.drop(uri.length))
-                }
-            }
-            return term
-        }
-
-        internal fun format(token: TriGToken): TriGToken {
-            return format(token as? TriGToken.Term ?: return token)
-        }
-
-        override fun iterator(): Iterator<Map.Entry<String, String>> {
-            return map.iterator()
-        }
-
-        override val size: Int
-            get() = map.size
-
-        override fun containsAll(elements: Collection<Map.Entry<String, String>>) =
-            map.entries.containsAll(elements)
-
-        override fun contains(element: Map.Entry<String, String>) = map.entries.contains(element)
-
-        override fun isEmpty() = map.isEmpty()
-
-        operator fun plus(other: Prefixes) = Prefixes(map + other.map)
-
-        companion object {
-
-            fun createFor(vararg ontology: Ontology): Prefixes =
-                Prefixes(map = ontology.associate { it.prefix to it.base_uri })
-
-        }
-    }
-
-    private class Tokenizer(store: Store) : Iterable<TriGToken> {
+    private class Tokenizer(store: Collection<Quad>) : Iterable<TriGToken> {
 
         private val data = store.optimise()
 
@@ -164,7 +113,7 @@ object TriGSerializer {
      * Sorts the store by its subjects first, followed by its predicates, to allow for a more compact
      *  string representation
      */
-    private fun Store.optimise() = this
+    private fun Collection<Quad>.optimise() = this
         .groupBy { quad -> quad.g }
         .mapValues { entry ->
             entry.value

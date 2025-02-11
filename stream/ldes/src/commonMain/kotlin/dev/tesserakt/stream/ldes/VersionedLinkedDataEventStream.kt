@@ -1,18 +1,16 @@
 package dev.tesserakt.stream.ldes
 
 import dev.tesserakt.rdf.ontology.RDF
-import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.stream.ldes.ontology.LDES
-import kotlinx.datetime.Instant
-import kotlin.math.sign
 
 class VersionedLinkedDataEventStream<StreamElement>(
     val identifier: Quad.NamedTerm,
-    val store: Store,
-    private val transform: StreamTransform<StreamElement>
-) {
+    private val store: Store,
+    private val comparator: Comparator<Quad.Literal> = DateComparator,
+    private val transform: StreamTransform<StreamElement>,
+): Set<Quad> by store {
 
     private data class VersionedMember(
         /**
@@ -20,9 +18,9 @@ class VersionedLinkedDataEventStream<StreamElement>(
          */
         val identifier: Quad.NamedTerm,
         /**
-         * The base version identifier, i.e. `#post1`, if any
+         * The base version identifier
          */
-        val base: Quad.NamedTerm?,
+        val base: Quad.NamedTerm,
         /**
          * This version's timestamp value
          */
@@ -54,27 +52,32 @@ class VersionedLinkedDataEventStream<StreamElement>(
 
     /* public api */
 
-    fun get(until: Quad.Literal): Store {
-        // FIXME subset of relevant based on overlapping version base identifier
-        val relevant = members.filter { it.timestampValue <= until }
-        return transform.decode(store, relevant.mapTo(mutableSetOf()) { it.identifier })
-    }
+    fun read(until: Quad.Literal): Store = transform.decode(
+        source = store,
+        identifiers = members
+            // only allowing members that have been added before (including) the provided parameter
+            .filter { comparator.compare(it.timestampValue, until) <= 0 }
+            // taking the most recent ones since only; order affects which variants of the base versions are kept
+            .sortedWith(compareByDescending(comparator) { it.timestampValue })
+            .distinctBy { it.base }
+            .mapTo(mutableSetOf()) { it.identifier }
+    )
 
     fun add(
-        base: Quad.NamedTerm,
-        version: Quad.Literal,
+        baseVersion: Quad.NamedTerm,
+        timestamp: Quad.Literal,
         data: StreamElement,
     ) {
-        val hint = Quad.NamedTerm("${base.value}#v${members.count { it.base == base }}")
+        val hint = Quad.NamedTerm("${baseVersion.value}#v${members.count { it.base == baseVersion }}")
         val element = transform.encode(target = store, element = data, hint = hint)
         store.add(Quad(identifier, LDES.member, element))
-        store.add(Quad(element, timestampPath, version))
-        store.add(Quad(element, versionOfPath, base))
+        store.add(Quad(element, timestampPath, timestamp))
+        store.add(Quad(element, versionOfPath, baseVersion))
         members.add(
             VersionedMember(
                 identifier = element,
-                base = base,
-                timestampValue = version,
+                base = baseVersion,
+                timestampValue = timestamp,
             )
         )
     }
@@ -85,10 +88,12 @@ class VersionedLinkedDataEventStream<StreamElement>(
             identifier: Quad.NamedTerm,
             timestampPath: Quad.NamedTerm,
             versionOfPath: Quad.NamedTerm,
+            comparator: Comparator<Quad.Literal> = DateComparator,
             transform: StreamTransform<StreamUnit>
         ): VersionedLinkedDataEventStream<StreamUnit> = VersionedLinkedDataEventStream(
             identifier = identifier,
             transform = transform,
+            comparator = comparator,
             store = Store()
                 .apply {
                     // minimum set of triples required for a valid versioned LDES with the provided arguments
@@ -117,7 +122,8 @@ class VersionedLinkedDataEventStream<StreamElement>(
     ): VersionedMember {
         return VersionedMember(
             identifier = identifier,
-            base = store.singleOrNull { it.s == identifier && it.p == versionOfPath }?.o as? Quad.NamedTerm,
+            base = store.singleOrNull { it.s == identifier && it.p == versionOfPath }?.o as? Quad.NamedTerm
+                ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $versionOfPath associated, or is not an IRI"),
             timestampValue = store.singleOrNull { it.s == identifier && it.p == timestampPath }?.o as? Quad.Literal
                 ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $timestampPath associated, or is not a literal term"),
         )
@@ -126,19 +132,6 @@ class VersionedLinkedDataEventStream<StreamElement>(
     private fun streamFormatError(message: String): Nothing =
         throw InvalidStreamFormatException(identifier, message)
 
-}
-
-private operator fun Quad.Literal.compareTo(rhs: Quad.Literal): Int {
-    if (type != rhs.type) {
-        throw IllegalArgumentException("Cannot compare different literal datatypes when comparing $this with $rhs")
-    }
-    return when {
-        type == XSD.date ->
-            Instant.parse(value).minus(Instant.parse(rhs.value)).inWholeNanoseconds.sign
-
-        else ->
-            TODO("Not yet implemented for $type")
-    }
 }
 
 private class InvalidStreamFormatException(

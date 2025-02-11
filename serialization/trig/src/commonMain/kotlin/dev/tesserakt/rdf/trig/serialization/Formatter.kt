@@ -1,5 +1,7 @@
 package dev.tesserakt.rdf.trig.serialization
 
+import dev.tesserakt.rdf.serialization.common.Prefixes
+import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.util.addFront
 import kotlin.jvm.JvmInline
 
@@ -24,7 +26,7 @@ data object SimpleFormatter: Formatter() {
 }
 
 data class PrettyFormatter(
-    val prefixes: TriGSerializer.Prefixes,
+    val prefixes: Prefixes,
     /**
      * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
      *  a set of spaces or tabs
@@ -97,8 +99,24 @@ data class PrettyFormatter(
             return "TokenBuffer { current: $current, next: $next, buf: $buf }"
         }
 
-        private fun TriGToken.mapped(prefixes: TriGSerializer.Prefixes): TriGToken {
-            return prefixes.format(this)
+        private fun TriGToken.mapped(prefixes: Prefixes): TriGToken = when (this) {
+            is TriGToken.Term -> prefixes
+                .format(value.asNamedTerm())
+                ?.let { TriGToken.PrefixedTerm(prefix = it.prefix, value = it.value) }
+                ?: this
+
+            is TriGToken.LiteralTerm -> {
+                if (type is TriGToken.Term) {
+                    prefixes
+                        .format(type.value.asNamedTerm())
+                        ?.let { TriGToken.LiteralTerm(value = value, type = TriGToken.PrefixedTerm(prefix = it.prefix, value = it.value)) }
+                        ?: this
+                } else {
+                    this
+                }
+            }
+
+            else -> this
         }
 
     }

@@ -25,15 +25,15 @@ interface StreamTransform<StreamUnit> {
      */
     fun decode(source: Store, identifiers: Set<Quad.NamedTerm>): Store
 
-    object GraphBased: StreamTransform<List<Quad>> {
+    object GraphBased: StreamTransform<Set<Quad>> {
 
-        override fun encode(target: Store, element: List<Quad>, hint: Quad.NamedTerm): Quad.NamedTerm {
+        override fun encode(target: Store, element: Set<Quad>, hint: Quad.NamedTerm): Quad.NamedTerm {
             target.addAll(element.map { it.copy(g = hint) })
             return hint
         }
 
-        override fun decode(source: Store, identifier: Quad.NamedTerm): List<Quad> {
-            return source.mapNotNull { if (it.g == identifier) it.copy(g = Quad.DefaultGraph) else null }
+        override fun decode(source: Store, identifier: Quad.NamedTerm): Set<Quad> {
+            return source.mapNotNullTo(mutableSetOf()) { if (it.g == identifier) it.copy(g = Quad.DefaultGraph) else null }
         }
 
         override fun decode(source: Store, identifiers: Set<Quad.NamedTerm>): Store {
