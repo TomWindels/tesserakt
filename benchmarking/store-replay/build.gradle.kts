@@ -3,6 +3,11 @@ plugins {
 }
 
 kotlin {
+    js {
+        generateTypeScriptDefinitions()
+        binaries.library()
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -10,6 +15,11 @@ kotlin {
                 implementation(project(":rdf-dsl"))
                 implementation(project(":serialization:trig"))
                 implementation(project(":stream:ldes"))
+            }
+        }
+        val jsMain by getting {
+            dependencies {
+                api(project(":interop:rdfjs"))
             }
         }
         val commonTest by getting {
