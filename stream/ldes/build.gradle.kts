@@ -7,7 +7,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(project(":rdf"))
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
+                api("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
             }
         }
         val commonTest by getting {

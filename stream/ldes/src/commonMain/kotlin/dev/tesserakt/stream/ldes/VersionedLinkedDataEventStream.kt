@@ -3,6 +3,7 @@ package dev.tesserakt.stream.ldes
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 
 class VersionedLinkedDataEventStream<StreamElement>(
@@ -43,6 +44,15 @@ class VersionedLinkedDataEventStream<StreamElement>(
                 streamFormatError("Inconsistent timestamp value types detected. Used timestamp values are ${members.mapTo(mutableSetOf()) { it.timestampValue.type }.joinToString()}")
             }
         }
+
+    /**
+     * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
+     *  implementation.
+     */
+    val timestamps: List<Quad.Literal>
+        get() = members
+            .mapTo(mutableSetOf()) { it.timestampValue }
+            .sortedWith(comparator)
 
     init {
         if (store.none { it.s == identifier && it.p == RDF.type && it.o == LDES.EventStream }) {
@@ -86,10 +96,10 @@ class VersionedLinkedDataEventStream<StreamElement>(
 
         fun <StreamUnit> initialise(
             identifier: Quad.NamedTerm,
-            timestampPath: Quad.NamedTerm,
-            versionOfPath: Quad.NamedTerm,
-            comparator: Comparator<Quad.Literal> = DateComparator,
-            transform: StreamTransform<StreamUnit>
+            timestampPath: Quad.NamedTerm = DC.modified,
+            versionOfPath: Quad.NamedTerm = DC.isVersionOf,
+            transform: StreamTransform<StreamUnit>,
+            comparator: Comparator<Quad.Literal> = DateComparator
         ): VersionedLinkedDataEventStream<StreamUnit> = VersionedLinkedDataEventStream(
             identifier = identifier,
             transform = transform,
@@ -101,6 +111,19 @@ class VersionedLinkedDataEventStream<StreamElement>(
                     add(Quad(identifier, LDES.timestampPath, timestampPath))
                     add(Quad(identifier, LDES.versionOfPath, versionOfPath))
                 }
+        )
+
+        fun <StreamUnit> from(
+            store: Store,
+            transform: StreamTransform<StreamUnit>,
+            identifier: Quad.NamedTerm =
+                store.single { it.p == RDF.type && it.o == LDES.EventStream }.s as Quad.NamedTerm,
+            comparator: Comparator<Quad.Literal> = DateComparator
+        ): VersionedLinkedDataEventStream<StreamUnit> = VersionedLinkedDataEventStream(
+            identifier = identifier,
+            store = store,
+            comparator = comparator,
+            transform = transform,
         )
 
     }

@@ -1,3 +1,5 @@
+package dev.tesserakt.stream.ldes.ontology
+
 import dev.tesserakt.rdf.ontology.Ontology
 
 object DC: Ontology {

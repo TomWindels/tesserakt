@@ -12,6 +12,7 @@ import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.stream.ldes.StreamTransform
 import dev.tesserakt.stream.ldes.VersionedLinkedDataEventStream
+import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 import dev.tesserakt.stream.ldes.ontology.TREE
 import dev.tesserakt.util.toTruncatedString
