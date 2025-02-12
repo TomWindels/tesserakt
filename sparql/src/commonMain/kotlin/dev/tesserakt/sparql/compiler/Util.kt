@@ -11,7 +11,7 @@ internal fun QueryAST.QueryBodyAST.extractAllBindings(): List<PatternAST.Binding
     (
         patterns.flatMap { pattern -> pattern.extractAllBindings() } +
         unions.flatMap { union -> union.flatMap { it.extractAllBindings() } } +
-        optionals.flatMap { optional -> optional.segment.extractAllBindings() }
+        optionals.flatMap { optional -> optional.patterns.flatMap { it.extractAllBindings() } }
     ).distinct()
 
 fun SegmentAST.extractAllBindings() = when (this) {

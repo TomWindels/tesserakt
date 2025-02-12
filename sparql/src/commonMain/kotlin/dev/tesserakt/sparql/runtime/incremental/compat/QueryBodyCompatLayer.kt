@@ -11,7 +11,8 @@ object QueryBodyCompatLayer: IncrementalCompatLayer<QueryAST.QueryBodyAST, Query
         val unions = source.unions.convert().toMutableList()
         val patterns = PatternCompatLayer { blocks -> unions.add(Union(blocks)) }
             .convert(source.patterns)
-        val optional = source.optionals.map { Optional(it.segment.convert()) }
+        val optional = source.optionals
+            .map { Optional(patterns = DirectPatternCompatLayer.convert(it.patterns)) }
         val filters = source.filters.map { it.convert() }
         val bindingStatements = source.bindingStatements.map { it.convert() }
         return Query.QueryBody(

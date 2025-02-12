@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.runtime.core.emptyMapping
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery.ResultChange.Companion.into
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalBasicGraphPatternState
+import dev.tesserakt.sparql.runtime.incremental.types.DebugWriter
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 import kotlin.jvm.JvmInline
 
@@ -32,7 +33,7 @@ sealed class IncrementalQuery<ResultType, Q: Query>(
             return state.insert(data).map { it.into() }
         }
 
-        fun debugInformation() = state.debugInformation()
+        fun debugInformation(writer: DebugWriter) = state.debugInformation(writer)
 
     }
 

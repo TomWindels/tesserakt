@@ -12,7 +12,7 @@ value class Patterns(private val items: List<Pattern>): List<Pattern> by items, 
 value class Union(val segments: List<Segment>): List<Segment> by segments, IncrementalNode
 
 @JvmInline
-value class Optional(val segment: Segment): IncrementalNode
+value class Optional(val patterns: Patterns): IncrementalNode
 
 sealed interface Segment
 

@@ -79,7 +79,7 @@ data class OutputComparisonTest(
             append("):\n\t")
             append(expected.toTruncatedString(500))
             if (debugInformation.isNotBlank()) {
-                append("\n * ")
+                append("\n")
                 append(debugInformation)
             }
         }

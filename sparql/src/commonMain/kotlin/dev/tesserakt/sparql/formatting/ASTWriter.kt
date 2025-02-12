@@ -170,7 +170,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
 
         is OptionalAST -> {
             append("optional ")
-            process(symbol.segment)
+            process(symbol.patterns)
         }
 
         is PatternAST -> {

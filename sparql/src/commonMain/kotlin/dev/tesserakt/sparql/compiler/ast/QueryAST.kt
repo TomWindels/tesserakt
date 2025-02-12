@@ -14,7 +14,7 @@ sealed class QueryAST: ASTNode {
         private val _filters = mutableListOf<FilterAST>()
         private val _bindingStatements = mutableListOf<ExpressionAST.BindingStatement>()
         // collections of sections not required to be being present (`OPTIONAL {}`)
-        private val _optionals = mutableListOf<SegmentAST>()
+        private val _optionals = mutableListOf<PatternsAST>()
         // collections of multiple segments where one or the other has to be present (`{} UNION {}`)
         private val _unions = mutableListOf<List<SegmentAST>>()
 
@@ -51,7 +51,7 @@ sealed class QueryAST: ASTNode {
         }
 
         /** Appends a new optional to the body **/
-        fun addOptional(optional: SegmentAST) {
+        fun addOptional(optional: PatternsAST) {
             _optionals.add(optional)
         }
 

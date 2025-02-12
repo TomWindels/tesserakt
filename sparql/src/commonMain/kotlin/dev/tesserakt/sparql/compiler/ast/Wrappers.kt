@@ -9,7 +9,7 @@ value class PatternsAST(private val items: List<PatternAST>): List<PatternAST> b
 value class UnionAST(val segments: List<SegmentAST>): List<SegmentAST> by segments, ASTNode
 
 @JvmInline
-value class OptionalAST(val segment: SegmentAST): ASTNode
+value class OptionalAST(val patterns: PatternsAST): ASTNode
 
 sealed interface SegmentAST: ASTNode {
 

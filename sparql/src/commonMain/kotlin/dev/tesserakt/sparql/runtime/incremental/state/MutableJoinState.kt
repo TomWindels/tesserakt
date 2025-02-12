@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.types.DebugWriter
 
 /**
  * Represents a state type that can be joined with other states of the same (sub-) type, such as triple patterns or
@@ -22,5 +23,7 @@ internal interface MutableJoinState {
      * Updates the internal state according to the [delta] change.
      */
     fun process(delta: Delta.Data)
+
+    fun debugInformation(writer: DebugWriter)
 
 }

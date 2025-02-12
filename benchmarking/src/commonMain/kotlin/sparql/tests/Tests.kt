@@ -34,29 +34,110 @@ fun builtinTests() = tests {
         intermediate has path1 being obj
     }
 
+//    using(small) test """
+//        SELECT * {
+//            ?s (<http://example.org/path1>|<http://example.org/path2>) ?o
+//        }
+//    """
+//
+//    using(small) test """
+//        SELECT * {
+//            ?s (<http://example.org/path1>/!<http://example.org/path2>) ?o
+//        }
+//    """
+//
+//    using(small) test """
+//        SELECT * {
+//            ?s !<http://example.org/path3> ?o
+//        }
+//    """
+//
+//    using(small) test """
+//        SELECT * {
+//            ?s (<http://example.org/path1>|<http://example.org/path2>)* ?o
+//        }
+//    """
+
     using(small) test """
         SELECT * {
-            ?s (<http://example.org/path1>|<http://example.org/path2>) ?o
+            ?s <http://example.org/path1> ?o
+            OPTIONAL {
+                ?s <http://example.org/path2> ?o2
+            }
         }
     """
 
     using(small) test """
         SELECT * {
-            ?s (<http://example.org/path1>/!<http://example.org/path2>) ?o
+            {
+                ?s <http://example.org/path2> ?o
+            } UNION {
+                ?s <http://example.org/path1> ?o
+            }
+            OPTIONAL {
+                ?o <http://example.org/path1> ?o2
+            }
         }
     """
+//
+//    using(small) test """
+//        SELECT * {
+//            ?s <http://example.org/path2> ?o .
+//            ?s <http://example.org/path1>|<http://example.org/path2> ?o .
+//        }
+//    """
 
     using(small) test """
         SELECT * {
-            ?s !<http://example.org/path3> ?o
-        }
+            ?s <http://example.org/path1>|<http://example.org/path2> ?o
+            OPTIONAL {
+                # ?s <http://example.org/path1>|<http://example.org/path2> ?o
+                ?s <http://example.org/path1>|<http://example.org/path2> ?temp
+            }
+        }        
     """
 
-    using(small) test """
-        SELECT * {
-            ?s (<http://example.org/path1>|<http://example.org/path2>)* ?o
-        }
-    """
+
+//    // TODO remove temp
+//
+//    val TEMP = buildStore {
+//        "person1".namedTerm has "https://www.example.org/domicile".namedTerm being blank {
+//            "https://www.example.org/address".namedTerm being blank {
+//                "https://www.example.org/street".namedTerm being "Person St.".literalTerm
+//                "https://www.example.org/city".namedTerm being blank {
+//                    "https://www.example.org/inhabitants".namedTerm being 5000
+//                }
+//            }
+//        }
+//        "person2".namedTerm has "https://www.example.org/domicile".namedTerm being "house2".namedTerm
+//        "house2".namedTerm has "https://www.example.org/address".namedTerm being "address2".namedTerm
+//        "address2".namedTerm has "https://www.example.org/street".namedTerm being "Person II St.".literalTerm
+//        "address2".namedTerm has "https://www.example.org/city".namedTerm being blank {
+//            "https://www.example.org/inhabitants".namedTerm being 7500
+//        }
+//        "incomplete".namedTerm has "https://www.example.org/domicile".namedTerm being blank {
+//            "https://www.example.org/address".namedTerm being blank {
+//                "https://www.example.org/street".namedTerm being "unknown".namedTerm
+//                "https://www.example.org/city".namedTerm being "unknown".namedTerm
+//            }
+//        }
+//    }
+//
+//    using(TEMP) test """
+//        PREFIX ex: <https://www.example.org/>
+//        SELECT * {
+//            ?person ex:domicile [
+//                ex:address [
+//                    ex:street ?street ;
+//                    ex:city [
+//                        ex:inhabitants ?count
+//                    ]
+//                ]
+//            ] .
+//        }
+//    """
+
+    return@tests
 
     val extra = buildStore(path = "http://example.org/") {
         val subj = local("s")
@@ -379,6 +460,15 @@ fun builtinTests() = tests {
         SELECT * WHERE {
             ?person <${FOAF.based_near}>/ex:number ?number ;
                     <${FOAF.based_near}>/ex:street ?street
+        }
+    """
+
+    using(person1) test """
+        PREFIX ex: <https://www.example.org/>
+        SELECT * WHERE {
+            ?person <${FOAF.based_near}> ?location .
+            ?location ex:number ?number .
+            OPTIONAL { ?location ex:street ?street }
         }
     """
 

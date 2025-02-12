@@ -15,7 +15,7 @@ object Debug {
     }
 
     fun report() = buildString {
-        appendLine("Debug information")
+        appendLine(" * Debug information")
         appendLine("\tArray-backed pattern joins: ${state.arrayBackedJoin}")
         appendLine("\tJoin tree hits: ${state.joinTreeHits}")
         appendLine("\tJoin tree misses: ${state.joinTreeMisses}")

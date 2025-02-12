@@ -5,6 +5,7 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.incremental.delta.Delta
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery
+import dev.tesserakt.sparql.runtime.incremental.types.DebugWriter
 
 
 fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>, callback: (IncrementalQuery.ResultChange<RT>) -> Unit) {
@@ -22,7 +23,9 @@ fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>, callback: (Increme
             callback(mapped)
         }
     }
-    Debug.append(processor.debugInformation())
+    val writer = DebugWriter()
+    processor.debugInformation(writer)
+    Debug.append(writer.data.toString())
 }
 
 fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>): List<RT> = buildList {
@@ -40,7 +43,9 @@ fun <RT> Iterable<Quad>.query(query: IncrementalQuery<RT, *>): List<RT> = buildL
             }
         }
     }
-    Debug.append(processor.debugInformation())
+    val writer = DebugWriter()
+    processor.debugInformation(writer)
+    Debug.append(writer.data.toString())
 }
 
 fun <RT> MutableStore.query(query: IncrementalQuery<RT, *>): OngoingQueryEvaluation<RT> {
