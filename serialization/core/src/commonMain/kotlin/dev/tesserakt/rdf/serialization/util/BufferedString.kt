@@ -2,7 +2,7 @@ package dev.tesserakt.rdf.serialization.util
 
 class BufferedString(
     private val reader: BufferedReader,
-    private val bufferSize: Int = 2000
+    private val bufferSize: Int = 4000
 ) {
 
     private val threshold = bufferSize / 2

@@ -38,17 +38,17 @@ internal sealed interface TriGToken {
     @JvmInline
     value class RelativeTerm(val value: String): TriGToken, NonLiteralTerm, TermToken {
         override val syntax get() = "<$value>"
-        override fun toString(): String = "term `$syntax`"
+        override fun toString(): String = "relative term `$syntax`"
     }
 
     /** = `my:term` **/
     data class PrefixedTerm(val prefix: String, val value: String): TriGToken, NonLiteralTerm, TermToken {
         override val syntax = "$prefix:$value"
-        override fun toString(): String = "term `$syntax`"
+        override fun toString(): String = "prefixed term `$syntax`"
     }
 
     /** any literal **/
-    class LiteralTerm(
+    data class LiteralTerm(
         val value: String,
         val type: NonLiteralTerm,
     ): TriGToken, TermToken {
