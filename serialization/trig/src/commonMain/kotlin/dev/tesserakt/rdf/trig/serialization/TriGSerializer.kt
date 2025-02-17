@@ -2,7 +2,6 @@ package dev.tesserakt.rdf.trig.serialization
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
 
 object TriGSerializer {
 
@@ -26,12 +25,19 @@ object TriGSerializer {
         return serializer.iterator().writeToString(formatter)
     }
 
+    inline fun serialize(
+        store: Collection<Quad>,
+        prefixes: Map<String, String>,
+        callback: (String) -> Unit
+    ) {
+        serialize(store, PrettyFormatter(Prefixes(prefixes))).forEach(callback)
+    }
+
     fun serialize(
-        store: Store,
+        store: Collection<Quad>,
         formatter: Formatter,
-    ): String {
-        val serializer = Tokenizer(store)
-        return serializer.iterator().writeToString(formatter)
+    ): Iterator<String> {
+        return formatter.format(Tokenizer(store).iterator())
     }
 
     private class Tokenizer(store: Collection<Quad>) : Iterable<TriGToken> {
