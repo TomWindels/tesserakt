@@ -1,16 +1,18 @@
-
 import dev.tesserakt.rdf.dsl.RDF
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.serialization.util.wrapAsBufferedReader
+import dev.tesserakt.rdf.trig.serialization.Deserializer
 import dev.tesserakt.rdf.trig.serialization.TokenDecoder
 import dev.tesserakt.rdf.trig.serialization.TokenEncoder
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.toStore
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
+import kotlin.test.assertTrue
 
 class TriGSerialization {
 
@@ -42,16 +44,44 @@ class TriGSerialization {
     }
 
     private fun serialize(block: RDF.() -> Unit) {
-        val data = buildStore(block = block)
-        println(TriGSerializer.serialize(data, prefixes = block.extractPrefixes()))
+        val reference = buildStore(block = block)
+        val prettyPrinted = TriGSerializer.serialize(reference, prefixes = block.extractPrefixes())
+        println(prettyPrinted)
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
-        val input = BufferedString(TriGSerializer.serialize(data).wrapAsBufferedReader())
-        assertContentEquals(TokenEncoder(data), TokenDecoder(input).asIterable())
+        assertContentEquals(
+            expected = TokenEncoder(reference),
+            actual = TokenDecoder(
+                BufferedString(
+                    TriGSerializer.serialize(reference).wrapAsBufferedReader()
+                )
+            ).asIterable()
+        )
+        val complete = Deserializer(TokenDecoder(BufferedString(prettyPrinted.wrapAsBufferedReader())))
+            .asIterable().toStore()
+        val diffA1 = reference - complete
+        val diffB1 = complete - reference
+        assertTrue { diffA1.isEmpty() }
+        assertTrue { diffB1.isEmpty() }
+        // dropping the last line of the pretty printed output, which should result in missing data, which should cause
+        //  an incomplete result
+        val subset = prettyPrinted
+            .lines()
+            .dropLast(1)
+            // making sure we're not cutting in the middle of a statement
+            .dropLastWhile { it.isNotBlank() }
+            .joinToString("\n")
+        val incomplete = Deserializer(TokenDecoder(BufferedString(subset.wrapAsBufferedReader())))
+            .asIterable().toStore()
+        val diffA2 = reference - incomplete
+        val diffB2 = incomplete - reference
+        assertTrue { diffA2.isNotEmpty() }
+        assertTrue { diffB2.isEmpty() }
+        // TODO: another test case where we drop until reaching invalid input
     }
 
     // this is semantically not a proper iterable type, but it functions for our use case above
-    private fun <T> Iterator<T>.asIterable() = object: Iterable<T> {
+    private fun <T> Iterator<T>.asIterable() = object : Iterable<T> {
         override fun iterator(): Iterator<T> {
             return this@asIterable
         }

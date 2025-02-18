@@ -26,7 +26,7 @@ internal sealed interface TriGToken {
 
     sealed interface TermToken: TriGToken
 
-    sealed interface NonLiteralTerm: TriGToken
+    sealed interface NonLiteralTerm: TriGToken, TermToken
 
     /** = `<my_term>`, value is without < > **/
     data class Term(val value: String): TriGToken, NonLiteralTerm, TermToken {
