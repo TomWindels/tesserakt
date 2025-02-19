@@ -57,7 +57,7 @@ fun buildStore(environment: Environment, block: RDF.() -> Unit): Store {
 }
 
 @OptIn(ExperimentalContracts::class)
-fun Store.insert(environment: Environment, block: RDF.() -> Unit) {
+fun Store.insert(environment: Environment = Environment(path = ""), block: RDF.() -> Unit): Store {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
@@ -66,4 +66,5 @@ fun Store.insert(environment: Environment, block: RDF.() -> Unit) {
         consumer = StoreAdapter(this)
     )
         .apply(block)
+    return this
 }

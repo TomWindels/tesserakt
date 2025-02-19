@@ -107,6 +107,8 @@ class SnapshotStore private constructor(
 
     constructor(store: Store): this(VersionedLinkedDataEventStream.from(store, transform = StreamTransform.GraphBased))
 
+    val identifier: Quad.NamedTerm get() = stream.identifier
+
     val snapshots = object: Iterable<Store> {
         override fun iterator(): Iterator<Store> = iterator {
             stream.timestamps.forEach { threshold ->
@@ -146,6 +148,9 @@ class SnapshotStore private constructor(
         }
     }
 
-    fun toStore() = stream.toStore()
+    fun toStore(target: Store = Store()): Store {
+        target.addAll(stream.toStore())
+        return target
+    }
 
 }

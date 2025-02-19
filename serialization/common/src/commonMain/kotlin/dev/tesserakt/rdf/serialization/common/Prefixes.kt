@@ -41,4 +41,10 @@ value class Prefixes(private val map: Map<String /* prefix */, String /* uri */>
 
     operator fun plus(other: Prefixes) = Prefixes(map + other.map)
 
+    companion object {
+
+        operator fun Map<String, String>.plus(ontology: Ontology) = this.plus(ontology.prefix to ontology.base_uri)
+
+    }
+
 }

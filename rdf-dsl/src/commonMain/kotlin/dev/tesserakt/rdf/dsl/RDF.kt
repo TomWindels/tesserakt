@@ -218,6 +218,14 @@ class RDF internal constructor(
 
     fun multiple(vararg data: Quad.Term) = Multiple(data)
 
+    operator fun Iterable<Quad>.unaryPlus() = forEach { quad ->
+        when (val s = quad.s) {
+            is Quad.BlankTerm -> consumer.process(subject = s, predicate = quad.p, `object` = quad.o, graph = quad.g)
+            is Quad.NamedTerm -> consumer.process(subject = s, predicate = quad.p, `object` = quad.o, graph = quad.g)
+            is Quad.Literal -> throw IllegalStateException()
+        }
+    }
+
     companion object
 
 }
