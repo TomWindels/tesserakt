@@ -116,18 +116,32 @@ class SnapshotStore private constructor(
     }
 
     val diffs = object: Iterable<Diff> {
-        // TODO: a more optimised approach, interacting with stream members directly (maybe inside the LDES itself?)
-        override fun iterator(): Iterator<Diff> = iterator inner@ {
+        override fun iterator(): Iterator<Diff> = iterator {
             val timestamps = stream.timestamps.iterator()
-            if (!timestamps.hasNext()) {
-                return@inner
-            }
-            var previous = stream.read(timestamps.next())
-            yield(Diff(insertions = previous, deletions = emptySet()))
+            val members = mutableSetOf<Quad.NamedTerm>()
+            val old = mutableSetOf<Quad>()
+            val new = mutableSetOf<Quad>()
             while (timestamps.hasNext()) {
-                val current = stream.read(timestamps.next())
-                yield(Diff.between(previous, current))
-                previous = current
+                val timestamp = timestamps.next()
+                // resetting the previous iteration (members affected before != members affected now)
+                members.clear()
+                old.clear()
+                new.clear()
+                // getting all members affected by this increment in timestampValue
+                stream.members
+                    .mapNotNullTo(members) { member -> member.base.takeIf { member.timestampValue == timestamp } }
+                // it shouldn't be possible for the
+                require(members.isNotEmpty())
+                // collecting all original versions
+                members.flatMapTo(old) { base ->
+                    stream.read(base = base, timestampValue = timestamp, inclusive = false) ?: emptySet()
+                }
+                // collecting all updated versions
+                members.flatMapTo(new) { base ->
+                    stream.read(base = base, timestampValue = timestamp, inclusive = true) ?: emptySet()
+                }
+                // calculating & yielding the combined diff
+                yield(Diff.between(old, new))
             }
         }
     }

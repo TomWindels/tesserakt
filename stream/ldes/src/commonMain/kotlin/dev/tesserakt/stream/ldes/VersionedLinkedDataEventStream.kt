@@ -13,7 +13,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
     private val transform: StreamTransform<StreamElement>,
 ): Set<Quad> by store {
 
-    private data class VersionedMember(
+    data class Member(
         /**
          * The corresponding version identifier, i.e. `#post1v0`
          */
@@ -34,7 +34,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
     private val versionOfPath = store.singleOrNull { it.s == identifier && it.p == LDES.versionOfPath }?.o
         as? Quad.NamedTerm ?: streamFormatError("Expected exactly one `versionOfPath`!")
 
-    private val members = materializeVersionedMembers(store)
+    private val _members = materializeVersionedMembers(store)
         .also { members ->
             if (members.isEmpty()) {
                 return@also
@@ -45,12 +45,14 @@ class VersionedLinkedDataEventStream<StreamElement>(
             }
         }
 
+    val members: List<Member> get() = _members
+
     /**
      * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
      *  implementation.
      */
     val timestamps: List<Quad.Literal>
-        get() = members
+        get() = _members
             .mapTo(mutableSetOf()) { it.timestampValue }
             .sortedWith(comparator)
 
@@ -64,7 +66,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
 
     fun read(until: Quad.Literal): Store = transform.decode(
         source = store,
-        identifiers = members
+        identifiers = _members
             // only allowing members that have been added before (including) the provided parameter
             .filter { comparator.compare(it.timestampValue, until) <= 0 }
             // taking the most recent ones since only; order affects which variants of the base versions are kept
@@ -73,18 +75,35 @@ class VersionedLinkedDataEventStream<StreamElement>(
             .mapTo(mutableSetOf()) { it.identifier }
     )
 
+    /**
+     * Read a specific version of a member (identified using [base]) at a given point in time (according
+     *  to [timestampValue]). The additional [inclusive] flag dictates whether versions with a [timestampValue]
+     *  identical to the one provided are allowed.
+     */
+    fun read(base: Quad.NamedTerm, timestampValue: Quad.Literal, inclusive: Boolean = true): StreamElement? {
+        val version = _members
+            .filter {
+                if (it.base != base)
+                    return@filter false
+                val comparison = comparator.compare(it.timestampValue, timestampValue)
+                comparison < 0 || inclusive && comparison == 0
+            }.maxWithOrNull(compareBy(comparator) { it.timestampValue })
+            ?: return null
+        return transform.decode(source = store, identifier = version.identifier)
+    }
+
     fun add(
         baseVersion: Quad.NamedTerm,
         timestamp: Quad.Literal,
         data: StreamElement,
     ) {
-        val hint = Quad.NamedTerm("${baseVersion.value}#v${members.count { it.base == baseVersion }}")
+        val hint = Quad.NamedTerm("${baseVersion.value}#v${_members.count { it.base == baseVersion }}")
         val element = transform.encode(target = store, element = data, hint = hint)
         store.add(Quad(identifier, LDES.member, element))
         store.add(Quad(element, timestampPath, timestamp))
         store.add(Quad(element, versionOfPath, baseVersion))
-        members.add(
-            VersionedMember(
+        _members.add(
+            Member(
                 identifier = element,
                 base = baseVersion,
                 timestampValue = timestamp,
@@ -130,7 +149,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
 
     /* build up methods */
 
-    private fun materializeVersionedMembers(store: Store): MutableList<VersionedMember> =
+    private fun materializeVersionedMembers(store: Store): MutableList<Member> =
         store
             .filter { it.s == identifier && it.p == LDES.member }
             .mapTo(mutableListOf()) {
@@ -142,8 +161,8 @@ class VersionedLinkedDataEventStream<StreamElement>(
     private fun materialize(
         store: Store,
         identifier: Quad.NamedTerm,
-    ): VersionedMember {
-        return VersionedMember(
+    ): Member {
+        return Member(
             identifier = identifier,
             base = store.singleOrNull { it.s == identifier && it.p == versionOfPath }?.o as? Quad.NamedTerm
                 ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $versionOfPath associated, or is not an IRI"),
