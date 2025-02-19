@@ -3,6 +3,7 @@ package dev.tesserakt.rdf.trig.serialization
 import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.util.addFront
+import dev.tesserakt.util.fit
 import kotlin.jvm.JvmInline
 
 
@@ -31,7 +32,7 @@ data class PrettyFormatter(
      * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
      *  a set of spaces or tabs
      */
-    val indent: Indent = SimpleIndent("    "),
+    val indent: Indent = DynamicIndent("    "),
     /**
      * The strategy used to flatten block structures
      */
@@ -122,12 +123,22 @@ data class PrettyFormatter(
     }
 
     fun interface Indent {
-        fun create(depth: Int): String
+        fun create(stack: Stack): String
     }
 
     @JvmInline
-    value class SimpleIndent(private val pattern: String): Indent {
-        override fun create(depth: Int) = pattern.repeat(depth)
+    value class FixedStepIndent(private val pattern: String): Indent {
+        override fun create(stack: Stack) = pattern.repeat(stack.depth)
+    }
+    @JvmInline
+    value class DynamicIndent(private val pattern: String): Indent {
+        override fun create(stack: Stack): String {
+            val length =
+                (stack.g?.syntax?.length?.plus(1) ?: 0) +
+                (stack.s?.syntax?.length?.plus(1) ?: 0) +
+                (stack.p?.syntax?.length?.plus(1) ?: 0)
+            return pattern.fit(length)
+        }
     }
 
     /**
@@ -148,45 +159,59 @@ data class PrettyFormatter(
         }
     }
 
-    @JvmInline
-    private value class Stack private constructor(private val frames: MutableList<Position>) {
+    class Stack {
 
-        enum class Position {
-            SUBJECT,
-            PREDICATE,
-            OBJECT
-        }
+        /* stack state */
 
-        constructor(): this(mutableListOf(Position.SUBJECT))
+        internal var g: TriGToken? = null
+            private set
+        internal var s: TriGToken? = null
+            private set
+        internal var p: TriGToken? = null
+            private set
+        // we don't have to track the object here
 
-        val indent: Int
-            get() = frames.count { it != Position.SUBJECT } + frames.size - 1
-
-        val position: Position
-            get() = frames.last()
-
-        fun set(target: Position) {
-            frames[frames.size - 1] = target
-        }
-
-        fun advance() {
-            when (frames[frames.size - 1]) {
-                Position.SUBJECT -> frames[frames.size - 1] = Position.PREDICATE
-                Position.PREDICATE -> frames[frames.size - 1] = Position.OBJECT
-                Position.OBJECT -> throw IllegalStateException("Formatting error, encountered an invalid stack position!")
+        val depth: Int
+            get() {
+                // depth inside the potential graph body
+                val body = if (s == null) 1 else if (p == null) 2 else 3
+                // if we're not actually inside a graph body (= default graph), we have to decrease one depth
+                return if (g == null) body - 1 else body
             }
+
+        internal fun setGraph(graph: TriGToken?) {
+            g = graph
+            s = null
+            p = null
         }
 
-        fun startFrame() {
-            frames.add(Position.SUBJECT)
+        internal fun clearGraph() {
+            g = null
+            s = null
+            p = null
         }
 
-        fun stopFrame() {
-            check(frames.size > 1) { "Invalid frame termination request! Root frame cannot be removed!" }
-            frames.removeLast()
+        internal fun setSubject(token: TriGToken) {
+            s = token
+            p = null
         }
 
-        override fun toString() = frames.joinToString(" => ")
+        internal fun clearSubject() {
+            s = null
+            p = null
+        }
+
+        internal fun setPredicate(token: TriGToken) {
+            checkNotNull(s)
+            p = token
+        }
+
+        internal fun clearPredicate() {
+            checkNotNull(s)
+            p = null
+        }
+
+        override fun toString() = "Stack, positioned @ $g, $s, $p"
 
     }
 
@@ -230,22 +255,28 @@ data class PrettyFormatter(
         buffer: TokenBuffer,
         multiline: Boolean,
     ): Iterator<String> = iterator {
+        // setting the subject
+        stack.setSubject(buffer.current)
+        yield(formatToken(buffer))
+        yield(" ")
+        // setting the predicate
+        stack.setPredicate(buffer.current)
+        yield(formatToken(buffer))
+        yield(" ")
+        // the rest of *this* statement can only be additional objects or predicates
+        var pos = 2
         while (true) {
-            if (stack.position == Stack.Position.SUBJECT) {
-                yieldAll(formatToken(stack, buffer))
+            if (pos == 1) {
+                stack.setPredicate(buffer.current)
+                yield(formatToken(buffer))
                 yield(" ")
-                stack.advance()
-            }
-            if (stack.position == Stack.Position.PREDICATE) {
-                yieldAll(formatToken(stack, buffer))
-                yield(" ")
-                stack.advance()
+                ++pos
             }
             // object is guaranteed
-            check(stack.position == Stack.Position.OBJECT) {
+            check(pos == 2) {
                 "Stack corruption encountered! Current stack layout: $stack"
             }
-            yieldAll(formatToken(stack, buffer))
+            yield(formatToken(buffer))
             // TODO: add additional flag/change the multiline argument type to better configure when/how to
             //  inline multiple objects
             while (buffer.current == TriGToken.Structural.ObjectTermination) {
@@ -253,20 +284,21 @@ data class PrettyFormatter(
                 yield(buffer.current.syntax) // ","
                 yield(" ")
                 buffer.advance()
-                yieldAll(formatToken(stack, buffer))
+                yield(formatToken(buffer))
             }
             when (buffer.current) {
                 TriGToken.Structural.StatementTermination -> {
                     yield(" ")
                     yield(buffer.current.syntax)
-                    stack.set(Stack.Position.SUBJECT)
+                    stack.clearSubject()
                     buffer.advance()
                     break
                 }
                 TriGToken.Structural.PredicateTermination -> {
                     yield(" ")
                     yield(buffer.current.syntax)
-                    stack.set(Stack.Position.PREDICATE)
+                    stack.clearPredicate()
+                    pos = 1
                 }
                 else -> throw IllegalStateException("Unexpected token: ${buffer.current}")
             }
@@ -281,25 +313,27 @@ data class PrettyFormatter(
             // preparing for next iteration
             if (multiline) {
                 yield("\n")
-                yield(indent.create(stack.indent))
+                yield(indent.create(stack))
             } else {
                 yield(" ")
             }
         }
     }
 
-    private fun formatToken(stack: Stack, buffer: TokenBuffer) = iterator {
+    private fun formatToken(buffer: TokenBuffer): String {
         when (buffer.current) {
             TriGToken.Structural.BlankStart -> {
                 TODO("Implementation required, similar to statements list, terminating statements with `;` tokens")
             }
             is TriGToken.TermToken -> {
-                yield(buffer.current.syntax)
+                val result = buffer.current.syntax
                 buffer.advance()
+                return result
             }
             TriGToken.Structural.TypePredicate -> {
-                yield(buffer.current.syntax)
+                val result = buffer.current.syntax
                 buffer.advance()
+                return result
             }
             else -> {
                 throw IllegalStateException("Unexpected buffer state: $buffer")
@@ -309,6 +343,7 @@ data class PrettyFormatter(
 
     private fun formatGraph(stack: Stack, buffer: TokenBuffer) = iterator {
         require(buffer.current is TriGToken.TermToken)
+        val g = buffer.current
         require(buffer.next == TriGToken.Structural.GraphStatementStart)
         yield(buffer.current.syntax)
         yield(" ")
@@ -328,10 +363,10 @@ data class PrettyFormatter(
         yield(buffer.current.syntax) // "{"
         buffer.advance()
         // starting the next statements (yielding relevant tokens) inside a new frame
-        stack.startFrame()
+        stack.setGraph(g)
         if (multiline) {
             yield("\n")
-            yield(indent.create(stack.indent))
+            yield(indent.create(stack))
         } else {
             yield(" ")
         }
@@ -339,7 +374,7 @@ data class PrettyFormatter(
         while (buffer.current != TriGToken.Structural.GraphStatementEnd) {
             if (multiline) {
                 yield("\n\n")
-                yield(indent.create(stack.indent))
+                yield(indent.create(stack))
             } else {
                 yield(" ")
             }
@@ -349,10 +384,10 @@ data class PrettyFormatter(
             throw IllegalStateException("Did not reach the end of the graph statement properly!")
         }
         // terminating this frame
-        stack.stopFrame()
+        stack.clearGraph()
         if (multiline) {
             yield("\n")
-            yield(indent.create(stack.indent))
+            yield(indent.create(stack))
         } else {
             yield(" ")
         }
