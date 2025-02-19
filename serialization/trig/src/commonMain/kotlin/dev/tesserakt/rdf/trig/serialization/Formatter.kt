@@ -26,13 +26,17 @@ data object SimpleFormatter: Formatter() {
     }
 }
 
+private const val INDENT_PATTERN = "    "
+
 data class PrettyFormatter(
     val prefixes: Prefixes,
     /**
      * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
      *  a set of spaces or tabs
      */
-    val indent: Indent = DynamicIndent("    "),
+    // if we have no prefixes configured, the individual text elements are likely to be lengthy, causing a dynamic
+    //  indent to be too long
+    val indent: Indent = if (prefixes.isEmpty()) FixedStepIndent(INDENT_PATTERN) else DynamicIndent(INDENT_PATTERN),
     /**
      * The strategy used to flatten block structures
      */
