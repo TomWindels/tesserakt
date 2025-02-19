@@ -97,7 +97,9 @@ class VersionedLinkedDataEventStream<StreamElement>(
         timestamp: Quad.Literal,
         data: StreamElement,
     ) {
-        val hint = Quad.NamedTerm("${baseVersion.value}#v${_members.count { it.base == baseVersion }}")
+        // it's discouraged to use a `#`, as most serialization formats cannot use a prefixed representation of the
+        //  member's name anymore (it would denote the start of a comment)
+        val hint = Quad.NamedTerm("${baseVersion.value}_v${_members.count { it.base == baseVersion }}")
         val element = transform.encode(target = store, element = data, hint = hint)
         store.add(Quad(identifier, LDES.member, element))
         store.add(Quad(element, timestampPath, timestamp))
