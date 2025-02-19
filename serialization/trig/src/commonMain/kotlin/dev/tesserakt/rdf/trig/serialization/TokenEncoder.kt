@@ -1,64 +1,185 @@
 package dev.tesserakt.rdf.trig.serialization
 
+import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
-import kotlin.jvm.JvmInline
 
+/**
+ * Token encoder, converting an iterator of [Quad]s into an iterator of [TriGToken]s that can be converted into a
+ *  serialized representation of the [Quad] iterable. See the constructor overload taking a [Collection] as a parameter
+ *  for a more optimised token stream, at the cost of copying and reordering the underlying quad collection.
+ *
+ * Important: this token encoder does **NOT** convert blank representations into blank statements using `[]` syntax, as
+ *  it is never guaranteed for an iterable of [Quad]s to stop its use of a blank node after a given point in time.
+ *  Therefore, to support additional uses of already defined blank nodes later in the iterable, the `_:b` representation
+ *  is always used.
+ */
+internal class TokenEncoder(
+    private val source: Iterator<Quad>
+) : Iterator<TriGToken> {
 
-@JvmInline
-internal value class TokenEncoder(
-    private val data: Map<Quad. Graph, Map<Quad. Term, Map<Quad. NamedTerm, List<Quad. Term>>>>
-) : Iterable<TriGToken> {
+    constructor(collection: Collection<Quad>) : this(collection.orderedIterator())
 
-    constructor(store: Collection<Quad>): this(store.optimise())
+    /* iteration state, tracking the ongoing graph block, if any */
+    private var inGraphBlock = false
+    private var g: Quad.Graph = Quad.DefaultGraph
 
-    override fun iterator(): Iterator<TriGToken> = iterator {
-        data.forEach { yieldGraph(it) }
-    }
+    // last emitted variables, used to track what sequence should be sent
+    // set back to null if it's guaranteed that it has to be resent (i.e. during graph block change)
+    private var s: Quad.Term? = null
+    private var p: Quad.NamedTerm? = null
+    private var o: Quad.Term? = null
 
-    private suspend fun SequenceScope<TriGToken>.yieldGraph(entry: Map.Entry<Quad.Graph, Map<Quad.Term, Map<Quad.NamedTerm, List<Quad.Term>>>>) {
-        wrap(entry.key) {
-            entry.value.forEach { yieldGraphEntry(it) }
+    private var current: Quad? = if (source.hasNext()) source.next() else null
+
+    private var nextToken: TriGToken? = null
+
+    override fun hasNext(): Boolean {
+        if (nextToken != null) {
+            return true
         }
+        incrementToken()
+        return nextToken != null
     }
 
-    private suspend fun SequenceScope<TriGToken>.yieldGraphEntry(entry: Map.Entry<Quad.Term, Map<Quad.NamedTerm, List<Quad.Term>>>) {
-        yield(entry.key.toToken())
-        val values = entry.value.toList()
-        repeat(values.size - 1) {
-            yieldPredicate(values[it])
-            yield(TriGToken.Structural.PredicateTermination)
+    override fun next(): TriGToken {
+        var token = nextToken
+        if (token != null) {
+            nextToken = null
+            return token
         }
-        yieldPredicate(values.last())
-        yield(TriGToken.Structural.StatementTermination)
+        incrementToken()
+        token = nextToken
+        nextToken = null
+        return token ?: throw NoSuchElementException()
     }
 
-    private suspend fun SequenceScope<TriGToken>.yieldPredicate(entry: Pair<Quad.Term, List<Quad.Term>>) {
-        yield(entry.first.toToken())
-        repeat(entry.second.size - 1) {
-            yield(entry.second[it].toToken())
-            yield(TriGToken.Structural.ObjectTermination)
-        }
-        yield(entry.second.last().toToken())
-    }
-
-    private suspend inline fun SequenceScope<TriGToken>.wrap(graph: Quad.Graph, block: () -> Unit) {
-        when (graph) {
-            Quad.DefaultGraph -> {
-                block()
+    private fun incrementToken() {
+        val current = current
+        when {
+            current == null && inGraphBlock -> {
+                s = null
+                p = null
+                o = null
+                inGraphBlock = false
+                nextToken = TriGToken.Structural.GraphStatementEnd
             }
-            is Quad.BlankTerm -> {
-                yield(graph.toToken())
-                yield(TriGToken.Structural.GraphStatementStart)
-                block()
-                yield(TriGToken.Structural.GraphStatementEnd)
+
+            current == null && o != null -> {
+                s = null
+                p = null
+                o = null
+                nextToken = TriGToken.Structural.StatementTermination
             }
-            is Quad.NamedTerm -> {
-                yield(graph.toToken())
-                yield(TriGToken.Structural.GraphStatementStart)
-                block()
-                yield(TriGToken.Structural.GraphStatementEnd)
+
+            current == null -> {
+                nextToken = null
+            }
+
+            g != current.g && inGraphBlock -> {
+                inGraphBlock = false
+                nextToken = TriGToken.Structural.GraphStatementEnd
+            }
+
+            g != current.g && !inGraphBlock && current.g == Quad.DefaultGraph -> {
+                g = current.g
+                //  we also have to reset our state
+                s = null
+                p = null
+                o = null
+                // but the next token has to be set by the next iteration
+                incrementToken()
+            }
+
+            g != current.g && !inGraphBlock -> {
+                g = current.g
+                //  we also have to reset our state
+                s = null
+                p = null
+                o = null
+                nextToken = current.g.toGraphToken()
+            }
+
+            g == current.g && !inGraphBlock && g != Quad.DefaultGraph -> {
+                inGraphBlock = true
+                nextToken = TriGToken.Structural.GraphStatementStart
+            }
+
+            s != current.s -> {
+                s = current.s
+                //  we also have to reset our state
+                p = null
+                o = null
+                nextToken = current.s.toToken()
+            }
+
+            p != current.p -> {
+                p = current.p
+                o = null
+                nextToken = current.p.toToken()
+            }
+
+            o != current.o -> {
+                o = current.o
+                nextToken = current.o.toToken()
+            }
+
+            else -> {
+                // this quad has been fully emitted, meaning we need to see what the next one is about to properly
+                //  terminate this sequence
+                consumeQuad()
+                val upcoming = this.current
+                when {
+                    // first ensuring we're fully terminating the stream if there's no input remaining
+                    upcoming == null && nextToken != TriGToken.Structural.StatementTermination -> {
+                        //  we also have to reset our state
+                        s = null
+                        p = null
+                        o = null
+                        nextToken = TriGToken.Structural.StatementTermination
+                    }
+
+                    upcoming == null && inGraphBlock -> {
+                        nextToken = TriGToken.Structural.GraphStatementEnd
+                        inGraphBlock = false
+                    }
+
+                    upcoming == null -> {
+                        nextToken = null
+                    }
+
+                    upcoming.s != s -> {
+                        // resetting state
+                        s = null
+                        p = null
+                        o = null
+                        nextToken = TriGToken.Structural.StatementTermination
+                    }
+
+                    upcoming.p != p -> {
+                        // resetting state
+                        p = null
+                        o = null
+                        nextToken = TriGToken.Structural.PredicateTermination
+                    }
+
+                    upcoming.o != o -> {
+                        // resetting state
+                        o = null
+                        nextToken = TriGToken.Structural.ObjectTermination
+                    }
+                }
             }
         }
+    }
+
+    private fun consumeQuad() {
+        current = if (source.hasNext()) source.next() else null
+    }
+
+    private fun Quad.Graph.toGraphToken(): TriGToken = when (this) {
+        is Quad.BlankTerm -> toToken()
+        is Quad.NamedTerm -> toToken()
+        Quad.DefaultGraph -> throw IllegalArgumentException("Default graphs are not explicitly encoded using this encoder!")
     }
 
     private fun Quad.Term.toToken(): TriGToken = when (this) {
@@ -68,6 +189,8 @@ internal value class TokenEncoder(
         is Quad.Literal ->
             TriGToken.LiteralTerm(value = value, type = type.toToken() as TriGToken.NonLiteralTerm)
 
+        RDF.type -> TriGToken.Structural.TypePredicate
+
         is Quad.NamedTerm ->
             TriGToken.Term(value = value)
     }
@@ -75,18 +198,15 @@ internal value class TokenEncoder(
 }
 
 /**
- * Sorts the store by its subjects first, followed by its predicates, to allow for a more compact
- *  string representation
+ * Returns a custom iterator that iterates over the collection in an ordered fashion, where all quads are returned
+ *  grouped by graph, followed by subject and predicate
  */
-private fun Collection<Quad>.optimise() = this
+private fun Collection<Quad>.orderedIterator() = this
     .groupBy { quad -> quad.g }
-    .mapValues { entry ->
-        entry.value
+    .mapValues { graphs ->
+        graphs.value
             .groupBy { quad -> quad.s }
-            .mapValues { entry ->
-                entry.value.groupBy(
-                    keySelector = { quad -> quad.p },
-                    valueTransform = { quad -> quad.o }
-                )
-            }
+            .mapValues { subjects -> subjects.value.groupBy { quad -> quad.p } }
     }
+    .flatMap { graphs -> graphs.value.flatMap { subjects -> subjects.value.flatMap { predicates -> predicates.value } } }
+    .iterator()

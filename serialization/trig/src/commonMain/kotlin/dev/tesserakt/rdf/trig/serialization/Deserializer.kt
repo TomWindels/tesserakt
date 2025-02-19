@@ -1,8 +1,9 @@
 package dev.tesserakt.rdf.trig.serialization
 
+import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 
-// TODO: blank node support
+// TODO: blank node syntax `[]` support
 // TODO: improved exception handling
 // TODO: exception on incomplete graph block
 
@@ -18,6 +19,7 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
 
     private var position = Position.Subject
     private val prefixes = mutableMapOf<String /* prefix */, String /* uri */>()
+    private val blanks = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
     private var base = ""
     private var s: Quad.Term? = null
     private var p: Quad.NamedTerm? = null
@@ -96,13 +98,22 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                     }
                 }
 
-                position == Position.Predicate -> {
-                    check(token is TriGToken.TermToken)
+                position == Position.Predicate && token is TriGToken.TermToken -> {
                     val predicate = resolve(token)
                     p = predicate as? Quad.NamedTerm
                         ?: throw IllegalStateException("$predicate is not a valid predicate term!")
                     position = Position.Object
                     token = nextOrBail()
+                }
+
+                position == Position.Predicate && token == TriGToken.Structural.TypePredicate -> {
+                    p = RDF.type
+                    position = Position.Object
+                    token = nextOrBail()
+                }
+
+                position == Position.Predicate -> {
+                    throw IllegalStateException("Invalid predicate token: $token")
                 }
 
                 position == Position.Object -> {
@@ -226,9 +237,13 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
             }
 
             is TriGToken.PrefixedTerm -> {
-                val uri = prefixes[term.prefix]
-                    ?: throw IllegalStateException("Unknown prefix `${term.prefix}` in token $term")
-                Quad.NamedTerm(value = "$uri${term.value}")
+                if (term.prefix == "_") {
+                    blanks.getOrPut(term.value) { Quad.BlankTerm(id = blanks.size) }
+                } else {
+                    val uri = prefixes[term.prefix]
+                        ?: throw IllegalStateException("Unknown prefix `${term.prefix}` in token $term")
+                    Quad.NamedTerm(value = "$uri${term.value}")
+                }
             }
 
             is TriGToken.RelativeTerm -> Quad.NamedTerm(value = "$base${term.value}")

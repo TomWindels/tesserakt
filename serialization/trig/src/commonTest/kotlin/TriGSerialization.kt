@@ -43,6 +43,21 @@ class TriGSerialization {
         local("data") has local("graph") being local("my-graph")
     }
 
+    // smaller; testing inlining behaviour
+    @Test
+    fun serialize2() = serialize {
+        val ex = prefix("ex", "http://www.example.org/")
+        graph(ex("test")) {
+            val stream = ex("stream")
+            stream has type being ex("Stream")
+            stream has ex("properties") being blank {
+                type being ex("Properties")
+                ex("value") being 10
+                ex("name") being "Test".asLiteralTerm()
+            }
+        }
+    }
+
     private fun serialize(block: RDF.() -> Unit) {
         val reference = buildStore(block = block)
         val prettyPrinted = TriGSerializer.serialize(reference, prefixes = block.extractPrefixes())
@@ -50,7 +65,7 @@ class TriGSerialization {
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
         assertContentEquals(
-            expected = TokenEncoder(reference),
+            expected = TokenEncoder(reference).asIterable(),
             actual = TokenDecoder(
                 BufferedString(
                     TriGSerializer.serialize(reference).wrapAsBufferedReader()
@@ -81,9 +96,12 @@ class TriGSerialization {
     }
 
     // this is semantically not a proper iterable type, but it functions for our use case above
-    private fun <T> Iterator<T>.asIterable() = object : Iterable<T> {
-        override fun iterator(): Iterator<T> {
-            return this@asIterable
+    private fun <T> Iterator<T>.asIterable(verbose: Boolean = false) = object : Iterable<T> {
+        override fun iterator(): Iterator<T> = iterator {
+            val iter = this@asIterable
+            while (iter.hasNext()) {
+                yield(iter.next().also { if (verbose) println("${this@asIterable::class.simpleName} yields $it") })
+            }
         }
     }
 

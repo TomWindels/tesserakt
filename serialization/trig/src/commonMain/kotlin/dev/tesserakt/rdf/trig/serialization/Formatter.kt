@@ -297,6 +297,10 @@ data class PrettyFormatter(
                 yield(buffer.current.syntax)
                 buffer.advance()
             }
+            TriGToken.Structural.TypePredicate -> {
+                yield(buffer.current.syntax)
+                buffer.advance()
+            }
             else -> {
                 throw IllegalStateException("Unexpected buffer state: $buffer")
             }
