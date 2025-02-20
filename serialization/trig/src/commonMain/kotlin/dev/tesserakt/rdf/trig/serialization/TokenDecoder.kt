@@ -69,6 +69,9 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         }
         source.consume() // ':'
         val value = consumeWhile { !it.isWhitespace() }
+            // resolving escape sequences (identical to turtle)
+            // https://www.w3.org/TR/turtle/#h_note_2 -> https://www.w3.org/TR/turtle/#reserved
+            .replace(EscapeSequence) { it.groupValues[1] }
         return TriGToken.PrefixedTerm(prefix, value)
     }
 
@@ -96,3 +99,5 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
     }
 
 }
+
+private val EscapeSequence = Regex("\\\\([~.\\-!\$&'()*+,;=/?#@%_])")

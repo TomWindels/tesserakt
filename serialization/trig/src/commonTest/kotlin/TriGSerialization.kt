@@ -43,7 +43,7 @@ class TriGSerialization {
         local("data") has local("graph") being local("my-graph")
     }
 
-    // smaller; testing inlining behaviour
+    // testing blank object behaviour
     @Test
     fun serialize2() = serialize {
         val ex = prefix("ex", "http://www.example.org/")
@@ -55,6 +55,19 @@ class TriGSerialization {
                 ex("value") being 10
                 ex("name") being "Test".asLiteralTerm()
             }
+        }
+    }
+
+    // testing escape sequences
+    @Test
+    fun serialize3() = serialize {
+        val ex = prefix("ex", "http://www.example.org/")
+        graph(ex("t#st")) {
+            val stream = ex("my_stream")
+            stream has type being ex("Stream")
+            stream has ex("value") being """This\should_not#be+escaped""".asLiteralTerm()
+            // should be a valid prefix term w/o any escaping for the % sign, see https://www.w3.org/TR/turtle/#h_note_5
+            stream has ex("encoded_sequence") being ex("%AB-test")
         }
     }
 
