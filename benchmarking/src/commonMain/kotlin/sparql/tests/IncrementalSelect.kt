@@ -1,6 +1,6 @@
 package sparql.tests
 
-import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
+import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.Store

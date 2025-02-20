@@ -43,7 +43,7 @@ class Store: Set<Quad> {
 
     fun toMutableStore() = MutableStore(quads)
 
-    override fun toString() = buildString {
+    override fun toString() = if (isEmpty()) "<empty store>" else buildString {
         val s = quads.map { it.s.toString() }
         val p = quads.map { it.p.toString() }
         val o = quads.map { it.o.toString() }

@@ -11,9 +11,20 @@ include("extra")
 include("rdf")
 include("rdf-dsl")
 
+include("n3")
+include("n3-dsl")
+
 include("sparql")
 
+include("serialization:core")
+include("serialization:common")
+include("serialization:n-triples")
+include("serialization:turtle")
+include("serialization:trig")
+include("serialization:n3")
 include("serialization")
+
+include("stream:ldes")
 
 include("interop:jena")
 include("interop:rdfjs")
@@ -21,4 +32,5 @@ include("interop:rdfjs")
 include("testing:suite")
 include("testing:rdf-test-suite-js")
 
+include("benchmarking:store-replay")
 include("benchmarking")

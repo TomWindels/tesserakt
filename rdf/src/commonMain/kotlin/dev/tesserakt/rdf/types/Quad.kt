@@ -8,7 +8,8 @@ import kotlin.jvm.JvmStatic
 data class Quad(
     val s: Term,
     val p: NamedTerm,
-    val o: Term
+    val o: Term,
+    val g: Graph = DefaultGraph
 ) {
 
     override fun toString() = "$s $p $o"
@@ -17,27 +18,30 @@ data class Quad(
         val value: String
     }
 
+    sealed interface Graph
+
     @JvmInline
-    value class BlankTerm(val id: Int): Term {
+    value class BlankTerm(val id: Int): Term, Graph {
         override val value: String
             get() = "blank_$id"
         override fun toString() = value
     }
 
     @JvmInline
-    value class NamedTerm(override val value: String): Term {
+    value class NamedTerm(override val value: String): Term, Graph {
         override fun toString() = value
     }
 
-    data class Literal<T>(
-        val literal: T,
-        val type: NamedTerm,
-        override val value: String = literal.toString()
+    data class Literal(
+        override val value: String,
+        val type: NamedTerm
     ): Term {
         override fun toString(): String {
             return "\"$value\"^^${type.value}"
         }
     }
+
+    data object DefaultGraph: Graph
 
     companion object {
 
@@ -48,19 +52,19 @@ data class Quad(
         fun String.asLiteralTerm() = Literal(this, type = XSD.string)
 
         @JvmStatic
-        fun Int.asLiteralTerm() = Literal(this, type = XSD.int)
+        fun Int.asLiteralTerm() = Literal(toString(), type = XSD.int)
 
         @JvmStatic
-        fun Long.asLiteralTerm() = Literal(this, type = XSD.long)
+        fun Long.asLiteralTerm() = Literal(toString(), type = XSD.long)
 
         @JvmStatic
-        fun Float.asLiteralTerm() = Literal(this, type = XSD.float)
+        fun Float.asLiteralTerm() = Literal(toString(), type = XSD.float)
 
         @JvmStatic
-        fun Double.asLiteralTerm() = Literal(this, type = XSD.double)
+        fun Double.asLiteralTerm() = Literal(toString(), type = XSD.double)
 
         @JvmStatic
-        fun Boolean.asLiteralTerm() = Literal(this, type = XSD.boolean)
+        fun Boolean.asLiteralTerm() = Literal(toString(), type = XSD.boolean)
 
         @JvmStatic
         fun Number.asLiteralTerm() = when (this) {

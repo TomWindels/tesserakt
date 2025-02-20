@@ -18,7 +18,7 @@ inline fun Quad.toStylisedString(): StylisedString =
 inline fun Quad.Term.toStylisedString(): StylisedString = when (this) {
     is Quad.BlankTerm ->
         "blank_$id".stylise(Color.BLACK)
-    is Quad.Literal<*> -> buildStylisedString {
+    is Quad.Literal -> buildStylisedString {
         add('"')
         add(value, Color.BRIGHT_GREEN)
         add("\"^^")

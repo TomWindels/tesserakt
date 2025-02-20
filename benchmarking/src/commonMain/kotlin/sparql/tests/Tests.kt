@@ -1,8 +1,6 @@
 package sparql.tests
 
-import dev.tesserakt.rdf.dsl.RdfContext.Companion.buildStore
-import dev.tesserakt.rdf.literalTerm
-import dev.tesserakt.rdf.namedTerm
+import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
@@ -14,10 +12,10 @@ object FOAF: Ontology {
     override val prefix = "foaf"
     override val base_uri = "http://xmlns.com/foaf/0.1/"
 
-    val Person = "${base_uri}Person".namedTerm
-    val age = "${base_uri}age".namedTerm
-    val knows = "${base_uri}knows".namedTerm
-    val based_near = "${base_uri}based_near".namedTerm
+    val Person = "${base_uri}Person".asNamedTerm()
+    val age = "${base_uri}age".asNamedTerm()
+    val knows = "${base_uri}knows".asNamedTerm()
+    val based_near = "${base_uri}based_near".asNamedTerm()
 
 }
 
@@ -364,11 +362,11 @@ fun builtinTests() = tests {
             local("person2"), local("person3"), local("person4")
         )
         person has FOAF.based_near being blank {
-            "https://www.example.org/street".namedTerm being "unknown".asLiteralTerm()
-            "https://www.example.org/number".namedTerm being (-1).asLiteralTerm()
+            "https://www.example.org/street".asNamedTerm() being "unknown".asLiteralTerm()
+            "https://www.example.org/number".asNamedTerm() being (-1).asLiteralTerm()
         }
-        person has "notes".namedTerm being list(
-            "first-note".namedTerm, "second-note".namedTerm
+        person has "notes".asNamedTerm() being list(
+            "first-note".asNamedTerm(), "second-note".asNamedTerm()
         )
     }
 
@@ -461,24 +459,24 @@ fun builtinTests() = tests {
     """
 
     val addresses = buildStore {
-        "person1".namedTerm has "https://www.example.org/domicile".namedTerm being blank {
-            "https://www.example.org/address".namedTerm being blank {
-                "https://www.example.org/street".namedTerm being "Person St.".literalTerm
-                "https://www.example.org/city".namedTerm being blank {
-                    "https://www.example.org/inhabitants".namedTerm being 5000
+        "person1".asNamedTerm() has "https://www.example.org/domicile".asNamedTerm() being blank {
+            "https://www.example.org/address".asNamedTerm() being blank {
+                "https://www.example.org/street".asNamedTerm() being "Person St.".asLiteralTerm()
+                "https://www.example.org/city".asNamedTerm() being blank {
+                    "https://www.example.org/inhabitants".asNamedTerm() being 5000
                 }
             }
         }
-        "person2".namedTerm has "https://www.example.org/domicile".namedTerm being "house2".namedTerm
-        "house2".namedTerm has "https://www.example.org/address".namedTerm being "address2".namedTerm
-        "address2".namedTerm has "https://www.example.org/street".namedTerm being "Person II St.".literalTerm
-        "address2".namedTerm has "https://www.example.org/city".namedTerm being blank {
-            "https://www.example.org/inhabitants".namedTerm being 7500
+        "person2".asNamedTerm() has "https://www.example.org/domicile".asNamedTerm() being "house2".asNamedTerm()
+        "house2".asNamedTerm() has "https://www.example.org/address".asNamedTerm() being "address2".asNamedTerm()
+        "address2".asNamedTerm() has "https://www.example.org/street".asNamedTerm() being "Person II St.".asLiteralTerm()
+        "address2".asNamedTerm() has "https://www.example.org/city".asNamedTerm() being blank {
+            "https://www.example.org/inhabitants".asNamedTerm() being 7500
         }
-        "incomplete".namedTerm has "https://www.example.org/domicile".namedTerm being blank {
-            "https://www.example.org/address".namedTerm being blank {
-                "https://www.example.org/street".namedTerm being "unknown".namedTerm
-                "https://www.example.org/city".namedTerm being "unknown".namedTerm
+        "incomplete".asNamedTerm() has "https://www.example.org/domicile".asNamedTerm() being blank {
+            "https://www.example.org/address".asNamedTerm() being blank {
+                "https://www.example.org/street".asNamedTerm() being "unknown".asNamedTerm()
+                "https://www.example.org/city".asNamedTerm() being "unknown".asNamedTerm()
             }
         }
     }

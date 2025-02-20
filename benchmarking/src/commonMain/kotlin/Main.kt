@@ -1,9 +1,6 @@
 
 import dev.tesserakt.util.printerrln
-import sparql.tests.builtinTests
-import sparql.tests.compareIncrementalBasicGraphPatternOutput
-import sparql.tests.compareIncrementalChainSelectOutput
-import sparql.tests.compareIncrementalStarSelectOutput
+import sparql.tests.*
 import sparql.types.QueryExecutionTest
 import sparql.types.test
 
@@ -31,6 +28,10 @@ suspend fun run(args: Array<String>) {
             three.report()
             four.report()
             five.report()
+        }
+        1 -> {
+            val (replayBenchmarkPath) = args
+            compareIncrementalStoreReplay(replayBenchmarkPath)
         }
         2 -> {
             val (dataset, querypath) = args

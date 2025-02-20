@@ -19,6 +19,7 @@ external class N3Quad(
     val subject: N3Term
     val predicate: N3Term
     val `object`: N3Term
+    val graph: N3Term
 
 }
 

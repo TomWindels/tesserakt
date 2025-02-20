@@ -34,7 +34,7 @@ fun Quad.toJenaQuad(): org.apache.jena.sparql.core.Quad {
 
 fun Quad.Term.toJenaTerm() = when (this) {
     is Quad.NamedTerm -> NodeFactory.createURI(value)
-    is Quad.Literal<*> -> NodeFactory.createLiteral(value, type.asRDFDataType())
+    is Quad.Literal -> NodeFactory.createLiteral(value, type.asRDFDataType())
     is Quad.BlankTerm -> NodeFactory.createBlankNode(value)
 }
 
@@ -54,8 +54,8 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
 
 fun Node.toTerm() = when (this) {
     is Node_URI -> Quad.NamedTerm(value = uri)
-    is Node_Literal -> Quad.Literal<Any>(
-        literal = literalValue,
+    is Node_Literal -> Quad.Literal(
+        value = literalValue.toString(),
         type = literalDatatype.uri.asNamedTerm()
     )
     is Node_Blank -> Quad.BlankTerm(id = blankNodeLabel.takeLastWhile { it.isDigit() }.toInt())

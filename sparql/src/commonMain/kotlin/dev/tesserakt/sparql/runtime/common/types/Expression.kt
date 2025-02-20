@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.common.types
 
+import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.compiler.ast.ExpressionAST
@@ -18,7 +19,12 @@ fun interface Expression : CommonNode {
                 private val regex = Regex(ast.regex)
                 override fun execute(context: Context): Quad.Term {
                     require(context is Context.Singular)
-                    return context.current[ast.input.name].isLiteralAnd<String> { regex.matches(it) }.asLiteralTerm()
+                    val term = context.current[ast.input.name] as? Quad.Literal
+                        ?: return false.asLiteralTerm()
+                    if (term.type != XSD.string) {
+                        return false.asLiteralTerm()
+                    }
+                    return regex.matches(term.value).asLiteralTerm()
                 }
             }
         }
@@ -120,22 +126,14 @@ fun interface Expression : CommonNode {
 private val funcs = mapOf<String, (List<Quad.Term>) -> Quad.Term>(
     "strlen" to {
         @Suppress("UNCHECKED_CAST")
-        (it.single() as Quad.Literal<String>).literal.length.asLiteralTerm()
+        (it.single() as Quad.Literal).value.length.asLiteralTerm()
     },
     "concat" to { args ->
         @Suppress("UNCHECKED_CAST")
-        (args as List<Quad.Literal<String>>).joinToString { it.literal }.asLiteralTerm()
+        (args as List<Quad.Literal>).joinToString { it.value }.asLiteralTerm()
     },
 )
 
-private inline fun <reified T> Quad.Term?.isLiteralAnd(condition: (T) -> Boolean) : Boolean {
-    if (this !is Quad.Literal<*>) {
-        return false
-    }
-    val v = literal
-    return v is T && condition(v)
-}
-
 @Suppress("UNCHECKED_CAST")
 private val Quad.Term.numericalValue: Double
-    get() = (this as Quad.Literal<Number>).literal.toDouble()
+    get() = (this as Quad.Literal).value.toDouble()
