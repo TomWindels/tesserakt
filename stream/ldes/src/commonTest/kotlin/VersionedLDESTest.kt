@@ -99,7 +99,7 @@ class VersionedLDESTest {
             data = buildStore(block = two2)
         )
         println(TriGSerializer.serialize(
-            store = ldes,
+            data = ldes,
             prefixes =
                 Prefixes(one.extractPrefixes()) +
                 Prefixes(two.extractPrefixes()) +
@@ -165,7 +165,7 @@ class VersionedLDESTest {
             data = data1v2
         )
         println(TriGSerializer.serialize(
-            store = ldes,
+            data = ldes,
             prefixes = Prefixes(DC, TREE, LDES, RDF, XSD)
         ))
         assertStoreContentEqual(emptySet(), ldes.read(pre_t1))

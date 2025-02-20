@@ -10,6 +10,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":rdf"))
+                api(project(":serialization:common"))
             }
         }
     }

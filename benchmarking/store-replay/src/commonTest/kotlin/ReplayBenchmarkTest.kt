@@ -24,7 +24,7 @@ class ReplayBenchmarkTest {
     fun evaluation() {
         val benchmark = buildBenchmark()
         println(TriGSerializer.serialize(
-            store = benchmark.toStore(),
+            data = benchmark.toStore(),
             prefixes = Prefixes(XSD, TREE, LDES, DC, RDF, RBO)
         ))
         var i = 0

@@ -31,6 +31,8 @@ kotlin {
                 implementation(project(":rdf-dsl"))
                 // to evaluate the results
                 implementation(project(":testing:suite"))
+                // using the store replay feature for benchmarking
+                implementation(project(":benchmarking:store-replay"))
             }
         }
         val jvmMain by getting {

@@ -45,7 +45,7 @@ class ReplayBenchmarkBuilder(
         // https://nodejs.org/en/learn/manipulating-files/writing-files-with-nodejs#the-flags-youll-likely-use-are
         flags.flag = "a"
         TriGSerializer.serialize(
-            store = buildToStore(),
+            data = buildToStore(),
             prefixes = keys(prefixes).unsafeCast<Array<String>>().associateWith { prefixes[it] }.plus(RBO),
             callback = { content -> fs.writeFileSync(path, content, flags); Unit }
         )

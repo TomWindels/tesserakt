@@ -26,6 +26,30 @@ inline fun tests(block: TestBuilderEnv.() -> Unit) = TestBuilderEnv().apply(bloc
 
 inline fun List<QueryExecutionTest>.test(mapper: (QueryExecutionTest) -> Test) = testEnv { forEach { add(mapper(it)) } }
 
+private data class ComparisonResult(
+    val missing: List<Bindings>,
+    val leftOver: List<Bindings>
+)
+
+private val ExactMatch = ComparisonResult(emptyList(), emptyList())
+
+private fun fastCompare(
+    a: List<Bindings>,
+    b: List<Bindings>
+): ComparisonResult {
+    val counts = a.groupingBy { it }.eachCount().toMutableMap()
+    b.forEach {
+        counts[it] = (counts[it] ?: 0) - 1
+    }
+    if (counts.all { it.value == 0 }) {
+        return ExactMatch
+    }
+    return ComparisonResult(
+        missing = counts.filter { it.value > 0 }.flatMap { entry -> List(entry.value) { entry.key } },
+        leftOver = counts.filter { it.value < 0 }.flatMap { entry -> List(-entry.value) { entry.key } },
+    )
+}
+
 /**
  * Returns the diff of the two series of bindings. Ideally, the returned list is empty
  */
@@ -36,31 +60,14 @@ fun compare(
     referenceTime: Duration,
     debugInformation: String
 ): OutputComparisonTest.Result {
-    val leftOver = received.toMutableList()
-    val missing = mutableListOf<Bindings>()
-    expected.forEach { bindings ->
-        if (!leftOver.removeFirst { it == bindings }) {
-            missing.add(bindings)
-        }
-    }
+    val comparison = fastCompare(received, expected)
     return OutputComparisonTest.Result(
         received = received,
         expected = expected,
-        leftOver = leftOver,
-        missing = missing,
+        leftOver = comparison.leftOver,
+        missing = comparison.missing,
         elapsedTime = elapsedTime,
         referenceTime = referenceTime,
         debugInformation = debugInformation
     )
-}
-
-private inline fun <T> MutableList<T>.removeFirst(predicate: (T) -> Boolean): Boolean {
-    val it = listIterator()
-    while (it.hasNext()) {
-        if (predicate(it.next())) {
-            it.remove()
-            return true
-        }
-    }
-    return false
 }

@@ -92,7 +92,13 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                                 position = Position.Object
                             }
 
-                            else -> unexpectedToken(token)
+                            TriGToken.Structural.TypePredicate -> {
+                                s = resolved
+                                p = RDF.type
+                                position = Position.Object
+                            }
+
+                            else -> unexpectedToken(next)
                         }
                         token = nextOrBail()
                     }

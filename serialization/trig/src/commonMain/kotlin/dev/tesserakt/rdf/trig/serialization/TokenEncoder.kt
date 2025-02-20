@@ -19,6 +19,15 @@ internal class TokenEncoder(
 
     constructor(collection: Collection<Quad>) : this(collection.orderedIterator())
 
+    companion object {
+
+        operator fun invoke(source: Iterable<Quad>) = when (source) {
+            is Collection<Quad> -> TokenEncoder(source)
+            else -> TokenEncoder(source.iterator())
+        }
+
+    }
+
     /* iteration state, tracking the ongoing graph block, if any */
     private var inGraphBlock = false
     private var g: Quad.Graph = Quad.DefaultGraph

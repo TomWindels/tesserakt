@@ -36,7 +36,7 @@ class SnapshotStoreTest {
             .build("snapshotStore".asNamedTerm())
 
         println(TriGSerializer.serialize(
-            store = snapshotStore.toStore(),
+            data = snapshotStore.toStore(),
             prefixes = Prefixes(XSD, TREE, LDES, DC, RDF)
         ))
 

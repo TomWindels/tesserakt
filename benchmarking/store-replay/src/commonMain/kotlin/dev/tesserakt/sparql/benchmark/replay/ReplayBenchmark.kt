@@ -13,10 +13,6 @@ class ReplayBenchmark(
     val queries: List<String>
 ) {
 
-    fun interface Evaluator {
-        fun evaluate(current: Store, diff: SnapshotStore.Diff)
-    }
-
     init {
         check(queries.isNotEmpty())
     }
@@ -25,11 +21,11 @@ class ReplayBenchmark(
      * Evaluates every version of this benchmark's [store], returning its current entire version and the diff compared
      *  to the previous version.
      */
-    inline fun eval(evaluator: Evaluator) {
+    inline fun eval(block: (current: Store, diff: SnapshotStore.Diff) -> Unit) {
         val snapshots = store.snapshots.iterator()
         val diffs = store.diffs.iterator()
         while (snapshots.hasNext()) {
-            evaluator.evaluate(snapshots.next(), diffs.next())
+            block(snapshots.next(), diffs.next())
         }
         // sanity check
         check(!diffs.hasNext())

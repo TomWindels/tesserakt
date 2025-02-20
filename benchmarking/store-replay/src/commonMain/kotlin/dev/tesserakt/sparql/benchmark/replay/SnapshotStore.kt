@@ -109,6 +109,9 @@ class SnapshotStore private constructor(
 
     val identifier: Quad.NamedTerm get() = stream.identifier
 
+    val snapshotCount: Int
+        get() = stream.timestamps.size
+
     val snapshots = object: Iterable<Store> {
         override fun iterator(): Iterator<Store> = iterator {
             stream.timestamps.forEach { threshold ->
