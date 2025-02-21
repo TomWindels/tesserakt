@@ -13,29 +13,51 @@ import dev.tesserakt.sparql.runtime.incremental.evaluation.query
 import dev.tesserakt.util.printerrln
 import sparql.ExternalQueryExecution
 import sparql.types.OutputComparisonTest
+import sparql.types.fastCompare
 import kotlin.time.measureTime
 
 private data class ReplayTestResult(
+    val previous: List<Bindings>?,
     val result: OutputComparisonTest.Result,
     val storeSize: Int,
     val diff: SnapshotStore.Diff,
 ) {
 
+    private val comparison = previous?.let { fastCompare(it, result.received) }
+
     fun isSuccess() = result.isSuccess()
 
     override fun toString(): String = if (!isSuccess()) result.toString() else buildString {
-        appendLine("Δ +${diff.insertions.size} quad(s), -${diff.deletions.size} quad(s)")
-        appendLine("∑ $storeSize quad(s)")
+        appendLine("× Input")
+        appendLine(inputReport().prependIndent("  "))
+        appendLine("× Output")
+        appendLine(outputReport().prependIndent("  "))
+        appendLine("× Time statistics")
+        append(timeReport().prependIndent("  "))
+    }
+
+    private fun inputReport(): String = buildString {
+        appendLine("∑ $storeSize quad(s) total")
+        append("Δ ${diff.insertions.size} added, ${diff.deletions.size} removed")
+    }
+
+    private fun outputReport(): String = if (comparison == null) "${result.received.size} binding(s)" else buildString {
+        appendLine("∑ ${result.received.size} binding(s) total")
+        append("Δ ${comparison.leftOver.size} added, ${comparison.missing.size} removed")
+    }
+
+    private fun timeReport(): String = buildString {
+        append("Incremental: ")
+        appendLine(result.elapsedTime)
+        append("Reference: ")
         val ratio = (result.referenceTime.inWholeNanoseconds.toDouble() / result.elapsedTime.inWholeNanoseconds).toString()
+        append(result.referenceTime)
         if (ratio.all { it.isDigit() || it == '.' }) {
             // if normal representation, truncating the format
             val shortened = if ('.' in ratio) {
                 ratio.substring(0, endIndex = ratio.indexOfFirst { it == '.' } + 2)
             } else ratio
-            append("P ${result.received.size} binding(s) in ${result.elapsedTime} (<-> ${result.referenceTime}, ${shortened}x)")
-        } else {
-            // else, when e.g. `1e-1`, keeping it
-            append("P ${result.received.size} binding(s) in ${result.elapsedTime} (<-> ${result.referenceTime})")
+            append(", ${shortened}x")
         }
     }
 
@@ -58,6 +80,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
         val evaluation = store.query(query.asSPARQLSelectQuery())
         println("Beginning new evaluation for query ${i + 1}")
         var snapshotIndex = 0
+        var previous: List<Bindings>? = null
         benchmark.eval { current, diff ->
             ++snapshotIndex
             println("# $snapshotIndex")
@@ -82,7 +105,8 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
                 elapsedTime = time,
                 referenceTime = reference
             )
-            val result = ReplayTestResult(comparison, store.size, diff)
+            val result = ReplayTestResult(previous, comparison, store.size, diff)
+            previous = result.result.received
             if (!result.isSuccess()) {
                 printerrln(result.toString())
                 // bailing early

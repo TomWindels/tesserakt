@@ -9,8 +9,8 @@ class IncrementalSelectQuery internal constructor(ast: SelectQuery): Incremental
 
     override fun process(change: ResultChange<Bindings>): ResultChange<Bindings> {
         return when (change) {
-            is ResultChange.New -> ResultChange.New(change.value.filterKeys { name -> name in variables })
-            is ResultChange.Removed -> ResultChange.Removed(change.value.filterKeys { name -> name in variables })
+            is ResultChange.New -> ResultChange.New(variables.associateWith { change.value[it]!! })
+            is ResultChange.Removed -> ResultChange.Removed(variables.associateWith { change.value[it]!! })
         }
     }
 
