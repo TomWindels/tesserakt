@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
-import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.plus
 import dev.tesserakt.sparql.runtime.util.Bitmask
 
@@ -10,7 +10,7 @@ import dev.tesserakt.sparql.runtime.util.Bitmask
  * Adds all results found inside `this` list together where compatible as additional contenders for complete result
  *  generation (for input quads matching multiple patterns at once)
  */
-internal inline fun List<Pair<Bitmask, List<Delta.Bindings>>>.expandBindingDeltas(): List<Pair<Bitmask, List<Delta.Bindings>>> {
+internal inline fun List<Pair<Bitmask, List<MappingDelta>>>.expandBindingDeltas(): List<Pair<Bitmask, List<MappingDelta>>> {
     val result = toMutableList()
     var i = 0
     while (i < result.size - 1) {
@@ -42,7 +42,7 @@ internal inline fun bindingNamesOf(
     `object`: Pattern.Object
 ): Set<String> = setOfNotNull(subject.bindingName, predicate.bindingName, `object`.bindingName)
 
-internal inline fun JoinTree.join(deltas: List<Delta.Bindings>): List<Delta.Bindings> {
+internal inline fun JoinTree.join(deltas: List<MappingDelta>): List<MappingDelta> {
     return deltas.flatMap { delta -> join(delta) }
 }
 

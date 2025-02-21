@@ -4,28 +4,28 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.util.compatibleWith
 
-internal inline fun addition(quad: Quad) = Delta.DataAddition(quad)
+internal inline fun addition(quad: Quad) = DataAddition(quad)
 
-internal inline fun addition(mapping: Mapping) = Delta.BindingsAddition(mapping)
+internal inline fun addition(mapping: Mapping) = MappingAddition(mapping)
 
-operator fun Delta.Bindings.plus(other: Delta.Bindings): Delta.Bindings? {
+internal operator fun MappingDelta.plus(other: MappingDelta): MappingDelta? {
     return when {
-        this is Delta.BindingsAddition &&
-        other is Delta.BindingsAddition &&
+        this is MappingAddition &&
+        other is MappingAddition &&
         value.compatibleWith(other.value) ->
-            Delta.BindingsAddition(value = value + other.value)
+            MappingAddition(value = value + other.value)
 
         else -> null
     }
 }
 
-inline fun Delta.Bindings.map(transform: (Mapping) -> Mapping) = when (this) {
-    is Delta.BindingsAddition -> Delta.BindingsAddition(transform(value))
-    is Delta.BindingsDeletion -> Delta.BindingsDeletion(transform(value))
+internal inline fun MappingDelta.map(transform: (Mapping) -> Mapping) = when (this) {
+    is MappingAddition -> MappingAddition(transform(value))
+    is MappingDeletion -> MappingDeletion(transform(value))
 }
 
 
-inline fun Delta.Bindings.transform(transform: (Mapping) -> Collection<Mapping>) = when (this) {
-    is Delta.BindingsAddition -> transform(value).map { Delta.BindingsAddition(it) }
-    is Delta.BindingsDeletion -> transform(value).map { Delta.BindingsDeletion(it) }
+internal inline fun MappingDelta.transform(transform: (Mapping) -> Collection<Mapping>) = when (this) {
+    is MappingAddition -> transform(value).map { MappingAddition(it) }
+    is MappingDeletion -> transform(value).map { MappingDeletion(it) }
 }

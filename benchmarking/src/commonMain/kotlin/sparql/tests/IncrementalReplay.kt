@@ -41,6 +41,8 @@ private data class ReplayTestResult(
 
 }
 
+expect fun awaitBenchmarkStart()
+
 suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
     val benchmark = ReplayBenchmark
         .from(store = TriGSerializer.deserialize(Path(benchmarkFilepath)).consume())
@@ -50,6 +52,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
     } else {
         println("Found ${benchmark.queries.size} queries that will be used on a store with ${benchmark.store.snapshotCount} snapshot(s)!")
     }
+    awaitBenchmarkStart()
     benchmark.queries.forEachIndexed { i, query ->
         val store = MutableStore()
         val evaluation = store.query(query.asSPARQLSelectQuery())

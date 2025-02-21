@@ -42,11 +42,23 @@ internal value class NestedJoinArray(
     }
 
     override fun remove(mapping: Mapping) {
-        this.mappings.remove(mapping)
+        val i = this.mappings.indexOfLast { it == mapping }
+        when (i) {
+            -1 -> {
+                throw IllegalStateException("$mapping cannot be removed from NestedJoinArray - not found!")
+            }
+            this.mappings.size - 1 -> {
+                this.mappings.removeLast()
+            }
+            else -> {
+                // putting the last element there instead
+                this.mappings[i] = this.mappings.removeLast()
+            }
+        }
     }
 
     override fun removeAll(mappings: Collection<Mapping>) {
-        this.mappings.removeAll(mappings)
+        mappings.forEach(::remove)
     }
 
     override fun toString() = "NestedJoinArray (cardinality ${mappings.size})"

@@ -3,9 +3,9 @@ package dev.tesserakt.sparql.runtime.incremental.state
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.common.util.Debug
+import dev.tesserakt.sparql.runtime.core.toMapping
 import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
-import dev.tesserakt.sparql.runtime.incremental.delta.Delta
-import dev.tesserakt.sparql.runtime.incremental.delta.transform
+import dev.tesserakt.sparql.runtime.incremental.delta.*
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
 import dev.tesserakt.sparql.runtime.incremental.types.Union
@@ -25,7 +25,7 @@ internal sealed interface JoinTree {
     @JvmInline
     value class None<J: MutableJoinState>(private val states: List<J>): JoinTree {
 
-        override fun peek(delta: Delta.Data): List<Delta.Bindings> {
+        override fun peek(delta: DataDelta): List<MappingDelta> {
             val deltas = states
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = states.size) to pattern.peek(delta) }
                 .expandBindingDeltas()
@@ -33,11 +33,11 @@ internal sealed interface JoinTree {
             return deltas
         }
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
 
-        override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+        override fun join(delta: MappingDelta): List<MappingDelta> {
             return join(completed = Bitmask.wrap(0, length = states.size), delta)
         }
 
@@ -48,15 +48,15 @@ internal sealed interface JoinTree {
             }
         }
 
-        fun join(completed: Bitmask, delta: Delta.Bindings): List<Delta.Bindings> {
+        fun join(completed: Bitmask, delta: MappingDelta): List<MappingDelta> {
             if (completed.isOne()) {
                 return listOf(delta)
             }
             // as we only need to iterate over the patterns not yet managed, we need to inverse the bitmask
             //  before iterating over it
             return when (delta) {
-                is Delta.BindingsAddition -> {
-                    var results: List<Delta.Bindings> = listOf(delta)
+                is MappingAddition -> {
+                    var results: List<MappingDelta> = listOf(delta)
                     completed.inv().forEach { i ->
                         results = results.flatMap { states[i].join(it) }
                         if (results.isEmpty()) {
@@ -66,8 +66,8 @@ internal sealed interface JoinTree {
                     results
                 }
 
-                is Delta.BindingsDeletion -> {
-                    var results: List<Delta.Bindings> = listOf(delta)
+                is MappingDeletion -> {
+                    var results: List<MappingDelta> = listOf(delta)
                     completed.inv().forEach { i ->
                         results = results.flatMap { states[i].join(it) }
                         if (results.isEmpty()) {
@@ -121,14 +121,14 @@ internal sealed interface JoinTree {
         // using a fallback "none" join tree type to fill in the gaps after applying the left deep cache
         private val fallback = None(states)
 
-        override fun peek(delta: Delta.Data): List<Delta.Bindings> {
+        override fun peek(delta: DataDelta): List<MappingDelta> {
             return states
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = states.size) to pattern.peek(delta) }
                 .expandBindingDeltas()
                 .flatMap { (completed, solutions) -> join(completed, solutions) }
         }
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             // first recalculating the delta for the quad, inserting all intermediate results
             val updates = mutableListOf<CacheUpdate>()
             states
@@ -155,16 +155,16 @@ internal sealed interface JoinTree {
             states.forEach { it.process(delta) }
         }
 
-        override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+        override fun join(delta: MappingDelta): List<MappingDelta> {
             return join(completed = Bitmask.wrap(0, length = states.size), listOf(delta))
         }
 
-        fun join(completed: Bitmask, bindings: List<Delta.Bindings>): List<Delta.Bindings> {
+        fun join(completed: Bitmask, bindings: List<MappingDelta>): List<MappingDelta> {
             val (mask, results) = joinUsingTree(completed, bindings)
             return results.flatMap { result -> fallback.join(mask, result) }
         }
 
-        fun joinUsingTree(completed: Bitmask, bindings: List<Delta.Bindings>): Pair<Bitmask, List<Delta.Bindings>> {
+        fun joinUsingTree(completed: Bitmask, bindings: List<MappingDelta>): Pair<Bitmask, List<MappingDelta>> {
             // checking to see if we're currently matching with an unmatched
             //  result (i.e. from another union, or the empty state check)
             if (completed.isZero()) {
@@ -198,7 +198,7 @@ internal sealed interface JoinTree {
             return total to result
         }
 
-        private fun process(bitmask: Bitmask, bindings: List<Delta.Bindings>): List<CacheUpdate> {
+        private fun process(bitmask: Bitmask, bindings: List<MappingDelta>): List<CacheUpdate> {
             // we can't do much here
             if (bindings.isEmpty()) {
                 return emptyList()
@@ -218,7 +218,7 @@ internal sealed interface JoinTree {
             return bindings.map { binding ->
                 CacheUpdate(
                     index = index,
-                    addition = binding is Delta.BindingsAddition,
+                    addition = binding is MappingAddition,
                     data = binding.value
                 )
             }
@@ -228,8 +228,8 @@ internal sealed interface JoinTree {
             updates.forEach { update ->
                 val cache = cache[update.index]
                 when (update.addition) {
-                    true -> cache.add(update.data)
-                    false -> cache.remove(update.data)
+                    true -> cache.add(update.data.toMapping())
+                    false -> cache.remove(update.data.toMapping())
                 }
             }
         }
@@ -320,20 +320,20 @@ internal sealed interface JoinTree {
     }
 
     /**
-     * Returns the [Delta.Bindings] changes that occur when [process]ing the [delta] in child states part of the tree, without
+     * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in child states part of the tree, without
      *  actually modifying the tree
      */
-    fun peek(delta: Delta.Data): List<Delta.Bindings>
+    fun peek(delta: DataDelta): List<MappingDelta>
 
     /**
      * Processes the [delta], updating the tree accordingly
      */
-    fun process(delta: Delta.Data)
+    fun process(delta: DataDelta)
 
     /**
      * Returns the result of [join]ing the [delta] with its own internal state
      */
-    fun join(delta: Delta.Bindings): List<Delta.Bindings>
+    fun join(delta: MappingDelta): List<MappingDelta>
 
     /**
      * Returns a string containing debug information (runtime statistics)

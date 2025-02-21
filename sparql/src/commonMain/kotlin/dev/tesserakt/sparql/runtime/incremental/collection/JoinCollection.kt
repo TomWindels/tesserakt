@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.collection
 
 import dev.tesserakt.sparql.runtime.core.Mapping
 
-interface JoinCollection {
+internal interface JoinCollection {
 
     val mappings: List<Mapping>
 

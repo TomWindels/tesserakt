@@ -8,7 +8,7 @@ import dev.tesserakt.sparql.runtime.core.mappingOf
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.matches
 import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
-import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.delta.*
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     val s: Pattern.Subject,
@@ -26,14 +26,14 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         override val cardinality get() = data.mappings.size
 
-        final override fun process(delta: Delta.Data) {
+        final override fun process(delta: DataDelta) {
             when (delta) {
-                is Delta.DataAddition -> {
+                is DataAddition -> {
                     val new = peek(delta)
                     data.addAll(new)
                 }
 
-                is Delta.DataDeletion -> {
+                is DataDeletion -> {
                     val removed = peek(delta)
                     data.removeAll(removed)
                 }
@@ -47,7 +47,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
 
-        final override fun peek(delta: Delta.DataAddition): List<Mapping> {
+        final override fun peek(delta: DataAddition): List<Mapping> {
             return peek(delta.value)
         }
 
@@ -138,15 +138,15 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         override val cardinality: Int get() = state.cardinality
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             state.process(delta)
         }
 
-        override fun peek(delta: Delta.DataAddition): List<Mapping> {
+        override fun peek(delta: DataAddition): List<Mapping> {
             return state.peek(delta)
         }
 
-        override fun peek(delta: Delta.DataDeletion): List<Mapping> {
+        override fun peek(delta: DataDeletion): List<Mapping> {
             return state.peek(delta)
         }
 
@@ -167,15 +167,15 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         override val cardinality: Int get() = states.sumOf { it.cardinality }
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
 
-        override fun peek(delta: Delta.DataAddition): List<Mapping> {
+        override fun peek(delta: DataAddition): List<Mapping> {
             return states.flatMap { it.peek(delta) }
         }
 
-        override fun peek(delta: Delta.DataDeletion): List<Mapping> {
+        override fun peek(delta: DataDeletion): List<Mapping> {
             return states.flatMap { it.peek(delta) }
         }
 
@@ -195,15 +195,15 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         override val cardinality: Int get() = states.sumOf { it.cardinality }
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
 
-        override fun peek(delta: Delta.DataAddition): List<Mapping> {
+        override fun peek(delta: DataAddition): List<Mapping> {
             return states.flatMap { it.peek(delta) }
         }
 
-        override fun peek(delta: Delta.DataDeletion): List<Mapping> {
+        override fun peek(delta: DataDeletion): List<Mapping> {
             return states.flatMap { it.peek(delta) }
         }
 
@@ -223,11 +223,11 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         private val mappings = mutableListOf<Mapping>()
         override val cardinality: Int get() = mappings.size
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             tree.process(delta)
         }
 
-        override fun peek(delta: Delta.DataAddition): List<Mapping> {
+        override fun peek(delta: DataAddition): List<Mapping> {
             // the tree is built up using regular patterns only, meaning that there's a guarantee that all resulting
             //  solutions are additions
             return tree.peek(delta).map { it.value }
@@ -236,7 +236,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         override fun join(mapping: Mapping): List<Mapping> {
             // the tree is built up using regular patterns only, meaning that evaluating everything as an addition
             //  should give correct results
-            return tree.join(Delta.BindingsAddition(mapping)).map { it.value }
+            return tree.join(MappingAddition(mapping)).map { it.value }
         }
 
     }
@@ -251,11 +251,11 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         private val mappings = mutableListOf<Mapping>()
         override val cardinality: Int get() = mappings.size
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             tree.process(delta)
         }
 
-        override fun peek(delta: Delta.DataAddition): List<Mapping> {
+        override fun peek(delta: DataAddition): List<Mapping> {
             // the tree is built up using regular patterns only, meaning that there's a guarantee that all resulting
             //  solutions are additions
             return tree.peek(delta).map { it.value }
@@ -264,7 +264,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         override fun join(mapping: Mapping): List<Mapping> {
             // the tree is built up using regular patterns only, meaning that evaluating everything as an addition
             //  should give correct results
-            return tree.join(Delta.BindingsAddition(mapping)).map { it.value }
+            return tree.join(MappingAddition(mapping)).map { it.value }
         }
 
     }
@@ -277,27 +277,27 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
      */
     protected abstract val cardinality: Int
 
-    abstract fun peek(delta: Delta.DataAddition): List<Mapping>
+    abstract fun peek(delta: DataAddition): List<Mapping>
 
-    open fun peek(delta: Delta.DataDeletion): List<Mapping> = peek(delta = Delta.DataAddition(delta.value))
+    open fun peek(delta: DataDeletion): List<Mapping> = peek(delta = DataAddition(delta.value))
 
     abstract fun join(mapping: Mapping): List<Mapping>
 
     // triple patterns can only get new results upon getting new data and lose results upon removing data, so two
     //  specialised delta functions can be made instead, that are mapped here once
-    final override fun peek(delta: Delta.Data): List<Delta.Bindings> {
+    final override fun peek(delta: DataDelta): List<MappingDelta> {
         return when (delta) {
-            is Delta.DataAddition -> peek(delta).map { Delta.BindingsAddition(it) }
-            is Delta.DataDeletion -> peek(delta).map { Delta.BindingsDeletion(it) }
+            is DataAddition -> peek(delta).map { MappingAddition(it) }
+            is DataDeletion -> peek(delta).map { MappingDeletion(it) }
         }
     }
 
     // triple patterns can only get new results upon getting new data and lose results upon removing data, so two
     //  specialised delta functions can be made instead, that are mapped here once
-    final override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+    final override fun join(delta: MappingDelta): List<MappingDelta> {
         return when (delta) {
-            is Delta.BindingsAddition -> join(delta.value).map { Delta.BindingsAddition(it) }
-            is Delta.BindingsDeletion -> join(delta.value).map { Delta.BindingsDeletion(it) }
+            is MappingAddition -> join(delta.value).map { MappingAddition(it) }
+            is MappingDeletion -> join(delta.value).map { MappingDeletion(it) }
         }
     }
 
