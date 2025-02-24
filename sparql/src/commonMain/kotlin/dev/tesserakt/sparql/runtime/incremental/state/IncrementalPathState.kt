@@ -97,6 +97,10 @@ internal sealed class IncrementalPathState {
             return arr.join(mappings)
         }
 
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -191,6 +195,10 @@ internal sealed class IncrementalPathState {
             return arr.join(mappings)
         }
 
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -266,6 +274,10 @@ internal sealed class IncrementalPathState {
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
             return arr.join(mappings)
+        }
+
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
         }
 
         override fun toString() = segments.toString()
@@ -354,6 +366,10 @@ internal sealed class IncrementalPathState {
             return arr.join(mappings)
         }
 
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -429,6 +445,10 @@ internal sealed class IncrementalPathState {
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
             return arr.join(mappings)
+        }
+
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
         }
 
         override fun toString() = segments.toString()
@@ -514,6 +534,10 @@ internal sealed class IncrementalPathState {
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
             return arr.join(mappings)
+        }
+
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
         }
 
         override fun toString() = segments.toString()
@@ -607,6 +631,10 @@ internal sealed class IncrementalPathState {
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
             return if (satisfied) mappings else emptyList()
+        }
+
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
     }
@@ -724,6 +752,10 @@ internal sealed class IncrementalPathState {
             return if (satisfied) mappings else emptyList()
         }
 
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            TODO("Not yet implemented")
+        }
+
     }
 
     class OneOrMoreStatelessBindings(
@@ -774,6 +806,10 @@ internal sealed class IncrementalPathState {
             return arr.join(mappings)
         }
 
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -820,6 +856,10 @@ internal sealed class IncrementalPathState {
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
             return arr.join(mappings)
+        }
+
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
         }
 
         override fun toString() = segments.toString()
@@ -877,6 +917,10 @@ internal sealed class IncrementalPathState {
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
             return arr.join(mappings)
+        }
+
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
         }
 
         override fun toString() = segments.toString()
@@ -951,6 +995,10 @@ internal sealed class IncrementalPathState {
             return arr.join(mappings)
         }
 
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
+        }
+
         override fun toString() = segments.toString()
 
         private fun getNewSegments(quad: Quad): Set<SegmentsList.Segment> {
@@ -1006,6 +1054,10 @@ internal sealed class IncrementalPathState {
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
             return arr.join(mappings)
+        }
+
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
         }
 
         override fun toString() = segments.toString()
@@ -1080,6 +1132,10 @@ internal sealed class IncrementalPathState {
             return arr.join(mappings)
         }
 
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            return arr.join(mappings, ignore = ignore)
+        }
+
         override fun toString() = segments.toString()
 
         private fun getNewSegments(quad: Quad): Set<SegmentsList.Segment> {
@@ -1128,6 +1184,10 @@ internal sealed class IncrementalPathState {
 
         override fun join(mappings: List<Mapping>): List<Mapping> {
             return if (satisfied) mappings else emptyList()
+        }
+
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            TODO("Not yet implemented")
         }
 
     }
@@ -1202,6 +1262,10 @@ internal sealed class IncrementalPathState {
             return if (satisfied) mappings else emptyList()
         }
 
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+            TODO("Not yet implemented")
+        }
+
     }
 
 
@@ -1214,6 +1278,8 @@ internal sealed class IncrementalPathState {
     abstract fun peek(deletion: DataDeletion): List<Mapping>
 
     abstract fun join(mappings: List<Mapping>): List<Mapping>
+
+    abstract fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping>
 
     companion object {
 

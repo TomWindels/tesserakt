@@ -19,6 +19,24 @@ import kotlin.jvm.JvmName
  */
 internal sealed interface JoinTree {
 
+    data object Empty: JoinTree {
+
+        override fun peek(delta: DataDelta): List<MappingDelta> {
+            return emptyList()
+        }
+
+        override fun process(delta: DataDelta) {
+            // nothing to do
+        }
+
+        override fun join(delta: MappingDelta): List<MappingDelta> {
+            return listOf(delta)
+        }
+
+        override fun toString(): String = "Empty join tree"
+
+    }
+
     /**
      * Non-existent join tree
      */
@@ -346,7 +364,8 @@ internal sealed interface JoinTree {
         operator fun invoke(patterns: List<Pattern>) = when {
             // TODO(perf) specialised empty case
             // TODO(perf) also based on binding overlap
-            patterns.size >= 3 -> LeftDeep(patterns)
+//            patterns.size >= 3 -> LeftDeep(patterns)
+            patterns.isEmpty() -> Empty
             else -> None(patterns)
         }
 
@@ -354,7 +373,8 @@ internal sealed interface JoinTree {
         operator fun invoke(unions: List<Union>) = when {
             // TODO(perf) specialised empty case
             // TODO(perf) also based on binding overlap
-            unions.size >= 3 -> LeftDeep(unions)
+//            unions.size >= 3 -> LeftDeep(unions)
+            unions.isEmpty() -> Empty
             else -> None(unions)
         }
 

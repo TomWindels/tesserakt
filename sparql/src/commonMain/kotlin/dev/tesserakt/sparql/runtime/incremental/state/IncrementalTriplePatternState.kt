@@ -40,9 +40,15 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             }
         }
 
-        final override fun join(mapping: Mapping): List<Mapping> {
+        final override fun join(delta: MappingDelta): List<MappingDelta> {
             Debug.onArrayPatternJoinExecuted()
-            return data.join(mapping)
+            val removed = (delta.origin as? DataDeletion)?.value
+            return if (removed != null) {
+                val ignored = peek(removed)
+                delta.transform { data.join(delta.value, ignore = ignored) }
+            } else {
+                delta.transform { data.join(delta.value) }
+            }
         }
 
         // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
@@ -150,9 +156,14 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             return state.peek(delta)
         }
 
-        override fun join(mapping: Mapping): List<Mapping> {
-            // TODO(perf) state API improvements re: single mapping insertion
-            return state.join(listOf(mapping))
+        override fun join(delta: MappingDelta): List<MappingDelta> {
+            val removed = delta.origin as? DataDeletion
+            return if (removed != null) {
+                val ignored = peek(removed)
+                delta.transform { state.join(listOf(delta.value), ignore = ignored) }
+            } else {
+                delta.transform { state.join(listOf(delta.value)) }
+            }
         }
 
     }
@@ -179,8 +190,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             return states.flatMap { it.peek(delta) }
         }
 
-        override fun join(mapping: Mapping): List<Mapping> {
-            return states.flatMap { it.join(mapping) }
+        override fun join(delta: MappingDelta): List<MappingDelta> {
+            return states.flatMap { it.join(delta) }
         }
 
     }
@@ -207,8 +218,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             return states.flatMap { it.peek(delta) }
         }
 
-        override fun join(mapping: Mapping): List<Mapping> {
-            return states.flatMap { it.join(mapping) }
+        override fun join(delta: MappingDelta): List<MappingDelta> {
+            return states.flatMap { it.join(delta) }
         }
 
     }
@@ -233,10 +244,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             return tree.peek(delta).map { it.value }
         }
 
-        override fun join(mapping: Mapping): List<Mapping> {
-            // the tree is built up using regular patterns only, meaning that evaluating everything as an addition
-            //  should give correct results
-            return tree.join(MappingAddition(mapping)).map { it.value }
+        override fun join(delta: MappingDelta): List<MappingDelta> {
+            return tree.join(delta)
         }
 
     }
@@ -261,10 +270,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             return tree.peek(delta).map { it.value }
         }
 
-        override fun join(mapping: Mapping): List<Mapping> {
-            // the tree is built up using regular patterns only, meaning that evaluating everything as an addition
-            //  should give correct results
-            return tree.join(MappingAddition(mapping)).map { it.value }
+        override fun join(delta: MappingDelta): List<MappingDelta> {
+            return tree.join(delta)
         }
 
     }
@@ -281,23 +288,12 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
     open fun peek(delta: DataDeletion): List<Mapping> = peek(delta = DataAddition(delta.value))
 
-    abstract fun join(mapping: Mapping): List<Mapping>
-
     // triple patterns can only get new results upon getting new data and lose results upon removing data, so two
     //  specialised delta functions can be made instead, that are mapped here once
     final override fun peek(delta: DataDelta): List<MappingDelta> {
         return when (delta) {
-            is DataAddition -> peek(delta).map { MappingAddition(it) }
-            is DataDeletion -> peek(delta).map { MappingDeletion(it) }
-        }
-    }
-
-    // triple patterns can only get new results upon getting new data and lose results upon removing data, so two
-    //  specialised delta functions can be made instead, that are mapped here once
-    final override fun join(delta: MappingDelta): List<MappingDelta> {
-        return when (delta) {
-            is MappingAddition -> join(delta.value).map { MappingAddition(it) }
-            is MappingDeletion -> join(delta.value).map { MappingDeletion(it) }
+            is DataAddition -> peek(delta).map { MappingAddition(it, origin = delta) }
+            is DataDeletion -> peek(delta).map { MappingDeletion(it, origin = delta) }
         }
     }
 

@@ -23,7 +23,7 @@ data class RandomUpdateTest(
     val query: String,
     val store: Store,
     val seed: Int = 1,
-    val iterations: Int = store.size * 2
+    val iterations: Int = store.size * 200
 ) : Test {
 
     private val deltas = buildList {
@@ -67,8 +67,16 @@ data class RandomUpdateTest(
             // and processing it
             val current: List<Bindings>
             val elapsedTime = measureTime {
-                input.process(deltas[i])
-                current = ongoing.results
+                try {
+                    input.process(deltas[i])
+                    current = ongoing.results
+                } catch (e: Exception) {
+                    val results = builder.build()
+                    throw RuntimeException(
+                        "Exception occurred whilst processing delta ${i + 1}\nDelta: ${deltas[i]}\nTest results before exception:\n${results}\nLast received results: ${results.outputs.last().received}\n${deltaSummary(deltas.take(i + 1))}",
+                        e
+                    )
+                }
             }
             builder.add(
                 self = elapsedTime to current,
@@ -197,6 +205,15 @@ private fun getNextDelta(current: Set<Quad>, source: Set<Quad>, random: Random):
     } else {
         DataDeletion(current.random(random))
     }
+}
+
+private fun deltaSummary(deltas: List<DataDelta>): String = buildString {
+    repeat(deltas.size - 1) { i ->
+        append("     ")
+        appendLine(deltaSummary(i, deltas[i]))
+    }
+    append("  >> ")
+    appendLine(deltaSummary(deltas.size - 1, deltas.last()))
 }
 
 private fun deltaSummary(index: Int, delta: DataDelta): String =

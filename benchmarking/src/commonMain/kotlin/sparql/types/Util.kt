@@ -36,7 +36,7 @@ fun compare(
     referenceTime: Duration,
     debugInformation: String
 ): OutputComparisonTest.Result {
-    val comparison = fastCompare(received, expected)
+    val comparison = fastCompare(expected, received)
     return OutputComparisonTest.Result(
         received = received,
         expected = expected,

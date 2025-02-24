@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.query
 
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.incremental.types.SelectQuery
+import dev.tesserakt.util.associateWithNotNull
 
 class IncrementalSelectQuery internal constructor(ast: SelectQuery): IncrementalQuery<Bindings, SelectQuery>(ast) {
 
@@ -9,8 +10,8 @@ class IncrementalSelectQuery internal constructor(ast: SelectQuery): Incremental
 
     override fun process(change: ResultChange<Bindings>): ResultChange<Bindings> {
         return when (change) {
-            is ResultChange.New -> ResultChange.New(variables.associateWith { change.value[it]!! })
-            is ResultChange.Removed -> ResultChange.Removed(variables.associateWith { change.value[it]!! })
+            is ResultChange.New -> ResultChange.New(variables.associateWithNotNull { change.value[it] })
+            is ResultChange.Removed -> ResultChange.Removed(variables.associateWithNotNull { change.value[it] })
         }
     }
 
