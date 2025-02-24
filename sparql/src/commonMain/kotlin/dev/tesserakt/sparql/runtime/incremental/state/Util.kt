@@ -22,9 +22,7 @@ internal inline fun List<Pair<Bitmask, List<MappingDelta>>>.expandBindingDeltas(
                 return@forEach
             }
             // creating all mappings that result from combining these two sub-results
-            val merged = current.second.flatMap { solution ->
-                contender.second.mapNotNull { candidate -> solution + candidate }
-            }
+            val merged = merge(current.second, contender.second)
             // if any have been made, its combination can be appended to this result
             if (merged.isNotEmpty()) {
                 result.add(current.first or contender.first to merged)
@@ -35,6 +33,11 @@ internal inline fun List<Pair<Bitmask, List<MappingDelta>>>.expandBindingDeltas(
     // TODO(perf): simplify the result: [+ {a}, + {b}, - {a}] == [+ {b}]
     return result
 }
+
+internal fun merge(a: List<MappingDelta>, b: List<MappingDelta>): List<MappingDelta> =
+    buildList(a.size + b.size) {
+        a.forEach { one -> b.forEach { two -> (one + two)?.let { merged -> add(merged) } } }
+    }
 
 internal inline fun bindingNamesOf(
     subject: Pattern.Subject,
