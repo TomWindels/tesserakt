@@ -5,7 +5,9 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.runtime.common.types.Bindings
-import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.delta.DataAddition
+import dev.tesserakt.sparql.runtime.incremental.delta.DataDeletion
+import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.runtime.incremental.evaluation.query
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalSelectQuery
@@ -21,7 +23,7 @@ data class RandomUpdateTest(
     val query: String,
     val store: Store,
     val seed: Int = 1,
-    val iterations: Int = store.size * 2
+    val iterations: Int = store.size * 200
 ) : Test {
 
     private val deltas = buildList {
@@ -65,8 +67,16 @@ data class RandomUpdateTest(
             // and processing it
             val current: List<Bindings>
             val elapsedTime = measureTime {
-                input.process(deltas[i])
-                current = ongoing.results
+                try {
+                    input.process(deltas[i])
+                    current = ongoing.results
+                } catch (e: Exception) {
+                    val results = builder.build()
+                    throw RuntimeException(
+                        "Exception occurred whilst processing delta ${i + 1}\nDelta: ${deltas[i]}\nTest results before exception:\n${results}\nLast received results: ${results.outputs.last().received}\n${deltaSummary(deltas.take(i + 1))}",
+                        e
+                    )
+                }
             }
             builder.add(
                 self = elapsedTime to current,
@@ -85,13 +95,13 @@ data class RandomUpdateTest(
         val store: Store,
         val query: IncrementalSelectQuery,
         val outputs: List<OutputComparisonTest.Result>,
-        val deltas: List<Delta.Data>
+        val deltas: List<DataDelta>
     ) : Test.Result {
 
         class Builder(
             private val query: IncrementalSelectQuery,
             private val store: Store,
-            private val deltas: List<Delta.Data>
+            private val deltas: List<DataDelta>
         ) {
 
             private val list = ArrayList<OutputComparisonTest.Result>(store.size * 2)
@@ -182,7 +192,7 @@ data class RandomUpdateTest(
 private fun OutputComparisonTest.Result.summary() =
     "${received.size} received, ${expected.size} expected, ${missing.size} missing, ${leftOver.size} superfluous"
 
-private fun getNextDelta(current: Set<Quad>, source: Set<Quad>, random: Random): Delta.Data {
+private fun getNextDelta(current: Set<Quad>, source: Set<Quad>, random: Random): DataDelta {
     require(source.isNotEmpty()) { "Empty input data is not allowed!" }
     // biasing the type of delta based on the amount of triples currently present compared to the number of triples
     //  possible: if there aren't any triples currently present, then we guarantee an addition happening now, the
@@ -191,18 +201,27 @@ private fun getNextDelta(current: Set<Quad>, source: Set<Quad>, random: Random):
     // based on the type, we sample the next `random` item from what we have or what we can still get
     return if (isAddition) {
         val available = source - current
-        Delta.DataAddition(available.random(random))
+        DataAddition(available.random(random))
     } else {
-        Delta.DataDeletion(current.random(random))
+        DataDeletion(current.random(random))
     }
 }
 
-private fun deltaSummary(index: Int, delta: Delta.Data): String =
-    "#${(index + 1).toString().padEnd(3)} [${if (delta is Delta.DataAddition) '+' else '-'}] ${delta.value}"
+private fun deltaSummary(deltas: List<DataDelta>): String = buildString {
+    repeat(deltas.size - 1) { i ->
+        append("     ")
+        appendLine(deltaSummary(i, deltas[i]))
+    }
+    append("  >> ")
+    appendLine(deltaSummary(deltas.size - 1, deltas.last()))
+}
 
-private fun MutableStore.process(delta: Delta.Data) {
+private fun deltaSummary(index: Int, delta: DataDelta): String =
+    "#${(index + 1).toString().padEnd(3)} [${if (delta is DataAddition) '+' else '-'}] ${delta.value}"
+
+private fun MutableStore.process(delta: DataDelta) {
     when (delta) {
-        is Delta.DataAddition -> add(delta.value)
-        is Delta.DataDeletion -> remove(delta.value)
+        is DataAddition -> add(delta.value)
+        is DataDeletion -> remove(delta.value)
     }
 }

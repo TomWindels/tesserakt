@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.state
 
-import dev.tesserakt.sparql.runtime.incremental.delta.Delta
+import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
+import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
 
@@ -15,24 +16,24 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
      */
     val bindings: Set<String> = ast.getAllNamedBindings().map { it.name }.toSet()
 
-    fun insert(delta: Delta.Data): List<Delta.Bindings> {
+    fun insert(delta: DataDelta): List<MappingDelta> {
         val total = peek(delta)
         process(delta)
         return total
     }
 
-    fun peek(delta: Delta.Data): List<Delta.Bindings> {
+    fun peek(delta: DataDelta): List<MappingDelta> {
         val first = patterns.peek(delta)
         val second = unions.peek(delta)
         return patterns.join(second) + unions.join(first)
     }
 
-    fun process(delta: Delta.Data) {
+    fun process(delta: DataDelta) {
         patterns.process(delta)
         unions.process(delta)
     }
 
-    fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+    fun join(delta: MappingDelta): List<MappingDelta> {
         return unions.join(patterns.join(delta))
     }
 

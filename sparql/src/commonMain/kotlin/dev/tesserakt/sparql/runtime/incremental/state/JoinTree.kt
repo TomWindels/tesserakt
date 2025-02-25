@@ -3,9 +3,9 @@ package dev.tesserakt.sparql.runtime.incremental.state
 import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.common.util.Debug
+import dev.tesserakt.sparql.runtime.core.toMapping
 import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
-import dev.tesserakt.sparql.runtime.incremental.delta.Delta
-import dev.tesserakt.sparql.runtime.incremental.delta.transform
+import dev.tesserakt.sparql.runtime.incremental.delta.*
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
 import dev.tesserakt.sparql.runtime.incremental.types.Union
@@ -19,13 +19,31 @@ import kotlin.jvm.JvmName
  */
 internal sealed interface JoinTree {
 
+    data object Empty: JoinTree {
+
+        override fun peek(delta: DataDelta): List<MappingDelta> {
+            return emptyList()
+        }
+
+        override fun process(delta: DataDelta) {
+            // nothing to do
+        }
+
+        override fun join(delta: MappingDelta): List<MappingDelta> {
+            return listOf(delta)
+        }
+
+        override fun toString(): String = "Empty join tree"
+
+    }
+
     /**
      * Non-existent join tree
      */
     @JvmInline
     value class None<J: MutableJoinState>(private val states: List<J>): JoinTree {
 
-        override fun peek(delta: Delta.Data): List<Delta.Bindings> {
+        override fun peek(delta: DataDelta): List<MappingDelta> {
             val deltas = states
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = states.size) to pattern.peek(delta) }
                 .expandBindingDeltas()
@@ -33,11 +51,11 @@ internal sealed interface JoinTree {
             return deltas
         }
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
 
-        override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+        override fun join(delta: MappingDelta): List<MappingDelta> {
             return join(completed = Bitmask.wrap(0, length = states.size), delta)
         }
 
@@ -48,15 +66,15 @@ internal sealed interface JoinTree {
             }
         }
 
-        fun join(completed: Bitmask, delta: Delta.Bindings): List<Delta.Bindings> {
+        fun join(completed: Bitmask, delta: MappingDelta): List<MappingDelta> {
             if (completed.isOne()) {
                 return listOf(delta)
             }
             // as we only need to iterate over the patterns not yet managed, we need to inverse the bitmask
             //  before iterating over it
             return when (delta) {
-                is Delta.BindingsAddition -> {
-                    var results: List<Delta.Bindings> = listOf(delta)
+                is MappingAddition -> {
+                    var results: List<MappingDelta> = listOf(delta)
                     completed.inv().forEach { i ->
                         results = results.flatMap { states[i].join(it) }
                         if (results.isEmpty()) {
@@ -66,8 +84,8 @@ internal sealed interface JoinTree {
                     results
                 }
 
-                is Delta.BindingsDeletion -> {
-                    var results: List<Delta.Bindings> = listOf(delta)
+                is MappingDeletion -> {
+                    var results: List<MappingDelta> = listOf(delta)
                     completed.inv().forEach { i ->
                         results = results.flatMap { states[i].join(it) }
                         if (results.isEmpty()) {
@@ -91,6 +109,282 @@ internal sealed interface JoinTree {
                 states = unions.map { IncrementalUnionState(it) }
             )
 
+        }
+
+    }
+
+    @JvmInline
+    value class Dynamic<J: MutableJoinState> private constructor(private val root: Node<J>): JoinTree {
+
+        sealed interface Node<J: MutableJoinState> {
+
+            val bindings: Set<String>
+
+            /**
+             * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in this node, without
+             *  actually modifying the node
+             */
+            fun peek(delta: DataDelta): List<MappingDelta>
+
+            /**
+             * Processes the [delta], updating the node accordingly
+             */
+            fun process(delta: DataDelta)
+
+            /**
+             * Returns the result of [join]ing the [delta] with its own internal state
+             */
+            fun join(delta: MappingDelta): List<MappingDelta>
+
+            /**
+             * Returns the result of [join]ing the [deltas] with its own internal state
+             */
+            fun join(deltas: List<MappingDelta>): List<MappingDelta> = deltas.flatMap { delta -> join(delta) }
+
+            fun debugInformation(): String
+
+            @JvmInline
+            value class Leaf<J: MutableJoinState>(val state: J): Node<J> {
+
+                override val bindings: Set<String>
+                    get() = state.bindings
+
+                override fun peek(delta: DataDelta): List<MappingDelta> {
+                    return state.peek(delta)
+                }
+
+                override fun process(delta: DataDelta) {
+                    state.process(delta)
+                }
+
+                override fun join(delta: MappingDelta): List<MappingDelta> {
+                    return state.join(delta)
+                }
+
+                override fun debugInformation(): String {
+                    return "leaf\n$state"
+                }
+            }
+
+            class Connected<J: MutableJoinState, L: Node<J>, R: Node<J>>(
+                private val left: L,
+                private val right: R,
+                indexes: List<String>
+            ): Node<J> {
+
+                override val bindings = left.bindings + right.bindings
+
+                private val buf = mutableJoinCollection(
+                    bindings = indexes.intersect(bindings)
+                        .also { check(it.isNotEmpty()) { "Connected node used with no valid indices! This is not allowed!" } }
+                )
+
+                override fun peek(delta: DataDelta): List<MappingDelta> {
+                    val one = left.peek(delta)
+                    val two = right.peek(delta)
+                    return right.join(one) + left.join(two) + merge(one, two)
+                }
+
+                override fun process(delta: DataDelta) {
+                    peek(delta).forEach { diff ->
+                        when (diff) {
+                            is MappingAddition -> buf.add(diff.value)
+                            is MappingDeletion -> buf.remove(diff.value)
+                        }
+                    }
+                    left.process(delta)
+                    right.process(delta)
+                }
+
+                override fun join(delta: MappingDelta): List<MappingDelta> {
+                    return delta.transform { buf.join(it) }
+                }
+
+                override fun debugInformation() = buildString {
+                    var lines = left.debugInformation().lines()
+                    if (lines.size > 2) {
+                        repeat(lines.size / 2) {
+                            appendLine("   ${lines[it]}")
+                        }
+                        append(" ┌ ")
+                        appendLine(lines[lines.size / 2])
+                        (lines.size / 2 + 1 until lines.size - 1).forEach {
+                            append(" │ ")
+                            appendLine(lines[it])
+                        }
+                        append("/└ ")
+                        appendLine(lines.last())
+                    } else {
+                        append(" ┌ ")
+                        appendLine(lines.first())
+                        repeat(lines.size - 2) {
+                            append(" │ ")
+                            appendLine(lines[it + 1])
+                        }
+                        append("/└ ")
+                        appendLine(lines.last())
+                    }
+                    appendLine("⨉ cached: $buf")
+                    lines = right.debugInformation().lines()
+                    if (lines.size > 2) {
+                        repeat(lines.size / 2) {
+                            appendLine("   ${lines[it]}")
+                        }
+                        append("\\┌ ")
+                        appendLine(lines[lines.size / 2])
+                        (lines.size / 2 + 1 until lines.size - 1).forEach {
+                            append(" │ ")
+                            appendLine(lines[it])
+                        }
+                        append(" └ ")
+                        append(lines.last())
+                    } else {
+                        append("\\┌ ")
+                        appendLine(lines.first())
+                        repeat(lines.size - 2) {
+                            append(" │ ")
+                            appendLine(lines[it + 1])
+                        }
+                        append(" └ ")
+                        append(lines.last())
+                    }
+                }
+
+            }
+
+            class Disconnected<J: MutableJoinState, L: Node<J>, R: Node<J>>(
+                val left: L,
+                val right: R
+            ): Node<J> {
+
+                override val bindings = left.bindings + right.bindings
+
+                override fun peek(delta: DataDelta): List<MappingDelta> {
+                    val one = left.peek(delta)
+                    val two = right.peek(delta)
+                    return right.join(one) + left.join(two) + merge(one, two)
+                }
+
+                override fun process(delta: DataDelta) {
+                    left.process(delta)
+                    right.process(delta)
+                }
+
+                override fun join(delta: MappingDelta): List<MappingDelta> {
+                    val leftOverlap = delta.value.bindings.keys.count { it in left.bindings }
+                    val rightOverlap = delta.value.bindings.keys.count { it in right.bindings }
+                    return if (leftOverlap > rightOverlap) {
+                        right.join(left.join(delta))
+                    } else {
+                        left.join(right.join(delta))
+                    }
+                }
+
+                override fun debugInformation() = buildString {
+                    var lines = left.debugInformation().lines()
+                    if (lines.size > 2) {
+                        repeat(lines.size / 2) {
+                            appendLine("   ${lines[it]}")
+                        }
+                        append(" ┌ ")
+                        appendLine(lines[lines.size / 2])
+                        (lines.size / 2 + 1 until lines.size - 1).forEach {
+                            append(" │ ")
+                            appendLine(lines[it])
+                        }
+                        append("/└ ")
+                        appendLine(lines.last())
+                    } else {
+                        append(" ┌ ")
+                        appendLine(lines.first())
+                        repeat(lines.size - 2) {
+                            append(" │ ")
+                            appendLine(lines[it + 1])
+                        }
+                        append("/└ ")
+                        appendLine(lines.last())
+                    }
+                    appendLine("⨉ not cached")
+                    lines = right.debugInformation().lines()
+                    if (lines.size > 2) {
+                        repeat(lines.size / 2) {
+                            appendLine("   ${lines[it]}")
+                        }
+                        append("\\┌ ")
+                        appendLine(lines[lines.size / 2])
+                        (lines.size / 2 + 1 until lines.size - 1).forEach {
+                            append(" │ ")
+                            appendLine(lines[it])
+                        }
+                        append(" └ ")
+                        append(lines.last())
+                    } else {
+                        append("\\┌ ")
+                        appendLine(lines.first())
+                        repeat(lines.size - 2) {
+                            append(" │ ")
+                            appendLine(lines[it + 1])
+                        }
+                        append(" └ ")
+                        append(lines.last())
+                    }
+                }
+
+            }
+
+        }
+
+        override fun peek(delta: DataDelta): List<MappingDelta> {
+            return root.peek(delta)
+        }
+
+        override fun process(delta: DataDelta) {
+            root.process(delta)
+        }
+
+        override fun join(delta: MappingDelta): List<MappingDelta> {
+            return root.join(delta)
+        }
+
+        override fun debugInformation() = buildString {
+            appendLine(" * Join tree statistics (Dynamic)")
+            appendLine(root.debugInformation().prependIndent("    "))
+        }
+
+        companion object {
+
+            @JvmName("forPatterns")
+            operator fun invoke(patterns: List<Pattern>): Dynamic<IncrementalTriplePatternState<*>> {
+                val states = patterns.map { it.createIncrementalPatternState() }
+                val root = build(states)
+                return Dynamic(root)
+            }
+
+            @JvmName("forUnions")
+            operator fun invoke(unions: List<Union>): Dynamic<IncrementalUnionState> {
+                val states = unions.map { IncrementalUnionState(it) }
+                val root = build(states)
+                return Dynamic(root)
+            }
+
+            /**
+             * Builds a tree, returning the tree's root, using the provided [states]
+             */
+            private fun <J: MutableJoinState> build(states: List<J>): Node<J> {
+                check(states.isNotEmpty())
+                if (states.size == 1) {
+                    // hardly a tree, but what can we do
+                    return Node.Leaf(states.single())
+                }
+                // TODO(perf): actually check individual states on overlapping bindings, have them be connected nodes,
+                //  with the total index list depending on the not-yet-inserted patterns
+                val remaining = states.mapTo(ArrayList(states.size)) { Node.Leaf(it) }
+                var result: Node<J> = Node.Disconnected(left = remaining.removeFirst(), right = remaining.removeFirst())
+                while (remaining.isNotEmpty()) {
+                    result = Node.Disconnected(left = result, right = remaining.removeFirst())
+                }
+                return result
+            }
         }
 
     }
@@ -121,14 +415,14 @@ internal sealed interface JoinTree {
         // using a fallback "none" join tree type to fill in the gaps after applying the left deep cache
         private val fallback = None(states)
 
-        override fun peek(delta: Delta.Data): List<Delta.Bindings> {
+        override fun peek(delta: DataDelta): List<MappingDelta> {
             return states
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = states.size) to pattern.peek(delta) }
                 .expandBindingDeltas()
                 .flatMap { (completed, solutions) -> join(completed, solutions) }
         }
 
-        override fun process(delta: Delta.Data) {
+        override fun process(delta: DataDelta) {
             // first recalculating the delta for the quad, inserting all intermediate results
             val updates = mutableListOf<CacheUpdate>()
             states
@@ -155,16 +449,16 @@ internal sealed interface JoinTree {
             states.forEach { it.process(delta) }
         }
 
-        override fun join(delta: Delta.Bindings): List<Delta.Bindings> {
+        override fun join(delta: MappingDelta): List<MappingDelta> {
             return join(completed = Bitmask.wrap(0, length = states.size), listOf(delta))
         }
 
-        fun join(completed: Bitmask, bindings: List<Delta.Bindings>): List<Delta.Bindings> {
+        fun join(completed: Bitmask, bindings: List<MappingDelta>): List<MappingDelta> {
             val (mask, results) = joinUsingTree(completed, bindings)
             return results.flatMap { result -> fallback.join(mask, result) }
         }
 
-        fun joinUsingTree(completed: Bitmask, bindings: List<Delta.Bindings>): Pair<Bitmask, List<Delta.Bindings>> {
+        fun joinUsingTree(completed: Bitmask, bindings: List<MappingDelta>): Pair<Bitmask, List<MappingDelta>> {
             // checking to see if we're currently matching with an unmatched
             //  result (i.e. from another union, or the empty state check)
             if (completed.isZero()) {
@@ -198,7 +492,7 @@ internal sealed interface JoinTree {
             return total to result
         }
 
-        private fun process(bitmask: Bitmask, bindings: List<Delta.Bindings>): List<CacheUpdate> {
+        private fun process(bitmask: Bitmask, bindings: List<MappingDelta>): List<CacheUpdate> {
             // we can't do much here
             if (bindings.isEmpty()) {
                 return emptyList()
@@ -218,7 +512,7 @@ internal sealed interface JoinTree {
             return bindings.map { binding ->
                 CacheUpdate(
                     index = index,
-                    addition = binding is Delta.BindingsAddition,
+                    addition = binding is MappingAddition,
                     data = binding.value
                 )
             }
@@ -228,8 +522,8 @@ internal sealed interface JoinTree {
             updates.forEach { update ->
                 val cache = cache[update.index]
                 when (update.addition) {
-                    true -> cache.add(update.data)
-                    false -> cache.remove(update.data)
+                    true -> cache.add(update.data.toMapping())
+                    false -> cache.remove(update.data.toMapping())
                 }
             }
         }
@@ -320,25 +614,25 @@ internal sealed interface JoinTree {
     }
 
     /**
-     * Returns the [Delta.Bindings] changes that occur when [process]ing the [delta] in child states part of the tree, without
+     * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in child states part of the tree, without
      *  actually modifying the tree
      */
-    fun peek(delta: Delta.Data): List<Delta.Bindings>
+    fun peek(delta: DataDelta): List<MappingDelta>
 
     /**
      * Processes the [delta], updating the tree accordingly
      */
-    fun process(delta: Delta.Data)
+    fun process(delta: DataDelta)
 
     /**
      * Returns the result of [join]ing the [delta] with its own internal state
      */
-    fun join(delta: Delta.Bindings): List<Delta.Bindings>
+    fun join(delta: MappingDelta): List<MappingDelta>
 
     /**
      * Returns a string containing debug information (runtime statistics)
      */
-    fun debugInformation(): String = " * Join tree statistics unavailable (implementation: ${this::class.simpleName})"
+    fun debugInformation(): String = " * Join tree statistics unavailable (implementation: ${this::class.simpleName})\n"
 
     companion object {
 
@@ -346,7 +640,8 @@ internal sealed interface JoinTree {
         operator fun invoke(patterns: List<Pattern>) = when {
             // TODO(perf) specialised empty case
             // TODO(perf) also based on binding overlap
-            patterns.size >= 3 -> LeftDeep(patterns)
+            patterns.size >= 2 -> Dynamic(patterns)
+            patterns.isEmpty() -> Empty
             else -> None(patterns)
         }
 
@@ -354,7 +649,8 @@ internal sealed interface JoinTree {
         operator fun invoke(unions: List<Union>) = when {
             // TODO(perf) specialised empty case
             // TODO(perf) also based on binding overlap
-            unions.size >= 3 -> LeftDeep(unions)
+            unions.size >= 2 -> Dynamic(unions)
+            unions.isEmpty() -> Empty
             else -> None(unions)
         }
 

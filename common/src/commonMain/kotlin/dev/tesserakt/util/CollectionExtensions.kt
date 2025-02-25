@@ -102,3 +102,62 @@ inline fun <T> MutableList<T>.weightedSort(weights: List<Int>) {
 }
 
 inline infix fun IntRange.shifted(shift: Int): IntRange = (first + shift) .. (last + shift)
+
+/**
+ * Replaces the value associated with [key] with the value computed by [transform]ing the original value (if any)
+ */
+expect inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V)
+
+/**
+ * Drops at most one occurrence of every element inside [elements]. Order of the returned list is not guaranteed! If
+ *  none of the [elements] are present inside this list, the original instance is returned.
+ */
+inline fun <T> List<T>.unorderedDrop(elements: Iterable<T>): List<T> {
+    val iter = elements.iterator()
+    // finding the first one that is actually present
+    while (iter.hasNext()) {
+        val i = indexOf(iter.next())
+        // ensuring there's an element to remove first, allowing us to delay the copy creation as long as possible
+        if (i == -1) {
+            continue
+        }
+        // creating a copy, and removing this element
+        val copy = toMutableList()
+        copy.unorderedDropAt(i)
+        /// continuing with the remainder of the set
+        while (iter.hasNext()) {
+            copy.unorderedDropAt(indexOf(iter.next()))
+        }
+        return copy
+    }
+    return this
+}
+
+/**
+ * Removes element at [index], without! preserving element order for quick removal
+ */
+inline fun <T> MutableList<T>.unorderedDropAt(index: Int) {
+    when {
+        // also covers size == 0
+        index == -1 -> {
+            return
+        }
+        // size = 1, element to be removed = 0 (as it isn't -1), so only clearing the list
+        size == 1 -> {
+            clear()
+        }
+        index == size - 1 -> {
+            removeLast()
+        }
+        else -> {
+            this[index] = removeLast()
+        }
+    }
+}
+
+inline fun <K, V: Any> Iterable<K>.associateWithNotNull(transform: (K) -> V?): Map<K, V> = buildMap {
+    this@associateWithNotNull.forEach { key ->
+        val value = transform(key) ?: return@forEach
+        put(key, value)
+    }
+}
