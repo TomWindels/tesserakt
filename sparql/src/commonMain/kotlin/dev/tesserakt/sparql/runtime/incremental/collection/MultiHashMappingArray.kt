@@ -3,15 +3,12 @@ package dev.tesserakt.sparql.runtime.incremental.collection
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.toMapping
-import dev.tesserakt.util.compatibleWith
-import dev.tesserakt.util.unorderedDrop
-import kotlin.jvm.JvmName
 
 /**
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
  *  algorithm. Hash tables are created for every binding name passed in the constructor.
  */
-internal class HashJoinArray(bindings: Set<String>): JoinCollection {
+internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
 
     // the backing structure, contains all mappings ever received
     private val backing = mutableListOf<Mapping?>()
@@ -48,6 +45,14 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
      *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
      */
     val size: Int get() = backing.size
+
+    override fun iter(mapping: Mapping): Iterable<Mapping> {
+        return getCompatibleIndices(mapping).withBacking()
+    }
+
+    override fun iter(mappings: List<Mapping>): List<Iterable<Mapping>> {
+        return getCompatibleIndices(mappings).map { it.withBacking() }
+    }
 
     /**
      * Adds a mapping to the backing array and indexes it accordingly.
@@ -105,81 +110,6 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
         // considering optimising
         if (shouldOptimise()) {
             optimise()
-        }
-    }
-
-    override fun join(mapping: Mapping): List<Mapping> {
-        val compatible = getCompatibleMappings(mapping)
-        return compatible.mapNotNull { if (it != null && it.compatibleWith(mapping)) it + mapping else null }
-    }
-
-    override fun join(mapping: Mapping, ignore: Iterable<Mapping>): List<Mapping> {
-        val compatible = getCompatibleMappings(mapping, ignore = ignore)
-        return compatible.mapNotNull { if (it != null && it.compatibleWith(mapping)) it + mapping else null }
-    }
-
-    override fun join(mappings: List<Mapping>): List<Mapping> {
-        when (mappings.size) {
-            0 -> return emptyList()
-            1 -> return join(mappings.first())
-        }
-        val compatible = getCompatibleMappings(mappings)
-        return compatible.indices.flatMap { i ->
-            compatible[i].mapNotNull { if (it != null && it.compatibleWith(mappings[i])) it + mappings[i] else null }
-        }
-    }
-
-    override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-        when (mappings.size) {
-            0 -> return emptyList()
-            1 -> return join(mappings.first(), ignore = ignore)
-        }
-        val compatible = getCompatibleMappings(mappings, ignore = ignore)
-        return compatible.indices.flatMap { i ->
-            compatible[i].mapNotNull { if (it != null && it.compatibleWith(mappings[i])) it + mappings[i] else null }
-        }
-    }
-
-    override fun join(other: JoinCollection): List<Mapping> {
-        return if (other is HashJoinArray && other.index.size > index.size) {
-            other.join(backing)
-        } else {
-            join(other.mappings)
-        }
-    }
-
-    override fun join(other: JoinCollection, ignore: Iterable<Mapping>): List<Mapping> {
-        // always preferring the join to happen here, as we can guarantee proper `ignore` logic without creating temporary
-        //  collections (see NestedJoinCollection)
-        return when (other) {
-            is HashJoinArray -> join(other.backing, ignore)
-            else -> join(other.mappings, ignore)
-        }
-    }
-
-    @JvmName("joinNullable")
-    private fun join(mappings: List<Mapping?>): List<Mapping> {
-        when (mappings.size) {
-            0 -> return emptyList()
-            1 -> return mappings.first()?.let { join(it) } ?: emptyList()
-        }
-        val compatible = getCompatibleMappings(mappings)
-        return compatible.indices.flatMap { i ->
-            val mapping = mappings[i] ?: return@flatMap emptyList()
-            compatible[i].mapNotNull { if (it != null && it.compatibleWith(mapping)) it + mapping else null }
-        }
-    }
-
-    @JvmName("joinNullable")
-    private fun join(mappings: List<Mapping?>, ignore: Iterable<Mapping>): List<Mapping> {
-        when (mappings.size) {
-            0 -> return emptyList()
-            1 -> return mappings.first()?.let { join(it, ignore = ignore) } ?: emptyList()
-        }
-        val compatible = getCompatibleMappings(mappings, ignore = ignore)
-        return compatible.indices.flatMap { i ->
-            val mapping = mappings[i] ?: return@flatMap emptyList()
-            compatible[i].mapNotNull { if (it != null && it.compatibleWith(mapping)) it + mapping else null }
         }
     }
 
@@ -289,56 +219,10 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
     }
 
     /**
-     * Returns a list of mappings compatible with the provided mapping
-     */
-    private fun getCompatibleMappings(reference: Mapping): List<Mapping?> {
-        val constraints = reference.filter { it.key in index }
-        // if there aren't any constraints, all mappings (the entire backing array) can be returned instead
-        if (constraints.isEmpty()) {
-            return backing
-        }
-        // getting all relevant indexes - if any of the mapping's values don't have an ID list present for the reference's
-        //  value, we can bail early: none match the reference
-        val indexes = constraints.map { binding -> index[binding.key]!![binding.value] ?: return emptyList() }
-        // the resulting array cannot be longer than the smallest index found, so if any of them are empty, no results
-        //  are found
-        if (indexes.any { it.isEmpty() }) {
-            return emptyList()
-        }
-        // these index arrays are guaranteed to be sorted already (see other notes), so "quickMerge"ing them and mapping
-        //  these indexes to their actual value
-        return quickMerge(indexes).map { backing[it] }
-    }
-
-    /**
-     * Returns a list of mappings compatible with the provided mapping, whilst dropping a single
-     *  occurrence of every [ignore] [Mapping]s
-     */
-    private fun getCompatibleMappings(reference: Mapping, ignore: Iterable<Mapping>): List<Mapping?> {
-        val constraints = reference.filter { it.key in index }
-        // if there aren't any constraints, all mappings (the entire backing array) can be returned instead
-        if (constraints.isEmpty()) {
-            // that's... an expensive operation unfortunately
-            return backing.unorderedDrop(ignore)
-        }
-        // getting all relevant indexes - if any of the mapping's values don't have an ID list present for the reference's
-        //  value, we can bail early: none match the reference
-        val indexes = constraints.map { binding -> index[binding.key]!![binding.value] ?: return emptyList() }
-        // the resulting array cannot be longer than the smallest index found, so if any of them are empty, no results
-        //  are found
-        if (indexes.any { it.isEmpty() }) {
-            return emptyList()
-        }
-        // these index arrays are guaranteed to be sorted already (see other notes), so "quickMerge"ing them and mapping
-        //  these indexes to their actual value
-        return quickMerge(indexes).map { backing[it] }.unorderedDrop(ignore)
-    }
-
-    /**
      * Returns a list of all compatible mappings using the provided reference mappings. References representing a
      *  non-existent binding (`null`) are automatically associated with an empty list
      */
-    private fun getCompatibleMappings(references: List<Mapping?>): List<List<Mapping?>> {
+    private fun getCompatibleIndices(references: List<Mapping?>): List<Iterable<Int>> {
         // separating the individual references into their constraints
         val constraints: Map<Mapping?, List<Int>> = references.indices.groupBy { i ->
             val current = references[i] ?: return@groupBy null
@@ -346,7 +230,7 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
             current.filter { it.key in constraints }.toMapping()
         }
         // with all relevant & unique constraints formed, the compatible mappings w/o redundant lookup can be retrieved
-        val mapped = constraints.map { (constraints, indexes) -> (constraints?.let { getCompatibleMappings(constraints) } ?: emptyList()) to indexes }
+        val mapped = constraints.map { (constraints, indexes) -> (constraints?.let { getCompatibleIndices(constraints) } ?: emptyList()) to indexes }
         // now the map can be "exploded" again into its original form
         return mapped
             .flatMapTo(ArrayList(references.size)) { entry -> entry.second.map { i -> i to entry.first } }
@@ -354,26 +238,42 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
             .map { it.second }
     }
 
-    /**
-     * Returns a list of all compatible mappings using the provided reference mappings. References representing a
-     *  non-existent binding (`null`) are automatically associated with an empty list. For every returned set, an
-     *  instance of every [ignore] item is removed from the list, if present
-     */
-    private fun getCompatibleMappings(references: List<Mapping?>, ignore: Iterable<Mapping>): List<List<Mapping?>> {
-        // separating the individual references into their constraints
-        val constraints: Map<Mapping?, List<Int>> = references.indices.groupBy { i ->
-            val current = references[i] ?: return@groupBy null
-            val constraints = current.keys.filter { it in index }.toSet()
-            current.filter { it.key in constraints }.toMapping()
+    private inner class Mapper(private val indexes: Iterable<Int>): Iterable<Mapping> {
+
+        private inner class Iter(private val iterator: Iterator<Int>): Iterator<Mapping> {
+
+            private var next = getNext()
+
+            override fun hasNext(): Boolean {
+                if (next != null) {
+                    return true
+                }
+                next = getNext()
+                return next != null
+            }
+
+            override fun next(): Mapping {
+                val current = next ?: getNext()
+                next = null
+                return current ?: throw NoSuchElementException()
+            }
+
+            private fun getNext(): Mapping? {
+                while (iterator.hasNext()) {
+                    return backing[iterator.next()] ?: continue
+                }
+                return null
+            }
+
         }
-        // with all relevant & unique constraints formed, the compatible mappings w/o redundant lookup can be retrieved
-        val mapped = constraints.map { (constraints, indexes) -> (constraints?.let { getCompatibleMappings(constraints) } ?: emptyList()) to indexes }
-        // now the map can be "exploded" again into its original form
-        return mapped
-            .flatMapTo(ArrayList(references.size)) { entry -> entry.second.map { i -> i to entry.first } }
-            .sortedBy { it.first }
-            .map { it.second.unorderedDrop(ignore) }
+
+        override fun iterator(): Iter {
+            return Iter(indexes.iterator())
+        }
+
     }
+
+    private fun Iterable<Int>.withBacking(): Iterable<Mapping> = Mapper(this)
 
     companion object {
 
@@ -383,6 +283,7 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
          *  assumes all individual index lists to be distinct and sorted in ascending order.
          */
         // example: [0, 1, 2] & [2] -> [2]
+        // TODO: this could also use iterables
         private fun quickMerge(indices: List<List<Int>>): List<Int> {
             var result = indices.first()
             var i = indices.size - 1
@@ -402,6 +303,7 @@ internal class HashJoinArray(bindings: Set<String>): JoinCollection {
          *  an argument. The method assumes the individual index lists to be distinct and sorted in ascending order.
          */
         // example: [0, 1, 2] & [2] -> [2]
+        // TODO: this could also use iterables
         private fun quickMerge(left: List<Int>, right: List<Int>): List<Int> {
             var i = 0
             var j = 0

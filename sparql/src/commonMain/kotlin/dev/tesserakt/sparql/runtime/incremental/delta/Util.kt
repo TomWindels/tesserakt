@@ -26,7 +26,7 @@ internal inline fun MappingDelta.map(transform: (Mapping) -> Mapping) = when (th
 }
 
 
-internal inline fun MappingDelta.transform(transform: (Mapping) -> Collection<Mapping>) = when (this) {
+internal inline fun MappingDelta.transform(transform: (Mapping) -> Iterable<Mapping>) = when (this) {
     is MappingAddition -> transform(value).map { MappingAddition(it, origin = origin) }
     is MappingDeletion -> transform(value).map { MappingDeletion(it, origin = origin) }
 }
