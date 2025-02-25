@@ -4,8 +4,9 @@ import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.common.util.Debug
 import dev.tesserakt.sparql.runtime.core.toMapping
-import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
+import dev.tesserakt.sparql.runtime.incremental.collection.MappingArray
 import dev.tesserakt.sparql.runtime.incremental.delta.*
+import dev.tesserakt.sparql.runtime.incremental.iterable.join
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
 import dev.tesserakt.sparql.runtime.incremental.types.Patterns
 import dev.tesserakt.sparql.runtime.incremental.types.Union
@@ -174,7 +175,7 @@ internal sealed interface JoinTree {
 
                 override val bindings = left.bindings + right.bindings
 
-                private val buf = mutableJoinCollection(
+                private val buf = MappingArray(
                     bindings = indexes.intersect(bindings)
                         .also { check(it.isNotEmpty()) { "Connected node used with no valid indices! This is not allowed!" } }
                 )
@@ -407,7 +408,7 @@ internal sealed interface JoinTree {
             available.addAll(states[1].bindings)
             repeat(states.size - 2) { i ->
                 val next = states[i + 2].bindings
-                add(mutableJoinCollection(bindings = next.intersect(available)))
+                add(MappingArray(bindings = next.intersect(available)))
                 available += next
             }
         }

@@ -6,10 +6,12 @@ import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.emptyMapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
 import dev.tesserakt.sparql.runtime.core.pattern.matches
-import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
+import dev.tesserakt.sparql.runtime.incremental.collection.MappingArray
 import dev.tesserakt.sparql.runtime.incremental.delta.DataAddition
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDeletion
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
+import dev.tesserakt.sparql.runtime.incremental.iterable.join
+import dev.tesserakt.sparql.runtime.incremental.iterable.remove
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
 import dev.tesserakt.sparql.runtime.incremental.types.Counter
 import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
@@ -25,7 +27,7 @@ internal sealed class IncrementalPathState {
         // all terms that have been discovered (count of "zero-length" segments)
         private val terms = Counter<Quad.Term>()
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name, end.name)
+        private val arr = MappingArray(start.name, end.name)
 
         override val cardinality: Int get() = arr.mappings.size
 
@@ -93,12 +95,13 @@ internal sealed class IncrementalPathState {
             return result.toList()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -114,7 +117,7 @@ internal sealed class IncrementalPathState {
         private val segments = SegmentsList()
         // all terms that have been discovered (count of "zero-length" segments)
         private val terms = Counter<Quad.Term>()
-        private val arr = mutableJoinCollection(start.name, end.name)
+        private val arr = MappingArray(start.name, end.name)
         private val inner = Pattern(start, inner, end).createIncrementalPatternState()
 
         override val cardinality: Int get() = arr.mappings.size
@@ -191,12 +194,13 @@ internal sealed class IncrementalPathState {
             return result.toList()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -210,7 +214,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name)
+        private val arr = MappingArray(start.name)
 
         override val cardinality: Int get() = arr.mappings.size
 
@@ -272,12 +276,13 @@ internal sealed class IncrementalPathState {
             return result.toList()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -291,7 +296,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name)
+        private val arr = MappingArray(start.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -362,12 +367,13 @@ internal sealed class IncrementalPathState {
             return result.toList()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -381,7 +387,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(end.name)
+        private val arr = MappingArray(end.name)
 
         override val cardinality: Int get() = arr.mappings.size
 
@@ -443,12 +449,13 @@ internal sealed class IncrementalPathState {
             return result.toList()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -462,7 +469,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(end.name)
+        private val arr = MappingArray(end.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -532,12 +539,13 @@ internal sealed class IncrementalPathState {
             return result.toList()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -629,11 +637,11 @@ internal sealed class IncrementalPathState {
             return emptyList()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return if (satisfied) mappings else emptyList()
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -748,11 +756,11 @@ internal sealed class IncrementalPathState {
             return emptyList()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return if (satisfied) mappings else emptyList()
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -765,7 +773,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name, end.name)
+        private val arr = MappingArray(start.name, end.name)
 
         override val cardinality: Int get() = arr.mappings.size
 
@@ -802,12 +810,13 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -821,7 +830,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name, end.name)
+        private val arr = MappingArray(start.name, end.name)
         private val inner = Pattern(start, inner, end).createIncrementalPatternState()
 
         override val cardinality: Int get() = arr.mappings.size
@@ -854,12 +863,13 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -878,7 +888,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name)
+        private val arr = MappingArray(start.name)
 
         override val cardinality: Int get() = arr.mappings.size
 
@@ -915,12 +925,13 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -934,7 +945,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name)
+        private val arr = MappingArray(start.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -991,12 +1002,13 @@ internal sealed class IncrementalPathState {
             return result
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -1015,7 +1027,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(end.name)
+        private val arr = MappingArray(end.name)
 
         override val cardinality: Int get() = arr.mappings.size
 
@@ -1052,12 +1064,13 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -1071,7 +1084,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(end.name)
+        private val arr = MappingArray(end.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -1128,12 +1141,13 @@ internal sealed class IncrementalPathState {
             return result
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
+            // TODO(perf): avoid the use of flatmap here
+            return arr.iter(mappings).map { it.remove(ignore) }.flatMapIndexed { i, iter -> iter.join(mappings[i]) }
         }
 
         override fun toString() = segments.toString()
@@ -1182,11 +1196,11 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return if (satisfied) mappings else emptyList()
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -1258,11 +1272,11 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>): Iterable<Mapping> {
             return if (satisfied) mappings else emptyList()
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -1277,9 +1291,9 @@ internal sealed class IncrementalPathState {
 
     abstract fun peek(deletion: DataDeletion): List<Mapping>
 
-    abstract fun join(mappings: List<Mapping>): List<Mapping>
+    abstract fun join(mappings: List<Mapping>): Iterable<Mapping>
 
-    abstract fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping>
+    abstract fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): Iterable<Mapping>
 
     companion object {
 

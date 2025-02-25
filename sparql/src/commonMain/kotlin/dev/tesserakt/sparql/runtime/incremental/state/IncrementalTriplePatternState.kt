@@ -7,8 +7,10 @@ import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.core.pattern.matches
-import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
+import dev.tesserakt.sparql.runtime.incremental.collection.MappingArray
 import dev.tesserakt.sparql.runtime.incremental.delta.*
+import dev.tesserakt.sparql.runtime.incremental.iterable.join
+import dev.tesserakt.sparql.runtime.incremental.iterable.remove
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     val s: Pattern.Subject,
@@ -22,7 +24,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         obj: Pattern.Object
     ) : IncrementalTriplePatternState<P>(subj, pred, obj) {
 
-        private val data = mutableJoinCollection(bindingNamesOf(subj, pred, obj))
+        private val data = MappingArray(bindingNamesOf(subj, pred, obj))
 
         override val cardinality get() = data.mappings.size
 
@@ -45,7 +47,12 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             val removed = (delta.origin as? DataDeletion)?.value
             return if (removed != null) {
                 val ignored = peek(removed)
-                delta.transform { data.join(delta.value, ignore = ignored) }
+                delta.transform {
+                    data
+                        .iter(delta.value)
+                        .remove(ignored)
+                        .join(delta.value)
+                }
             } else {
                 delta.transform { data.join(delta.value) }
             }

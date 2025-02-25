@@ -7,11 +7,13 @@ value class Counter<T> private constructor(private val map: MutableMap<T, Int>):
 
     constructor(): this(mutableMapOf())
 
+    constructor(elements: Iterable<T>): this(map = elements.groupingBy { it }.eachCountTo(mutableMapOf()))
+
     val current: Set<T> get() = map.keys
 
     operator fun get(value: T) = map[value] ?: 0
 
-    operator fun contains(value: T) = value in map
+    operator fun contains(value: T) = get(value) > 0
 
     fun increment(value: T, count: Int = 1) {
         map[value] = this[value] + count
@@ -36,6 +38,8 @@ value class Counter<T> private constructor(private val map: MutableMap<T, Int>):
     fun clear(value: T) {
         map.remove(value)
     }
+
+    fun clone() = Counter(map.toMutableMap())
 
     override fun iterator(): Iterator<Map.Entry<T, Int>> {
         return map.iterator()
