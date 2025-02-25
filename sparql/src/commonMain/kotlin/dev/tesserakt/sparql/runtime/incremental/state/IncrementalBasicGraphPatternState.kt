@@ -6,13 +6,15 @@ import dev.tesserakt.sparql.runtime.incremental.types.Query
 import kotlin.jvm.JvmInline
 
 @JvmInline
-internal value class IncrementalBasicGraphPatternState(private val state: JoinTree) {
+internal value class IncrementalBasicGraphPatternState(private val state: MutableJoinState) {
 
     constructor(ast: Query.QueryBody): this(
-        state = JoinTree(
-            IncrementalPatternsState(ast.patterns),
-            JoinTree(ast.unions),
-            JoinTree(ast, ast.optional)
+        state = IncrementalOptionalStateTest.from(
+            inner = JoinTree(
+                IncrementalPatternsState(ast.patterns),
+                JoinTree(ast.unions),
+            ),
+            optionals = ast.optional
         )
     )
 

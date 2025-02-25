@@ -25,6 +25,6 @@ internal value class IncrementalPatternsState(private val state: JoinTree): Muta
         return state.join(delta)
     }
 
-    fun debugInformation() = state.debugInformation()
+    override fun debugInformation() = state.debugInformation()
 
 }

@@ -5,27 +5,19 @@ import dev.tesserakt.sparql.runtime.incremental.delta.*
 import dev.tesserakt.sparql.runtime.incremental.types.Optional
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.util.getAllBindings
-import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
 
 internal class IncrementalOptionalState(parent: Query.QueryBody, ast: Optional): MutableJoinState {
 
     private val state = IncrementalPatternsState(ast.patterns)
 
-    override val bindings: Set<String> = ast.patterns
-        .getAllNamedBindings()
-        .mapTo(mutableSetOf()) { it.name }
+    override val bindings: Set<String>
+        get() = state.bindings
 
     // extracting of our own bindings not visible to the parent, required for accurate deltas during `peek()`
-    private val internalBindings: Set<String> = run {
+    private val invisible: Set<String> = run {
         val ours = ast.patterns.getAllBindings()
-        val parents = parent.patterns.getAllBindings() + parent.unions.flatMapTo(mutableSetOf()) { it.segments.flatMap { it.getAllBindings() } }
+        val parents = parent.patterns.getAllBindings() + parent.unions.flatMapTo(mutableSetOf()) { union -> union.segments.flatMap { it.getAllBindings() } }
         (ours - parents).mapTo(mutableSetOf()) { it.name }
-    }
-
-    init {
-        check(internalBindings.isNotEmpty()) {
-            "Invalid optional state! Optionals with no unique bindings have no effect, and should be optimised away!\nProblematic optional: $ast"
-        }
     }
 
     override fun peek(delta: DataDelta): List<MappingDelta> {
@@ -35,8 +27,9 @@ internal class IncrementalOptionalState(parent: Query.QueryBody, ast: Optional):
                 //  meaning we have to remove the unsatisfied no-bindings results first with an appropriate deletion call
                 val peeked = state.peek(delta)
                 // duping what we peeked, first requesting them to be removed (non-internal bindings)
-                //  (subset of bindings visible to the parent query body), and then added back
-                val deletions = peeked.map { MappingDeletion(Mapping(it.value - internalBindings), origin = null) }
+                //  (subset of bindings visible to the parent query body), and then added back,
+                //  but only if we never matched with it first
+                val deletions = peeked.map { MappingDeletion(Mapping(it.value - invisible), origin = null) }
                 return deletions + peeked
             }
             is DataDeletion -> {
@@ -44,8 +37,9 @@ internal class IncrementalOptionalState(parent: Query.QueryBody, ast: Optional):
                 //  meaning we have to remove the satisfied bindings results first with an appropriate deletion call
                 val peeked = state.peek(delta)
                 // duping what we peeked, first requesting them to be removed (non-internal bindings)
-                //  (subset of bindings visible to the parent query body), and then added back
-                val additions = peeked.map { MappingAddition(Mapping(it.value - internalBindings), origin = null) }
+                //  (subset of bindings visible to the parent query body), and then added back,
+                //  but only if we never matched with it first
+                val additions = peeked.map { MappingAddition(Mapping(it.value - invisible), origin = null) }
                 return peeked + additions
             }
         }
@@ -60,6 +54,10 @@ internal class IncrementalOptionalState(parent: Query.QueryBody, ast: Optional):
         // joining as is typical, but propagating the original delta if there's nothing compatible to join with, as
         //  we're optional here
         return state.join(delta).ifEmpty { listOf(delta) }
+    }
+
+    override fun debugInformation(): String {
+        return state.debugInformation()
     }
 
 }

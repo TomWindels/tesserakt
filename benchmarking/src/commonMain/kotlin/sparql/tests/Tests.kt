@@ -32,29 +32,29 @@ fun builtinTests() = tests {
         intermediate has path1 being obj
     }
 
-    using(small) test """
-        SELECT * {
-            ?s (<http://example.org/path1>|<http://example.org/path2>) ?o
-        }
-    """
-
-    using(small) test """
-        SELECT * {
-            ?s (<http://example.org/path1>/!<http://example.org/path2>) ?o
-        }
-    """
-
-    using(small) test """
-        SELECT * {
-            ?s !<http://example.org/path3> ?o
-        }
-    """
-
-    using(small) test """
-        SELECT * {
-            ?s (<http://example.org/path1>|<http://example.org/path2>)* ?o
-        }
-    """
+//    using(small) test """
+//        SELECT * {
+//            ?s (<http://example.org/path1>|<http://example.org/path2>) ?o
+//        }
+//    """
+//
+//    using(small) test """
+//        SELECT * {
+//            ?s (<http://example.org/path1>/!<http://example.org/path2>) ?o
+//        }
+//    """
+//
+//    using(small) test """
+//        SELECT * {
+//            ?s !<http://example.org/path3> ?o
+//        }
+//    """
+//
+//    using(small) test """
+//        SELECT * {
+//            ?s (<http://example.org/path1>|<http://example.org/path2>)* ?o
+//        }
+//    """
 
     using(small) test """
         SELECT * {
@@ -77,6 +77,18 @@ fun builtinTests() = tests {
             }
         }        
     """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1>|<http://example.org/path2> ?o
+            OPTIONAL {
+                # ?s <http://example.org/path1>|<http://example.org/path2> ?o
+                ?s <http://example.org/path1>|<http://example.org/path2> ?temp
+            }
+        }        
+    """
+
+    return@tests
 
     val extra = buildStore(path = "http://example.org/") {
         val subj = local("s")

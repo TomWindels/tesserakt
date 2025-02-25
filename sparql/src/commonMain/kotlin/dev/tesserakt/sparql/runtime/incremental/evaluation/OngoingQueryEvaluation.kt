@@ -6,13 +6,14 @@ import dev.tesserakt.sparql.runtime.common.types.Bindings
 import dev.tesserakt.sparql.runtime.incremental.delta.DataAddition
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDeletion
 import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery
-import dev.tesserakt.util.replace
+import dev.tesserakt.sparql.runtime.incremental.types.Counter
+import dev.tesserakt.sparql.runtime.incremental.types.Counter.Companion.flatten
 
 
 class OngoingQueryEvaluation<RT>(private val query: IncrementalQuery<RT, *>) {
 
-    private val _results = mutableMapOf<RT, Int>()
-    val results get() = _results.flatMap { entry -> List(entry.value) { entry.key } }
+    private val _results = Counter<RT>()
+    val results get() = _results.flatten()
 
     private val processor = query.Processor()
 
@@ -28,9 +29,7 @@ class OngoingQueryEvaluation<RT>(private val query: IncrementalQuery<RT, *>) {
 
     init {
         // setting the query state as the current results
-        processor.state().forEach {
-            _results[it] = 1
-        }
+        processor.state().forEach { _results.increment(it) }
     }
 
     fun subscribe(store: MutableStore) {
@@ -55,15 +54,10 @@ class OngoingQueryEvaluation<RT>(private val query: IncrementalQuery<RT, *>) {
     private fun process(change: IncrementalQuery.ResultChange<Bindings>) {
         when (val mapped = query.process(change)) {
             is IncrementalQuery.ResultChange.New<*> -> {
-                _results.replace(mapped.value) { current -> (current ?: 0) + 1 }
+                _results.increment(mapped.value)
             }
             is IncrementalQuery.ResultChange.Removed<*> -> {
-                _results.replace(mapped.value) { current ->
-                    when (current) {
-                        null, 0 -> throw IllegalStateException("Could not remove ${mapped.value} from the result list as it did not exist!")
-                        else -> current - 1
-                    }
-                }
+                _results.decrement(mapped.value)
             }
         }
     }

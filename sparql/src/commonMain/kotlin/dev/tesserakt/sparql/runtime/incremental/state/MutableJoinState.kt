@@ -24,4 +24,6 @@ internal interface MutableJoinState {
      */
     fun process(delta: DataDelta)
 
+    fun debugInformation(): String = toString()
+
 }

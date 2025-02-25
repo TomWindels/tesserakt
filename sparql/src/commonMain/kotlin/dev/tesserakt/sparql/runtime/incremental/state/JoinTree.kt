@@ -70,7 +70,7 @@ internal sealed interface JoinTree: MutableJoinState {
         override fun debugInformation() = buildString {
             appendLine(" * Join tree statistics (None)")
             states.forEach { state ->
-                appendLine("\t || $state")
+                appendLine("\t || ${state.debugInformation()}")
             }
         }
 
@@ -175,7 +175,7 @@ internal sealed interface JoinTree: MutableJoinState {
                 }
 
                 override fun debugInformation(): String {
-                    return "leaf\n$state"
+                    return state.debugInformation()
                 }
             }
 
@@ -214,53 +214,13 @@ internal sealed interface JoinTree: MutableJoinState {
                 }
 
                 override fun debugInformation() = buildString {
-                    var lines = left.debugInformation().lines()
-                    if (lines.size > 2) {
-                        repeat(lines.size / 2) {
-                            appendLine("   ${lines[it]}")
-                        }
-                        append(" ┌ ")
-                        appendLine(lines[lines.size / 2])
-                        (lines.size / 2 + 1 until lines.size - 1).forEach {
-                            append(" │ ")
-                            appendLine(lines[it])
-                        }
-                        append("/└ ")
-                        appendLine(lines.last())
-                    } else {
-                        append(" ┌ ")
-                        appendLine(lines.first())
-                        repeat(lines.size - 2) {
-                            append(" │ ")
-                            appendLine(lines[it + 1])
-                        }
-                        append("/└ ")
-                        appendLine(lines.last())
-                    }
-                    appendLine("⨉ cached: $buf")
-                    lines = right.debugInformation().lines()
-                    if (lines.size > 2) {
-                        repeat(lines.size / 2) {
-                            appendLine("   ${lines[it]}")
-                        }
-                        append("\\┌ ")
-                        appendLine(lines[lines.size / 2])
-                        (lines.size / 2 + 1 until lines.size - 1).forEach {
-                            append(" │ ")
-                            appendLine(lines[it])
-                        }
-                        append(" └ ")
-                        append(lines.last())
-                    } else {
-                        append("\\┌ ")
-                        appendLine(lines.first())
-                        repeat(lines.size - 2) {
-                            append(" │ ")
-                            appendLine(lines[it + 1])
-                        }
-                        append(" └ ")
-                        append(lines.last())
-                    }
+                    appendLine("=  ")
+                    appendLine(left.debugInformation().trimEnd().prependIndent("| "))
+                    appendLine('⨉')
+                    appendLine(right.debugInformation().trimEnd().prependIndent("| "))
+                    appendLine('=')
+                    appendLine("| cached: $buf")
+                    append('=')
                 }
 
             }
@@ -294,53 +254,13 @@ internal sealed interface JoinTree: MutableJoinState {
                 }
 
                 override fun debugInformation() = buildString {
-                    var lines = left.debugInformation().lines()
-                    if (lines.size > 2) {
-                        repeat(lines.size / 2) {
-                            appendLine("   ${lines[it]}")
-                        }
-                        append(" ┌ ")
-                        appendLine(lines[lines.size / 2])
-                        (lines.size / 2 + 1 until lines.size - 1).forEach {
-                            append(" │ ")
-                            appendLine(lines[it])
-                        }
-                        append("/└ ")
-                        appendLine(lines.last())
-                    } else {
-                        append(" ┌ ")
-                        appendLine(lines.first())
-                        repeat(lines.size - 2) {
-                            append(" │ ")
-                            appendLine(lines[it + 1])
-                        }
-                        append("/└ ")
-                        appendLine(lines.last())
-                    }
-                    appendLine("⨉ not cached")
-                    lines = right.debugInformation().lines()
-                    if (lines.size > 2) {
-                        repeat(lines.size / 2) {
-                            appendLine("   ${lines[it]}")
-                        }
-                        append("\\┌ ")
-                        appendLine(lines[lines.size / 2])
-                        (lines.size / 2 + 1 until lines.size - 1).forEach {
-                            append(" │ ")
-                            appendLine(lines[it])
-                        }
-                        append(" └ ")
-                        append(lines.last())
-                    } else {
-                        append("\\┌ ")
-                        appendLine(lines.first())
-                        repeat(lines.size - 2) {
-                            append(" │ ")
-                            appendLine(lines[it + 1])
-                        }
-                        append(" └ ")
-                        append(lines.last())
-                    }
+                    appendLine("=  ")
+                    appendLine(left.debugInformation().trimEnd().prependIndent("| "))
+                    appendLine('⨉')
+                    appendLine(right.debugInformation().trimEnd().prependIndent("| "))
+                    appendLine('=')
+                    appendLine("| not cached")
+                    append('=')
                 }
 
             }
@@ -664,14 +584,12 @@ internal sealed interface JoinTree: MutableJoinState {
     /**
      * Returns a string containing debug information (runtime statistics)
      */
-    fun debugInformation(): String = " * Join tree statistics unavailable (implementation: ${this::class.simpleName})\n"
+    override fun debugInformation(): String = " * Join tree statistics unavailable (implementation: ${this::class.simpleName})\n"
 
     companion object {
 
         @JvmName("forPatterns")
         operator fun invoke(patterns: List<Pattern>) = when {
-            // TODO(perf) specialised empty case
-            // TODO(perf) also based on binding overlap
             patterns.size >= 2 -> Dynamic(patterns)
             patterns.isEmpty() -> Empty
             else -> None(patterns)
@@ -679,34 +597,43 @@ internal sealed interface JoinTree: MutableJoinState {
 
         @JvmName("forUnions")
         operator fun invoke(unions: List<Union>) = when {
-            // TODO(perf) specialised empty case
-            // TODO(perf) also based on binding overlap
             unions.size >= 2 -> Dynamic(unions)
             unions.isEmpty() -> Empty
             else -> None(unions)
         }
 
-        @JvmName("forUnions")
+        @JvmName("forOptionals")
         operator fun invoke(parent: Query.QueryBody, optionals: List<Optional>) = when {
-            // TODO(perf) specialised empty case
-            // TODO(perf) also based on binding overlap
             optionals.size >= 2 -> Dynamic(parent, optionals)
             optionals.isEmpty() -> Empty
             else -> None(parent, optionals)
         }
 
         @JvmName("forTrees")
-        operator fun invoke(trees: List<JoinTree>) = when {
-            trees.isEmpty() -> Empty
-            trees.size == 1 -> trees.single()
-            else -> Dynamic(trees)
+        operator fun invoke(trees: List<JoinTree>): JoinTree {
+            val filtered = trees.filter { it !is Empty }
+            return when {
+                filtered.isEmpty() -> Empty
+                filtered.size == 1 -> filtered.single()
+                else -> Dynamic(filtered)
+            }
         }
 
-        @JvmName("forTrees")
-        operator fun invoke(vararg states: MutableJoinState) = when {
-            states.isEmpty() -> Empty
-            states.size == 1 -> None(listOf(states[0]))
-            else -> Dynamic(states.toList())
+        @JvmName("forStates")
+        operator fun invoke(vararg states: MutableJoinState): JoinTree {
+            val filtered = states.filter { it !is Empty }
+            return when {
+                filtered.isEmpty() -> Empty
+                filtered.size == 1 -> {
+                    val single = filtered.single()
+                    if (single is JoinTree) {
+                        single
+                    } else {
+                        None(filtered)
+                    }
+                }
+                else -> Dynamic(filtered)
+            }
         }
 
     }

@@ -1,6 +1,8 @@
 package dev.tesserakt.sparql.runtime.incremental.types
 
+import dev.tesserakt.util.replace
 import kotlin.jvm.JvmInline
+import kotlin.jvm.JvmName
 
 @JvmInline
 value class Counter<T> private constructor(private val map: MutableMap<T, Int>): Iterable<Map.Entry<T, Int>> {
@@ -14,7 +16,7 @@ value class Counter<T> private constructor(private val map: MutableMap<T, Int>):
     operator fun contains(value: T) = value in map
 
     fun increment(value: T, count: Int = 1) {
-        map[value] = this[value] + count
+        map.replace(value) { current -> (current ?: 0) + count }
     }
 
     fun increment(changes: Map<T, Int>) {
@@ -22,10 +24,12 @@ value class Counter<T> private constructor(private val map: MutableMap<T, Int>):
     }
 
     fun decrement(value: T, count: Int = 1) {
-        val current = this[value]
-        when {
-            current <= count -> { map.remove(value) }
-            else -> { map[value] = current - count }
+        map.replace(value) { current ->
+            when {
+                current == null || current < count -> { throw IllegalStateException("Could not decrement $value ($current < $count)") }
+                current == count -> { 0 }
+                else -> { current - count }
+            }
         }
     }
 
@@ -35,6 +39,10 @@ value class Counter<T> private constructor(private val map: MutableMap<T, Int>):
 
     fun clear(value: T) {
         map.remove(value)
+    }
+
+    fun clear(predicate: (T) -> Boolean) {
+        map.entries.retainAll { !predicate(it.key) }
     }
 
     override fun iterator(): Iterator<Map.Entry<T, Int>> {
@@ -48,6 +56,20 @@ value class Counter<T> private constructor(private val map: MutableMap<T, Int>):
             postfix = " }",
             transform = { (key, count) -> "$key ($count)" }
         )
+    }
+
+    companion object {
+
+        @JvmName("flattenEntries")
+        fun <T> Iterable<Map.Entry<T, Int>>.flatten(): List<T> = buildList(sumOf { it.value }) {
+            this@flatten.forEach { (item, count) -> repeat(count) { add(item) } }
+        }
+
+        @JvmName("flattenPairs")
+        fun <T> Iterable<Pair<T, Int>>.flatten(): List<T> = buildList(sumOf { it.second }) {
+            this@flatten.forEach { (item, count) -> repeat(count) { add(item) } }
+        }
+
     }
 
 }
