@@ -26,7 +26,8 @@ value class Counter<T> private constructor(private val map: MutableMap<T, Int>):
     fun decrement(value: T, count: Int = 1) {
         val current = this[value]
         when {
-            current <= count -> { map.remove(value) }
+            current < count -> throw NoSuchElementException()
+            current == count -> { map.remove(value) }
             else -> { map[value] = current - count }
         }
     }
