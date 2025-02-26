@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.collection
 
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.incremental.stream.CollectedStream
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -10,19 +11,22 @@ internal value class SimpleMappingArray(
 
     constructor(mappings: Collection<Mapping>): this(ArrayList(mappings))
 
-    override fun iter(mappings: List<Mapping>): List<Iterable<Mapping>> {
-        return List(mappings.size) { this.mappings }
+    override val cardinality: Int
+        get() = mappings.size
+
+    override fun iter(mappings: List<Mapping>): List<CollectedStream<Mapping>> {
+        return List(mappings.size) { CollectedStream(this.mappings) }
     }
 
-    override fun iter(mapping: Mapping): Iterable<Mapping> {
-        return mappings
+    override fun iter(mapping: Mapping): CollectedStream<Mapping> {
+        return CollectedStream(mappings)
     }
 
     override fun add(mapping: Mapping) {
         this.mappings.add(mapping)
     }
 
-    override fun addAll(mappings: Collection<Mapping>) {
+    override fun addAll(mappings: Iterable<Mapping>) {
         this.mappings.addAll(mappings)
     }
 
@@ -42,7 +46,7 @@ internal value class SimpleMappingArray(
         }
     }
 
-    override fun removeAll(mappings: Collection<Mapping>) {
+    override fun removeAll(mappings: Iterable<Mapping>) {
         mappings.forEach(::remove)
     }
 

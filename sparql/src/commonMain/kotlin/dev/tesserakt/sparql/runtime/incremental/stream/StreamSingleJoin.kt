@@ -1,12 +1,12 @@
-package dev.tesserakt.sparql.runtime.incremental.iterable
+package dev.tesserakt.sparql.runtime.incremental.stream
 
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.util.compatibleWith
 
-internal class SingleJoinIterable(
+internal class StreamSingleJoin(
     private val left: Mapping,
-    private val right: Iterable<Mapping>,
-): Iterable<Mapping> {
+    private val right: Stream<Mapping>,
+): Stream<Mapping> {
 
     private class Iter(
         private val left: Mapping,
@@ -55,12 +55,20 @@ internal class SingleJoinIterable(
 
     }
 
+    // there's no better way here
+    private val _isEmpty by lazy { !iterator().hasNext() }
+
+    override fun isEmpty() = _isEmpty
+
+    override val cardinality: Int
+        get() = right.cardinality
+
+    init {
+        require(right.isNotEmpty())
+    }
+
     override fun iterator(): Iterator<Mapping> {
-        return if (right.isEmpty()) {
-            emptyIterator()
-        } else {
-            Iter(left = left, source = right.iterator())
-        }
+        return Iter(left = left, source = right.iterator())
     }
 
 }

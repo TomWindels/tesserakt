@@ -1,24 +1,21 @@
-package dev.tesserakt.sparql.runtime.incremental.iterable
+package dev.tesserakt.sparql.runtime.incremental.stream
 
-import dev.tesserakt.sparql.runtime.core.Mapping
-import dev.tesserakt.util.compatibleWith
+internal class StreamProduct<A: Any, B: Any>(
+    private val left: Stream<A>,
+    private val right: Stream<B>,
+): Stream<Pair<A, B>> {
 
-internal class MultiJoinIterable(
-    private val left: Iterable<Mapping>,
-    private val right: Iterable<Mapping>,
-): Iterable<Mapping> {
-
-    private class Iter(
-        a: Iterable<Mapping>,
+    private class Iter<A: Any, B: Any>(
+        a: Iterable<A>,
         // we have to repeat this one, so this one's kept
-        private val b: Iterable<Mapping>,
-    ): Iterator<Mapping> {
+        private val b: Iterable<B>,
+    ): Iterator<Pair<A, B>> {
 
         private val source1 = a.iterator()
         private var source2 = b.iterator()
 
         private var left = source1.next()
-        private lateinit var right: Mapping
+        private lateinit var right: B
 
         private var next = getNext()
 
@@ -30,17 +27,15 @@ internal class MultiJoinIterable(
             return next != null
         }
 
-        override fun next(): Mapping {
+        override fun next(): Pair<A, B> {
             val current = next ?: getNext()
             next = null
             return current ?: throw NoSuchElementException()
         }
 
-        private fun getNext(): Mapping? {
+        private fun getNext(): Pair<A, B>? {
             while (increment()) {
-                if (left.compatibleWith(right)) {
-                    return left + right
-                }
+                return left to right
             }
             return null
         }
@@ -64,12 +59,17 @@ internal class MultiJoinIterable(
 
     }
 
-    override fun iterator(): Iterator<Mapping> {
-        return if (left.isEmpty() || right.isEmpty()) {
-            emptyIterator()
-        } else {
-            Iter(a = left, b = right)
-        }
+    override val cardinality: Int
+        get() = left.cardinality * right.cardinality
+
+    override fun isEmpty() = false
+
+    init {
+        require(!left.isEmpty() && !right.isEmpty())
+    }
+
+    override fun iterator(): Iterator<Pair<A, B>> {
+        return Iter(a = left, b = right)
     }
 
 }

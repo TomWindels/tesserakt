@@ -3,6 +3,8 @@ package dev.tesserakt.sparql.runtime.incremental.collection
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.toMapping
+import dev.tesserakt.sparql.runtime.incremental.stream.Stream
+import dev.tesserakt.sparql.runtime.incremental.stream.emptyIterable
 
 /**
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
@@ -40,18 +42,21 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
             .filterNotNullTo(ArrayList(backing.size - holes))
     }
 
+    override val cardinality: Int
+        get() = backing.size - holes
+
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
      *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
      */
     val size: Int get() = backing.size
 
-    override fun iter(mapping: Mapping): Iterable<Mapping> {
-        return getCompatibleIndices(mapping).withBacking()
+    override fun iter(mapping: Mapping): Stream<Mapping> {
+        return indexStreamFor(mapping).toStream()
     }
 
-    override fun iter(mappings: List<Mapping>): List<Iterable<Mapping>> {
-        return getCompatibleIndices(mappings).map { it.withBacking() }
+    override fun iter(mappings: List<Mapping>): List<Stream<Mapping>> {
+        return indexStreamFor(mappings).map { it.toStream() }
     }
 
     /**
@@ -72,13 +77,16 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
     /**
      * Adds all mappings to the backing array and indexes it accordingly.
      */
-    override fun addAll(mappings: Collection<Mapping>) {
-        if (mappings.isEmpty()) {
+    override fun addAll(mappings: Iterable<Mapping>) {
+        val iter = mappings.iterator()
+        if (!iter.hasNext()) {
             return
         }
         val start = backing.size
-        backing.addAll(mappings)
-        mappings.forEachIndexed { i, mapping ->
+        var i = 0
+        while (iter.hasNext()) {
+            val mapping = iter.next()
+            backing.add(mapping)
             index.forEach { index ->
                 val value = mapping[index.key]
                     ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
@@ -86,6 +94,7 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
                     .getOrPut(value) { arrayListOf() }
                     .add(start + i)
             }
+            ++i
         }
     }
 
@@ -100,13 +109,15 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
         }
     }
 
-    override fun removeAll(mappings: Collection<Mapping>) {
-        holes += mappings.size
+    override fun removeAll(mappings: Iterable<Mapping>) {
+        var count = 0
         mappings.forEach { mapping ->
             val pos = find(mapping)
             require(pos != -1) { "$mapping cannot be removed from HashJoinArray - not found!" }
             backing[pos] = null
+            ++count
         }
+        holes += count
         // considering optimising
         if (shouldOptimise()) {
             optimise()
@@ -184,8 +195,8 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
      * Finds the index associated with the [mapping] inside of the [backing] array, or `-1` if it hasn't been found
      */
     private fun find(mapping: Mapping): Int {
-        val indices = getCompatibleIndices(mapping)
-        indices.forEach { i ->
+        val stream = indexStreamFor(mapping)
+        stream.indexes.forEach { i ->
             if (backing[i] == mapping) {
                 return i
             }
@@ -199,30 +210,39 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
     /**
      * Returns an iterable set of indices compatible with the provided mapping
      */
-    private fun getCompatibleIndices(reference: Mapping): Iterable<Int> {
+    private fun indexStreamFor(reference: Mapping): IndexStream {
         val constraints = reference.filter { it.key in index }
         // if there aren't any constraints, all mappings (the entire backing array) can be returned instead
         if (constraints.isEmpty()) {
-            return backing.indices
+            return IndexStream(indexes = backing.indices, cardinality = backing.size - holes)
         }
         // getting all relevant indexes - if any of the mapping's values don't have an ID list present for the reference's
         //  value, we can bail early: none match the reference
-        val indexes = constraints.map { binding -> index[binding.key]!![binding.value] ?: return emptyList() }
+        val indexes = constraints
+            .map { binding -> index[binding.key]!![binding.value] ?: return IndexStream.NONE }
         // the resulting array cannot be longer than the smallest index found, so if any of them are empty, no results
         //  are found
-        if (indexes.any { it.isEmpty() }) {
-            return emptyList()
+        val cardinality = indexes.minOf { it.size }
+        if (cardinality == 0) {
+            return IndexStream.NONE
         }
         // these index arrays are guaranteed to be sorted already (see other notes), so "quickMerge"ing them and mapping
         //  these indexes to their actual value
-        return quickMerge(indexes)
+        val merged = quickMerge(indexes)
+        return IndexStream(
+            indexes = merged,
+            // TODO(perf): when the quickMerge method is updated to be stream-like, this `.size` cardinality estimate
+            //  has to be updated to the [cardinality] one instead, which is guaranteed to be
+            //  smallest estimate >= merged.size
+            cardinality = merged.size
+        )
     }
 
     /**
      * Returns a list of all compatible mappings using the provided reference mappings. References representing a
      *  non-existent binding (`null`) are automatically associated with an empty list
      */
-    private fun getCompatibleIndices(references: List<Mapping?>): List<Iterable<Int>> {
+    private fun indexStreamFor(references: List<Mapping?>): List<IndexStream> {
         // separating the individual references into their constraints
         val constraints: Map<Mapping?, List<Int>> = references.indices.groupBy { i ->
             val current = references[i] ?: return@groupBy null
@@ -230,7 +250,7 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
             current.filter { it.key in constraints }.toMapping()
         }
         // with all relevant & unique constraints formed, the compatible mappings w/o redundant lookup can be retrieved
-        val mapped = constraints.map { (constraints, indexes) -> (constraints?.let { getCompatibleIndices(constraints) } ?: emptyList()) to indexes }
+        val mapped = constraints.map { (constraints, indexes) -> (constraints?.let { indexStreamFor(constraints) } ?: IndexStream.NONE) to indexes }
         // now the map can be "exploded" again into its original form
         return mapped
             .flatMapTo(ArrayList(references.size)) { entry -> entry.second.map { i -> i to entry.first } }
@@ -238,7 +258,19 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
             .map { it.second }
     }
 
-    private inner class Mapper(private val indexes: Iterable<Int>): Iterable<Mapping> {
+    private data class IndexStream(
+        val indexes: Iterable<Int>,
+        val cardinality: Int,
+    ) {
+        companion object {
+            val NONE = IndexStream(indexes = emptyIterable(), cardinality = 0)
+        }
+    }
+
+    private inner class Mapper(
+        private val indexes: Iterable<Int>,
+        override val cardinality: Int,
+    ): Stream<Mapping> {
 
         private inner class Iter(private val iterator: Iterator<Int>): Iterator<Mapping> {
 
@@ -267,13 +299,18 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
 
         }
 
+        // there's no better way here
+        private val _isEmpty by lazy { !iterator().hasNext() }
+
+        override fun isEmpty() = _isEmpty
+
         override fun iterator(): Iter {
             return Iter(indexes.iterator())
         }
 
     }
 
-    private fun Iterable<Int>.withBacking(): Iterable<Mapping> = Mapper(this)
+    private fun IndexStream.toStream(): Stream<Mapping> = Mapper(indexes, cardinality)
 
     companion object {
 
