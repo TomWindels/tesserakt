@@ -4,6 +4,9 @@ import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.plus
+import dev.tesserakt.sparql.runtime.incremental.stream.Stream
+import dev.tesserakt.sparql.runtime.incremental.stream.mappedNonNull
+import dev.tesserakt.sparql.runtime.incremental.stream.product
 import dev.tesserakt.sparql.runtime.util.Bitmask
 
 /**
@@ -22,7 +25,7 @@ internal inline fun List<Pair<Bitmask, List<MappingDelta>>>.expandBindingDeltas(
                 return@forEach
             }
             // creating all mappings that result from combining these two sub-results
-            val merged = merge(current.second, contender.second)
+            val merged = join(current.second, contender.second)
             // if any have been made, its combination can be appended to this result
             if (merged.isNotEmpty()) {
                 result.add(current.first or contender.first to merged)
@@ -34,10 +37,13 @@ internal inline fun List<Pair<Bitmask, List<MappingDelta>>>.expandBindingDeltas(
     return result
 }
 
-internal fun merge(a: List<MappingDelta>, b: List<MappingDelta>): List<MappingDelta> =
+internal fun join(a: List<MappingDelta>, b: List<MappingDelta>): List<MappingDelta> =
     buildList(a.size + b.size) {
         a.forEach { one -> b.forEach { two -> (one + two)?.let { merged -> add(merged) } } }
     }
+
+internal fun join(a: Stream<MappingDelta>, b: Stream<MappingDelta>): Stream<MappingDelta> =
+    a.product(b).mappedNonNull { (a, b) -> a + b }
 
 internal inline fun bindingNamesOf(
     subject: Pattern.Subject,
