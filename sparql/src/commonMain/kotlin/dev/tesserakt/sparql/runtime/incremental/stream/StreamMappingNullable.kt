@@ -42,6 +42,10 @@ internal class StreamMappingNullable<I: Any, O: Any>(
 
     override fun isEmpty() = false
 
+    override fun supportsEfficientIteration(): Boolean {
+        return false
+    }
+
     init {
         require(!source.isEmpty())
     }

@@ -304,6 +304,11 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
 
         override fun isEmpty() = _isEmpty
 
+        override fun supportsEfficientIteration(): Boolean {
+            // the number of holes in the backing structure are expected to be insignificant
+            return true
+        }
+
         override fun iterator(): Iter {
             return Iter(indexes.iterator())
         }

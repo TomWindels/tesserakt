@@ -3,7 +3,7 @@ package dev.tesserakt.sparql.runtime.incremental.stream
 import kotlin.jvm.JvmInline
 
 @JvmInline
-internal value class SingleStream<E: Any>(private val element: E): Stream<E> {
+internal value class SingleStream<E: Any>(private val element: E): Stream<E>, OptimisedStream<E> {
 
     override val cardinality: Int
         get() = 1

@@ -298,11 +298,11 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
     // triple patterns can only get new results upon getting new data and lose results upon removing data, so two
     //  specialised delta functions can be made instead, that are mapped here once
-    final override fun peek(delta: DataDelta): Stream<MappingDelta> {
+    final override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
         return when (delta) {
             is DataAddition -> peek(delta).mapped { MappingAddition(it, origin = delta) }
             is DataDeletion -> peek(delta).mapped { MappingDeletion(it, origin = delta) }
-        }
+        }.optimised() // peek()s are already optimised, and mapping doesn't change that, so this is guaranteed to be a type wrapping
     }
 
     final override fun toString() = "$s $p $o - cardinality $cardinality"

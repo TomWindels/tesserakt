@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
 internal class StreamTransformNullable<I: Any, O: Any>(
-    private val source: Stream<I>,
+    private val source: OptimisedStream<I>,
     private val transform: (I) -> Stream<O>?
 ): Stream<O> {
 
@@ -11,7 +11,7 @@ internal class StreamTransformNullable<I: Any, O: Any>(
         private val transform: (I) -> Stream<O>?,
     ): Iterator<O> {
 
-        private var next = getNext()
+        private var next: O? = null
 
         override fun hasNext(): Boolean {
             if (next != null) {
@@ -39,16 +39,19 @@ internal class StreamTransformNullable<I: Any, O: Any>(
 
     }
 
+    override val cardinality: Int = Int.MAX_VALUE
+
     // there's no better way here
     private val _isEmpty by lazy { !iterator().hasNext() }
 
-    override fun isEmpty() = _isEmpty
-
-    override val cardinality: Int
-        get() = source.sumOf { transform(it)?.cardinality ?: 0 }
-
     init {
         require(source.isNotEmpty())
+    }
+
+    override fun isEmpty() = _isEmpty
+
+    override fun supportsEfficientIteration(): Boolean {
+        return false
     }
 
     override fun iterator(): Iterator<O> {

@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
-internal object EmptyStream: Stream<Nothing> {
+internal object EmptyStream: Stream<Nothing>, OptimisedStream<Nothing> {
 
     object Iterator: kotlin.collections.Iterator<Nothing> {
 

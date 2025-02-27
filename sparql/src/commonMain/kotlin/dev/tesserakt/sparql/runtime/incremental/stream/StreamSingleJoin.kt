@@ -16,7 +16,7 @@ internal class StreamSingleJoin(
 
         private lateinit var right: Mapping
 
-        private var next = getNext()
+        private var next: Mapping? = null
 
         override fun hasNext(): Boolean {
             if (next != null) {
@@ -65,6 +65,10 @@ internal class StreamSingleJoin(
 
     init {
         require(right.isNotEmpty())
+    }
+
+    override fun supportsEfficientIteration(): Boolean {
+        return false
     }
 
     override fun iterator(): Iterator<Mapping> {

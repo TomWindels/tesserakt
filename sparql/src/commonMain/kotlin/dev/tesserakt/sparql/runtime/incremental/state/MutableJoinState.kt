@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
+import dev.tesserakt.sparql.runtime.incremental.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.incremental.stream.Stream
 
 /**
@@ -18,7 +19,7 @@ internal interface MutableJoinState {
      * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in this state, without
      *  actually modifying it (see [process] for mutating the state)
      */
-    fun peek(delta: DataDelta): Stream<MappingDelta>
+    fun peek(delta: DataDelta): OptimisedStream<MappingDelta>
 
     /**
      * Updates the internal state according to the [delta] change.

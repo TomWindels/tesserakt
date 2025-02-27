@@ -12,7 +12,7 @@ internal class StreamReduction<E: Any>(
         private val remove: Counter<E>
     ): Iterator<E> {
 
-        private var next = getNext()
+        private var next: E? = null
 
         override fun hasNext(): Boolean {
             if (next != null) {
@@ -52,6 +52,10 @@ internal class StreamReduction<E: Any>(
     private val _isEmpty by lazy { !iterator().hasNext() }
 
     override fun isEmpty() = _isEmpty
+
+    override fun supportsEfficientIteration(): Boolean {
+        return false
+    }
 
     override fun iterator(): Iterator<E> {
         return Iter(source = source.iterator(), remove = counter.clone())

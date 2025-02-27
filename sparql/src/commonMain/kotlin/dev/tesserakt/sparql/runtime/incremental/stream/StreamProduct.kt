@@ -17,7 +17,7 @@ internal class StreamProduct<A: Any, B: Any>(
         private var left = source1.next()
         private lateinit var right: B
 
-        private var next = getNext()
+        private var next: Pair<A, B>? = null
 
         override fun hasNext(): Boolean {
             if (next != null) {
@@ -62,11 +62,15 @@ internal class StreamProduct<A: Any, B: Any>(
     override val cardinality: Int
         get() = left.cardinality * right.cardinality
 
-    override fun isEmpty() = false
-
     init {
         require(!left.isEmpty() && !right.isEmpty())
     }
+
+    override fun supportsEfficientIteration(): Boolean {
+        return left.supportsEfficientIteration() && right.supportsEfficientIteration()
+    }
+
+    override fun isEmpty() = false
 
     override fun iterator(): Iterator<Pair<A, B>> {
         return Iter(a = left, b = right)
