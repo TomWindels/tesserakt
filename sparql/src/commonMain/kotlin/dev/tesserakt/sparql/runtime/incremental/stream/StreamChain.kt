@@ -41,6 +41,10 @@ internal class StreamChain<E: Any>(
     override val cardinality: Int
         get() = source1.cardinality + source2.cardinality
 
+    override fun supportsEfficientIteration(): Boolean {
+        return source1.supportsEfficientIteration() && source2.supportsEfficientIteration()
+    }
+
     override fun isEmpty() = false
 
     override fun iterator(): Iterator<E> {

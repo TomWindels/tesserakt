@@ -2,10 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
-import dev.tesserakt.sparql.runtime.incremental.stream.Stream
-import dev.tesserakt.sparql.runtime.incremental.stream.chain
-import dev.tesserakt.sparql.runtime.incremental.stream.collect
-import dev.tesserakt.sparql.runtime.incremental.stream.join
+import dev.tesserakt.sparql.runtime.incremental.stream.*
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
 
@@ -39,7 +36,7 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
     }
 
     fun join(delta: MappingDelta): Stream<MappingDelta> {
-        return unions.join(patterns.join(delta))
+        return unions.join(patterns.join(delta).optimised())
     }
 
     fun debugInformation() = buildString {

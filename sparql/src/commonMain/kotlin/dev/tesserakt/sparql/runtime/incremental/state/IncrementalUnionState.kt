@@ -2,9 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
-import dev.tesserakt.sparql.runtime.incremental.stream.Stream
-import dev.tesserakt.sparql.runtime.incremental.stream.toStream
-import dev.tesserakt.sparql.runtime.incremental.stream.transform
+import dev.tesserakt.sparql.runtime.incremental.stream.*
 import dev.tesserakt.sparql.runtime.incremental.types.SelectQuerySegment
 import dev.tesserakt.sparql.runtime.incremental.types.StatementsSegment
 import dev.tesserakt.sparql.runtime.incremental.types.Union
@@ -69,8 +67,8 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
         state.forEach { it.process(delta) }
     }
 
-    override fun peek(delta: DataDelta): Stream<MappingDelta> {
-        return state.toStream().transform { it.peek(delta) }
+    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
+        return state.toStream().transform { it.peek(delta) }.optimised()
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {

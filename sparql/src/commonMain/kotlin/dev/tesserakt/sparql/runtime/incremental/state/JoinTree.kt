@@ -20,7 +20,7 @@ internal sealed interface JoinTree: MutableJoinState {
         override val bindings: Set<String>
             get() = emptySet()
 
-        override fun peek(delta: DataDelta): Stream<MappingDelta> {
+        override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
             return emptyStream()
         }
 
@@ -46,7 +46,7 @@ internal sealed interface JoinTree: MutableJoinState {
         override val bindings: Set<String>
             get() = states.flatMapTo(mutableSetOf()) { it.bindings }
 
-        override fun peek(delta: DataDelta): Stream<MappingDelta> {
+        override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
             val deltas = states
                 .mapIndexed { i, pattern -> Bitmask.onesAt(i, length = states.size) to pattern.peek(delta).toList() }
                 .expandBindingDeltas()
@@ -127,7 +127,7 @@ internal sealed interface JoinTree: MutableJoinState {
              * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in this node, without
              *  actually modifying the node
              */
-            fun peek(delta: DataDelta): Stream<MappingDelta>
+            fun peek(delta: DataDelta): OptimisedStream<MappingDelta>
 
             /**
              * Processes the [delta], updating the node accordingly
@@ -142,7 +142,7 @@ internal sealed interface JoinTree: MutableJoinState {
             /**
              * Returns the result of [join]ing the [deltas] with its own internal state
              */
-            fun join(deltas: Stream<MappingDelta>): Stream<MappingDelta> = deltas.transform { delta -> join(delta) }
+            fun join(deltas: OptimisedStream<MappingDelta>): Stream<MappingDelta> = deltas.transform { delta -> join(delta) }
 
             fun debugInformation(): String
 
@@ -152,7 +152,7 @@ internal sealed interface JoinTree: MutableJoinState {
                 override val bindings: Set<String>
                     get() = state.bindings
 
-                override fun peek(delta: DataDelta): Stream<MappingDelta> {
+                override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
                     return state.peek(delta)
                 }
 
@@ -182,10 +182,10 @@ internal sealed interface JoinTree: MutableJoinState {
                         .also { check(it.isNotEmpty()) { "Connected node used with no valid indices! This is not allowed!" } }
                 )
 
-                override fun peek(delta: DataDelta): Stream<MappingDelta> {
+                override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
                     val one = left.peek(delta)
                     val two = right.peek(delta)
-                    return right.join(one).chain(left.join(two)).chain(join(one, two))
+                    return right.join(one).chain(left.join(two)).chain(join(one, two)).optimised()
                 }
 
                 override fun process(delta: DataDelta) {
@@ -262,10 +262,10 @@ internal sealed interface JoinTree: MutableJoinState {
 
                 override val bindings = left.bindings + right.bindings
 
-                override fun peek(delta: DataDelta): Stream<MappingDelta> {
+                override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
                     val one = left.peek(delta)
                     val two = right.peek(delta)
-                    return right.join(one).chain(left.join(two)).chain(join(one, two))
+                    return right.join(one).chain(left.join(two)).chain(join(one, two)).optimised()
                 }
 
                 override fun process(delta: DataDelta) {
@@ -277,9 +277,9 @@ internal sealed interface JoinTree: MutableJoinState {
                     val leftOverlap = delta.value.bindings.keys.count { it in left.bindings }
                     val rightOverlap = delta.value.bindings.keys.count { it in right.bindings }
                     return if (leftOverlap > rightOverlap) {
-                        right.join(left.join(delta))
+                        right.join(left.join(delta).optimised())
                     } else {
-                        left.join(right.join(delta))
+                        left.join(right.join(delta).optimised())
                     }
                 }
 
@@ -340,7 +340,7 @@ internal sealed interface JoinTree: MutableJoinState {
         override val bindings: Set<String>
             get() = root.bindings
 
-        override fun peek(delta: DataDelta): Stream<MappingDelta> {
+        override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
             return root.peek(delta)
         }
 
@@ -401,7 +401,7 @@ internal sealed interface JoinTree: MutableJoinState {
      * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in child states part of the tree, without
      *  actually modifying the tree
      */
-    override fun peek(delta: DataDelta): Stream<MappingDelta>
+    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta>
 
     /**
      * Processes the [delta], updating the tree accordingly

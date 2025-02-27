@@ -94,11 +94,11 @@ internal sealed class IncrementalPathState {
             return result.toStream()
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -192,11 +192,11 @@ internal sealed class IncrementalPathState {
             return result.toStream()
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -273,11 +273,11 @@ internal sealed class IncrementalPathState {
             return result.toStream()
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -363,11 +363,11 @@ internal sealed class IncrementalPathState {
             return result.toStream()
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -444,11 +444,11 @@ internal sealed class IncrementalPathState {
             return result.toStream()
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -533,11 +533,11 @@ internal sealed class IncrementalPathState {
             return result.toStream()
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -630,11 +630,11 @@ internal sealed class IncrementalPathState {
             return emptyStream()
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return if (satisfied) mappings else emptyStream()
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -749,11 +749,11 @@ internal sealed class IncrementalPathState {
             return emptyStream()
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return if (satisfied) mappings else emptyStream()
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -803,11 +803,11 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -855,11 +855,11 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -916,11 +916,11 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -992,11 +992,11 @@ internal sealed class IncrementalPathState {
             return result
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -1053,11 +1053,11 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -1129,11 +1129,11 @@ internal sealed class IncrementalPathState {
             return result
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
@@ -1183,11 +1183,11 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return if (satisfied) mappings else emptyStream()
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -1259,11 +1259,11 @@ internal sealed class IncrementalPathState {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: Stream<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return if (satisfied) mappings else emptyStream()
         }
 
-        override fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -1278,9 +1278,9 @@ internal sealed class IncrementalPathState {
 
     abstract fun peek(deletion: DataDeletion): Stream<Mapping>
 
-    abstract fun join(mappings: Stream<Mapping>): Stream<Mapping>
+    abstract fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping>
 
-    abstract fun join(mappings: Stream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping>
+    abstract fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping>
 
     companion object {
 

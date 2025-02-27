@@ -40,6 +40,10 @@ internal class StreamMapping<I: Any, O: Any>(
 
     override fun isEmpty() = false
 
+    override fun supportsEfficientIteration(): Boolean {
+        return source.supportsEfficientIteration()
+    }
+
     override fun iterator(): Iterator<O> {
         return if (source.isEmpty()) emptyIterator() else Iter(source.iterator(), transform)
     }

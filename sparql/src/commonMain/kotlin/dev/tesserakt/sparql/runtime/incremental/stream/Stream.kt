@@ -10,4 +10,10 @@ internal interface Stream<out E: Any>: Iterable<E> {
 
     fun isEmpty(): Boolean
 
+    /**
+     * Analyses this stream's dependencies to detect whether its iteration can be done efficiently, which can be used
+     *  to carefully buffer/collect inefficient streams when repeated iterations are planned.
+     */
+    fun supportsEfficientIteration(): Boolean
+
 }

@@ -20,7 +20,7 @@ internal class StreamMultiJoin(
         private var left = source1.next()
         private lateinit var right: Mapping
 
-        private var next = getNext()
+        private var next: Mapping? = null
 
         override fun hasNext(): Boolean {
             if (next != null) {
@@ -74,6 +74,10 @@ internal class StreamMultiJoin(
 
     init {
         require(!left.isEmpty() && !right.isEmpty())
+    }
+
+    override fun supportsEfficientIteration(): Boolean {
+        return false
     }
 
     override fun iterator(): Iterator<Mapping> {
