@@ -1,11 +1,12 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 import dev.tesserakt.util.compatibleWith
 
 internal class StreamMultiJoin(
     private val left: Stream<Mapping>,
-    private val right: Stream<Mapping>,
+    private val right: OptimisedStream<Mapping>,
 ): Stream<Mapping> {
 
     private class Iter(
@@ -46,7 +47,7 @@ internal class StreamMultiJoin(
         }
 
         /**
-         * Attempts to increment the various sources, represented as [left] and [right], returning true if successful,
+         * Attempts to increment the various sources, represented as [right] and [left], returning true if successful,
          *  or false if the end of the input has been reached
          */
         private fun increment(): Boolean {
@@ -64,31 +65,28 @@ internal class StreamMultiJoin(
 
     }
 
-    override val cardinality: Int
-        get() = left.cardinality * right.cardinality
+    override val description: String
+        get() = "(${right.description}) ⨝ (${left.description})"
 
-    // there's no better way here
-    private val _isEmpty by lazy { !iterator().hasNext() }
-
-    override fun isEmpty() = _isEmpty
-
-    init {
-        require(!left.isEmpty() && !right.isEmpty())
-    }
+    override val cardinality: Cardinality
+        get() = right.cardinality * left.cardinality
 
     override fun supportsEfficientIteration(): Boolean {
         return false
     }
 
     override fun iterator(): Iterator<Mapping> {
-        // iterating, using the smallest cardinality on the right (b), as that one's repeated as long as the left
-        //  stream can produce; larger cardinality streams have a higher likelihood of actually skipping a lot of
-        //  combinations (i.e. produced by another join), where unnecessary rechecks (through repeated iterations)
-        //  should be avoided
-        return if (left.cardinality < right.cardinality) {
-            Iter(a = right, b = left)
-        } else {
-            Iter(a = left, b = right)
+        return when {
+            !left.supportsEfficientIteration() -> {
+                Iter(a = left, b = left)
+            }
+            // both are optimised, so the smallest cardinality is the right element
+            right.cardinality < left.cardinality -> {
+                Iter(a = left, b = right)
+            }
+            else -> {
+                Iter(a = right, b = left)
+            }
         }
     }
 

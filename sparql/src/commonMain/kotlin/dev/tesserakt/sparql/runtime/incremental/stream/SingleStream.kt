@@ -1,12 +1,17 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
+import dev.tesserakt.sparql.runtime.incremental.types.OneCardinality
 import kotlin.jvm.JvmInline
 
 @JvmInline
 internal value class SingleStream<E: Any>(private val element: E): Stream<E>, OptimisedStream<E> {
 
-    override val cardinality: Int
-        get() = 1
+    override val description: String
+        get() = "Single element stream"
+
+    override val cardinality: Cardinality
+        get() = OneCardinality
 
     private class Iter<E: Any>(private var item: E?): Iterator<E> {
 
@@ -18,8 +23,6 @@ internal value class SingleStream<E: Any>(private val element: E): Stream<E>, Op
             return current ?: throw NoSuchElementException()
         }
     }
-
-    override fun isEmpty() = false
 
     override fun iterator(): Iterator<E> {
         return Iter(element)

@@ -1,5 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
+
 internal class StreamMappingNullable<I: Any, O: Any>(
     private val source: Stream<I>,
     private val transform: (I) -> O?
@@ -8,9 +10,8 @@ internal class StreamMappingNullable<I: Any, O: Any>(
     private class Iter<I, O: Any>(
         private val source: Iterator<I>,
         private val transform: (I) -> O?,
+        private var next: O?,
     ): Iterator<O> {
-
-        private var next = getNext()
 
         override fun hasNext(): Boolean {
             if (next != null) {
@@ -36,22 +37,32 @@ internal class StreamMappingNullable<I: Any, O: Any>(
 
     }
 
-    // worst case, no nulls at all
-    override val cardinality: Int
-        get() = source.cardinality
+    override val description: String
+        get() = "Mapping?[${source.description}]"
 
-    override fun isEmpty() = false
+    // worst case, no nulls at all
+    override val cardinality: Cardinality
+        get() = source.cardinality
 
     override fun supportsEfficientIteration(): Boolean {
         return false
     }
 
-    init {
-        require(!source.isEmpty())
-    }
-
     override fun iterator(): Iterator<O> {
-        return Iter(source.iterator(), transform)
+        val iter = source.iterator()
+        var transformed: O? = null
+        while (iter.hasNext()) {
+            transformed = transform(iter.next()) ?: continue
+            break
+        }
+        if (transformed == null) {
+            return emptyIterator()
+        }
+        return Iter(
+            source = iter,
+            transform = transform,
+            next = transformed
+        )
     }
 
 }

@@ -14,6 +14,9 @@ import kotlin.jvm.JvmInline
 @JvmInline
 internal value class OptimisedStreamView<E: Any>(val input: Stream<E>): Stream<E> by input, OptimisedStream<E> {
 
+    override val description: String
+        get() = "OptimisedView[${input.description}]"
+
     override fun supportsEfficientIteration(): Boolean {
         return true
     }

@@ -1,8 +1,10 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
+
 internal class StreamChain<E: Any>(
-    private val source1: Stream<E>,
-    private val source2: Stream<E>,
+    val source1: Stream<E>,
+    val source2: Stream<E>,
 ): Stream<E> {
 
     private class Iter<E: Any>(
@@ -38,14 +40,15 @@ internal class StreamChain<E: Any>(
 
     }
 
-    override val cardinality: Int
+    override val description: String
+        get() = "${source1.description}, ${source2.description}"
+
+    override val cardinality: Cardinality
         get() = source1.cardinality + source2.cardinality
 
     override fun supportsEfficientIteration(): Boolean {
         return source1.supportsEfficientIteration() && source2.supportsEfficientIteration()
     }
-
-    override fun isEmpty() = false
 
     override fun iterator(): Iterator<E> {
         return Iter(source1 = source1.iterator(), source2 = source2.iterator())

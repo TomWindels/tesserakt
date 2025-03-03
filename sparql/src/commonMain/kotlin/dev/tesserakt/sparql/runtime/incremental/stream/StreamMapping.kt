@@ -1,5 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
+
 internal class StreamMapping<I: Any, O: Any>(
     private val source: Stream<I>,
     private val transform: (I) -> O
@@ -35,17 +37,18 @@ internal class StreamMapping<I: Any, O: Any>(
 
     }
 
-    override val cardinality: Int
-        get() = source.cardinality
+    override val description: String
+        get() = "Mapping[${source.description}]"
 
-    override fun isEmpty() = false
+    override val cardinality: Cardinality
+        get() = source.cardinality
 
     override fun supportsEfficientIteration(): Boolean {
         return source.supportsEfficientIteration()
     }
 
     override fun iterator(): Iterator<O> {
-        return if (source.isEmpty()) emptyIterator() else Iter(source.iterator(), transform)
+        return Iter(source.iterator(), transform)
     }
 
 }

@@ -10,6 +10,7 @@ import dev.tesserakt.sparql.runtime.core.pattern.matches
 import dev.tesserakt.sparql.runtime.incremental.collection.MappingArray
 import dev.tesserakt.sparql.runtime.incremental.delta.*
 import dev.tesserakt.sparql.runtime.incremental.stream.*
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 
 internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
     val s: Pattern.Subject,
@@ -148,7 +149,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
             )
         }
 
-        override val cardinality: Int get() = state.cardinality
+        override val cardinality: Cardinality
+            get() = state.cardinality
 
         override fun process(delta: DataDelta) {
             state.process(delta)
@@ -182,23 +184,26 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val states = p.allowed.map { p -> Pattern(s, p, o).createIncrementalPatternState() }
 
-        override val cardinality: Int get() = states.sumOf { it.cardinality }
+        override val cardinality: Cardinality
+            get() = Cardinality(states.sumOf { it.cardinality.toDouble() })
 
         override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
 
         override fun peek(delta: DataAddition): Stream<Mapping> {
-            return states.toStream().transform { it.peek(delta) }
+            // whilst the max cardinality here is not correct in all cases, it covers most bases
+            return states.toStream().transform(maxCardinality = 1) { it.peek(delta) }
         }
 
         override fun peek(delta: DataDeletion): Stream<Mapping> {
-            return states.toStream().transform { it.peek(delta) }
+            // whilst the max cardinality here is not correct in all cases, it covers most bases
+            return states.toStream().transform(maxCardinality = 1) { it.peek(delta) }
         }
 
         override fun join(delta: MappingDelta): Stream<MappingDelta> {
             // stream creation here is cheap, already a list
-            return states.toStream().transform { it.join(delta) }
+            return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
         }
 
     }
@@ -211,23 +216,24 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val states = p.allowed.map { p -> Pattern(s, p, o).createIncrementalPatternState() }
 
-        override val cardinality: Int get() = states.sumOf { it.cardinality }
+        override val cardinality: Cardinality
+            get() = Cardinality(states.sumOf { it.cardinality.toDouble() })
 
         override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
 
         override fun peek(delta: DataAddition): Stream<Mapping> {
-            return states.toStream().transform { it.peek(delta) }
+            return states.toStream().transform(maxCardinality = 1) { it.peek(delta) }
         }
 
         override fun peek(delta: DataDeletion): Stream<Mapping> {
-            return states.toStream().transform { it.peek(delta) }
+            return states.toStream().transform(maxCardinality = 1) { it.peek(delta) }
         }
 
         override fun join(delta: MappingDelta): Stream<MappingDelta> {
             // stream creation here is cheap, already a list
-            return states.toStream().transform { it.join(delta) }
+            return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
         }
 
     }
@@ -240,7 +246,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val tree = JoinTree(p.unfold(start = s, end = o))
         private val mappings = mutableListOf<Mapping>()
-        override val cardinality: Int get() = mappings.size
+        override val cardinality: Cardinality
+            get() = Cardinality(mappings.size)
 
         override fun process(delta: DataDelta) {
             tree.process(delta)
@@ -266,7 +273,8 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
         private val tree = JoinTree(pred.unfold(start = subj, end = obj))
         private val mappings = mutableListOf<Mapping>()
-        override val cardinality: Int get() = mappings.size
+        override val cardinality: Cardinality
+            get() = Cardinality(mappings.size)
 
         override fun process(delta: DataDelta) {
             tree.process(delta)
@@ -286,12 +294,6 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
 
     final override val bindings: Set<String> = bindingNamesOf(s, p, o)
 
-    /**
-     * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
-     *  on an empty solution results in [cardinality] results, or a size of 0 guarantees no results will get generated)
-     */
-    protected abstract val cardinality: Int
-
     abstract fun peek(delta: DataAddition): Stream<Mapping>
 
     open fun peek(delta: DataDeletion): Stream<Mapping> = peek(delta = DataAddition(delta.value))
@@ -302,7 +304,7 @@ internal sealed class IncrementalTriplePatternState<P : Pattern.Predicate>(
         return when (delta) {
             is DataAddition -> peek(delta).mapped { MappingAddition(it, origin = delta) }
             is DataDeletion -> peek(delta).mapped { MappingDeletion(it, origin = delta) }
-        }.optimised() // peek()s are already optimised, and mapping doesn't change that, so this is guaranteed to be a type wrapping
+        }.optimisedForReuse() // peek()s are already optimised, and mapping doesn't change that, so this is guaranteed to be a type wrapping
     }
 
     final override fun toString() = "$s $p $o - cardinality $cardinality"

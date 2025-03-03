@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.incremental.collection
 
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.incremental.stream.CollectedStream
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -11,8 +12,8 @@ internal value class SimpleMappingArray(
 
     constructor(mappings: Collection<Mapping>): this(ArrayList(mappings))
 
-    override val cardinality: Int
-        get() = mappings.size
+    override val cardinality: Cardinality
+        get() = Cardinality(mappings.size)
 
     override fun iter(mappings: List<Mapping>): List<CollectedStream<Mapping>> {
         return List(mappings.size) { CollectedStream(this.mappings) }

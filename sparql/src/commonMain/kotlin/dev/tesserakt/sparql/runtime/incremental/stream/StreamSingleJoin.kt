@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 import dev.tesserakt.util.compatibleWith
 
 internal class StreamSingleJoin(
@@ -55,17 +56,11 @@ internal class StreamSingleJoin(
 
     }
 
-    // there's no better way here
-    private val _isEmpty by lazy { !iterator().hasNext() }
+    override val description: String
+        get() = "(${right.description}) ⨝ ($left)"
 
-    override fun isEmpty() = _isEmpty
-
-    override val cardinality: Int
+    override val cardinality: Cardinality
         get() = right.cardinality
-
-    init {
-        require(right.isNotEmpty())
-    }
 
     override fun supportsEfficientIteration(): Boolean {
         return false

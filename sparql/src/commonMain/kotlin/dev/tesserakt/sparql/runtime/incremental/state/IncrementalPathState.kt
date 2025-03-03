@@ -12,8 +12,7 @@ import dev.tesserakt.sparql.runtime.incremental.delta.DataDeletion
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
 import dev.tesserakt.sparql.runtime.incremental.stream.*
-import dev.tesserakt.sparql.runtime.incremental.types.Counter
-import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
+import dev.tesserakt.sparql.runtime.incremental.types.*
 
 internal sealed class IncrementalPathState {
 
@@ -28,7 +27,8 @@ internal sealed class IncrementalPathState {
         private val segments = SegmentsList()
         private val arr = MappingArray(start.name, end.name)
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -99,7 +99,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -118,7 +118,8 @@ internal sealed class IncrementalPathState {
         private val arr = MappingArray(start.name, end.name)
         private val inner = Pattern(start, inner, end).createIncrementalPatternState()
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -197,7 +198,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -213,7 +214,8 @@ internal sealed class IncrementalPathState {
         private val segments = SegmentsList()
         private val arr = MappingArray(start.name)
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
@@ -278,7 +280,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -300,7 +302,8 @@ internal sealed class IncrementalPathState {
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
@@ -368,7 +371,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -384,7 +387,8 @@ internal sealed class IncrementalPathState {
         private val segments = SegmentsList()
         private val arr = MappingArray(end.name)
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
@@ -449,7 +453,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -471,7 +475,8 @@ internal sealed class IncrementalPathState {
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(bridge, inner, end).createIncrementalPatternState()
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
@@ -538,7 +543,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -553,7 +558,8 @@ internal sealed class IncrementalPathState {
 
         private var satisfied = start == end
 
-        override val cardinality: Int get() = if (satisfied) 1 else 0
+        override val cardinality: Cardinality
+            get() = if (satisfied) OneCardinality else ZeroCardinality
 
         // these inner results have to be connected as it's possible for multiple quads to form the exact path
         //  we're looking for
@@ -655,7 +661,8 @@ internal sealed class IncrementalPathState {
         private val intermediateStart = createAnonymousBinding()
         private val intermediateEnd = createAnonymousBinding()
         private val inner = Pattern(intermediateStart, inner, intermediateEnd).createIncrementalPatternState()
-        override val cardinality: Int get() = if (satisfied) 1 else 0
+        override val cardinality: Cardinality
+            get() = if (satisfied) OneCardinality else ZeroCardinality
 
         // these inner results have to be connected as it's possible for multiple quads to form the path
         //  we're looking for
@@ -768,7 +775,8 @@ internal sealed class IncrementalPathState {
         private val segments = SegmentsList()
         private val arr = MappingArray(start.name, end.name)
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -808,7 +816,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -825,7 +833,8 @@ internal sealed class IncrementalPathState {
         private val arr = MappingArray(start.name, end.name)
         private val inner = Pattern(start, inner, end).createIncrementalPatternState()
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -860,7 +869,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -881,7 +890,8 @@ internal sealed class IncrementalPathState {
         private val segments = SegmentsList()
         private val arr = MappingArray(start.name)
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -921,7 +931,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -948,7 +958,8 @@ internal sealed class IncrementalPathState {
         //  (inner repeating paths may return too many results due to the bridge binding)
         private val reached = mutableSetOf<Quad.Term>()
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -997,7 +1008,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -1018,7 +1029,8 @@ internal sealed class IncrementalPathState {
         private val segments = SegmentsList()
         private val arr = MappingArray(end.name)
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -1058,7 +1070,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -1085,7 +1097,8 @@ internal sealed class IncrementalPathState {
         //  (inner repeating paths may return too many results due to the bridge binding)
         private val reached = mutableSetOf<Quad.Term>()
 
-        override val cardinality: Int get() = arr.cardinality
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -1134,7 +1147,7 @@ internal sealed class IncrementalPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -1154,7 +1167,8 @@ internal sealed class IncrementalPathState {
 
         private var satisfied = false
 
-        override val cardinality: Int get() = if (satisfied) 1 else 0
+        override val cardinality: Cardinality
+            get() = if (satisfied) OneCardinality else ZeroCardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -1208,7 +1222,8 @@ internal sealed class IncrementalPathState {
         private val intermediateStart = createAnonymousBinding()
         private val intermediateEnd = createAnonymousBinding()
         private val inner = Pattern(intermediateStart, inner, intermediateEnd).createIncrementalPatternState()
-        override val cardinality: Int get() = if (satisfied) 1 else 0
+        override val cardinality: Cardinality
+            get() = if (satisfied) OneCardinality else ZeroCardinality
 
         // these inner results have to be connected as it's possible for multiple quads to form the path
         //  we're looking for
@@ -1270,7 +1285,7 @@ internal sealed class IncrementalPathState {
     }
 
 
-    abstract val cardinality: Int
+    abstract val cardinality: Cardinality
 
     abstract fun process(delta: DataDelta)
 
