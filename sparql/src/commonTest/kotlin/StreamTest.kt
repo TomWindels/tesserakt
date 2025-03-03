@@ -18,7 +18,7 @@ class StreamTest {
         }
         val a = streamOf(0)
         val b = streamOf(1)
-        val transform = a.product(b).transform { (a, b) -> streamOf(myTransform(a, b)) }
+        val transform = a.product(b).transform(maxCardinality = 1) { (a, b) -> streamOf(myTransform(a, b)) }
         val mapped = a.product(b).mapped { (a, b) -> myTransform(a, b) }
         assertContentEquals(transform, listOf(myTransform(0, 1)))
         assertContentEquals(transform, mapped)
@@ -29,7 +29,7 @@ class StreamTest {
         val input = (0 until 10) + 13
         val filtered = input.toStream().mappedNonNull { it.takeIf { it % 2 == 0 } }
         assertTrue { filtered.all { it % 2 == 0 } }
-        assertEquals(filtered.cardinality, input.size)
+        assertEquals(filtered.cardinality.toInt(), input.size)
     }
 
     @Test
@@ -45,7 +45,7 @@ class StreamTest {
         assertTrue { check.current.size == 4 }
         assertTrue { check.all { it.value == 1 } }
         joined2.forEach { check.decrement(it) }
-        assertTrue { check.current.isEmpty() }
+        assertTrue("One: ${joined1.joinToString()}\nTwo: ${joined2.joinToString()}\nRemaining: $check") { check.current.isEmpty() }
     }
 
     @Test
@@ -56,7 +56,11 @@ class StreamTest {
         assertEquals(streams.cardinality, merged.cardinality)
         assertEquals(merged.cardinality, filtered.cardinality)
         assertTrue { filtered.all { it % 2 == 0 } }
-        assertContentEquals(0 until 10 step 2, filtered)
+        assertContentEquals(
+            expected = 0 until 10 step 2,
+            actual = filtered,
+            message = "Expected: ${0 until 10 step 2}\nReceived: ${filtered.joinToString()}\n"
+        )
     }
 
     @Test

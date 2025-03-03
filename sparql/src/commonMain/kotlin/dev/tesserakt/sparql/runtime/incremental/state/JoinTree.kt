@@ -5,6 +5,8 @@ import dev.tesserakt.sparql.runtime.incremental.collection.MappingArray
 import dev.tesserakt.sparql.runtime.incremental.delta.*
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
 import dev.tesserakt.sparql.runtime.incremental.stream.*
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
+import dev.tesserakt.sparql.runtime.incremental.types.OneCardinality
 import dev.tesserakt.sparql.runtime.incremental.types.Union
 import dev.tesserakt.sparql.runtime.util.Bitmask
 import kotlin.jvm.JvmInline
@@ -19,6 +21,9 @@ internal sealed interface JoinTree: MutableJoinState {
 
         override val bindings: Set<String>
             get() = emptySet()
+
+        override val cardinality: Cardinality
+            get() = OneCardinality // always matches
 
         override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
             return emptyStream()
@@ -45,6 +50,9 @@ internal sealed interface JoinTree: MutableJoinState {
 
         override val bindings: Set<String>
             get() = states.flatMapTo(mutableSetOf()) { it.bindings }
+
+        override val cardinality: Cardinality
+            get() = states.fold(OneCardinality) { acc, state -> acc * state.cardinality }
 
         override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
             val deltas = states
@@ -123,6 +131,8 @@ internal sealed interface JoinTree: MutableJoinState {
 
             val bindings: Set<String>
 
+            val cardinality: Cardinality
+
             /**
              * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in this node, without
              *  actually modifying the node
@@ -142,7 +152,8 @@ internal sealed interface JoinTree: MutableJoinState {
             /**
              * Returns the result of [join]ing the [deltas] with its own internal state
              */
-            fun join(deltas: OptimisedStream<MappingDelta>): Stream<MappingDelta> = deltas.transform { delta -> join(delta) }
+            fun join(deltas: OptimisedStream<MappingDelta>): Stream<MappingDelta> =
+                deltas.transform(maxCardinality = this.cardinality) { delta -> join(delta) }
 
             fun debugInformation(): String
 
@@ -151,6 +162,9 @@ internal sealed interface JoinTree: MutableJoinState {
 
                 override val bindings: Set<String>
                     get() = state.bindings
+
+                override val cardinality: Cardinality
+                    get() = state.cardinality
 
                 override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
                     return state.peek(delta)
@@ -182,10 +196,13 @@ internal sealed interface JoinTree: MutableJoinState {
                         .also { check(it.isNotEmpty()) { "Connected node used with no valid indices! This is not allowed!" } }
                 )
 
+                override val cardinality: Cardinality
+                    get() = buf.cardinality
+
                 override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
                     val one = left.peek(delta)
                     val two = right.peek(delta)
-                    return right.join(one).chain(left.join(two)).chain(join(one, two)).optimised()
+                    return right.join(one).chain(left.join(two)).chain(join(one, two)).optimisedForSingleUse()
                 }
 
                 override fun process(delta: DataDelta) {
@@ -262,10 +279,15 @@ internal sealed interface JoinTree: MutableJoinState {
 
                 override val bindings = left.bindings + right.bindings
 
+                override val cardinality: Cardinality
+                    get() = left.cardinality * right.cardinality
+
                 override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-                    val one = left.peek(delta)
-                    val two = right.peek(delta)
-                    return right.join(one).chain(left.join(two)).chain(join(one, two)).optimised()
+                    // peeking in every substate, which will be joined multiple times, so has to be optimised for such
+                    //  a use
+                    val one = left.peek(delta).optimisedForReuse()
+                    val two = right.peek(delta).optimisedForReuse()
+                    return right.join(one).chain(left.join(two)).chain(join(one, two)).optimisedForSingleUse()
                 }
 
                 override fun process(delta: DataDelta) {
@@ -277,9 +299,9 @@ internal sealed interface JoinTree: MutableJoinState {
                     val leftOverlap = delta.value.bindings.keys.count { it in left.bindings }
                     val rightOverlap = delta.value.bindings.keys.count { it in right.bindings }
                     return if (leftOverlap > rightOverlap) {
-                        right.join(left.join(delta).optimised())
+                        right.join(left.join(delta).optimisedForSingleUse(left.cardinality))
                     } else {
-                        left.join(right.join(delta).optimised())
+                        left.join(right.join(delta).optimisedForSingleUse(right.cardinality))
                     }
                 }
 
@@ -339,6 +361,9 @@ internal sealed interface JoinTree: MutableJoinState {
 
         override val bindings: Set<String>
             get() = root.bindings
+
+        override val cardinality: Cardinality
+            get() = root.cardinality
 
         override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
             return root.peek(delta)

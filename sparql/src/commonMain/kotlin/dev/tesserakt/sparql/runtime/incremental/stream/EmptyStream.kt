@@ -1,5 +1,8 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
+import dev.tesserakt.sparql.runtime.incremental.types.ZeroCardinality
+
 internal object EmptyStream: Stream<Nothing>, OptimisedStream<Nothing> {
 
     object Iterator: kotlin.collections.Iterator<Nothing> {
@@ -14,10 +17,11 @@ internal object EmptyStream: Stream<Nothing>, OptimisedStream<Nothing> {
 
     }
 
-    override val cardinality: Int
-        get() = 0
+    override val description: String
+        get() = "Empty"
 
-    override fun isEmpty() = true
+    override val cardinality: Cardinality
+        get() = ZeroCardinality
 
     override fun iterator() = Iterator
 

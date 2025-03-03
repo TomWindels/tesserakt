@@ -3,8 +3,9 @@ package dev.tesserakt.sparql.runtime.incremental.collection
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.toMapping
-import dev.tesserakt.sparql.runtime.incremental.stream.Stream
+import dev.tesserakt.sparql.runtime.incremental.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.incremental.stream.emptyIterable
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 
 /**
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
@@ -42,8 +43,8 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
             .filterNotNullTo(ArrayList(backing.size - holes))
     }
 
-    override val cardinality: Int
-        get() = backing.size - holes
+    override val cardinality: Cardinality
+        get() = Cardinality(backing.size - holes)
 
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
@@ -51,11 +52,11 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
      */
     val size: Int get() = backing.size
 
-    override fun iter(mapping: Mapping): Stream<Mapping> {
+    override fun iter(mapping: Mapping): OptimisedStream<Mapping> {
         return indexStreamFor(mapping).toStream()
     }
 
-    override fun iter(mappings: List<Mapping>): List<Stream<Mapping>> {
+    override fun iter(mappings: List<Mapping>): List<OptimisedStream<Mapping>> {
         return indexStreamFor(mappings).map { it.toStream() }
     }
 
@@ -269,8 +270,8 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
 
     private inner class Mapper(
         private val indexes: Iterable<Int>,
-        override val cardinality: Int,
-    ): Stream<Mapping> {
+        override val cardinality: Cardinality,
+    ): OptimisedStream<Mapping> {
 
         private inner class Iter(private val iterator: Iterator<Int>): Iterator<Mapping> {
 
@@ -299,15 +300,8 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
 
         }
 
-        // there's no better way here
-        private val _isEmpty by lazy { !iterator().hasNext() }
-
-        override fun isEmpty() = _isEmpty
-
-        override fun supportsEfficientIteration(): Boolean {
-            // the number of holes in the backing structure are expected to be insignificant
-            return true
-        }
+        override val description: String
+            get() = "Mappings from ${this@MultiHashMappingArray}"
 
         override fun iterator(): Iter {
             return Iter(indexes.iterator())
@@ -315,7 +309,7 @@ internal class MultiHashMappingArray(bindings: Set<String>): MappingArray {
 
     }
 
-    private fun IndexStream.toStream(): Stream<Mapping> = Mapper(indexes, cardinality)
+    private fun IndexStream.toStream(): OptimisedStream<Mapping> = Mapper(indexes, Cardinality(cardinality))
 
     companion object {
 

@@ -4,6 +4,7 @@ import dev.tesserakt.sparql.runtime.common.types.Pattern
 import dev.tesserakt.sparql.runtime.core.pattern.bindingName
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.plus
+import dev.tesserakt.sparql.runtime.incremental.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.incremental.stream.Stream
 import dev.tesserakt.sparql.runtime.incremental.stream.mappedNonNull
 import dev.tesserakt.sparql.runtime.incremental.stream.product
@@ -42,7 +43,13 @@ internal fun join(a: List<MappingDelta>, b: List<MappingDelta>): List<MappingDel
         a.forEach { one -> b.forEach { two -> (one + two)?.let { merged -> add(merged) } } }
     }
 
-internal fun join(a: Stream<MappingDelta>, b: Stream<MappingDelta>): Stream<MappingDelta> =
+internal fun join(a: Stream<MappingDelta>, b: OptimisedStream<MappingDelta>): Stream<MappingDelta> =
+    a.product(b).mappedNonNull { (a, b) -> a + b }
+
+internal fun join(a: OptimisedStream<MappingDelta>, b: Stream<MappingDelta>): Stream<MappingDelta> =
+    a.product(b).mappedNonNull { (a, b) -> a + b }
+
+internal fun join(a: OptimisedStream<MappingDelta>, b: OptimisedStream<MappingDelta>): Stream<MappingDelta> =
     a.product(b).mappedNonNull { (a, b) -> a + b }
 
 internal inline fun bindingNamesOf(

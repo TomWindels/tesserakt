@@ -21,5 +21,3 @@ internal inline fun <E: Any> Collection<E>.toStream(): OptimisedStream<E> = when
     this is List<E> -> CollectedStream(this)
     else -> CollectedStream(toList())
 }
-
-internal inline fun <E: Any> Stream<E>.isNotEmpty() = !isEmpty()

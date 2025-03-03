@@ -6,7 +6,7 @@ package dev.tesserakt.sparql.runtime.incremental.stream
  *  to be frequently iterated over. A side effect of its typically efficient nature is that the estimated cardinality
  *  is much closer to the actual cardinality.
  */
-internal sealed interface OptimisedStream<E: Any>: Stream<E> {
+internal interface OptimisedStream<E: Any>: Stream<E> {
 
     // this is this type's whole point
     override fun supportsEfficientIteration() = true

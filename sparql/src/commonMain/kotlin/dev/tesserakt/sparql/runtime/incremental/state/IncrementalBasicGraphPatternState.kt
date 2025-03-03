@@ -3,6 +3,7 @@ package dev.tesserakt.sparql.runtime.incremental.state
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
 import dev.tesserakt.sparql.runtime.incremental.stream.*
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
 
@@ -16,6 +17,9 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
      *  through [insert]ion have a value for all of these bindings, as this depends on the query itself
      */
     val bindings: Set<String> = ast.getAllNamedBindings().map { it.name }.toSet()
+
+    val cardinality: Cardinality
+        get() = patterns.cardinality * unions.cardinality
 
     fun insert(delta: DataDelta): List<MappingDelta> {
         // it's important we collect the results before we process the delta
@@ -36,7 +40,7 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
     }
 
     fun join(delta: MappingDelta): Stream<MappingDelta> {
-        return unions.join(patterns.join(delta).optimised())
+        return unions.join(patterns.join(delta).optimisedForSingleUse())
     }
 
     fun debugInformation() = buildString {

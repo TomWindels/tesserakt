@@ -1,8 +1,10 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
+
 internal class StreamProduct<A: Any, B: Any>(
     private val left: Stream<A>,
-    private val right: Stream<B>,
+    private val right: OptimisedStream<B>,
 ): Stream<Pair<A, B>> {
 
     private class Iter<A: Any, B: Any>(
@@ -14,7 +16,7 @@ internal class StreamProduct<A: Any, B: Any>(
         private val source1 = a.iterator()
         private var source2 = b.iterator()
 
-        private var left = source1.next()
+        private var left = if (source1.hasNext()) source1.next() else null
         private lateinit var right: B
 
         private var next: Pair<A, B>? = null
@@ -35,7 +37,7 @@ internal class StreamProduct<A: Any, B: Any>(
 
         private fun getNext(): Pair<A, B>? {
             while (increment()) {
-                return left to right
+                return (left ?: return null) to right
             }
             return null
         }
@@ -51,6 +53,10 @@ internal class StreamProduct<A: Any, B: Any>(
             if (!source2.hasNext()) {
                 // wrapping around, incrementing the left side
                 source2 = b.iterator()
+                // we're wrapping around nothing, skipping
+                if (!source2.hasNext()) {
+                    return false
+                }
                 left = source1.next()
             }
             right = source2.next()
@@ -59,18 +65,14 @@ internal class StreamProduct<A: Any, B: Any>(
 
     }
 
-    override val cardinality: Int
-        get() = left.cardinality * right.cardinality
+    override val description: String
+        get() = "(${left.description}) ⨉ (${right.description})"
 
-    init {
-        require(!left.isEmpty() && !right.isEmpty())
-    }
+    override val cardinality: Cardinality = left.cardinality * right.cardinality
 
     override fun supportsEfficientIteration(): Boolean {
         return left.supportsEfficientIteration() && right.supportsEfficientIteration()
     }
-
-    override fun isEmpty() = false
 
     override fun iterator(): Iterator<Pair<A, B>> {
         return Iter(a = left, b = right)

@@ -23,7 +23,7 @@ internal class BufferedStream<E: Any>(
         override fun next(): E {
             val current = next ?: getNext()
             next = null
-            return current ?: throw NoSuchElementException()
+            return current ?: throw NoSuchElementException("Stream $description has no elements remaining!")
         }
 
         private fun getNext(): E? {
@@ -41,9 +41,10 @@ internal class BufferedStream<E: Any>(
 
     }
 
-    override val cardinality get() = source.cardinality
+    override val description: String
+        get() = "Buffered[${source.description}]"
 
-    override fun isEmpty() = source.isEmpty()
+    override val cardinality get() = source.cardinality
 
     override fun iterator(): Iterator<E> {
         return Iter()

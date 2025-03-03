@@ -1,8 +1,11 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
+
 internal class StreamTransformNullable<I: Any, O: Any>(
     private val source: OptimisedStream<I>,
-    private val transform: (I) -> Stream<O>?
+    private val transform: (I) -> Stream<O>?,
+    override val cardinality: Cardinality,
 ): Stream<O> {
 
     private class Iter<I, O: Any>(
@@ -39,16 +42,8 @@ internal class StreamTransformNullable<I: Any, O: Any>(
 
     }
 
-    override val cardinality: Int = Int.MAX_VALUE
-
-    // there's no better way here
-    private val _isEmpty by lazy { !iterator().hasNext() }
-
-    init {
-        require(source.isNotEmpty())
-    }
-
-    override fun isEmpty() = _isEmpty
+    override val description: String
+        get() = "Transform?[${source.description}]"
 
     override fun supportsEfficientIteration(): Boolean {
         return false

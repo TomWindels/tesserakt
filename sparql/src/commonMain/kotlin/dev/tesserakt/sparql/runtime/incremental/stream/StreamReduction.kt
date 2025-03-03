@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.incremental.stream
 
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 import dev.tesserakt.sparql.runtime.incremental.types.Counter
 
 internal class StreamReduction<E: Any>(
@@ -44,14 +45,12 @@ internal class StreamReduction<E: Any>(
 
     private val counter = Counter(removed)
 
-    override val cardinality: Int
+    override val description: String
+        get() = "Reduction[${source.description}]"
+
+    override val cardinality: Cardinality
         // not removing the dropped ones from the cardinality, as it's not guaranteed they're present in the first place
         get() = source.cardinality
-
-    // there's no better way here
-    private val _isEmpty by lazy { !iterator().hasNext() }
-
-    override fun isEmpty() = _isEmpty
 
     override fun supportsEfficientIteration(): Boolean {
         return false
