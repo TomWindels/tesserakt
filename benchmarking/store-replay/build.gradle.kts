@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.tasks.factory.dependsOn
+
 plugins {
     id("package-conventions")
 }
@@ -29,3 +31,6 @@ kotlin {
         }
     }
 }
+
+tasks.named("jsNodeProductionLibraryDistribution").dependsOn("jsTestTestDevelopmentExecutableCompileSync")
+tasks.named("jsNodeTest").dependsOn("jsProductionLibraryCompileSync")
