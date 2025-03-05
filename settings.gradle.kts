@@ -15,6 +15,7 @@ include("n3")
 include("n3-dsl")
 
 include("sparql")
+include("sparql:test")
 
 include("serialization:core")
 include("serialization:common")
@@ -34,3 +35,5 @@ include("testing:rdf-test-suite-js")
 
 include("benchmarking:store-replay")
 include("benchmarking")
+
+include("js-build")
