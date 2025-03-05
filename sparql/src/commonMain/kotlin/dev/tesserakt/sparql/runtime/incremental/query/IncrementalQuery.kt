@@ -28,7 +28,7 @@ sealed class IncrementalQuery<ResultType, Q: Query>(
                 // getting all current results by joining with an empty new mapping
                 .join(MappingAddition(value = emptyMapping(), origin = null))
                 // mapping them to insertion changes, combining them into the expected return type
-                .map { bindings -> this@IncrementalQuery.process(ResultChange.New(bindings.value)).value }
+                .map { bindings -> this@IncrementalQuery.process(ResultChange.New(bindings.value.bindings)).value }
         }
 
         fun process(data: DataDelta): List<ResultChange<Bindings>> {
