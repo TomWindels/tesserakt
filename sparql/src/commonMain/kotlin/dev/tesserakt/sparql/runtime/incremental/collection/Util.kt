@@ -1,11 +1,11 @@
 package dev.tesserakt.sparql.runtime.incremental.collection
 
-internal fun mutableJoinCollection(bindings: Collection<String>) = when {
-    bindings.isNotEmpty() -> HashJoinArray(bindings = bindings.toSet())
-    else -> NestedJoinArray()
+internal fun MappingArray(bindings: Collection<String>) = when {
+    bindings.isNotEmpty() -> MultiHashMappingArray(bindings = bindings.toSet())
+    else -> SimpleMappingArray()
 }
 
-internal fun mutableJoinCollection(vararg bindings: String?): JoinCollection {
+internal fun MappingArray(vararg bindings: String?): MappingArray {
     val set = setOfNotNull(*bindings)
-    return mutableJoinCollection(set)
+    return MappingArray(set)
 }

@@ -2,6 +2,8 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
+import dev.tesserakt.sparql.runtime.incremental.stream.*
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 import dev.tesserakt.sparql.runtime.incremental.types.SelectQuerySegment
 import dev.tesserakt.sparql.runtime.incremental.types.StatementsSegment
 import dev.tesserakt.sparql.runtime.incremental.types.Union
@@ -16,7 +18,10 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
 
             override val bindings: Set<String> get() = state.bindings
 
-            override fun peek(delta: DataDelta): List<MappingDelta> {
+            override val cardinality: Cardinality
+                get() = state.cardinality
+
+            override fun peek(delta: DataDelta): Stream<MappingDelta> {
                 return state.peek(delta)
             }
 
@@ -24,7 +29,7 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
                 return state.process(delta)
             }
 
-            override fun join(delta: MappingDelta): List<MappingDelta> {
+            override fun join(delta: MappingDelta): Stream<MappingDelta> {
                 return state.join(delta)
             }
 
@@ -34,7 +39,10 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
 
             override val bindings: Set<String> = parent.query.output.map { it.name }.toSet()
 
-            override fun peek(delta: DataDelta): List<MappingDelta> {
+            override val cardinality: Cardinality
+                get() = TODO("Not yet implemented")
+
+            override fun peek(delta: DataDelta): Stream<MappingDelta> {
                 TODO("Not yet implemented")
             }
 
@@ -42,7 +50,7 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
                 TODO("Not yet implemented")
             }
 
-            override fun join(delta: MappingDelta): List<MappingDelta> {
+            override fun join(delta: MappingDelta): Stream<MappingDelta> {
                 TODO("Not yet implemented")
             }
 
@@ -50,11 +58,13 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
 
         abstract val bindings: Set<String>
 
-        abstract fun peek(delta: DataDelta): List<MappingDelta>
+        abstract val cardinality: Cardinality
+
+        abstract fun peek(delta: DataDelta): Stream<MappingDelta>
 
         abstract fun process(delta: DataDelta)
 
-        abstract fun join(delta: MappingDelta): List<MappingDelta>
+        abstract fun join(delta: MappingDelta): Stream<MappingDelta>
 
     }
 
@@ -62,16 +72,20 @@ internal class IncrementalUnionState(union: Union): MutableJoinState {
 
     override val bindings: Set<String> = buildSet { state.forEach { addAll(it.bindings) } }
 
+    override val cardinality: Cardinality
+        get() = Cardinality(state.sumOf { it.cardinality.toDouble() })
+
     override fun process(delta: DataDelta) {
         state.forEach { it.process(delta) }
     }
 
-    override fun peek(delta: DataDelta): List<MappingDelta> {
-        return state.flatMap { it.peek(delta) }
+    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
+        // whilst the max cardinality here is not correct in all cases, it covers most bases
+        return state.toStream().transform(maxCardinality = 1) { it.peek(delta) }.optimisedForReuse()
     }
 
-    override fun join(delta: MappingDelta): List<MappingDelta> {
-        return state.flatMap { s -> s.join(delta) }
+    override fun join(delta: MappingDelta): Stream<MappingDelta> {
+        return state.toStream().transform(maxCardinality = state.maxOf { it.cardinality }) { s -> s.join(delta) }
     }
 
     companion object {

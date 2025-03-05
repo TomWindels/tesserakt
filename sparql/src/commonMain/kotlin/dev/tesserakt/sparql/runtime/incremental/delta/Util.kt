@@ -1,6 +1,8 @@
 package dev.tesserakt.sparql.runtime.incremental.delta
 
 import dev.tesserakt.sparql.runtime.core.Mapping
+import dev.tesserakt.sparql.runtime.incremental.stream.Stream
+import dev.tesserakt.sparql.runtime.incremental.stream.mapped
 import dev.tesserakt.util.compatibleWith
 
 
@@ -26,7 +28,7 @@ internal inline fun MappingDelta.map(transform: (Mapping) -> Mapping) = when (th
 }
 
 
-internal inline fun MappingDelta.transform(transform: (Mapping) -> Collection<Mapping>) = when (this) {
-    is MappingAddition -> transform(value).map { MappingAddition(it, origin = origin) }
-    is MappingDeletion -> transform(value).map { MappingDeletion(it, origin = origin) }
+internal inline fun MappingDelta.mapToStream(transform: (Mapping) -> Stream<Mapping>) = when (this) {
+    is MappingAddition -> transform(value).mapped { MappingAddition(it, origin = origin) }
+    is MappingDeletion -> transform(value).mapped { MappingDeletion(it, origin = origin) }
 }

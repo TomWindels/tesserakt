@@ -6,13 +6,13 @@ import dev.tesserakt.sparql.runtime.core.Mapping
 import dev.tesserakt.sparql.runtime.core.emptyMapping
 import dev.tesserakt.sparql.runtime.core.mappingOf
 import dev.tesserakt.sparql.runtime.core.pattern.matches
-import dev.tesserakt.sparql.runtime.incremental.collection.mutableJoinCollection
+import dev.tesserakt.sparql.runtime.incremental.collection.MappingArray
 import dev.tesserakt.sparql.runtime.incremental.delta.DataAddition
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDeletion
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.state.IncrementalTriplePatternState.Companion.createIncrementalPatternState
-import dev.tesserakt.sparql.runtime.incremental.types.Counter
-import dev.tesserakt.sparql.runtime.incremental.types.SegmentsList
+import dev.tesserakt.sparql.runtime.incremental.stream.*
+import dev.tesserakt.sparql.runtime.incremental.types.*
 
 internal sealed class IncrementalPathState {
 
@@ -25,9 +25,10 @@ internal sealed class IncrementalPathState {
         // all terms that have been discovered (count of "zero-length" segments)
         private val terms = Counter<Quad.Term>()
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name, end.name)
+        private val arr = MappingArray(start.name, end.name)
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -54,10 +55,10 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
@@ -71,13 +72,13 @@ internal sealed class IncrementalPathState {
             if (quad.o !in terms) {
                 result.add(mappingOf(start.name to quad.o, end.name to quad.o))
             }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             val quad = deletion.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
@@ -90,15 +91,15 @@ internal sealed class IncrementalPathState {
             if (terms[quad.o] == 1) {
                 result.add(mappingOf(start.name to quad.o, end.name to quad.o))
             }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -114,10 +115,11 @@ internal sealed class IncrementalPathState {
         private val segments = SegmentsList()
         // all terms that have been discovered (count of "zero-length" segments)
         private val terms = Counter<Quad.Term>()
-        private val arr = mutableJoinCollection(start.name, end.name)
+        private val arr = MappingArray(start.name, end.name)
         private val inner = Pattern(start, inner, end).createIncrementalPatternState()
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -144,7 +146,7 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             val new = inner.peek(addition)
                 .map { SegmentsList.Segment(start = it[start.name]!!, end = it[end.name]!!) }
@@ -165,10 +167,10 @@ internal sealed class IncrementalPathState {
             if (quad.o !in terms) {
                 result.add(mappingOf(start.name to quad.o, end.name to quad.o))
             }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             val quad = deletion.value
             val removed = inner.peek(deletion)
                 .map { SegmentsList.Segment(start = it[start.name]!!, end = it[end.name]!!) }
@@ -188,15 +190,15 @@ internal sealed class IncrementalPathState {
             if (terms[quad.o] == 1) {
                 result.add(mappingOf(start.name to quad.o, end.name to quad.o))
             }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -210,9 +212,10 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name)
+        private val arr = MappingArray(start.name)
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
@@ -238,10 +241,10 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
@@ -252,13 +255,13 @@ internal sealed class IncrementalPathState {
                         result.add(mappingOf(start.name to it.start))
                     }
                 }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             val quad = deletion.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
@@ -269,15 +272,15 @@ internal sealed class IncrementalPathState {
                         result.add(mappingOf(start.name to it.start))
                     }
                 }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -291,7 +294,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name)
+        private val arr = MappingArray(start.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -299,7 +302,8 @@ internal sealed class IncrementalPathState {
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(start, inner, bridge).createIncrementalPatternState()
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
@@ -329,10 +333,10 @@ internal sealed class IncrementalPathState {
             inner.process(delta)
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val new = inner.peek(addition)
                 .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[start.name]!!, end = it[bridge.name]!!) }
-                .ifEmpty { return emptyList() }
+                .ifEmpty { return emptyStream() }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
             val result = mutableSetOf<Mapping>()
@@ -342,13 +346,13 @@ internal sealed class IncrementalPathState {
                         result.add(mappingOf(start.name to it.start))
                     }
                 }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             val removed = inner.peek(deletion)
                 .map { SegmentsList.Segment(start = it[start.name]!!, end = it[bridge.name]!!) }
-                .ifEmpty { return emptyList() }
+                .ifEmpty { return emptyStream() }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
             val result = mutableSetOf<Mapping>()
@@ -359,15 +363,15 @@ internal sealed class IncrementalPathState {
                         result.add(mappingOf(start.name to it.start))
                     }
                 }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -381,9 +385,10 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(end.name)
+        private val arr = MappingArray(end.name)
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
@@ -409,10 +414,10 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
@@ -423,13 +428,13 @@ internal sealed class IncrementalPathState {
                         result.add(mappingOf(end.name to it.end))
                     }
                 }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             val quad = deletion.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
@@ -440,15 +445,15 @@ internal sealed class IncrementalPathState {
                         result.add(mappingOf(end.name to it.end))
                     }
                 }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -462,7 +467,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(end.name)
+        private val arr = MappingArray(end.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -470,7 +475,8 @@ internal sealed class IncrementalPathState {
         private val bridge = createAnonymousBinding()
         private val inner = Pattern(bridge, inner, end).createIncrementalPatternState()
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
@@ -500,10 +506,10 @@ internal sealed class IncrementalPathState {
             inner.process(delta)
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val new = inner.peek(addition)
                 .mapTo(mutableSetOf()) { SegmentsList.Segment(start = it[bridge.name]!!, end = it[end.name]!!) }
-                .ifEmpty { return emptyList() }
+                .ifEmpty { return emptyStream() }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
             val result = mutableSetOf<Mapping>()
@@ -513,13 +519,13 @@ internal sealed class IncrementalPathState {
                         result.add(mappingOf(end.name to it.end))
                     }
                 }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             val removed = inner.peek(deletion)
                 .map { SegmentsList.Segment(start = it[bridge.name]!!, end = it[end.name]!!) }
-                .ifEmpty { return emptyList() }
+                .ifEmpty { return emptyStream() }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
             val result = mutableSetOf<Mapping>()
@@ -529,15 +535,15 @@ internal sealed class IncrementalPathState {
                         result.add(mappingOf(end.name to it.end))
                     }
                 }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -552,7 +558,8 @@ internal sealed class IncrementalPathState {
 
         private var satisfied = start == end
 
-        override val cardinality: Int get() = if (satisfied) 1 else 0
+        override val cardinality: Cardinality
+            get() = if (satisfied) OneCardinality else ZeroCardinality
 
         // these inner results have to be connected as it's possible for multiple quads to form the exact path
         //  we're looking for
@@ -585,14 +592,14 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             if (start == end) {
                 // don't care, always satisfied
-                return emptyList()
+                return emptyStream()
             }
             val quad = addition.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
@@ -601,20 +608,20 @@ internal sealed class IncrementalPathState {
                 val new = segments.newPathsOnAdding(segment)
                 // checking if any valid path has been reached
                 if (new.any { it.start == start.term && it.end == end.term }) {
-                    return listOf(emptyMapping())
+                    return streamOf(emptyMapping())
                 }
             }
-            return emptyList()
+            return emptyStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             if (start == end) {
                 // don't care, always satisfied
-                return emptyList()
+                return emptyStream()
             }
             val quad = deletion.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // it's expected that a call to `process` will happen soon after,
             //  so not changing it here
@@ -623,17 +630,17 @@ internal sealed class IncrementalPathState {
                 val remaining = segments.remainingPathsOnRemoving(segment)
                 // checking if any valid path remains
                 if (remaining.none { it.start == start.term && it.end == end.term }) {
-                    return listOf(emptyMapping())
+                    return streamOf(emptyMapping())
                 }
             }
-            return emptyList()
+            return emptyStream()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
-            return if (satisfied) mappings else emptyList()
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
+            return if (satisfied) mappings else emptyStream()
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -654,7 +661,8 @@ internal sealed class IncrementalPathState {
         private val intermediateStart = createAnonymousBinding()
         private val intermediateEnd = createAnonymousBinding()
         private val inner = Pattern(intermediateStart, inner, intermediateEnd).createIncrementalPatternState()
-        override val cardinality: Int get() = if (satisfied) 1 else 0
+        override val cardinality: Cardinality
+            get() = if (satisfied) OneCardinality else ZeroCardinality
 
         // these inner results have to be connected as it's possible for multiple quads to form the path
         //  we're looking for
@@ -700,13 +708,13 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             if (start == end) {
                 // don't care, always satisfied
-                return emptyList()
+                return emptyStream()
             }
             if (satisfied) {
-                return emptyList()
+                return emptyStream()
             }
             val added = inner
                 .peek(addition)
@@ -717,18 +725,18 @@ internal sealed class IncrementalPathState {
                     )
                 }
             if (segments.newPathsOnAdding(added).any { it.start == start.term && it.end == end.term }) {
-                return listOf(emptyMapping())
+                return streamOf(emptyMapping())
             }
-            return emptyList()
+            return emptyStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             if (start == end) {
                 // don't care, always satisfied
-                return emptyList()
+                return emptyStream()
             }
             if (!satisfied) {
-                return emptyList()
+                return emptyStream()
             }
             val removed = inner
                 .peek(deletion)
@@ -743,16 +751,16 @@ internal sealed class IncrementalPathState {
                     .remainingPathsOnRemoving(removed)
                     .none { it.start == start.term && it.end == end.term }
             ) {
-                return listOf(emptyMapping())
+                return streamOf(emptyMapping())
             }
-            return emptyList()
+            return emptyStream()
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
-            return if (satisfied) mappings else emptyList()
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
+            return if (satisfied) mappings else emptyStream()
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -765,9 +773,10 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name, end.name)
+        private val arr = MappingArray(start.name, end.name)
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -785,29 +794,29 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
             val result = mutableSetOf<Mapping>()
             segments.newPathsOnAdding(quad.toSegment())
                 .mapTo(result) { mappingOf(start.name to it.start, end.name to it.end) }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -821,10 +830,11 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name, end.name)
+        private val arr = MappingArray(start.name, end.name)
         private val inner = Pattern(start, inner, end).createIncrementalPatternState()
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -839,7 +849,7 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
@@ -847,19 +857,19 @@ internal sealed class IncrementalPathState {
             val result = mutableSetOf<Mapping>()
             segments.newPathsOnAdding(new)
                 .mapTo(result) { mappingOf(start.name to it.start, end.name to it.end) }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -878,9 +888,10 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name)
+        private val arr = MappingArray(start.name)
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -898,29 +909,29 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
             val result = mutableSetOf<Mapping>()
             segments.newReachableStartNodesOnAdding(quad.toSegment())
                 .mapTo(result) { mappingOf(start.name to it) }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -934,7 +945,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(start.name)
+        private val arr = MappingArray(start.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -947,7 +958,8 @@ internal sealed class IncrementalPathState {
         //  (inner repeating paths may return too many results due to the bridge binding)
         private val reached = mutableSetOf<Quad.Term>()
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -964,13 +976,13 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             val result = peekNewlyReachable(quad)
-            return result.map { mappingOf(start.name to it) }
+            return result.map { mappingOf(start.name to it) }.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -991,12 +1003,12 @@ internal sealed class IncrementalPathState {
             return result
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -1015,9 +1027,10 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(end.name)
+        private val arr = MappingArray(end.name)
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -1035,29 +1048,29 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             if (!inner.matches(quad.p)) {
-                return emptyList()
+                return emptyStream()
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
             val result = mutableSetOf<Mapping>()
             segments.newReachableEndNodesOnAdding(quad.toSegment())
                 .mapTo(result) { mappingOf(end.name to it) }
-            return result.toList()
+            return result.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -1071,7 +1084,7 @@ internal sealed class IncrementalPathState {
     ) : IncrementalPathState() {
 
         private val segments = SegmentsList()
-        private val arr = mutableJoinCollection(end.name)
+        private val arr = MappingArray(end.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -1084,7 +1097,8 @@ internal sealed class IncrementalPathState {
         //  (inner repeating paths may return too many results due to the bridge binding)
         private val reached = mutableSetOf<Quad.Term>()
 
-        override val cardinality: Int get() = arr.mappings.size
+        override val cardinality: Cardinality
+            get() = arr.cardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -1101,13 +1115,13 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             val result = peekNewlyReachable(quad)
-            return result.map { mappingOf(end.name to it) }
+            return result.map { mappingOf(end.name to it) }.toStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -1128,12 +1142,12 @@ internal sealed class IncrementalPathState {
             return result
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
             return arr.join(mappings)
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
-            return arr.join(mappings, ignore = ignore)
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
+            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun toString() = segments.toString()
@@ -1153,7 +1167,8 @@ internal sealed class IncrementalPathState {
 
         private var satisfied = false
 
-        override val cardinality: Int get() = if (satisfied) 1 else 0
+        override val cardinality: Cardinality
+            get() = if (satisfied) OneCardinality else ZeroCardinality
 
         override fun process(delta: DataDelta) {
             val quad = delta.value
@@ -1169,24 +1184,24 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             return if (!satisfied && inner.matches(quad.p)) {
-                listOf(emptyMapping())
+                streamOf(emptyMapping())
             } else {
-                emptyList()
+                emptyStream()
             }
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
-            return if (satisfied) mappings else emptyList()
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
+            return if (satisfied) mappings else emptyStream()
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
@@ -1207,7 +1222,8 @@ internal sealed class IncrementalPathState {
         private val intermediateStart = createAnonymousBinding()
         private val intermediateEnd = createAnonymousBinding()
         private val inner = Pattern(intermediateStart, inner, intermediateEnd).createIncrementalPatternState()
-        override val cardinality: Int get() = if (satisfied) 1 else 0
+        override val cardinality: Cardinality
+            get() = if (satisfied) OneCardinality else ZeroCardinality
 
         // these inner results have to be connected as it's possible for multiple quads to form the path
         //  we're looking for
@@ -1236,7 +1252,7 @@ internal sealed class IncrementalPathState {
             }
         }
 
-        override fun peek(addition: DataAddition): List<Mapping> {
+        override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             if (!satisfied) {
                 val peek = inner.peek(DataAddition(quad))
@@ -1248,38 +1264,38 @@ internal sealed class IncrementalPathState {
                         )
                     }
                 if (segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }) {
-                    return listOf(emptyMapping())
+                    return streamOf(emptyMapping())
                 }
             }
-            return emptyList()
+            return emptyStream()
         }
 
-        override fun peek(deletion: DataDeletion): List<Mapping> {
+        override fun peek(deletion: DataDeletion): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
-        override fun join(mappings: List<Mapping>): List<Mapping> {
-            return if (satisfied) mappings else emptyList()
+        override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
+            return if (satisfied) mappings else emptyStream()
         }
 
-        override fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping> {
+        override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
         }
 
     }
 
 
-    abstract val cardinality: Int
+    abstract val cardinality: Cardinality
 
     abstract fun process(delta: DataDelta)
 
-    abstract fun peek(addition: DataAddition): List<Mapping>
+    abstract fun peek(addition: DataAddition): Stream<Mapping>
 
-    abstract fun peek(deletion: DataDeletion): List<Mapping>
+    abstract fun peek(deletion: DataDeletion): Stream<Mapping>
 
-    abstract fun join(mappings: List<Mapping>): List<Mapping>
+    abstract fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping>
 
-    abstract fun join(mappings: List<Mapping>, ignore: Iterable<Mapping>): List<Mapping>
+    abstract fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping>
 
     companion object {
 

@@ -9,6 +9,12 @@ kotlin {
                 api(project(":rdf"))
             }
         }
+        // only enabling the JVM test source set, as this one doesn't land in the JS sources
+        val jvmTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
     }
 }
 

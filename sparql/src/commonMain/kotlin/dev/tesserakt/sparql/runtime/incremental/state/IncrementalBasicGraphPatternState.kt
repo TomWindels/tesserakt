@@ -2,6 +2,8 @@ package dev.tesserakt.sparql.runtime.incremental.state
 
 import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
 import dev.tesserakt.sparql.runtime.incremental.delta.MappingDelta
+import dev.tesserakt.sparql.runtime.incremental.stream.*
+import dev.tesserakt.sparql.runtime.incremental.types.Cardinality
 import dev.tesserakt.sparql.runtime.incremental.types.Query
 import dev.tesserakt.sparql.runtime.util.getAllNamedBindings
 
@@ -16,16 +18,20 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
      */
     val bindings: Set<String> = ast.getAllNamedBindings().map { it.name }.toSet()
 
+    val cardinality: Cardinality
+        get() = patterns.cardinality * unions.cardinality
+
     fun insert(delta: DataDelta): List<MappingDelta> {
-        val total = peek(delta)
+        // it's important we collect the results before we process the delta
+        val total = peek(delta).collect()
         process(delta)
         return total
     }
 
-    fun peek(delta: DataDelta): List<MappingDelta> {
+    fun peek(delta: DataDelta): Stream<MappingDelta> {
         val first = patterns.peek(delta)
         val second = unions.peek(delta)
-        return patterns.join(second) + unions.join(first)
+        return patterns.join(second).chain(unions.join(first))
     }
 
     fun process(delta: DataDelta) {
@@ -33,8 +39,8 @@ internal class IncrementalBasicGraphPatternState(ast: Query.QueryBody) {
         unions.process(delta)
     }
 
-    fun join(delta: MappingDelta): List<MappingDelta> {
-        return unions.join(patterns.join(delta))
+    fun join(delta: MappingDelta): Stream<MappingDelta> {
+        return unions.join(patterns.join(delta).optimisedForSingleUse())
     }
 
     fun debugInformation() = buildString {
