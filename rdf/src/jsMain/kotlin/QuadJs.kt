@@ -52,7 +52,7 @@ class QuadJs(
 
     }
 
-    private val value = Quad(
+    internal val value = Quad(
         s = s.jsExpect().value,
         p = p.jsExpect().value.jsCastOrBail(),
         o = o.jsExpect().value,
@@ -63,8 +63,6 @@ class QuadJs(
     val p: TermJs get() = TermJs(value.p)
     val o: TermJs get() = TermJs(value.o)
     val g: GraphJs get() = GraphJs(value.g)
-
-    internal fun unwrap() = value
 
     companion object Builder {
 

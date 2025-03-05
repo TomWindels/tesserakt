@@ -9,7 +9,7 @@ import dev.tesserakt.util.jsExpect
 @JsName("MutableStore")
 class MutableStoreJs(quads: Array<QuadJs>? = undefined) {
 
-    private val store = MutableStore(quads?.map { it.unwrap() } ?: emptyList())
+    internal val store = MutableStore(quads?.map { it.unwrap() } ?: emptyList())
 
     override fun equals(other: Any?): Boolean {
         if (other !is MutableStoreJs) {

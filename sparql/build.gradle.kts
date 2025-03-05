@@ -9,14 +9,26 @@ kotlin {
                 api(project(":rdf"))
             }
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(project(":testing:suite"))
-                implementation(project(":rdf-dsl"))
-                implementation(project(":serialization"))
-                implementation(project(":extra"))
-            }
-        }
     }
+}
+
+//// configuring the test module's tests to run upon building, but only after the test module has
+////  been evaluated, as otherwise that task does not exist
+gradle.projectsEvaluated {
+    val testsDisabled = tasks
+        .withType(AbstractTestTask::class.java)
+        .any { it.ignoreFailures }
+    val test = project(":sparql:test")
+        .tasks
+        .named("test")
+    test.configure {
+        if (testsDisabled) {
+            println("Ignoring failures from ${this.project.path}:$name!")
+        }
+        this as AbstractTestTask
+        ignoreFailures = testsDisabled
+    }
+    tasks
+        .withType(AbstractTestTask::class.java)
+        .all { finalizedBy(test) }
 }
