@@ -50,3 +50,7 @@ fun VersionCatalog.get(name: String): String = findVersion(name).orElseThrow().r
 // required to prevent "<task1> uses output of task <task2>" errors introduced when generating JS libraries
 tasks.named("jsNodeProductionLibraryDistribution").dependsOn("jsTestTestDevelopmentExecutableCompileSync")
 tasks.named("jsNodeTest").dependsOn("jsProductionLibraryCompileSync")
+
+// as we're a package, and we have the JS source configured, we're creating an export task, that's collected by the
+// js-build meta module
+tasks.register("jsExport").dependsOn("jsProductionLibraryCompileSync")

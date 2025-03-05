@@ -41,6 +41,10 @@ class MutableStoreJs(quads: Array<QuadJs>? = undefined) {
         store.add(quad.jsExpect().unwrap())
     }
 
+    fun remove(quad: QuadJs? = undefined) {
+        store.remove(quad.jsExpect().unwrap())
+    }
+
     fun insertQuad(s: QuadJs.TermJs? = undefined, p: QuadJs.TermJs? = undefined, o: QuadJs.TermJs? = undefined, g: QuadJs.GraphJs? = undefined) {
         store.add(QuadJs(s, p, o, g ?: QuadJs.graph()).unwrap())
     }
