@@ -11,6 +11,7 @@ import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.benchmark.replay.RBO
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import dev.tesserakt.sparql.benchmark.replay.SnapshotStore
+import dev.tesserakt.util.node.writeFileSync
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
@@ -39,7 +40,6 @@ class ReplayBenchmarkBuilder(
     }
 
     fun buildToFile(path: String = "./${name.value}.ttl", prefixes: dynamic) {
-        val fs = js("require('fs')")
         val keys = js("Object.keys")
         val flags: dynamic = Any()
         // https://nodejs.org/en/learn/manipulating-files/writing-files-with-nodejs#the-flags-youll-likely-use-are
@@ -47,7 +47,7 @@ class ReplayBenchmarkBuilder(
         TriGSerializer.serialize(
             data = buildToStore(),
             prefixes = keys(prefixes).unsafeCast<Array<String>>().associateWith { prefixes[it] }.plus(RBO),
-            callback = { content -> fs.writeFileSync(path, content, flags); Unit }
+            callback = { content -> writeFileSync(path, content, flags); Unit }
         )
     }
 

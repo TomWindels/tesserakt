@@ -1,6 +1,6 @@
 package dev.tesserakt.rdf.serialization.util
 
-private val fs = js("require('fs')")
+import dev.tesserakt.util.node.readFileSync
 
 actual class BufferedReader(private val content: String) : AutoCloseable {
 
@@ -32,7 +32,7 @@ actual fun String.openAsBufferedReader(): Result<BufferedReader> = runCatching {
     opts.encoding = "utf8"
     opts.flag = "r"
     // const data = fs.readFileSync('./input.txt', { encoding: 'utf8', flag: 'r' });
-    val content = fs.readFileSync(this, opts)
+    val content = readFileSync(this, opts)
     BufferedReader(content = content as String)
 }
 
