@@ -43,6 +43,11 @@ kotlin {
         generateTypeScriptDefinitions()
         binaries.library()
     }
+    wasmJs {
+        nodejs()
+        generateTypeScriptDefinitions()
+        binaries.library()
+    }
 }
 
 fun VersionCatalog.get(name: String): String = findVersion(name).orElseThrow().requiredVersion

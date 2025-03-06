@@ -4,9 +4,9 @@ plugins {
 }
 
 kotlin {
-    js {
+    wasmJs {
         compilerOptions {
-            target.set("es2015")
+            freeCompilerArgs.add("-Xwasm-use-new-exception-proposal")
         }
         nodejs()
         generateTypeScriptDefinitions()
@@ -20,7 +20,7 @@ group = ""
 gradle.projectsEvaluated {
     kotlin {
         sourceSets {
-            val jsMain by getting {
+            val wasmJsMain by getting {
                 dependencies {
                     (rootProject.subprojects - project)
                         .filter { it.tasks.findByName("jsExport") != null }

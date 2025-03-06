@@ -14,5 +14,11 @@ kotlin {
                 implementation(npm("n3", "1.17.3"))
             }
         }
+        val wasmJsMain by getting {
+            dependencies {
+                api(project(":rdf"))
+                implementation(npm("n3", "1.17.3"))
+            }
+        }
     }
 }
