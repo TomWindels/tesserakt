@@ -3,13 +3,13 @@
 package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.compiler.ast.ASTNode
+import dev.tesserakt.sparql.types.ast.ASTElement
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.Token
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
-abstract class Analyser<RT: ASTNode?> {
+abstract class Analyser<RT: ASTElement?> {
 
     /** available set of predicates, set according to the currently processed query **/
     protected lateinit var prefixes: MutableMap<String, String>
@@ -31,7 +31,7 @@ abstract class Analyser<RT: ASTNode?> {
     /**
      * Processes starting from the calling analyzer's last token, reusing that position (so starting at "lexer - 1")
      */
-    protected fun <O: ASTNode?> use(other: Analyser<O>): O {
+    protected fun <O: ASTElement?> use(other: Analyser<O>): O {
         other.lexer = lexer
         other.prefixes = prefixes
         return other._process()

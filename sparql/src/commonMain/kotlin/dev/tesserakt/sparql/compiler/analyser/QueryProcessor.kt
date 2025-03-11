@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.lexer.Lexer
-import dev.tesserakt.sparql.compiler.ast.QueryAST
+import dev.tesserakt.sparql.types.ast.QueryAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 
 class QueryProcessor: Analyser<QueryAST>() {

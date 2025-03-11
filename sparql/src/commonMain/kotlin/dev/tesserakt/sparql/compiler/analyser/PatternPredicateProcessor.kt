@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.compiler.ast.PatternAST
+import dev.tesserakt.sparql.types.ast.PatternAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 
 class PatternPredicateProcessor: Analyser<PatternAST.Predicate?>() {

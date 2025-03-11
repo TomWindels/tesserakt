@@ -4,13 +4,9 @@ import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
-import dev.tesserakt.sparql.runtime.common.types.Bindings
-import dev.tesserakt.sparql.runtime.incremental.delta.DataAddition
-import dev.tesserakt.sparql.runtime.incremental.delta.DataDeletion
-import dev.tesserakt.sparql.runtime.incremental.delta.DataDelta
-import dev.tesserakt.sparql.runtime.incremental.evaluation.OngoingQueryEvaluation
-import dev.tesserakt.sparql.runtime.incremental.evaluation.query
-import dev.tesserakt.sparql.runtime.incremental.query.IncrementalSelectQuery
+import dev.tesserakt.sparql.query
+import dev.tesserakt.sparql.types.runtime.evaluation.*
+import dev.tesserakt.sparql.types.runtime.query.SelectQuery
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -93,13 +89,13 @@ data class RandomUpdateTest(
 
     data class Result(
         val store: Store,
-        val query: IncrementalSelectQuery,
+        val query: SelectQuery,
         val outputs: List<OutputComparisonTest.Result>,
         val deltas: List<DataDelta>
     ) : Test.Result {
 
         class Builder(
-            private val query: IncrementalSelectQuery,
+            private val query: SelectQuery,
             private val store: Store,
             private val deltas: List<DataDelta>
         ) {

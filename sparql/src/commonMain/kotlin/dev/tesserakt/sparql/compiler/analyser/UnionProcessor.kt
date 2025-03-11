@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.ast.SegmentAST
+import dev.tesserakt.sparql.types.ast.SegmentAST
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.compiler.ast.UnionAST
+import dev.tesserakt.sparql.types.ast.UnionAST
 
 class UnionProcessor: Analyser<UnionAST>() {
 

@@ -7,9 +7,9 @@ import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import dev.tesserakt.sparql.benchmark.replay.SnapshotStore
-import dev.tesserakt.sparql.runtime.common.types.Bindings
-import dev.tesserakt.sparql.runtime.common.util.Debug
-import dev.tesserakt.sparql.runtime.incremental.evaluation.query
+import dev.tesserakt.sparql.debug.Debug
+import dev.tesserakt.sparql.query
+import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
 import dev.tesserakt.util.printerrln
 import sparql.ExternalQueryExecution
 import sparql.types.OutputComparisonTest

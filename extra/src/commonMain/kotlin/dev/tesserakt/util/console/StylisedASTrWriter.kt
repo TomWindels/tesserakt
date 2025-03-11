@@ -2,7 +2,7 @@ package dev.tesserakt.util.console
 
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.formatting.NodeWriter
-import dev.tesserakt.sparql.runtime.node.Node
+import dev.tesserakt.sparql.types.runtime.element.RuntimeElement
 
 object StylisedWriter: NodeWriter<String>() {
 
@@ -18,8 +18,8 @@ object StylisedWriter: NodeWriter<String>() {
         }
     }
 
-    override fun write(node: Node): String {
-        process(node)
+    override fun write(element: RuntimeElement): String {
+        process(element)
         // considering the stylised string type acts as a builder, clearing it without converting it to a regular
         //  string first would undo all processing
         return state.content.toString()

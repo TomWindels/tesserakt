@@ -1,8 +1,8 @@
 
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.sparql.runtime.core.mappingOf
-import dev.tesserakt.sparql.runtime.incremental.stream.*
-import dev.tesserakt.sparql.runtime.incremental.types.Counter
+import dev.tesserakt.sparql.types.runtime.evaluation.mappingOf
+import dev.tesserakt.sparql.types.runtime.stream.*
+import dev.tesserakt.sparql.types.util.Counter
 import dev.tesserakt.util.compatibleWith
 import kotlin.test.Test
 import kotlin.test.assertContentEquals

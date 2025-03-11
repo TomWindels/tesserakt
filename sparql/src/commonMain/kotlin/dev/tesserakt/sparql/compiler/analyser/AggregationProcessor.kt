@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.ast.AggregationAST
+import dev.tesserakt.sparql.types.ast.AggregationAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 
 /**

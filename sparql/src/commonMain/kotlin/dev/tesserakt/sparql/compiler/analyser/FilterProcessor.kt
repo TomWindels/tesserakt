@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.ast.ExpressionAST
-import dev.tesserakt.sparql.compiler.ast.FilterAST
+import dev.tesserakt.sparql.types.ast.ExpressionAST
+import dev.tesserakt.sparql.types.ast.FilterAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
 

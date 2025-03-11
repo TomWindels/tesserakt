@@ -2,11 +2,7 @@ package dev.tesserakt.sparql.formatting
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.runtime.common.types.Expression
-import dev.tesserakt.sparql.runtime.common.types.Pattern
-import dev.tesserakt.sparql.runtime.incremental.types.*
-import dev.tesserakt.sparql.runtime.node.IncrementalNode
-import dev.tesserakt.sparql.runtime.node.Node
+import dev.tesserakt.sparql.types.runtime.element.*
 
 abstract class NodeWriter<RT> {
 
@@ -24,8 +20,8 @@ abstract class NodeWriter<RT> {
             }
         }
 
-        override fun write(node: Node): String {
-            process(node)
+        override fun write(element: RuntimeElement): String {
+            process(element)
             return state.content.toString()
                 .also { state.clear() }
         }
@@ -64,7 +60,7 @@ abstract class NodeWriter<RT> {
 
     }
 
-    abstract fun write(node: Node): RT
+    abstract fun write(element: RuntimeElement): RT
 
     /* internal API for writing the Node */
 
@@ -78,58 +74,105 @@ abstract class NodeWriter<RT> {
 
     /* shared implementation */
 
-    protected fun process(symbol: Node) {
-        when (symbol) {
+    protected fun process(element: RuntimeElement) {
+        when (element) {
             is Pattern.GeneratedBinding ->
-                add(Token.PrefixedTerm(namespace = "_", value = "b${symbol.id}"))
+                add(Token.PrefixedTerm(namespace = "_", value = "b${element.id}"))
 
             is Pattern.RegularBinding ->
-                add(Token.Binding(symbol.name))
+                add(Token.Binding(element.name))
 
-            is Pattern.Exact -> when (symbol.term) {
+            is Pattern.Exact -> when (element.term) {
                 is Quad.BlankTerm -> throw UnsupportedOperationException()
-                is Quad.Literal -> add(Token.StringLiteral(symbol.term.value))
-                is Quad.NamedTerm -> add(Token.Term(symbol.term.value))
+                is Quad.Literal -> add(Token.StringLiteral(element.term.value))
+                is Quad.NamedTerm -> add(Token.Term(element.term.value))
             }
 
             is Pattern.Alts -> {
                 add(Token.Symbol.RoundBracketStart)
-                for (i in 0 ..< symbol.allowed.size - 1) {
-                    process(symbol.allowed[i])
+                repeat(element.allowed.size - 1) { i ->
+                    add(Token.Symbol.RoundBracketStart)
+                    process(element.allowed[i])
+                    add(Token.Symbol.RoundBracketEnd)
                     add(Token.Symbol.PredicateOr)
                 }
-                process(symbol.allowed.last())
+                add(Token.Symbol.RoundBracketStart)
+                process(element.allowed.last())
                 add(Token.Symbol.RoundBracketEnd)
+                add(Token.Symbol.RoundBracketEnd)
+
             }
 
             is Pattern.Negated -> {
                 add(Token.Symbol.ExclamationMark)
-                when (symbol.term) {
+                when (element.term) {
                     is Quad.BlankTerm -> throw UnsupportedOperationException()
-                    is Quad.Literal -> add(Token.StringLiteral(symbol.term.value))
-                    is Quad.NamedTerm -> add(Token.Term(symbol.term.value))
+                    is Quad.Literal -> add(Token.StringLiteral(element.term.value))
+                    is Quad.NamedTerm -> add(Token.Term(element.term.value))
                 }
             }
 
+            is Pattern.Sequence -> {
+                add(Token.Symbol.RoundBracketStart)
+                repeat(element.chain.size - 1) { i ->
+                    add(Token.Symbol.RoundBracketStart)
+                    process(element.chain[i])
+                    add(Token.Symbol.RoundBracketEnd)
+                    add(Token.Symbol.ForwardSlash)
+                }
+                add(Token.Symbol.RoundBracketStart)
+                process(element.chain.last())
+                add(Token.Symbol.RoundBracketEnd)
+                add(Token.Symbol.RoundBracketEnd)
+            }
+
+            is Pattern.SimpleAlts -> {
+                add(Token.Symbol.RoundBracketStart)
+                repeat(element.allowed.size - 1) { i ->
+                    add(Token.Symbol.RoundBracketStart)
+                    process(element.allowed[i])
+                    add(Token.Symbol.RoundBracketEnd)
+                    add(Token.Symbol.PredicateOr)
+                }
+                add(Token.Symbol.RoundBracketStart)
+                process(element.allowed.last())
+                add(Token.Symbol.RoundBracketEnd)
+                add(Token.Symbol.RoundBracketEnd)
+            }
+
+            is Pattern.UnboundSequence -> {
+                add(Token.Symbol.RoundBracketStart)
+                repeat(element.chain.size - 1) { i ->
+                    add(Token.Symbol.RoundBracketStart)
+                    process(element.chain[i])
+                    add(Token.Symbol.RoundBracketEnd)
+                    add(Token.Symbol.ForwardSlash)
+                }
+                add(Token.Symbol.RoundBracketStart)
+                process(element.chain.last())
+                add(Token.Symbol.RoundBracketEnd)
+                add(Token.Symbol.RoundBracketEnd)
+            }
+
             is Pattern.OneOrMore -> {
-                process(symbol.element)
+                process(element.element)
                 add(Token.Symbol.OpPlus)
             }
 
             is Pattern.ZeroOrMore -> {
-                process(symbol.element)
+                process(element.element)
                 add(Token.Symbol.Asterisk)
             }
 
             is Pattern -> {
-                process(symbol.s)
-                process(symbol.p)
-                process(symbol.o)
+                process(element.s)
+                process(element.p)
+                process(element.o)
                 add(Token.Symbol.Period)
             }
 
             is Patterns -> {
-                symbol.forEach { pattern ->
+                element.forEach { pattern ->
                     newline()
                     process(pattern)
                 }
@@ -137,26 +180,26 @@ abstract class NodeWriter<RT> {
 
             is SelectQuerySegment -> {
                 newline()
-                process(symbol.query)
+                process(element.query)
             }
 
             is StatementsSegment -> {
-                process(symbol.statements)
+                process(element.statements)
             }
 
             is Optional -> {
-                when (symbol.segment) {
-                    is SelectQuerySegment -> { process(symbol.segment) }
-                    is StatementsSegment -> { process(symbol.segment) }
+                when (element.segment) {
+                    is SelectQuerySegment -> { process(element.segment) }
+                    is StatementsSegment -> { process(element.segment) }
                 }
             }
 
             is Union -> {
                 newline()
-                for (i in 0 ..< symbol.size - 1) {
+                for (i in 0 ..< element.size - 1) {
                     add(Token.Symbol.CurlyBracketStart)
                     indent()
-                    when (val segment = symbol[i]) {
+                    when (val segment = element[i]) {
                         is SelectQuerySegment -> { process(segment) }
                         is StatementsSegment -> { process(segment) }
                     }
@@ -167,7 +210,7 @@ abstract class NodeWriter<RT> {
                 }
                 add(Token.Symbol.CurlyBracketStart)
                 indent()
-                when (val segment = symbol.last()) {
+                when (val segment = element.last()) {
                     is SelectQuerySegment -> { process(segment) }
                     is StatementsSegment -> { process(segment) }
                 }
@@ -177,8 +220,8 @@ abstract class NodeWriter<RT> {
             }
 
             is Query.QueryBody -> {
-                process(symbol.patterns)
-                symbol.optional.forEach { optional ->
+                process(element.patterns)
+                element.optional.forEach { optional ->
                     newline()
                     add(Token.Keyword.Optional)
                     add(Token.Symbol.CurlyBracketStart)
@@ -188,14 +231,14 @@ abstract class NodeWriter<RT> {
                     newline()
                     add(Token.Symbol.CurlyBracketEnd)
                 }
-                symbol.unions.forEach { union ->
+                element.unions.forEach { union ->
                     process(union)
                 }
             }
 
             is SelectQuery -> {
                 add(Token.Keyword.Select)
-                symbol.output.forEach { output ->
+                element.output.forEach { output ->
                     when (output) {
                         is SelectQuery.BindingOutput ->
                             add(Token.Binding(output.name))
@@ -211,26 +254,26 @@ abstract class NodeWriter<RT> {
                 add(Token.Keyword.Where)
                 add(Token.Symbol.CurlyBracketStart)
                 indent()
-                process(symbol.body)
+                process(element.body)
                 unindent()
                 newline()
                 add(Token.Symbol.CurlyBracketEnd)
-                if (symbol.grouping != null) {
+                if (element.grouping != null) {
                     newline()
                     add(Token.Keyword.Group)
                     add(Token.Keyword.By)
-                    process(symbol.grouping)
+                    process(element.grouping)
                 }
-                if (symbol.groupingFilter != null) {
+                if (element.groupingFilter != null) {
                     newline()
                     add(Token.Keyword.Having)
-                    process(symbol.groupingFilter)
+                    process(element.groupingFilter)
                 }
-                if (symbol.ordering != null) {
+                if (element.ordering != null) {
                     newline()
                     add(Token.Keyword.Order)
                     add(Token.Keyword.By)
-                    process(symbol.ordering)
+                    process(element.ordering)
                 }
             }
 
@@ -238,9 +281,6 @@ abstract class NodeWriter<RT> {
                 add(Token.StringLiteral("EXPR"))
             }
 
-            is IncrementalNode -> {
-                add(Token.StringLiteral("??NODE:${symbol::class.simpleName}"))
-            }
         }
 
     }

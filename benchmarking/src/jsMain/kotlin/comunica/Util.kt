@@ -5,7 +5,7 @@ import dev.tesserakt.interop.rdfjs.n3.N3Term
 import dev.tesserakt.interop.rdfjs.toN3Store
 import dev.tesserakt.interop.rdfjs.toTerm
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
 import kotlinx.coroutines.await
 
 private val engine = ComunicaQueryEngine()

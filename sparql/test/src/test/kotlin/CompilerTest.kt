@@ -4,9 +4,9 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.compiler.ast.ExpressionAST
-import dev.tesserakt.sparql.compiler.ast.PatternAST
-import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
+import dev.tesserakt.sparql.types.ast.ExpressionAST
+import dev.tesserakt.sparql.types.ast.PatternAST
+import dev.tesserakt.sparql.types.ast.SelectQueryAST
 import kotlin.test.Test
 
 class CompilerTest {

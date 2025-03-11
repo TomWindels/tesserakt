@@ -4,7 +4,7 @@ import comunica.comunicaSelectQuery
 import dev.tesserakt.interop.rdfjs.n3.N3Store
 import dev.tesserakt.interop.rdfjs.toN3Store
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
 import kotlin.time.measureTime
 
 

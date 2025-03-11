@@ -1,6 +1,6 @@
 import dev.tesserakt.sparql.Compiler.Default.toAST
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.compiler.ast.QueryAST
+import dev.tesserakt.sparql.types.ast.QueryAST
 import dev.tesserakt.util.printerrln
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

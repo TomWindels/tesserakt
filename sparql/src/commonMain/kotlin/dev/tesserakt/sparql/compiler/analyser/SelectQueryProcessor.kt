@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.ast.ExpressionAST
-import dev.tesserakt.sparql.compiler.ast.PatternAST
-import dev.tesserakt.sparql.compiler.ast.SelectQueryAST
+import dev.tesserakt.sparql.types.ast.ExpressionAST
+import dev.tesserakt.sparql.types.ast.PatternAST
+import dev.tesserakt.sparql.types.ast.SelectQueryAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 
 class SelectQueryProcessor: Analyser<SelectQueryAST>() {

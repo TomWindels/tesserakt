@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.formatting
 
-import dev.tesserakt.sparql.compiler.ast.*
 import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.types.ast.*
 
 class ASTWriter(private val indentStyle: String = "  ") {
 
@@ -17,7 +17,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
     }
 
-    fun write(ast: ASTNode): String {
+    fun write(ast: ASTElement): String {
         process(ast)
         return state.content.toString().trim()
             .also { state.clear() }
@@ -47,7 +47,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         removeIndent()
     }
 
-    private fun process(symbol: ASTNode): Unit = when (symbol) {
+    private fun process(symbol: ASTElement): Unit = when (symbol) {
         is AggregationAST -> {
             writeLine("aggregation")
             indented {
