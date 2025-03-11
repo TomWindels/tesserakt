@@ -1,7 +1,7 @@
 package sparql
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
+import dev.tesserakt.sparql.runtime.evaluation.Bindings
 
 
 expect class ExternalQueryExecution(query: String, data: Collection<Quad>) {

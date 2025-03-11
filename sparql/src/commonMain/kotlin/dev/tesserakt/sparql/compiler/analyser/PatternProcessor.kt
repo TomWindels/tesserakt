@@ -4,27 +4,27 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.types.runtime.element.Pattern
-import dev.tesserakt.sparql.types.runtime.element.Patterns
-import dev.tesserakt.sparql.types.runtime.query.createAnonymousBinding
+import dev.tesserakt.sparql.ast.TriplePatternSet
+import dev.tesserakt.sparql.ast.TriplePattern
+import dev.tesserakt.sparql.runtime.query.createAnonymousBinding
 
-class PatternProcessor: Analyser<Patterns>() {
+class PatternProcessor: Analyser<TriplePatternSet>() {
 
-    private lateinit var subject: Pattern.Subject
-    private lateinit var predicate: Pattern.Predicate
+    private lateinit var subject: TriplePattern.Subject
+    private lateinit var predicate: TriplePattern.Predicate
 
-    private val result = mutableListOf<Pattern>()
+    private val result = mutableListOf<TriplePattern>()
 
-    override fun _process(): Patterns {
+    override fun _process(): TriplePatternSet {
         result.clear()
         processStartingFromPatternSubject()
-        return Patterns(result)
+        return TriplePatternSet(result)
     }
 
     private fun processStartingFromPatternSubject() {
         // either has a term as token, or we have to bail, consuming the token if possible
         subject = (token.asPatternElement() ?: return)
-            .let { it as? Pattern.Subject ?: bail("$it is not a valid triple pattern subject!") }
+            .let { it as? TriplePattern.Subject ?: bail("$it is not a valid triple pattern subject!") }
         // consuming the next token and going to the predicate section no matter what
         consume()
         processStartingFromPatternPredicate()
@@ -46,7 +46,7 @@ class PatternProcessor: Analyser<Patterns>() {
 
     private tailrec fun processStartingFromPatternObject() {
         val o = processPatternObject()
-        result.add(Pattern(subject, predicate, o))
+        result.add(TriplePattern(subject, predicate, o))
         when (token) {
             Token.Symbol.Comma -> {
                 consume()
@@ -72,23 +72,23 @@ class PatternProcessor: Analyser<Patterns>() {
         }
     }
 
-    private fun processPatternObject(): Pattern.Object {
+    private fun processPatternObject(): TriplePattern.Object {
         return when (token) {
             Token.Symbol.BlankStart -> {
                 val subj = createAnonymousBinding()
                 val properties = processBlankObject()
-                properties.forEach { result.add(Pattern(subj, it.first, it.second)) }
+                properties.forEach { result.add(TriplePattern(subj, it.first, it.second)) }
                 subj
             }
             else ->
                 token.asPatternElement()
-                    .let { element -> element as? Pattern.Object }
+                    .let { element -> element as? TriplePattern.Object }
                     ?.also { consume() }
                     ?: expectedPatternElementOrBindingOrToken(Token.Symbol.BlankStart)
         }
     }
 
-    private fun processBlankObject(): List<Pair<Pattern.Predicate, Pattern.Object>> {
+    private fun processBlankObject(): List<Pair<TriplePattern.Predicate, TriplePattern.Object>> {
         // consuming the `[`
         consume()
         if (token == Token.Symbol.BlankEnd) {
@@ -96,9 +96,9 @@ class PatternProcessor: Analyser<Patterns>() {
             return emptyList()
         }
         // looping through the inputs until all have been processed
-        val statements = mutableListOf<Pair<Pattern.Predicate, Pattern.Object>>()
+        val statements = mutableListOf<Pair<TriplePattern.Predicate, TriplePattern.Object>>()
         // consuming until matching `]` has been reached
-        var p: Pattern.Predicate? = use(PatternPredicateProcessor()) ?: bail("Unexpected token $token")
+        var p: TriplePattern.Predicate? = use(PatternPredicateProcessor()) ?: bail("Unexpected token $token")
         var o = processPatternObject()
         while (true) {
             statements.add(p!! to o)
@@ -134,13 +134,13 @@ class PatternProcessor: Analyser<Patterns>() {
 
     /* helper extensions */
 
-    private fun Token.asPatternElement(): Pattern.Element? = when (this) {
-        is Token.Binding -> Pattern.NamedBinding(this.name)
-        is Token.Term -> Pattern.Exact(Quad.NamedTerm(value = value))
-        is Token.PrefixedTerm -> Pattern.Exact(Quad.NamedTerm(value = resolve()))
-        is Token.StringLiteral -> Pattern.Exact(value.asLiteralTerm())
-        is Token.NumericLiteral -> Pattern.Exact(value.asLiteralTerm())
-        Token.Keyword.RdfTypePredicate -> Pattern.Exact(RDF.type)
+    private fun Token.asPatternElement(): TriplePattern.Element? = when (this) {
+        is Token.Binding -> TriplePattern.NamedBinding(this.name)
+        is Token.Term -> TriplePattern.Exact(Quad.NamedTerm(value = value))
+        is Token.PrefixedTerm -> TriplePattern.Exact(Quad.NamedTerm(value = resolve()))
+        is Token.StringLiteral -> TriplePattern.Exact(value.asLiteralTerm())
+        is Token.NumericLiteral -> TriplePattern.Exact(value.asLiteralTerm())
+        Token.Keyword.RdfTypePredicate -> TriplePattern.Exact(RDF.type)
         else -> null
     }
 

@@ -4,8 +4,8 @@ import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
-import dev.tesserakt.sparql.types.runtime.evaluation.OngoingQueryEvaluation
+import dev.tesserakt.sparql.runtime.evaluation.Bindings
+import dev.tesserakt.sparql.runtime.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution

@@ -1,10 +1,10 @@
 package dev.tesserakt.util.console
 
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.debug.ElementWriter
-import dev.tesserakt.sparql.types.runtime.element.RuntimeElement
+import dev.tesserakt.sparql.debug.QueryWriter
+import dev.tesserakt.sparql.ast.QueryAtom
 
-object StylisedWriter: ElementWriter<String>() {
+object StylisedWriter: QueryWriter<String>() {
 
     private val state = State()
 
@@ -18,7 +18,7 @@ object StylisedWriter: ElementWriter<String>() {
         }
     }
 
-    override fun write(element: RuntimeElement): String {
+    override fun write(element: QueryAtom): String {
         process(element)
         // considering the stylised string type acts as a builder, clearing it without converting it to a regular
         //  string first would undo all processing

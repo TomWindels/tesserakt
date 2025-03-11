@@ -2,8 +2,8 @@ package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
-import dev.tesserakt.sparql.types.runtime.element.Expression
-import dev.tesserakt.sparql.types.runtime.element.Filter
+import dev.tesserakt.sparql.ast.Expression
+import dev.tesserakt.sparql.ast.Filter
 
 class FilterProcessor: Analyser<Filter>() {
 

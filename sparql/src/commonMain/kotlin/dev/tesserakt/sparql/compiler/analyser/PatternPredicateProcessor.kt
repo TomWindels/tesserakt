@@ -3,15 +3,15 @@ package dev.tesserakt.sparql.compiler.analyser
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.types.runtime.element.Pattern
+import dev.tesserakt.sparql.ast.TriplePattern
 
-class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
+class PatternPredicateProcessor: Analyser<TriplePattern.Predicate?>() {
 
-    override fun _process(): Pattern.Predicate? {
+    override fun _process(): TriplePattern.Predicate? {
         return processPatternPredicate()
     }
 
-    private fun processPatternPredicate(): Pattern.Predicate? {
+    private fun processPatternPredicate(): TriplePattern.Predicate? {
         var predicate = processPatternPredicateNext() ?: return null
         while (true) {
             when (token) {
@@ -40,19 +40,19 @@ class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
     }
 
     /** Processes [!][(]<predicate>[)][*] **/
-    private fun processPatternPredicateNext(): Pattern.Predicate? {
+    private fun processPatternPredicateNext(): TriplePattern.Predicate? {
         return if (token == Token.Symbol.ExclamationMark) {
             consume()
             val inner = processPatternPredicateContent() ?: bail("Unexpected end of `!...` statement")
             when (inner) {
-                is Pattern.SimpleAlts -> {
-                    Pattern.Negated(
+                is TriplePattern.SimpleAlts -> {
+                    TriplePattern.Negated(
                         terms = inner
                     )
                 }
-                is Pattern.StatelessPredicate -> {
-                    Pattern.Negated(
-                        terms = Pattern.SimpleAlts(allowed = listOf(inner))
+                is TriplePattern.StatelessPredicate -> {
+                    TriplePattern.Negated(
+                        terms = TriplePattern.SimpleAlts(allowed = listOf(inner))
                     )
                 }
                 else -> {
@@ -64,7 +64,7 @@ class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
                 null -> {
                     return null
                 }
-                is Pattern.Predicate -> {
+                is TriplePattern.Predicate -> {
                     processed
                 }
             }
@@ -98,18 +98,18 @@ class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
         // consuming the star if possible
         when (token) {
             Token.Symbol.Asterisk -> {
-                if (current !is Pattern.UnboundPredicate) {
+                if (current !is TriplePattern.UnboundPredicate) {
                     bail("$current cannot be part of a repeating pattern!")
                 }
                 consume()
-                Pattern.ZeroOrMore(current)
+                TriplePattern.ZeroOrMore(current)
             }
             Token.Symbol.OpPlus -> {
-                if (current !is Pattern.UnboundPredicate) {
+                if (current !is TriplePattern.UnboundPredicate) {
                     bail("$current cannot be part of a repeating pattern!")
                 }
                 consume()
-                Pattern.OneOrMore(current)
+                TriplePattern.OneOrMore(current)
             }
             else -> {
                 current
@@ -117,48 +117,48 @@ class PatternPredicateProcessor: Analyser<Pattern.Predicate?>() {
         }
     }
 
-    private fun processPatternPredicateSequence(prior: Pattern.Predicate): Pattern.Predicate {
+    private fun processPatternPredicateSequence(prior: TriplePattern.Predicate): TriplePattern.Predicate {
         // should currently be pointing to /, so consuming it
         consume()
         val next = processPatternPredicateNext() ?: bail("Unexpected end of `.../...` statement")
         return when {
-            prior is Pattern.UnboundPredicate && next is Pattern.UnboundPredicate -> {
-                Pattern.UnboundSequence(prior, next)
+            prior is TriplePattern.UnboundPredicate && next is TriplePattern.UnboundPredicate -> {
+                TriplePattern.UnboundSequence(prior, next)
             }
 
             else -> {
-                Pattern.Sequence(prior, next)
+                TriplePattern.Sequence(prior, next)
             }
         }
     }
 
-    private fun processPatternPredicateOr(prior: Pattern.Predicate): Pattern.Predicate {
-        if (prior !is Pattern.UnboundPredicate) {
+    private fun processPatternPredicateOr(prior: TriplePattern.Predicate): TriplePattern.Predicate {
+        if (prior !is TriplePattern.UnboundPredicate) {
             bail("$prior is not a valid alternative path element!")
         }
         // should currently be pointing to |, so consuming it
         consume()
         val next = processPatternPredicateNext() ?: bail("Unexpected end of `...|...` statement")
         return when {
-            next !is Pattern.UnboundPredicate -> {
+            next !is TriplePattern.UnboundPredicate -> {
                 bail("$next is not a valid alternative path element!")
             }
-            prior is Pattern.StatelessPredicate && next is Pattern.StatelessPredicate -> {
-                Pattern.SimpleAlts(prior, next)
+            prior is TriplePattern.StatelessPredicate && next is TriplePattern.StatelessPredicate -> {
+                TriplePattern.SimpleAlts(prior, next)
             }
             else -> {
-                Pattern.Alts(prior, next)
+                TriplePattern.Alts(prior, next)
             }
         }
     }
 
     /* helper extensions */
 
-    private fun Token.asPatternElement(): Pattern.Element = when (this) {
-        is Token.Binding -> Pattern.NamedBinding(this.name)
-        is Token.Term -> Pattern.Exact(Quad.NamedTerm(value = value))
-        is Token.PrefixedTerm -> Pattern.Exact(Quad.NamedTerm(value = resolve()))
-        Token.Keyword.RdfTypePredicate -> Pattern.Exact(RDF.type)
+    private fun Token.asPatternElement(): TriplePattern.Element = when (this) {
+        is Token.Binding -> TriplePattern.NamedBinding(this.name)
+        is Token.Term -> TriplePattern.Exact(Quad.NamedTerm(value = value))
+        is Token.PrefixedTerm -> TriplePattern.Exact(Quad.NamedTerm(value = resolve()))
+        Token.Keyword.RdfTypePredicate -> TriplePattern.Exact(RDF.type)
         else -> expectedPatternElementOrBindingOrToken(Token.Keyword.RdfTypePredicate)
     }
 

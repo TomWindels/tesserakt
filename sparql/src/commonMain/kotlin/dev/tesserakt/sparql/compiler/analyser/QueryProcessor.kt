@@ -2,11 +2,11 @@ package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.types.runtime.element.Query
+import dev.tesserakt.sparql.ast.CompiledQuery
 
-class QueryProcessor: Analyser<Query>() {
+class QueryProcessor: Analyser<CompiledQuery>() {
 
-    private lateinit var result: Query
+    private lateinit var result: CompiledQuery
 
     init {
         // starting with empty prefixes that gets shared to the sub-analysers
@@ -19,7 +19,7 @@ class QueryProcessor: Analyser<Query>() {
     // simply exposing the underlying analyser implementation
     fun process(lexer: Lexer) = configureAndUse(lexer)
 
-    override fun _process(): Query {
+    override fun _process(): CompiledQuery {
         processQuery()
         expectToken(Token.EOF)
         return result

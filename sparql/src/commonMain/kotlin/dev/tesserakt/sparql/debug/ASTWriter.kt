@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.debug
 
+import dev.tesserakt.sparql.ast.*
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.types.runtime.element.*
 
 class ASTWriter(private val indentStyle: String = "  ") {
 
@@ -17,7 +17,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
     }
 
-    fun write(ast: RuntimeElement): String {
+    fun write(ast: QueryAtom): String {
         process(ast)
         return state.content.toString().trim()
             .also { state.clear() }
@@ -47,7 +47,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
         removeIndent()
     }
 
-    private fun process(symbol: RuntimeElement): Unit = when (symbol) {
+    private fun process(symbol: QueryAtom): Unit = when (symbol) {
         is Aggregation -> {
             writeLine("aggregation")
             indented {
@@ -144,11 +144,11 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Pattern.Binding -> {
+        is TriplePattern.Binding -> {
             append("binding ${symbol.name}")
         }
 
-        is Pattern.Exact -> {
+        is TriplePattern.Exact -> {
             append("exact ${symbol.term}")
         }
 
@@ -157,7 +157,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             process(symbol.segment)
         }
 
-        is Pattern -> {
+        is TriplePattern -> {
             writeLine("pattern")
             indented {
                 writeLine("subject: ")
@@ -169,7 +169,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Patterns -> {
+        is TriplePatternSet -> {
             indented {
                 symbol.forEachIndexed { i, pattern ->
                     writeLine("$i: ")
@@ -178,7 +178,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Pattern.Alts -> {
+        is TriplePattern.Alts -> {
             append("alt paths")
             indented {
                 symbol.allowed.forEachIndexed { i, predicate ->
@@ -188,7 +188,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Pattern.SimpleAlts -> {
+        is TriplePattern.SimpleAlts -> {
             append("alt paths (simple)")
             indented {
                 symbol.allowed.forEachIndexed { i, predicate ->
@@ -198,7 +198,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Pattern.Sequence -> {
+        is TriplePattern.Sequence -> {
             append("path sequence")
             indented {
                 symbol.chain.forEachIndexed { i, predicate ->
@@ -208,7 +208,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Pattern.UnboundSequence -> {
+        is TriplePattern.UnboundSequence -> {
             append("path sequence (unbound)")
             indented {
                 symbol.chain.forEachIndexed { i, predicate ->
@@ -218,22 +218,22 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Pattern.Negated -> {
+        is TriplePattern.Negated -> {
             append("negated path ")
             process(symbol.terms)
         }
 
-        is Pattern.OneOrMore -> {
+        is TriplePattern.OneOrMore -> {
             append("one or more ")
             process(symbol.element)
         }
 
-        is Pattern.ZeroOrMore -> {
+        is TriplePattern.ZeroOrMore -> {
             append("zero or more ")
             process(symbol.element)
         }
 
-        is SelectQuery -> {
+        is CompiledSelectQuery -> {
             append("select query")
             indented {
                 writeLine("outputs")
@@ -241,10 +241,10 @@ class ASTWriter(private val indentStyle: String = "  ") {
                     symbol.output?.forEach {
                         writeLine("name: ${it.name}")
                         when (it) {
-                            is SelectQuery.BindingOutput -> {
+                            is CompiledSelectQuery.BindingOutput -> {
                                 writeLine("value: directly from query")
                             }
-                            is SelectQuery.ExpressionOutput -> {
+                            is CompiledSelectQuery.ExpressionOutput -> {
                                 writeLine("value: ")
                                 process(it.expression)
                             }
@@ -268,7 +268,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Query.QueryBody -> {
+        is GraphPattern -> {
             indented {
                 process(symbol.patterns)
                 indented {
@@ -312,9 +312,9 @@ class ASTWriter(private val indentStyle: String = "  ") {
             process(symbol.query)
         }
 
-        is StatementsSegment -> {
+        is GraphPatternSegment -> {
             append("segment: ")
-            process(symbol.statements)
+            process(symbol.pattern)
         }
 
         is Union -> {

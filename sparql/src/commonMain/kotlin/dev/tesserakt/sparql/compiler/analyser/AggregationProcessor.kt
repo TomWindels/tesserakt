@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.compiler.analyser
 
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.types.runtime.element.Aggregation
+import dev.tesserakt.sparql.ast.Aggregation
 
 /**
  * Processes structures like `(<STATEMENT> AS ?BINDING)`

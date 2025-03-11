@@ -2,9 +2,9 @@
 import TestEnvironment.Companion.test
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.types.runtime.element.Expression
-import dev.tesserakt.sparql.types.runtime.element.Pattern
-import dev.tesserakt.sparql.types.runtime.element.SelectQuery
+import dev.tesserakt.sparql.ast.CompiledSelectQuery
+import dev.tesserakt.sparql.ast.Expression
+import dev.tesserakt.sparql.ast.TriplePattern
 import kotlin.test.Test
 
 class CompilerTest {
@@ -13,10 +13,10 @@ class CompilerTest {
     fun select() = test {
         /* content tests */
         "SELECT ?s ?p ?o WHERE { ?s ?p ?o ; }" satisfies {
-            val pattern = Pattern(
-                s = Pattern.NamedBinding("s"),
-                p = Pattern.NamedBinding("p"),
-                o = Pattern.NamedBinding("o")
+            val pattern = TriplePattern(
+                s = TriplePattern.NamedBinding("s"),
+                p = TriplePattern.NamedBinding("p"),
+                o = TriplePattern.NamedBinding("o")
             )
             body.patterns.size == 1 && body.patterns.first() == pattern
         }
@@ -28,27 +28,27 @@ class CompilerTest {
         }
         "prefix select: <http://example.org/> select*{?s select:prop ?o ; <prop> select:test}" satisfies {
             body.patterns.size == 2
-                && body.patterns[0].p == Pattern.Exact(Quad.NamedTerm("http://example.org/prop"))
-                && body.patterns[1].o == Pattern.Exact(Quad.NamedTerm("http://example.org/test"))
+                && body.patterns[0].p == TriplePattern.Exact(Quad.NamedTerm("http://example.org/prop"))
+                && body.patterns[1].o == TriplePattern.Exact(Quad.NamedTerm("http://example.org/test"))
         }
         "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }" satisfies {
-            body.patterns.first().p is Pattern.UnboundSequence
+            body.patterns.first().p is TriplePattern.UnboundSequence
         }
         "SELECT * WHERE { ?s a/?p1*/?p2?o. }" causes CompilerError.Type.StructuralError
         "SELECT * WHERE { ?s (<predicate2>|<predicate3>)?o. }" satisfies {
-            body.patterns.first().p is Pattern.SimpleAlts
+            body.patterns.first().p is TriplePattern.SimpleAlts
         }
         "SELECT * WHERE { ?s <contains>/(<prop1>|!<prop2>)* ?o2 }" satisfies {
-            body.patterns.first().p.let { p -> p is Pattern.UnboundSequence && p.chain[1] is Pattern.ZeroOrMore }
+            body.patterns.first().p.let { p -> p is TriplePattern.UnboundSequence && p.chain[1] is TriplePattern.ZeroOrMore }
         }
         "SELECT ?s?p?o WHERE {?s?p?o2;?p2?o.}" satisfies {
-            body.patterns.size == 2 && body.patterns[1].p == Pattern.NamedBinding("p2")
+            body.patterns.size == 2 && body.patterns[1].p == TriplePattern.NamedBinding("p2")
         }
         "SELECT ?s WHERE {?s<prop><value>}" satisfies {
-            val pattern = Pattern(
-                s = Pattern.NamedBinding("s"),
-                p = Pattern.Exact(Quad.NamedTerm("prop")),
-                o = Pattern.Exact(Quad.NamedTerm("value"))
+            val pattern = TriplePattern(
+                s = TriplePattern.NamedBinding("s"),
+                p = TriplePattern.Exact(Quad.NamedTerm("prop")),
+                o = TriplePattern.Exact(Quad.NamedTerm("value"))
             )
             body.patterns.size == 1 && body.patterns.first() == pattern
         }
@@ -76,7 +76,7 @@ class CompilerTest {
                 { ?s <prop> ?value1 } UNION { ?s <prop2> <value2> } UNION { ?s <prop3> <value3> }
             }
         """ satisfies {
-            require(this is SelectQuery)
+            require(this is CompiledSelectQuery)
             body.patterns.size == 1 &&
             body.optional.size == 1 &&
             body.unions.size == 1 &&
@@ -109,23 +109,23 @@ class CompilerTest {
                 OPTIONAL { ?s <has> ?value . FILTER(?value > 5) }
             }
         """ satisfies {
-            require(this is SelectQuery)
+            require(this is CompiledSelectQuery)
             body.patterns.size == 1 &&
             body.optional.size == 1 &&
             bindings == setOf("s", "value")
             // TODO: also check the optional's condition
         }
         "select(count(distinct ?s) as ?count){?s?p?o}" satisfies {
-            require(this is SelectQuery)
+            require(this is CompiledSelectQuery)
             val count = output!!.find { it.name == "count" }!!
             val func =
-                (count as SelectQuery.ExpressionOutput).expression as Expression.BindingAggregate
+                (count as CompiledSelectQuery.ExpressionOutput).expression as Expression.BindingAggregate
             func.type == Expression.BindingAggregate.Type.COUNT
         }
         "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}" satisfies {
-            require(this is SelectQuery)
+            require(this is CompiledSelectQuery)
             val count = output!!.find { it.name == "count" }!!
-            (count as SelectQuery.ExpressionOutput).expression ==
+            (count as CompiledSelectQuery.ExpressionOutput).expression ==
                     Expression.MathOp.Sum(
                         lhs = Expression.BindingAggregate(
                             type = Expression.BindingAggregate.Type.AVG,
@@ -150,18 +150,18 @@ class CompilerTest {
             }
             GROUP BY ?g
         """ satisfies {
-            require(this is SelectQuery)
-            val pattern = Pattern(
-                s = Pattern.NamedBinding("g"),
-                p = Pattern.Exact(Quad.NamedTerm("http://example.com/data/#p")),
-                o = Pattern.NamedBinding("p")
+            require(this is CompiledSelectQuery)
+            val pattern = TriplePattern(
+                s = TriplePattern.NamedBinding("g"),
+                p = TriplePattern.Exact(Quad.NamedTerm("http://example.com/data/#p")),
+                o = TriplePattern.NamedBinding("p")
             )
             val avg = output!!.find { it.name == "avg" }
             val c = output!!.find { it.name == "c" }
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
-            ((avg as SelectQuery.ExpressionOutput).expression as Expression.BindingAggregate).type == Expression.BindingAggregate.Type.AVG &&
-            (c as SelectQuery.ExpressionOutput).expression is Expression.MathOp.Div
+            ((avg as CompiledSelectQuery.ExpressionOutput).expression as Expression.BindingAggregate).type == Expression.BindingAggregate.Type.AVG &&
+            (c as CompiledSelectQuery.ExpressionOutput).expression is Expression.MathOp.Div
         }
         """
             SELECT * WHERE {
@@ -169,7 +169,7 @@ class CompilerTest {
             }
         """ satisfies {
             body.patterns.size == 2 &&
-            this is SelectQuery &&
+            this is CompiledSelectQuery &&
             // the generated binding should not be visible!
             bindings.size == 2
         }
@@ -178,7 +178,7 @@ class CompilerTest {
                 ?s ?p [ <contains> [ <data> ?values ] ; ]
             }
         """ satisfies {
-            require(this is SelectQuery)
+            require(this is CompiledSelectQuery)
 
             body.patterns.size == 3 &&
             // the generated binding should not be visible!
@@ -194,7 +194,7 @@ class CompilerTest {
                 ]
             }
         """ satisfies {
-            require(this is SelectQuery)
+            require(this is CompiledSelectQuery)
             body.patterns.size == 7 &&
             // the generated binding should not be visible!
             bindings == setOf("s", "p", "data1", "data2", "data3")
@@ -222,7 +222,7 @@ class CompilerTest {
                 }
             }
         """ satisfies {
-            require(this is SelectQuery)
+            require(this is CompiledSelectQuery)
             bindings.containsAll(listOf("page, type"))
         }
         /* expected failure cases */

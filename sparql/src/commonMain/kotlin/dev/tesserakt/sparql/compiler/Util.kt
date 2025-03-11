@@ -1,13 +1,13 @@
 package dev.tesserakt.sparql.compiler
 
+import dev.tesserakt.sparql.ast.*
 import dev.tesserakt.sparql.compiler.analyser.Analyser
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.StringLexer
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.types.runtime.element.*
 
 
-internal fun Query.QueryBody.extractAllBindings(): List<Pattern.Binding> =
+internal fun GraphPattern.extractAllBindings(): List<TriplePattern.Binding> =
     (
         patterns.flatMap { pattern -> pattern.extractAllBindings() } +
         unions.flatMap { union -> union.flatMap { it.extractAllBindings() } } +
@@ -16,17 +16,17 @@ internal fun Query.QueryBody.extractAllBindings(): List<Pattern.Binding> =
 
 fun Segment.extractAllBindings() = when (this) {
     is SelectQuerySegment -> query.extractAllOutputsAsBindings()
-    is StatementsSegment -> statements.extractAllBindings()
+    is GraphPatternSegment -> pattern.extractAllBindings()
 }
 
-fun SelectQuery.extractAllOutputsAsBindings() =
-    output?.map { Pattern.NamedBinding(it.name) } ?: emptyList()
+fun CompiledSelectQuery.extractAllOutputsAsBindings() =
+    output?.map { TriplePattern.NamedBinding(it.name) } ?: emptyList()
 
-fun Pattern.extractAllBindings(): List<Pattern.Binding> {
-    val result = mutableListOf<Pattern.Binding>()
+fun TriplePattern.extractAllBindings(): List<TriplePattern.Binding> {
+    val result = mutableListOf<TriplePattern.Binding>()
     when (s) {
-        is Pattern.Binding -> result.add(s)
-        is Pattern.Exact -> { /* nothing to do */ }
+        is TriplePattern.Binding -> result.add(s)
+        is TriplePattern.Exact -> { /* nothing to do */ }
     }
     result.addAll(p.extractAllBindings())
     result.addAll(o.extractAllBindings())
@@ -38,23 +38,23 @@ fun Pattern.extractAllBindings(): List<Pattern.Binding> {
 
 // helper for the helper
 
-private fun Pattern.Predicate.extractAllBindings(): List<Pattern.Binding> {
+private fun TriplePattern.Predicate.extractAllBindings(): List<TriplePattern.Binding> {
     return when (this) {
-        is Pattern.Sequence -> chain.flatMap { it.extractAllBindings() }
-        is Pattern.UnboundSequence -> chain.flatMap { it.extractAllBindings() }
-        is Pattern.Alts -> allowed.flatMap { it.extractAllBindings() }
-        is Pattern.SimpleAlts -> allowed.flatMap { it.extractAllBindings() }
-        is Pattern.Binding -> listOf(this)
-        is Pattern.Exact -> emptyList()
-        is Pattern.Negated -> terms.extractAllBindings()
-        is Pattern.ZeroOrMore -> element.extractAllBindings()
-        is Pattern.OneOrMore -> element.extractAllBindings()
+        is TriplePattern.Sequence -> chain.flatMap { it.extractAllBindings() }
+        is TriplePattern.UnboundSequence -> chain.flatMap { it.extractAllBindings() }
+        is TriplePattern.Alts -> allowed.flatMap { it.extractAllBindings() }
+        is TriplePattern.SimpleAlts -> allowed.flatMap { it.extractAllBindings() }
+        is TriplePattern.Binding -> listOf(this)
+        is TriplePattern.Exact -> emptyList()
+        is TriplePattern.Negated -> terms.extractAllBindings()
+        is TriplePattern.ZeroOrMore -> element.extractAllBindings()
+        is TriplePattern.OneOrMore -> element.extractAllBindings()
     }
 }
 
-private fun Pattern.Object.extractAllBindings(): List<Pattern.Binding> = when (this) {
-    is Pattern.Binding -> listOf(this)
-    is Pattern.Exact -> { emptyList() }
+private fun TriplePattern.Object.extractAllBindings(): List<TriplePattern.Binding> = when (this) {
+    is TriplePattern.Binding -> listOf(this)
+    is TriplePattern.Exact -> { emptyList() }
 }
 
 /**
@@ -62,7 +62,7 @@ private fun Pattern.Object.extractAllBindings(): List<Pattern.Binding> = when (t
  *  a result type containing the corresponding AST if the processing was successful, or a result type containing the
  *  compilation error.
  */
-fun <RT: RuntimeElement> String.processed(analyser: Analyser<RT>): Result<RT> {
+fun <RT: QueryAtom> String.processed(analyser: Analyser<RT>): Result<RT> {
     return try {
         val lexer = StringLexer(this)
         val ast = analyser.configureAndUse(lexer)

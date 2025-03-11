@@ -5,8 +5,8 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.types.runtime.evaluation.*
-import dev.tesserakt.sparql.types.runtime.query.SelectQuery
+import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.query.SelectQueryState
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -89,13 +89,13 @@ data class RandomUpdateTest(
 
     data class Result(
         val store: Store,
-        val query: SelectQuery,
+        val query: SelectQueryState,
         val outputs: List<OutputComparisonTest.Result>,
         val deltas: List<DataDelta>
     ) : Test.Result {
 
         class Builder(
-            private val query: SelectQuery,
+            private val query: SelectQueryState,
             private val store: Store,
             private val deltas: List<DataDelta>
         ) {

@@ -1,14 +1,14 @@
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.sparql.ast.*
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
-import dev.tesserakt.sparql.types.runtime.element.*
 
-class QueryBodyProcessor: Analyser<Query.QueryBody>() {
+class QueryBodyProcessor: Analyser<GraphPattern>() {
 
     private data class Builder(
         /** The full pattern block that is required **/
-        val patterns: MutableList<Pattern> = mutableListOf(),
+        val patterns: MutableList<TriplePattern> = mutableListOf(),
         /** All binding statements found inside this pattern block (similar to filters) **/
         val bindingStatements: MutableList<BindingStatement> = mutableListOf(),
         /** All filters applied to this pattern block (optional / union filters NOT included) **/
@@ -18,8 +18,8 @@ class QueryBodyProcessor: Analyser<Query.QueryBody>() {
         /** Collection of pattern blocks that are optional **/
         val optional: MutableList<Optional> = mutableListOf()
     ) {
-        fun build() = Query.QueryBody(
-            patterns = Patterns(patterns),
+        fun build() = GraphPattern(
+            patterns = TriplePatternSet(patterns),
             bindingStatements = bindingStatements,
             filters = filters,
             unions = unions,
@@ -29,7 +29,7 @@ class QueryBodyProcessor: Analyser<Query.QueryBody>() {
 
     private val builder = Builder()
 
-    override fun _process(): Query.QueryBody {
+    override fun _process(): GraphPattern {
         processQueryBody()
         return builder.build()
     }

@@ -9,7 +9,7 @@ import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import dev.tesserakt.sparql.benchmark.replay.SnapshotStore
 import dev.tesserakt.sparql.debug.Debug
 import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
+import dev.tesserakt.sparql.runtime.evaluation.Bindings
 import dev.tesserakt.util.printerrln
 import sparql.ExternalQueryExecution
 import sparql.types.OutputComparisonTest

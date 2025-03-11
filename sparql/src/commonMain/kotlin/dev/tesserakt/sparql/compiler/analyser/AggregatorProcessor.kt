@@ -4,7 +4,7 @@ import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalNumericValue
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
-import dev.tesserakt.sparql.types.runtime.element.Expression
+import dev.tesserakt.sparql.ast.Expression
 
 /**
  * Processes structures like `MIN(?s)`, `AVG(?s) - MIN(?p)`, `COUNT(DISTINCT ?s)`

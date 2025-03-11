@@ -1,9 +1,9 @@
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.sparql.ast.GraphPatternSegment
+import dev.tesserakt.sparql.ast.Segment
+import dev.tesserakt.sparql.ast.SelectQuerySegment
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.types.runtime.element.Segment
-import dev.tesserakt.sparql.types.runtime.element.SelectQuerySegment
-import dev.tesserakt.sparql.types.runtime.element.StatementsSegment
 
 /**
  * Processes a segment, consuming statements like `{ SELECT ... }` and
@@ -40,9 +40,9 @@ class SegmentProcessor: Analyser<Segment>() {
         return segment
     }
 
-    private fun processSegmentAsQueryBody(): StatementsSegment {
+    private fun processSegmentAsQueryBody(): GraphPatternSegment {
         val content = use(QueryBodyProcessor())
-        return StatementsSegment(content)
+        return GraphPatternSegment(content)
     }
 
     private fun processSegmentAsSelectQuery(): SelectQuerySegment {

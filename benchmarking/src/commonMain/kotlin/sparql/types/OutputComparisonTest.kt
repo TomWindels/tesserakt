@@ -4,7 +4,7 @@ import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.debug.Debug
 import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
+import dev.tesserakt.sparql.runtime.evaluation.Bindings
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import dev.tesserakt.util.toTruncatedString

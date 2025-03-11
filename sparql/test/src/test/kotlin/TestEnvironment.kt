@@ -2,7 +2,7 @@
 import dev.tesserakt.sparql.Compiler.Default.toAST
 import dev.tesserakt.sparql.compiler.CompilerError
 import dev.tesserakt.sparql.debug.ASTWriter
-import dev.tesserakt.sparql.types.runtime.element.Query
+import dev.tesserakt.sparql.ast.CompiledQuery
 import dev.tesserakt.util.printerrln
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -62,7 +62,7 @@ class TestEnvironment private constructor() {
 
     data class ASTTest (
         override val input: String,
-        val test: Query.() -> Boolean
+        val test: CompiledQuery.() -> Boolean
     ): Test() {
 
         override operator fun invoke() {
@@ -91,7 +91,7 @@ class TestEnvironment private constructor() {
 
     }
 
-    infix fun String.satisfies(validation: Query.() -> Boolean) {
+    infix fun String.satisfies(validation: CompiledQuery.() -> Boolean) {
         addTest(ASTTest(input = this, test = validation))
     }
 
