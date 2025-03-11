@@ -9,11 +9,13 @@ data class Pattern(
     val o: Object,
 ) : RuntimeElement {
 
-    sealed interface Subject : RuntimeElement
+    sealed interface Element : RuntimeElement
 
-    sealed interface Predicate : RuntimeElement
+    sealed interface Subject : Element
 
-    sealed interface Object : RuntimeElement
+    sealed interface Predicate : Element
+
+    sealed interface Object : Element
 
     /**
      * Subset of predicates: those that can function (peek functionality) w/o maintaining state
@@ -37,7 +39,7 @@ data class Pattern(
      * Bindings coming directly from an entered query
      */
     @JvmInline
-    value class RegularBinding(override val name: String) : Binding {
+    value class NamedBinding(override val name: String) : Binding {
         override fun toString() = "?$name"
     }
 
@@ -58,12 +60,24 @@ data class Pattern(
 
     // FIXME: inverse can either be the inverse of a term (this case) AS WELL AS the inverse of a path (^iri)
     @JvmInline
-    value class Negated(val term: Quad.Term) : UnboundPredicate, StatelessPredicate {
-        override fun toString() = "!($term)"
+    value class Negated(val terms: SimpleAlts) : UnboundPredicate, StatelessPredicate {
+        override fun toString() = "!${terms}"
     }
 
     @JvmInline
     value class Alts(val allowed: List<UnboundPredicate>) : UnboundPredicate {
+        constructor(a: UnboundPredicate, b: UnboundPredicate): this(
+            allowed = when {
+                a is Alts && b is Alts -> a.allowed + b.allowed
+
+                a is Alts -> a.allowed + b
+
+                b is Alts -> b.allowed + a // order doesn't matter
+
+                else -> listOf(a, b)
+            }
+        )
+
         override fun toString() = allowed.joinToString(
             separator = " | ",
             prefix = "(",
@@ -74,6 +88,18 @@ data class Pattern(
 
     @JvmInline
     value class SimpleAlts(val allowed: List<StatelessPredicate>) : UnboundPredicate, StatelessPredicate {
+        constructor(a: StatelessPredicate, b: StatelessPredicate): this(
+            allowed = when {
+                a is SimpleAlts && b is SimpleAlts -> a.allowed + b.allowed
+
+                a is SimpleAlts -> a.allowed + b
+
+                b is SimpleAlts -> b.allowed + a // order doesn't matter
+
+                else -> listOf(a, b)
+            }
+        )
+
         override fun toString() = allowed.joinToString(
             separator = " | ",
             prefix = "(",
@@ -88,6 +114,21 @@ data class Pattern(
     */
     @JvmInline
     value class Sequence(val chain: List<Predicate>) : Predicate {
+        constructor(a: Predicate, b: Predicate): this(
+            chain = when {
+                a is Sequence && b is Sequence -> a.chain + b.chain
+
+                a is Sequence -> a.chain + b
+
+                b is Sequence -> buildList(b.chain.size + 1) {
+                    add(a)
+                    addAll(b.chain)
+                }
+
+                else -> listOf(a, b)
+            }
+        )
+
         override fun toString() = chain.joinToString(
             separator = " / ",
             prefix = "(",
@@ -101,6 +142,21 @@ data class Pattern(
     */
     @JvmInline
     value class UnboundSequence(val chain: List<UnboundPredicate>) : UnboundPredicate {
+        constructor(a: UnboundPredicate, b: UnboundPredicate): this(
+            chain = when {
+                a is UnboundSequence && b is UnboundSequence -> a.chain + b.chain
+
+                a is UnboundSequence -> a.chain + b
+
+                b is UnboundSequence -> buildList(b.chain.size + 1) {
+                    add(a)
+                    addAll(b.chain)
+                }
+
+                else -> listOf(a, b)
+            }
+        )
+
         override fun toString() = chain.joinToString(" / ")
     }
 

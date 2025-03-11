@@ -1,13 +1,13 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.types.ast.ExpressionAST
-import dev.tesserakt.sparql.types.ast.FilterAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
+import dev.tesserakt.sparql.types.runtime.element.Expression
+import dev.tesserakt.sparql.types.runtime.element.Filter
 
-class FilterProcessor: Analyser<FilterAST>() {
+class FilterProcessor: Analyser<Filter>() {
 
-    override fun _process(): FilterAST {
+    override fun _process(): Filter {
         // `FILTER` considered consumed
         return when (token) {
             Token.Keyword.Regex -> {
@@ -29,7 +29,7 @@ class FilterProcessor: Analyser<FilterAST>() {
                 consume()
                 expectToken(Token.Symbol.RoundBracketEnd)
                 consume()
-                FilterAST.Regex(
+                Filter.Regex(
                     input = target,
                     regex = regex,
                     mode = mode
@@ -40,8 +40,8 @@ class FilterProcessor: Analyser<FilterAST>() {
                 val expr = use(AggregatorProcessor())
                 expectToken(Token.Symbol.RoundBracketEnd)
                 consume()
-                expect(expr is ExpressionAST.Conditional)
-                FilterAST.Predicate(expr)
+                expect(expr is Expression.Conditional)
+                Filter.Predicate(expr)
             }
             else -> expectedToken(Token.Keyword.Regex, Token.Symbol.RoundBracketStart)
         }

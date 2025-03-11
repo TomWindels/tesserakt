@@ -1,16 +1,36 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.types.ast.ExpressionAST
-import dev.tesserakt.sparql.types.ast.PatternAST
-import dev.tesserakt.sparql.types.ast.SelectQueryAST
 import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.types.runtime.element.Expression
+import dev.tesserakt.sparql.types.runtime.element.Query.QueryBody
+import dev.tesserakt.sparql.types.runtime.element.SelectQuery
+import dev.tesserakt.sparql.types.runtime.element.SelectQuery.Output
 
-class SelectQueryProcessor: Analyser<SelectQueryAST>() {
+class SelectQueryProcessor: Analyser<SelectQuery>() {
 
-    private lateinit var builder: SelectQueryAST.Builder
+    private inner class Builder(
+        var output: MutableList<Output>? = mutableListOf(),
+        var body: QueryBody? = null,
+        /** GROUP BY <expr> **/
+        var grouping: Expression? = null,
+        /** HAVING (filter) **/
+        var groupingFilter: Expression? = null,
+        /** ORDER BY <expr> **/
+        var ordering: Expression? = null
+    ) {
+        fun build() = SelectQuery(
+            output = output,
+            body = body ?: bail("Query body is missing"),
+            grouping = grouping,
+            groupingFilter = groupingFilter,
+            ordering = ordering
+        )
+    }
 
-    override fun _process(): SelectQueryAST {
-        builder = SelectQueryAST.Builder()
+    private lateinit var builder: Builder
+
+    override fun _process(): SelectQuery {
+        builder = Builder()
         processSelectQueryStart()
         return builder.build()
     }
@@ -21,19 +41,20 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
         // now expecting either binding name, star or the WHERE clause
         when (token) {
             is Token.Binding -> {
-                builder.addToOutput(PatternAST.Binding(token as Token.Binding))
+                builder.output!!.add(SelectQuery.BindingOutput((token as Token.Binding).name))
                 // consuming it
                 consume()
                 // continuing only accepting bindings, aggregations/operations or the start of the query
                 processSelectQueryBindingOrBody()
             }
             Token.Symbol.RoundBracketStart -> {
-                builder.addToOutput(use(AggregationProcessor()))
+                val aggregation = use(AggregationProcessor())
+                builder.output!!.add(SelectQuery.ExpressionOutput(name = aggregation.target.name, expression = aggregation.expression))
                 // continuing only accepting bindings, aggregations/operations or the start of the query
                 processSelectQueryBindingOrBody()
             }
             Token.Symbol.Asterisk -> {
-                builder.setEverythingAsOutput()
+                builder.output = null // = everything
                 // only optionally `WHERE` is allowed
                 consume()
                 expectToken(Token.Keyword.Where, Token.Symbol.CurlyBracketStart)
@@ -58,14 +79,15 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
         // now expecting either binding name, star or the WHERE clause
         when (token) {
             is Token.Binding -> {
-                builder.addToOutput(PatternAST.Binding(token as Token.Binding))
+                builder.output!!.add(SelectQuery.BindingOutput((token as Token.Binding).name))
                 // consuming it
                 consume()
                 // still processing the start
                 processSelectQueryBindingOrBody()
             }
             Token.Symbol.RoundBracketStart -> {
-                builder.addToOutput(use(AggregationProcessor()))
+                val aggregation = use(AggregationProcessor())
+                builder.output!!.add(SelectQuery.ExpressionOutput(name = aggregation.target.name, expression = aggregation.expression))
                 // still processing the start
                 processSelectQueryBindingOrBody()
             }
@@ -129,7 +151,7 @@ class SelectQueryProcessor: Analyser<SelectQueryAST>() {
             consume()
             expectToken(Token.Symbol.RoundBracketStart)
             consume()
-            builder.groupingFilter = use(AggregatorProcessor()) as? ExpressionAST.Conditional
+            builder.groupingFilter = use(AggregatorProcessor()) as? Expression.Conditional
                 ?: bail("Group filter expression expected")
             expectToken(Token.Symbol.RoundBracketEnd)
             consume()

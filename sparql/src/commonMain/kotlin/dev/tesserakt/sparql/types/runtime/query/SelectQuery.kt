@@ -6,7 +6,7 @@ import dev.tesserakt.util.associateWithNotNull
 
 class SelectQuery internal constructor(ast: SelectQuery): Query<Bindings, SelectQuery>(ast) {
 
-    val variables = ast.output.mapTo(mutableSetOf()) { it.name }.toSet()
+    val variables = ast.bindings
 
     override fun process(change: ResultChange<Bindings>): ResultChange<Bindings> {
         return when (change) {

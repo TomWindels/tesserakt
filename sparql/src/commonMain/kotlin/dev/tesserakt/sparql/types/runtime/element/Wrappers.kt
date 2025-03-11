@@ -11,7 +11,7 @@ value class Union(val segments: List<Segment>): List<Segment> by segments, Runti
 @JvmInline
 value class Optional(val segment: Segment): RuntimeElement
 
-sealed interface Segment
+sealed interface Segment : RuntimeElement
 
 @JvmInline
 value class StatementsSegment(val statements: Query.QueryBody): Segment, RuntimeElement
@@ -23,6 +23,3 @@ data class BindingStatement(
     val expression: Expression,
     val target: String
 )
-
-@JvmInline
-value class Filter(val expression: Expression)

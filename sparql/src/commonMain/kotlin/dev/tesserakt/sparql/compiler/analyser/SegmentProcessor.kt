@@ -1,21 +1,23 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.types.ast.SegmentAST
 import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.types.runtime.element.Segment
+import dev.tesserakt.sparql.types.runtime.element.SelectQuerySegment
+import dev.tesserakt.sparql.types.runtime.element.StatementsSegment
 
 /**
  * Processes a segment, consuming statements like `{ SELECT ... }` and
  *  `{ <s> <p> <o> OPTIONAL { ... } { ... } UNION { ... } }`
  */
-class SegmentProcessor: Analyser<SegmentAST>() {
+class SegmentProcessor: Analyser<Segment>() {
 
-    override fun _process(): SegmentAST {
+    override fun _process(): Segment {
         expectToken(Token.Symbol.CurlyBracketStart)
         consume()
         return processSegment()
     }
 
-    private fun processSegment(): SegmentAST {
+    private fun processSegment(): Segment {
         val segment = when (token) {
             // all possible element types representing a statement section
             is Token.Term,
@@ -38,16 +40,16 @@ class SegmentProcessor: Analyser<SegmentAST>() {
         return segment
     }
 
-    private fun processSegmentAsQueryBody(): SegmentAST.Statements {
+    private fun processSegmentAsQueryBody(): StatementsSegment {
         val content = use(QueryBodyProcessor())
-        return SegmentAST.Statements(content)
+        return StatementsSegment(content)
     }
 
-    private fun processSegmentAsSelectQuery(): SegmentAST.SelectQuery {
+    private fun processSegmentAsSelectQuery(): SelectQuerySegment {
         val query = use(SelectQueryProcessor())
         expectToken(Token.Symbol.CurlyBracketEnd)
         consume()
-        return SegmentAST.SelectQuery(query)
+        return SelectQuerySegment(query)
     }
 
 }

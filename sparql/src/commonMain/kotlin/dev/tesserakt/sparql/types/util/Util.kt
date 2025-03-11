@@ -6,7 +6,7 @@ internal val ZeroCardinality = Cardinality(0)
 
 internal val OneCardinality = Cardinality(1)
 
-fun Query.QueryBody.getAllNamedBindings(): Set<Pattern.RegularBinding> =
+fun Query.QueryBody.getAllNamedBindings(): Set<Pattern.NamedBinding> =
     buildSet {
         addAll(patterns.getAllNamedBindings())
         optional.forEach { optional -> addAll(optional.segment.getAllNamedBindings()) }
@@ -16,38 +16,38 @@ fun Query.QueryBody.getAllNamedBindings(): Set<Pattern.RegularBinding> =
 /**
  * Extracts all named bindings from the original query (excluding generated ones from the AST)
  */
-fun Patterns.getAllNamedBindings(): Set<Pattern.RegularBinding> =
+fun Patterns.getAllNamedBindings(): Set<Pattern.NamedBinding> =
     buildSet {
         this@getAllNamedBindings.forEach { pattern ->
             addAll(pattern.getAllNamedBindings())
         }
     }
 
-fun Pattern.getAllNamedBindings(): Set<Pattern.RegularBinding> {
+fun Pattern.getAllNamedBindings(): Set<Pattern.NamedBinding> {
     return if (
-        s !is Pattern.RegularBinding &&
-        p !is Pattern.RegularBinding &&
-        o !is Pattern.RegularBinding
+        s !is Pattern.NamedBinding &&
+        p !is Pattern.NamedBinding &&
+        o !is Pattern.NamedBinding
     ) {
         emptySet()
     } else buildSet {
-        (s as? Pattern.RegularBinding)?.let { add(it) }
+        (s as? Pattern.NamedBinding)?.let { add(it) }
         p.getNamedBinding()?.let { add(it) }
-        (o as? Pattern.RegularBinding)?.let { add(it) }
+        (o as? Pattern.NamedBinding)?.let { add(it) }
     }
 }
 
-private fun Segment.getAllNamedBindings(): Set<Pattern.RegularBinding> {
+private fun Segment.getAllNamedBindings(): Set<Pattern.NamedBinding> {
     return when (this) {
         is SelectQuerySegment ->
-            query.output.map { output -> Pattern.RegularBinding(output.name) }.toSet()
+            query.bindings.mapTo(mutableSetOf()) { Pattern.NamedBinding(it) }
 
         is StatementsSegment ->
             statements.getAllNamedBindings()
     }
 }
 
-private fun Pattern.Predicate.getNamedBinding(): Pattern.RegularBinding? = when (this) {
+private fun Pattern.Predicate.getNamedBinding(): Pattern.NamedBinding? = when (this) {
     is Pattern.Alts,
     is Pattern.Exact,
     is Pattern.GeneratedBinding,
@@ -57,5 +57,5 @@ private fun Pattern.Predicate.getNamedBinding(): Pattern.RegularBinding? = when 
     is Pattern.Negated,
     is Pattern.OneOrMore,
     is Pattern.ZeroOrMore -> null
-    is Pattern.RegularBinding -> this
+    is Pattern.NamedBinding -> this
 }

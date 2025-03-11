@@ -92,7 +92,7 @@ internal inline fun Pattern.Sequence.unfold(start: Pattern.Subject, end: Pattern
 
 private fun Pattern.Object.toSubject(): Pattern.Subject = when (this) {
     is Pattern.GeneratedBinding -> this
-    is Pattern.RegularBinding -> this
+    is Pattern.NamedBinding -> this
     is Pattern.Exact -> this
 }
 

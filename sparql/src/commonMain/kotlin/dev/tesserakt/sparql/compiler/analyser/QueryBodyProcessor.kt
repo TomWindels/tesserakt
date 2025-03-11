@@ -1,15 +1,35 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.types.ast.ExpressionAST
-import dev.tesserakt.sparql.types.ast.QueryAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
+import dev.tesserakt.sparql.types.runtime.element.*
 
-class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
+class QueryBodyProcessor: Analyser<Query.QueryBody>() {
 
-    private val builder = QueryAST.QueryBodyASTBuilder()
+    private data class Builder(
+        /** The full pattern block that is required **/
+        val patterns: MutableList<Pattern> = mutableListOf(),
+        /** All binding statements found inside this pattern block (similar to filters) **/
+        val bindingStatements: MutableList<BindingStatement> = mutableListOf(),
+        /** All filters applied to this pattern block (optional / union filters NOT included) **/
+        val filters: MutableList<Filter> = mutableListOf(),
+        /** All requested unions, not yet flattened to allow for easier optimisation **/
+        val unions: MutableList<Union> = mutableListOf(),
+        /** Collection of pattern blocks that are optional **/
+        val optional: MutableList<Optional> = mutableListOf()
+    ) {
+        fun build() = Query.QueryBody(
+            patterns = Patterns(patterns),
+            bindingStatements = bindingStatements,
+            filters = filters,
+            unions = unions,
+            optional = optional
+        )
+    }
 
-    override fun _process(): QueryAST.QueryBodyAST {
+    private val builder = Builder()
+
+    override fun _process(): Query.QueryBody {
         processQueryBody()
         return builder.build()
     }
@@ -24,20 +44,20 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                 is Token.StringLiteral,
                 is Token.Binding,
                 is Token.NumericLiteral -> {
-                    builder.addPatterns(use(PatternProcessor()))
+                    builder.patterns.addAll(use(PatternProcessor()))
                 }
                 Token.Keyword.Filter -> {
                     consume()
-                    builder.addFilter(use(FilterProcessor()))
+                    builder.filters.add(use(FilterProcessor()))
                 }
                 Token.Keyword.Optional -> {
                     // consuming the "OPTIONAL" keyword before extracting the segment
                     consume()
                     // extracting the segment and inserting it
-                    builder.addOptional(use(SegmentProcessor()))
+                    builder.optional.add(Optional(use(SegmentProcessor())))
                 }
                 Token.Symbol.CurlyBracketStart -> {
-                    builder.addUnion(use(UnionProcessor()))
+                    builder.unions.add(use(UnionProcessor()))
                 }
                 Token.Symbol.CurlyBracketEnd -> {
                     // done, consuming it and returning
@@ -56,7 +76,7 @@ class QueryBodyProcessor: Analyser<QueryAST.QueryBodyAST>() {
                     consume()
                     expectToken(Token.Symbol.RoundBracketEnd)
                     consume()
-                    builder.addBindStatement(ExpressionAST.BindingStatement(expression = expression, target = target))
+                    builder.bindingStatements.add(BindingStatement(expression = expression, target = target))
                 }
                 else -> expectedPatternElementOrBindingOrToken(
                     Token.Keyword.Filter,

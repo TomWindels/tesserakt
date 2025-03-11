@@ -1,18 +1,18 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.types.ast.SegmentAST
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.types.ast.UnionAST
+import dev.tesserakt.sparql.types.runtime.element.Segment
+import dev.tesserakt.sparql.types.runtime.element.Union
 
-class UnionProcessor: Analyser<UnionAST>() {
+class UnionProcessor: Analyser<Union>() {
 
-    private val segments = mutableListOf<SegmentAST>()
+    private val segments = mutableListOf<Segment>()
 
-    override fun _process(): UnionAST {
+    override fun _process(): Union {
         segments.clear()
         expectToken(Token.Symbol.CurlyBracketStart)
         processUnion()
-        return UnionAST(segments)
+        return Union(segments)
     }
 
     private fun processUnion() {

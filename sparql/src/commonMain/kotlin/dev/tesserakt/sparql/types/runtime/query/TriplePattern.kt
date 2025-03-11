@@ -114,7 +114,7 @@ internal sealed class TriplePattern<P : Pattern.Predicate>(
     ) : ArrayBackedPattern<Pattern.Negated>(subj, pred, obj) {
 
         override fun peek(quad: Quad): Stream<Mapping> {
-            if (!subj.matches(quad.s) || pred.term == quad.p || !obj.matches(quad.o)) {
+            if (!subj.matches(quad.s) || !pred.matches(quad.p) || !obj.matches(quad.o)) {
                 return emptyStream()
             }
             // checking to see if there's any matches with the given triple

@@ -1,9 +1,9 @@
 package dev.tesserakt.sparql.types.runtime.query
 
-import dev.tesserakt.sparql.types.runtime.evaluation.DataDelta
-import dev.tesserakt.sparql.types.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.types.runtime.element.SelectQuerySegment
 import dev.tesserakt.sparql.types.runtime.element.StatementsSegment
+import dev.tesserakt.sparql.types.runtime.evaluation.DataDelta
+import dev.tesserakt.sparql.types.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.types.runtime.stream.*
 import dev.tesserakt.sparql.types.util.Cardinality
 import dev.tesserakt.sparql.types.runtime.element.Union as UnionElement
@@ -37,7 +37,7 @@ internal class Union(union: UnionElement): MutableJoinState {
 
         class SubqueryState(parent: SelectQuerySegment): Segment() {
 
-            override val bindings: Set<String> = parent.query.output.map { it.name }.toSet()
+            override val bindings: Set<String> = parent.query.bindings
 
             override val cardinality: Cardinality
                 get() = TODO("Not yet implemented")

@@ -1,32 +1,32 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.types.ast.ExpressionAST
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalNumericValue
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
+import dev.tesserakt.sparql.types.runtime.element.Expression
 
 /**
  * Processes structures like `MIN(?s)`, `AVG(?s) - MIN(?p)`, `COUNT(DISTINCT ?s)`
  */
-class AggregatorProcessor: Analyser<ExpressionAST>() {
+class AggregatorProcessor: Analyser<Expression>() {
 
-    override fun _process(): ExpressionAST {
+    override fun _process(): Expression {
         val expr = processMathStatement()
         // filters should be top level afaik, so checking it after completing the math expression stuff
         val filterOperand = token.filterOperand
         return if (filterOperand != null) {
             consume()
             val rhs = processMathStatement()
-            ExpressionAST.Conditional(lhs = expr, rhs = rhs, operand = filterOperand)
+            Expression.Conditional(lhs = expr, rhs = rhs, operand = filterOperand)
         } else {
             expr
         }
     }
 
     // processes & consumes structures like `max(?s) - avg(?p)`
-    private fun processMathStatement(): ExpressionAST {
-        val builder = ExpressionAST.MathOp.Builder(nextAggregationOrBindingOrLiteral())
+    private fun processMathStatement(): Expression {
+        val builder = Expression.MathOp.Builder(nextAggregationOrBindingOrLiteral())
         var operator = token.operator
         while (operator != null) {
             consume()
@@ -39,9 +39,9 @@ class AggregatorProcessor: Analyser<ExpressionAST>() {
         return builder.build()
     }
 
-    private fun nextAggregationOrBindingOrLiteral(): ExpressionAST = when (token) {
+    private fun nextAggregationOrBindingOrLiteral(): Expression = when (token) {
         is Token.Binding -> {
-            ExpressionAST.BindingValues(token.bindingName)
+            Expression.BindingValues(token.bindingName)
                 .also { consume() }
         }
         Token.Keyword.AggCount,
@@ -58,14 +58,14 @@ class AggregatorProcessor: Analyser<ExpressionAST>() {
         }
         Token.Symbol.OpMinus -> {
             consume()
-            ExpressionAST.MathOp.Negative.of(nextAggregationOrBindingOrLiteral())
+            Expression.MathOp.Negative.of(nextAggregationOrBindingOrLiteral())
         }
         is Token.NumericLiteral -> {
-            ExpressionAST.NumericLiteralValue(token.literalNumericValue)
+            Expression.NumericLiteralValue(token.literalNumericValue)
                 .also { consume() }
         }
         is Token.StringLiteral -> {
-            ExpressionAST.StringLiteralValue(token.literalTextValue)
+            Expression.StringLiteralValue(token.literalTextValue)
                 .also { consume() }
         }
         Token.Keyword.StringLength,
@@ -83,27 +83,27 @@ class AggregatorProcessor: Analyser<ExpressionAST>() {
         )
     }
 
-    private val Token.operator: ExpressionAST.MathOp.Operator?
+    private val Token.operator: Expression.MathOp.Operator?
         get() = when (this) {
-            Token.Symbol.OpPlus -> ExpressionAST.MathOp.Operator.SUM
-            Token.Symbol.OpMinus -> ExpressionAST.MathOp.Operator.DIFF
-            Token.Symbol.ForwardSlash -> ExpressionAST.MathOp.Operator.DIV
-            Token.Symbol.Asterisk -> ExpressionAST.MathOp.Operator.MUL
+            Token.Symbol.OpPlus -> Expression.MathOp.Operator.SUM
+            Token.Symbol.OpMinus -> Expression.MathOp.Operator.DIFF
+            Token.Symbol.ForwardSlash -> Expression.MathOp.Operator.DIV
+            Token.Symbol.Asterisk -> Expression.MathOp.Operator.MUL
             else -> null
         }
 
-    private val Token.filterOperand: ExpressionAST.Conditional.Operand?
+    private val Token.filterOperand: Expression.Conditional.Operand?
         get() = when (this) {
-            Token.Symbol.AngularBracketStart -> ExpressionAST.Conditional.Operand.LESS_THAN
-            Token.Symbol.AngularBracketEnd -> ExpressionAST.Conditional.Operand.GREATER_THAN
-            Token.Symbol.LTEQ -> ExpressionAST.Conditional.Operand.LESS_THAN_OR_EQ
-            Token.Symbol.GTEQ -> ExpressionAST.Conditional.Operand.GREATER_THAN_OR_EQ
-            Token.Symbol.Equals -> ExpressionAST.Conditional.Operand.EQUAL
+            Token.Symbol.AngularBracketStart -> Expression.Conditional.Operand.LESS_THAN
+            Token.Symbol.AngularBracketEnd -> Expression.Conditional.Operand.GREATER_THAN
+            Token.Symbol.LTEQ -> Expression.Conditional.Operand.LESS_THAN_OR_EQ
+            Token.Symbol.GTEQ -> Expression.Conditional.Operand.GREATER_THAN_OR_EQ
+            Token.Symbol.Equals -> Expression.Conditional.Operand.EQUAL
             else -> null
         }
 
     // processes & consumes structures like `(max(?s) - avg(?p))`
-    private fun processAggregationGroup(): ExpressionAST {
+    private fun processAggregationGroup(): Expression {
         // simply calling the `processAggregationStatement` again, level of recursion depth = number of parentheses
         // consuming the '('
         consume()
@@ -114,7 +114,7 @@ class AggregatorProcessor: Analyser<ExpressionAST>() {
     }
 
     // processes & consumes structures like `max(?s)`
-    private fun processAggregationFunction(): ExpressionAST.BindingAggregate {
+    private fun processAggregationFunction(): Expression.BindingAggregate {
         val type = token.aggType()
         consume()
         expectToken(Token.Symbol.RoundBracketStart)
@@ -124,23 +124,23 @@ class AggregatorProcessor: Analyser<ExpressionAST>() {
             true
         } else false
         expectBinding()
-        val input = ExpressionAST.BindingValues(token.bindingName)
+        val input = Expression.BindingValues(token.bindingName)
         consume()
         expectToken(Token.Symbol.RoundBracketEnd)
         consume()
-        return ExpressionAST.BindingAggregate(type = type, input = input, distinct = distinct)
+        return Expression.BindingAggregate(type = type, input = input, distinct = distinct)
     }
 
     // processes & consumes structures like `concat("A", ?s)`
-    private fun processRegularFunction(): ExpressionAST.FuncCall {
+    private fun processRegularFunction(): Expression.FuncCall {
         val name = token.syntax
         consume()
         expectToken(Token.Symbol.RoundBracketStart)
         consume()
         if (token == Token.Symbol.RoundBracketEnd) {
-            return ExpressionAST.FuncCall(name = name, args = emptyList())
+            return Expression.FuncCall(name = name, args = emptyList())
         }
-        val args = mutableListOf<ExpressionAST>()
+        val args = mutableListOf<Expression>()
         while (true) {
             args += nextAggregationOrBindingOrLiteral()
             when (token) {
@@ -150,17 +150,17 @@ class AggregatorProcessor: Analyser<ExpressionAST>() {
             }
         }
         consume()
-        return ExpressionAST.FuncCall(name = name, args = args)
+        return Expression.FuncCall(name = name, args = args)
     }
 
     private fun Token.aggType() = when (this) {
-        Token.Keyword.AggCount -> ExpressionAST.BindingAggregate.Type.COUNT
-        Token.Keyword.AggSum -> ExpressionAST.BindingAggregate.Type.SUM
-        Token.Keyword.AggMin -> ExpressionAST.BindingAggregate.Type.MIN
-        Token.Keyword.AggMax -> ExpressionAST.BindingAggregate.Type.MAX
-        Token.Keyword.AggAvg -> ExpressionAST.BindingAggregate.Type.AVG
-        Token.Keyword.AggGroupConcat -> ExpressionAST.BindingAggregate.Type.GROUP_CONCAT
-        Token.Keyword.AggSample -> ExpressionAST.BindingAggregate.Type.SAMPLE
+        Token.Keyword.AggCount -> Expression.BindingAggregate.Type.COUNT
+        Token.Keyword.AggSum -> Expression.BindingAggregate.Type.SUM
+        Token.Keyword.AggMin -> Expression.BindingAggregate.Type.MIN
+        Token.Keyword.AggMax -> Expression.BindingAggregate.Type.MAX
+        Token.Keyword.AggAvg -> Expression.BindingAggregate.Type.AVG
+        Token.Keyword.AggGroupConcat -> Expression.BindingAggregate.Type.GROUP_CONCAT
+        Token.Keyword.AggSample -> Expression.BindingAggregate.Type.SAMPLE
         else -> bail()
     }
 

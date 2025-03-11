@@ -1,10 +1,10 @@
 package dev.tesserakt.util.console
 
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.formatting.NodeWriter
+import dev.tesserakt.sparql.debug.ElementWriter
 import dev.tesserakt.sparql.types.runtime.element.RuntimeElement
 
-object StylisedWriter: NodeWriter<String>() {
+object StylisedWriter: ElementWriter<String>() {
 
     private val state = State()
 

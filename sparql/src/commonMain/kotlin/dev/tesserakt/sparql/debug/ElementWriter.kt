@@ -1,12 +1,12 @@
-package dev.tesserakt.sparql.formatting
+package dev.tesserakt.sparql.debug
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.types.runtime.element.*
 
-abstract class NodeWriter<RT> {
+abstract class ElementWriter<RT> {
 
-    object Default: NodeWriter<String>() {
+    object Default: ElementWriter<String>() {
 
         private val state = State()
 
@@ -79,7 +79,7 @@ abstract class NodeWriter<RT> {
             is Pattern.GeneratedBinding ->
                 add(Token.PrefixedTerm(namespace = "_", value = "b${element.id}"))
 
-            is Pattern.RegularBinding ->
+            is Pattern.NamedBinding ->
                 add(Token.Binding(element.name))
 
             is Pattern.Exact -> when (element.term) {
@@ -89,6 +89,10 @@ abstract class NodeWriter<RT> {
             }
 
             is Pattern.Alts -> {
+                if (element.allowed.size == 1) {
+                    process(element.allowed.single())
+                    return
+                }
                 add(Token.Symbol.RoundBracketStart)
                 repeat(element.allowed.size - 1) { i ->
                     add(Token.Symbol.RoundBracketStart)
@@ -103,13 +107,27 @@ abstract class NodeWriter<RT> {
 
             }
 
+            is Pattern.SimpleAlts -> {
+                if (element.allowed.size == 1) {
+                    process(element.allowed.single())
+                    return
+                }
+                add(Token.Symbol.RoundBracketStart)
+                repeat(element.allowed.size - 1) { i ->
+                    add(Token.Symbol.RoundBracketStart)
+                    process(element.allowed[i])
+                    add(Token.Symbol.RoundBracketEnd)
+                    add(Token.Symbol.PredicateOr)
+                }
+                add(Token.Symbol.RoundBracketStart)
+                process(element.allowed.last())
+                add(Token.Symbol.RoundBracketEnd)
+                add(Token.Symbol.RoundBracketEnd)
+            }
+
             is Pattern.Negated -> {
                 add(Token.Symbol.ExclamationMark)
-                when (element.term) {
-                    is Quad.BlankTerm -> throw UnsupportedOperationException()
-                    is Quad.Literal -> add(Token.StringLiteral(element.term.value))
-                    is Quad.NamedTerm -> add(Token.Term(element.term.value))
-                }
+                process(element.terms)
             }
 
             is Pattern.Sequence -> {
@@ -122,20 +140,6 @@ abstract class NodeWriter<RT> {
                 }
                 add(Token.Symbol.RoundBracketStart)
                 process(element.chain.last())
-                add(Token.Symbol.RoundBracketEnd)
-                add(Token.Symbol.RoundBracketEnd)
-            }
-
-            is Pattern.SimpleAlts -> {
-                add(Token.Symbol.RoundBracketStart)
-                repeat(element.allowed.size - 1) { i ->
-                    add(Token.Symbol.RoundBracketStart)
-                    process(element.allowed[i])
-                    add(Token.Symbol.RoundBracketEnd)
-                    add(Token.Symbol.PredicateOr)
-                }
-                add(Token.Symbol.RoundBracketStart)
-                process(element.allowed.last())
                 add(Token.Symbol.RoundBracketEnd)
                 add(Token.Symbol.RoundBracketEnd)
             }
@@ -238,7 +242,7 @@ abstract class NodeWriter<RT> {
 
             is SelectQuery -> {
                 add(Token.Keyword.Select)
-                element.output.forEach { output ->
+                element.output?.forEach { output ->
                     when (output) {
                         is SelectQuery.BindingOutput ->
                             add(Token.Binding(output.name))
@@ -250,6 +254,8 @@ abstract class NodeWriter<RT> {
                             add(Token.Symbol.RoundBracketEnd)
                         }
                     }
+                } ?: run {
+                    add(Token.Symbol.Asterisk)
                 }
                 add(Token.Keyword.Where)
                 add(Token.Symbol.CurlyBracketStart)
@@ -281,6 +287,32 @@ abstract class NodeWriter<RT> {
                 add(Token.StringLiteral("EXPR"))
             }
 
+            is Aggregation -> {
+                add(Token.Symbol.RoundBracketStart)
+                process(element.expression)
+                add(Token.Keyword.As)
+                add(element.target)
+                add(Token.Symbol.RoundBracketEnd)
+            }
+
+            is Filter.Predicate -> {
+                add(Token.Keyword.Filter)
+                add(Token.Symbol.RoundBracketStart)
+                process(element.expression)
+                add(Token.Symbol.RoundBracketEnd)
+            }
+
+            is Filter.Regex -> {
+                add(Token.Keyword.Filter)
+                add(Token.Keyword.Regex)
+                add(Token.Symbol.RoundBracketStart)
+                add(element.input)
+                add(Token.Symbol.Comma)
+                add(Token.StringLiteral(element.regex))
+                add(Token.Symbol.Comma)
+                add(Token.StringLiteral(element.mode))
+                add(Token.Symbol.RoundBracketEnd)
+            }
         }
 
     }
