@@ -3,7 +3,9 @@ package sparql.types
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
+import dev.tesserakt.sparql.OngoingQueryEvaluation
+import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.query.SelectQueryState
@@ -36,7 +38,7 @@ data class RandomUpdateTest(
 
     override suspend fun test() = runTest {
         val input = MutableStore()
-        val builder = Result.Builder(query = query.asSPARQLSelectQuery(), store = store, deltas = deltas)
+        val builder = Result.Builder(query = Compiler.Default.compile(query) as SelectQueryState, store = store, deltas = deltas)
         suspend fun reference(): Pair<Duration, List<Bindings>> {
             val external = ExternalQueryExecution(query, input)
             val results: List<Bindings>
@@ -52,7 +54,7 @@ data class RandomUpdateTest(
 
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime = measureTime {
-            ongoing = input.query(query.asSPARQLSelectQuery())
+            ongoing = input.query(query)
         }
         // checking the initial state (no data)
         builder.add(

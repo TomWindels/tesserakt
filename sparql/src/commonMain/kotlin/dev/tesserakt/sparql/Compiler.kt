@@ -22,12 +22,6 @@ abstract class Compiler {
         }
     }
 
-    /* alternative methods/syntax */
-
-    fun String.asSPARQLQuery() = compile(this)
-
-    fun String.asSPARQLSelectQuery() = compile(this) as SelectQueryState
-
     object Default: Compiler() {
 
         override fun compile(raw: String): QueryState<*, *> {

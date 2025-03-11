@@ -1,7 +1,7 @@
 package dev.tesserakt.util.console
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.evaluation.Bindings
+import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.util.fit
 import dev.tesserakt.util.toString
 import dev.tesserakt.util.weightedSort

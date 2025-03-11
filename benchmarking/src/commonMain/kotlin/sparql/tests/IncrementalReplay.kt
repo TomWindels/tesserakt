@@ -4,12 +4,11 @@ import dev.tesserakt.rdf.serialization.common.Path
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.consume
-import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import dev.tesserakt.sparql.benchmark.replay.SnapshotStore
-import dev.tesserakt.sparql.debug.Debug
+import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.runtime.evaluation.Bindings
+import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.util.printerrln
 import sparql.ExternalQueryExecution
 import sparql.types.OutputComparisonTest
@@ -77,7 +76,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
     awaitBenchmarkStart()
     benchmark.queries.forEachIndexed { i, query ->
         val store = MutableStore()
-        val evaluation = store.query(query.asSPARQLSelectQuery())
+        val evaluation = store.query<Bindings>(query)
         println("Beginning new evaluation for query ${i + 1}")
         var snapshotIndex = 0
         var previous: List<Bindings>? = null
@@ -101,7 +100,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
             val comparison = OutputComparisonTest.Result.from(
                 received = received,
                 expected = solution,
-                debugInformation = "${Debug.report()}${external.report()}",
+                debugInformation = "${RuntimeStatistics.report()}${external.report()}",
                 elapsedTime = time,
                 referenceTime = reference
             )

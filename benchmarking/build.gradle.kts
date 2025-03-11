@@ -27,6 +27,9 @@ kotlin {
                 // to deserialize and evaluate datasets
                 implementation(project(":serialization"))
                 implementation(project(":sparql"))
+                implementation(project(":sparql:core"))
+                implementation(project(":sparql:compiler"))
+                implementation(project(":sparql:runtime"))
                 // built-in tests use the dsl for construction
                 implementation(project(":rdf-dsl"))
                 // to evaluate the results

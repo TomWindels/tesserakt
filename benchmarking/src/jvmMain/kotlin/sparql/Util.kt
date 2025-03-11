@@ -3,7 +3,7 @@ package sparql
 import dev.tesserakt.interop.jena.toJenaDataset
 import dev.tesserakt.interop.jena.toTerm
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.evaluation.Bindings
+import dev.tesserakt.sparql.Bindings
 import org.apache.jena.query.Dataset
 import org.apache.jena.query.QueryExecutionFactory
 import kotlin.io.path.Path
