@@ -18,6 +18,8 @@ class Mapping(private val inner: Map<String, Quad.Term>): Map<String, Quad.Term>
 
     override fun toString() = bindings.toString()
 
+    fun retain(names: Set<String>): Mapping = Mapping(HashMap(inner).apply { keys.retainAll(names) })
+
 }
 
 val EmptyMapping = Mapping(emptyMap())

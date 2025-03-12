@@ -202,9 +202,20 @@ inline fun <I : Any, O : Any> OptimisedStream<I>.mapped(noinline transform: (I) 
 }
 
 inline fun <I : Any, O : Any> Stream<I>.mappedNonNull(noinline transform: (I) -> O?): Stream<O> {
-    return if (hasZeroCardinality()) emptyStream() else dev.tesserakt.sparql.runtime.stream.StreamMappingNullable(
+    return if (hasZeroCardinality()) emptyStream() else StreamMappingNullable(
         source = this,
         transform = transform
+    )
+}
+
+inline fun <reified O : Any> Stream<*>.filteredIsInstance(): Stream<O> {
+    return mappedNonNull { it as? O }
+}
+
+inline fun <E : Any> Stream<E>.filtered(noinline predicate: (E) -> Boolean): Stream<E> {
+    return if (hasZeroCardinality()) emptyStream() else StreamFilter(
+        source = this,
+        predicate = predicate
     )
 }
 

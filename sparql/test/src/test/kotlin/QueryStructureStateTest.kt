@@ -240,4 +240,29 @@ class QueryStructureStateTest {
         println("Results:\n${store.query(query).tabulate()}")
     }
 
+    @Test
+    fun filters() = with (VerboseCompiler) {
+        val data1 = """
+            @prefix  :       <http://example/> .
+            @prefix  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+            @prefix  foaf:   <http://xmlns.com/foaf/0.1/> .
+
+            :alice  rdf:type   foaf:Person .
+            :alice  foaf:name  "Alice" .
+            :bob    rdf:type   foaf:Person .
+        """.parseTurtleString()
+        val query1 = """
+            PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+            PREFIX  foaf:   <http://xmlns.com/foaf/0.1/> 
+
+            SELECT ?person
+            WHERE 
+            {
+                ?person rdf:type  foaf:Person .
+                FILTER NOT EXISTS { ?person foaf:name ?name }
+            } 
+        """.toSparqlSelectQuery()
+        println("Results:\n${data1.query(query1).tabulate()}")
+    }
+
 }

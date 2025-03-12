@@ -56,6 +56,37 @@ fun builtinTests() = tests {
         }
     """
 
+    val filtered = buildStore {
+        val example = prefix("", "http://example/")
+        example("alice") has type being FOAF.Person
+        example("alice") has FOAF("name") being "Alice".asLiteralTerm()
+        example("bob") has type being FOAF.Person
+    }
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/> 
+
+        SELECT ?person
+        WHERE 
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER NOT EXISTS { ?person foaf:name ?name }
+        } 
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/> 
+
+        SELECT ?person
+        WHERE 
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER NOT EXISTS { ?a ?b ?c }
+        } 
+    """
+
     val extra = buildStore(path = "http://example.org/") {
         val subj = local("s")
         val obj = local("o")
