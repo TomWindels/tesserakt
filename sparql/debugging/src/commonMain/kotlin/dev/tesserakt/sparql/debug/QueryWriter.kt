@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.debug
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.types.*
 import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.types.*
 
 abstract class QueryWriter<RT> {
 
@@ -312,6 +312,23 @@ abstract class QueryWriter<RT> {
                 add(Token.Symbol.Comma)
                 add(Token.StringLiteral(element.mode))
                 add(Token.Symbol.RoundBracketEnd)
+            }
+
+            is Filter.Exists -> {
+                add(Token.Keyword.Filter)
+                add(Token.Keyword.Exists)
+                add(Token.Symbol.CurlyBracketStart)
+                process(element.pattern)
+                add(Token.Symbol.CurlyBracketEnd)
+            }
+
+            is Filter.NotExists -> {
+                add(Token.Keyword.Filter)
+                add(Token.Keyword.Not)
+                add(Token.Keyword.Exists)
+                add(Token.Symbol.CurlyBracketStart)
+                process(element.pattern)
+                add(Token.Symbol.CurlyBracketEnd)
             }
         }
 

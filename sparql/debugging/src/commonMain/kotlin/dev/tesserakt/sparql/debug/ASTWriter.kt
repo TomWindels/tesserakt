@@ -338,6 +338,20 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
+        is Filter.Exists -> {
+            writeLine("exists")
+            indented {
+                process(symbol.pattern)
+            }
+        }
+
+        is Filter.NotExists -> {
+            writeLine("not exists")
+            indented {
+                process(symbol.pattern)
+            }
+        }
+
         is Expression.FuncCall -> {
             TODO()
         }

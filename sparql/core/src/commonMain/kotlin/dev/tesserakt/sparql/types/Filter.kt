@@ -13,4 +13,10 @@ sealed interface Filter: QueryAtom {
         val mode: String
     ): Filter
 
+    @JvmInline
+    value class Exists(val pattern: GraphPattern): Filter
+
+    @JvmInline
+    value class NotExists(val pattern: GraphPattern): Filter
+
 }
