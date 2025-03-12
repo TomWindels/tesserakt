@@ -1,20 +1,19 @@
+
 import dev.tesserakt.sparql.Compiler
-import dev.tesserakt.sparql.runtime.incremental.compat.QueryCompatLayer
-import dev.tesserakt.sparql.runtime.incremental.query.IncrementalQuery
-import dev.tesserakt.util.console.StylisedWriter
+import dev.tesserakt.sparql.debug.ASTWriter
+import dev.tesserakt.sparql.debug.StylisedWriter
 
 object VerboseCompiler: Compiler() {
 
-    override fun compile(raw: String): IncrementalQuery<*, *> {
+    override fun compile(query: String): CompiledQuery {
         // compiling the input query
-        val ast = raw.toAST()
+        val compiled = super.compile(query)
         // outputting the resulting AST
-        println(ast)
+        println(ASTWriter().write(compiled.structure))
         // converting it to a subset supported by the runtime
-        val compat = QueryCompatLayer().convert(ast)
         println("Generated the following runtime AST:")
-        println(StylisedWriter.write(compat))
-        return compat.toIncrementalQuery()
+        println(StylisedWriter.write(compiled.structure))
+        return compiled
     }
 
 }

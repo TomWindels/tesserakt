@@ -1,6 +1,8 @@
-import dev.tesserakt.sparql.Compiler.Default.toAST
+
+import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.compiler.ast.QueryAST
+import dev.tesserakt.sparql.debug.ASTWriter
+import dev.tesserakt.sparql.types.QueryStructure
 import dev.tesserakt.util.printerrln
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -60,12 +62,12 @@ class TestEnvironment private constructor() {
 
     data class ASTTest (
         override val input: String,
-        val test: QueryAST.() -> Boolean
+        val test: QueryStructure.() -> Boolean
     ): Test() {
 
         override operator fun invoke() {
-            val ast = input.toAST()
-            println("Input:\n$input\nAST:\n$ast")
+            val ast = Compiler().compile(input).structure
+            println("Input:\n$input\nAST:\n${ASTWriter().write(ast)}")
             assertTrue(test(ast), "Validation did not succeed! Got AST $ast")
         }
 
@@ -78,7 +80,7 @@ class TestEnvironment private constructor() {
 
         override operator fun invoke() {
             try {
-                input.toAST()
+                Compiler().compile(input)
                 throw AssertionError("Compilation succeeded unexpectedly!")
             } catch (c: CompilerError) {
                 // exactly what is expected, so not throwing anything
@@ -89,7 +91,7 @@ class TestEnvironment private constructor() {
 
     }
 
-    infix fun String.satisfies(validation: QueryAST.() -> Boolean) {
+    infix fun String.satisfies(validation: QueryStructure.() -> Boolean) {
         addTest(ASTTest(input = this, test = validation))
     }
 

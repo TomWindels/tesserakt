@@ -1,10 +1,10 @@
 package sparql.types
 
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
-import dev.tesserakt.sparql.runtime.common.types.Bindings
-import dev.tesserakt.sparql.runtime.common.util.Debug
-import dev.tesserakt.sparql.runtime.incremental.evaluation.query
+import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.Query
+import dev.tesserakt.sparql.query
+import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import dev.tesserakt.util.toTruncatedString
@@ -20,7 +20,7 @@ data class OutputComparisonTest(
     override suspend fun test() = runTest {
         val actual: List<Bindings>
         val elapsedTime = measureTime {
-            actual = store.query(query.asSPARQLSelectQuery())
+            actual = store.query(Query.Select(query))
         }
         val external = ExternalQueryExecution(query, store)
         val expected: List<Bindings>
@@ -36,7 +36,7 @@ data class OutputComparisonTest(
             expected = expected,
             elapsedTime = elapsedTime,
             referenceTime = referenceTime,
-            debugInformation = "${Debug.report()}${external.report()}"
+            debugInformation = "${RuntimeStatistics.report()}${external.report()}"
         )
     }
 

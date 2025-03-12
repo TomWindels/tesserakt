@@ -2,10 +2,10 @@ package sparql.types
 
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.sparql.Compiler.Default.asSPARQLSelectQuery
-import dev.tesserakt.sparql.runtime.common.types.Bindings
-import dev.tesserakt.sparql.runtime.incremental.evaluation.OngoingQueryEvaluation
-import dev.tesserakt.sparql.runtime.incremental.evaluation.query
+import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.OngoingQueryEvaluation
+import dev.tesserakt.sparql.Query
+import dev.tesserakt.sparql.query
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -35,7 +35,7 @@ data class IncrementalUpdateTest(
         }
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime= measureTime {
-            ongoing = input.query(query.asSPARQLSelectQuery())
+            ongoing = input.query(Query.Select(query))
         }
         // checking the initial state (no data)
         builder.add(

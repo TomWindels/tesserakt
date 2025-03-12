@@ -1,6 +1,6 @@
 package sparql.types
 
-import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.util.replace
 
 

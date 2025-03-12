@@ -2,17 +2,18 @@ plugins {
     id("package-conventions")
 }
 
+group = "sparql"
+
 kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
                 api(project(":rdf"))
-            }
-        }
-        // only enabling the JVM test source set, as this one doesn't land in the JS sources
-        val jvmTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
+                api(project(":sparql:common"))
+
+                implementation(project(":common"))
+                implementation(project(":sparql:compiler"))
+                implementation(project(":sparql:runtime"))
             }
         }
     }

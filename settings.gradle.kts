@@ -6,7 +6,6 @@ plugins {
 
 rootProject.name = "tesserakt"
 include("common")
-include("extra")
 
 include("rdf")
 include("rdf-dsl")
@@ -15,6 +14,11 @@ include("n3")
 include("n3-dsl")
 
 include("sparql")
+include("sparql:core")
+include("sparql:common")
+include("sparql:debugging")
+include("sparql:compiler")
+include("sparql:runtime")
 include("sparql:test")
 
 include("serialization:core")

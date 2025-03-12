@@ -1,7 +1,7 @@
 package sparql.types
 
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.testEnv
 import kotlin.time.Duration

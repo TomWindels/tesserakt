@@ -1,5 +1,5 @@
 import dev.tesserakt.interop.rdfjs.n3.N3Quad
-import dev.tesserakt.sparql.runtime.common.types.Bindings
+import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
 import kotlin.js.Promise
 
 // interface ported from https://github.com/rubensworks/rdf-test-suite.js/blob/master/lib/testcase/sparql/IQueryEngine.ts
