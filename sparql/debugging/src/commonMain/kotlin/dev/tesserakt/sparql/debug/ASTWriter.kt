@@ -281,11 +281,8 @@ class ASTWriter(private val indentStyle: String = "  ") {
                     if (symbol.bindingStatements.isNotEmpty()) {
                         writeLine("binding statements")
                         symbol.bindingStatements.forEachIndexed { index, statement ->
-                            writeLine("target: ${statement.target}")
-                            writeLine("expression: ")
-                            indented {
-                                process(statement.expression)
-                            }
+                            writeLine(index.toString())
+                            process(statement)
                         }
                     }
                     if (symbol.unions.isNotEmpty()) {
@@ -314,6 +311,17 @@ class ASTWriter(private val indentStyle: String = "  ") {
         is GraphPatternSegment -> {
             append("segment: ")
             process(symbol.pattern)
+        }
+
+        is BindingStatement -> {
+            append("binding:")
+            indented {
+                append("name: ${symbol.target}")
+                append("origin:")
+                indented {
+                    process(symbol.expression)
+                }
+            }
         }
 
         is Union -> {
