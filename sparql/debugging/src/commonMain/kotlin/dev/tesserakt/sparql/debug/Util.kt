@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE", "unused")
 
-package dev.tesserakt.util.console
+package dev.tesserakt.sparql.debug
 
 import dev.tesserakt.rdf.types.Quad
 

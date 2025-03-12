@@ -1,4 +1,4 @@
-package dev.tesserakt.util.console
+package dev.tesserakt.sparql.debug
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.Bindings

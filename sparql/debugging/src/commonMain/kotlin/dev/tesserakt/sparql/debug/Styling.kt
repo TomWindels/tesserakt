@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE", "unused")
 
-package dev.tesserakt.util.console
+package dev.tesserakt.sparql.debug
 
 // src for the unicode values: https://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html
 

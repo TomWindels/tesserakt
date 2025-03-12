@@ -6,7 +6,6 @@ plugins {
 
 rootProject.name = "tesserakt"
 include("common")
-include("extra")
 
 include("rdf")
 include("rdf-dsl")

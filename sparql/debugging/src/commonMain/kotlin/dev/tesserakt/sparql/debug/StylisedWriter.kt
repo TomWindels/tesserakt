@@ -1,8 +1,7 @@
-package dev.tesserakt.util.console
+package dev.tesserakt.sparql.debug
 
-import dev.tesserakt.sparql.types.QueryAtom
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.debug.QueryWriter
+import dev.tesserakt.sparql.types.QueryAtom
 
 object StylisedWriter: QueryWriter<String>() {
 

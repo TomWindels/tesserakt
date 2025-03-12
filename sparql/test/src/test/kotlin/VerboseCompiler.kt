@@ -1,7 +1,7 @@
 
 import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.debug.ASTWriter
-import dev.tesserakt.util.console.StylisedWriter
+import dev.tesserakt.sparql.debug.StylisedWriter
 
 object VerboseCompiler: Compiler() {
 

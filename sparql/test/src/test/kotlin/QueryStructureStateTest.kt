@@ -5,8 +5,8 @@ import dev.tesserakt.rdf.serialization.Turtle.parseTurtleString
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.Query
+import dev.tesserakt.sparql.debug.BindingsTable.Companion.tabulate
 import dev.tesserakt.sparql.query
-import dev.tesserakt.util.console.BindingsTable.Companion.tabulate
 import kotlin.test.Test
 
 class QueryStructureStateTest {

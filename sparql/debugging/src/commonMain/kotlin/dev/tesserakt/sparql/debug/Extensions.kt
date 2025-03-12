@@ -1,6 +1,6 @@
 @file:Suppress("NOTHING_TO_INLINE")
 
-package dev.tesserakt.util.console
+package dev.tesserakt.sparql.debug
 
 inline fun StylisedString.fit(exactLength: Int, overflow: String = "...", extend: String = " "): StylisedString =
     when {
