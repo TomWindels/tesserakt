@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql.ast
+package dev.tesserakt.sparql.types
 
 import dev.tesserakt.rdf.types.Quad
 
@@ -51,7 +51,7 @@ fun Segment.extractAllBindings() = when (this) {
     is GraphPatternSegment -> pattern.extractAllBindings()
 }
 
-fun CompiledSelectQuery.extractAllOutputsAsBindings() =
+fun SelectQueryStructure.extractAllOutputsAsBindings() =
     output?.map { TriplePattern.NamedBinding(it.name) } ?: emptyList()
 
 fun TriplePattern.extractAllBindings(): List<TriplePattern.Binding> {

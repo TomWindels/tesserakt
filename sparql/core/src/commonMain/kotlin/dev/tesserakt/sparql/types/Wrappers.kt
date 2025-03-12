@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql.ast
+package dev.tesserakt.sparql.types
 
 import kotlin.jvm.JvmInline
 
@@ -17,7 +17,7 @@ sealed interface Segment : QueryAtom
 value class GraphPatternSegment(val pattern: GraphPattern): Segment, QueryAtom
 
 @JvmInline
-value class SelectQuerySegment(val query: CompiledSelectQuery): Segment, QueryAtom
+value class SelectQuerySegment(val query: SelectQueryStructure): Segment, QueryAtom
 
 data class BindingStatement(
     val expression: Expression,

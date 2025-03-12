@@ -3,8 +3,8 @@ package dev.tesserakt.sparql.compiler.analyser
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.sparql.ast.TriplePattern
-import dev.tesserakt.sparql.ast.TriplePatternSet
+import dev.tesserakt.sparql.types.TriplePattern
+import dev.tesserakt.sparql.types.TriplePatternSet
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.newAnonymousBinding
 

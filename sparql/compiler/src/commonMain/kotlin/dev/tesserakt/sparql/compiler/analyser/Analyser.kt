@@ -5,7 +5,7 @@ package dev.tesserakt.sparql.compiler.analyser
 import dev.tesserakt.sparql.compiler.CompilerError
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.ast.QueryAtom
+import dev.tesserakt.sparql.types.QueryAtom
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 

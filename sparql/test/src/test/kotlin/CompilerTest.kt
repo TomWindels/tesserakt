@@ -2,9 +2,9 @@
 import TestEnvironment.Companion.test
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.CompilerError
-import dev.tesserakt.sparql.ast.CompiledSelectQuery
-import dev.tesserakt.sparql.ast.Expression
-import dev.tesserakt.sparql.ast.TriplePattern
+import dev.tesserakt.sparql.types.Expression
+import dev.tesserakt.sparql.types.SelectQueryStructure
+import dev.tesserakt.sparql.types.TriplePattern
 import kotlin.test.Test
 
 class CompilerTest {
@@ -76,7 +76,7 @@ class CompilerTest {
                 { ?s <prop> ?value1 } UNION { ?s <prop2> <value2> } UNION { ?s <prop3> <value3> }
             }
         """ satisfies {
-            require(this is CompiledSelectQuery)
+            require(this is SelectQueryStructure)
             body.patterns.size == 1 &&
             body.optional.size == 1 &&
             body.unions.size == 1 &&
@@ -109,23 +109,23 @@ class CompilerTest {
                 OPTIONAL { ?s <has> ?value . FILTER(?value > 5) }
             }
         """ satisfies {
-            require(this is CompiledSelectQuery)
+            require(this is SelectQueryStructure)
             body.patterns.size == 1 &&
             body.optional.size == 1 &&
             bindings == setOf("s", "value")
             // TODO: also check the optional's condition
         }
         "select(count(distinct ?s) as ?count){?s?p?o}" satisfies {
-            require(this is CompiledSelectQuery)
+            require(this is SelectQueryStructure)
             val count = output!!.find { it.name == "count" }!!
             val func =
-                (count as CompiledSelectQuery.ExpressionOutput).expression as Expression.BindingAggregate
+                (count as SelectQueryStructure.ExpressionOutput).expression as Expression.BindingAggregate
             func.type == Expression.BindingAggregate.Type.COUNT
         }
         "select(avg(?s) + min(?s) / 3 as ?count){?s?p?o}" satisfies {
-            require(this is CompiledSelectQuery)
+            require(this is SelectQueryStructure)
             val count = output!!.find { it.name == "count" }!!
-            (count as CompiledSelectQuery.ExpressionOutput).expression ==
+            (count as SelectQueryStructure.ExpressionOutput).expression ==
                     Expression.MathOp.Sum(
                         lhs = Expression.BindingAggregate(
                             type = Expression.BindingAggregate.Type.AVG,
@@ -150,7 +150,7 @@ class CompilerTest {
             }
             GROUP BY ?g
         """ satisfies {
-            require(this is CompiledSelectQuery)
+            require(this is SelectQueryStructure)
             val pattern = TriplePattern(
                 s = TriplePattern.NamedBinding("g"),
                 p = TriplePattern.Exact(Quad.NamedTerm("http://example.com/data/#p")),
@@ -160,8 +160,8 @@ class CompilerTest {
             val c = output!!.find { it.name == "c" }
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
-            ((avg as CompiledSelectQuery.ExpressionOutput).expression as Expression.BindingAggregate).type == Expression.BindingAggregate.Type.AVG &&
-            (c as CompiledSelectQuery.ExpressionOutput).expression is Expression.MathOp.Div
+            ((avg as SelectQueryStructure.ExpressionOutput).expression as Expression.BindingAggregate).type == Expression.BindingAggregate.Type.AVG &&
+            (c as SelectQueryStructure.ExpressionOutput).expression is Expression.MathOp.Div
         }
         """
             SELECT * WHERE {
@@ -169,7 +169,7 @@ class CompilerTest {
             }
         """ satisfies {
             body.patterns.size == 2 &&
-            this is CompiledSelectQuery &&
+            this is SelectQueryStructure &&
             // the generated binding should not be visible!
             bindings.size == 2
         }
@@ -178,7 +178,7 @@ class CompilerTest {
                 ?s ?p [ <contains> [ <data> ?values ] ; ]
             }
         """ satisfies {
-            require(this is CompiledSelectQuery)
+            require(this is SelectQueryStructure)
 
             body.patterns.size == 3 &&
             // the generated binding should not be visible!
@@ -194,7 +194,7 @@ class CompilerTest {
                 ]
             }
         """ satisfies {
-            require(this is CompiledSelectQuery)
+            require(this is SelectQueryStructure)
             body.patterns.size == 7 &&
             // the generated binding should not be visible!
             bindings == setOf("s", "p", "data1", "data2", "data3")
@@ -222,7 +222,7 @@ class CompilerTest {
                 }
             }
         """ satisfies {
-            require(this is CompiledSelectQuery)
+            require(this is SelectQueryStructure)
             bindings.containsAll(listOf("page, type"))
         }
         /* expected failure cases */

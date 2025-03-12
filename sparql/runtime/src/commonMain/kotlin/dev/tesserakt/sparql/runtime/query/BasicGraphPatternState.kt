@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.ast.GraphPattern
+import dev.tesserakt.sparql.types.GraphPattern
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.stream.*

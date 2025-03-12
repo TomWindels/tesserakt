@@ -1,12 +1,12 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.ast.CompiledQuery
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.into
+import dev.tesserakt.sparql.types.QueryStructure
 import kotlin.jvm.JvmInline
 
-sealed class QueryState<ResultType, Q: CompiledQuery>(
+sealed class QueryState<ResultType, Q: QueryStructure>(
     protected val ast: Q
 ) {
 

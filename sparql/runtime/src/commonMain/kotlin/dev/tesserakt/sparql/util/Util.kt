@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.util
 
-import dev.tesserakt.sparql.ast.*
+import dev.tesserakt.sparql.types.*
 
 val ZeroCardinality = Cardinality(0)
 

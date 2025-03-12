@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.ast.TriplePattern
-import dev.tesserakt.sparql.ast.matches
+import dev.tesserakt.sparql.types.TriplePattern
+import dev.tesserakt.sparql.types.matches
 import dev.tesserakt.sparql.newAnonymousBinding
 import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*

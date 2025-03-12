@@ -1,9 +1,8 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.ast.GraphPatternSegment
-import dev.tesserakt.sparql.ast.Segment
-import dev.tesserakt.sparql.ast.SelectQuerySegment
-import dev.tesserakt.sparql.ast.Union
+import dev.tesserakt.sparql.types.GraphPatternSegment
+import dev.tesserakt.sparql.types.SelectQuerySegment
+import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.stream.*
@@ -93,7 +92,7 @@ class UnionState(union: Union): MutableJoinState {
 
         /* helpers */
 
-        private fun dev.tesserakt.sparql.ast.Segment.createIncrementalSegmentState() = when (this) {
+        private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState() = when (this) {
             is SelectQuerySegment -> Segment.SubqueryState(this)
             is GraphPatternSegment -> Segment.GraphPatternSegmentState(this)
         }

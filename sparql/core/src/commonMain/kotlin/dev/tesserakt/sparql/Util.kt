@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql
 
-import dev.tesserakt.sparql.ast.TriplePattern
+import dev.tesserakt.sparql.types.TriplePattern
 
 
 private var generatedBindingIndex = 0

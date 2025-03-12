@@ -1,10 +1,10 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.ast.CompiledSelectQuery
+import dev.tesserakt.sparql.types.SelectQueryStructure
 import dev.tesserakt.util.associateWithNotNull
 
-class SelectQueryState(ast: CompiledSelectQuery): QueryState<Bindings, CompiledSelectQuery>(ast) {
+class SelectQueryState(ast: SelectQueryStructure): QueryState<Bindings, SelectQueryStructure>(ast) {
 
     val variables = ast.bindings
 

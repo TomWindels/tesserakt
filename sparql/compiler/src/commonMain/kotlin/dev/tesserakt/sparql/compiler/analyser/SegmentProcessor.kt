@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.ast.GraphPatternSegment
-import dev.tesserakt.sparql.ast.Segment
-import dev.tesserakt.sparql.ast.SelectQuerySegment
+import dev.tesserakt.sparql.types.GraphPatternSegment
+import dev.tesserakt.sparql.types.Segment
+import dev.tesserakt.sparql.types.SelectQuerySegment
 import dev.tesserakt.sparql.compiler.lexer.Token
 
 /**

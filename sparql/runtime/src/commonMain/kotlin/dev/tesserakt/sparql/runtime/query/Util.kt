@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.ast.TriplePattern
-import dev.tesserakt.sparql.ast.bindingName
+import dev.tesserakt.sparql.types.TriplePattern
+import dev.tesserakt.sparql.types.bindingName
 import dev.tesserakt.sparql.newAnonymousBinding
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.plus

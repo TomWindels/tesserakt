@@ -1,10 +1,10 @@
-package dev.tesserakt.sparql.ast
+package dev.tesserakt.sparql.types
 
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.ast.Expression.Compiled
+import dev.tesserakt.sparql.types.Expression.Compiled
 import kotlin.jvm.JvmInline
 
 sealed interface Expression : QueryAtom {

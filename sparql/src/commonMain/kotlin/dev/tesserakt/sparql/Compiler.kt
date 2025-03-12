@@ -1,36 +1,24 @@
 package dev.tesserakt.sparql
 
-import dev.tesserakt.sparql.ast.CompiledQuery
-import dev.tesserakt.sparql.ast.CompiledSelectQuery
 import dev.tesserakt.sparql.compiler.analyser.QueryProcessor
 import dev.tesserakt.sparql.compiler.lexer.StringLexer
-import dev.tesserakt.sparql.runtime.query.QueryState
-import dev.tesserakt.sparql.runtime.query.SelectQueryState
+import dev.tesserakt.sparql.types.QueryStructure
+import kotlin.jvm.JvmInline
 
-// `open` as it allows for custom queries with hooks for custom implementations between
-//  the input -> ast -> executable (continuous / incremental) query pipeline
-abstract class Compiler {
+open class Compiler {
 
-    abstract fun compile(raw: String): QueryState<*, *>
+    @JvmInline
+    value class CompiledQuery(
+        /**
+         * The underlying query structure. Accessing this type requires the `:sparql:core` dependency.
+         */
+        val structure: QueryStructure
+    )
 
-    open fun String.toAST() =
-        QueryProcessor().process(StringLexer(this))
-
-    open fun CompiledQuery.createState(): QueryState<*, *> = when (this) {
-        is CompiledSelectQuery -> {
-            SelectQueryState(this)
-        }
+    open fun compile(query: String): CompiledQuery {
+        return CompiledQuery(QueryProcessor().process(StringLexer(query)))
     }
 
-    object Default: Compiler() {
-
-        override fun compile(raw: String): QueryState<*, *> {
-            // compiling the input query
-            val ast = raw.toAST()
-            // using the compiled structure to create a usable state
-            return ast.createState()
-        }
-
-    }
+    fun String.toSparqlSelectQuery() = Query.Select(query = this, compiler = this@Compiler)
 
 }

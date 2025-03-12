@@ -1,6 +1,6 @@
 package dev.tesserakt.util.console
 
-import dev.tesserakt.sparql.ast.QueryAtom
+import dev.tesserakt.sparql.types.QueryAtom
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.debug.QueryWriter
 

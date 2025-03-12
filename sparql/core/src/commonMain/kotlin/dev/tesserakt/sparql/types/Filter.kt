@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql.ast
+package dev.tesserakt.sparql.types
 
 import kotlin.jvm.JvmInline
 

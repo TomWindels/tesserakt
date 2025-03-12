@@ -1,7 +1,7 @@
-package dev.tesserakt.sparql.ast
+package dev.tesserakt.sparql.types
 
 
-data class CompiledSelectQuery(
+data class SelectQueryStructure(
     // the output can later be further implemented to support aggregates in its implementation
     val output: List<Output>?,
     override val body: GraphPattern,
@@ -11,7 +11,7 @@ data class CompiledSelectQuery(
     val groupingFilter: Expression?,
     /** ORDER BY <expr> **/
     val ordering: Expression?
-): CompiledQuery() {
+): QueryStructure() {
 
     val bindings: Set<String> = output
         ?.mapTo(mutableSetOf()) { it.name } ?: body.extractAllBindings().mapNotNullTo(mutableSetOf()) { (it as? TriplePattern.NamedBinding)?.name }

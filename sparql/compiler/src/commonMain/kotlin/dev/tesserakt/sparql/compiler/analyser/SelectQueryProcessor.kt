@@ -1,14 +1,14 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.ast.CompiledSelectQuery
-import dev.tesserakt.sparql.ast.Expression
-import dev.tesserakt.sparql.ast.GraphPattern
+import dev.tesserakt.sparql.types.SelectQueryStructure
+import dev.tesserakt.sparql.types.Expression
+import dev.tesserakt.sparql.types.GraphPattern
 import dev.tesserakt.sparql.compiler.lexer.Token
 
-class SelectQueryProcessor: Analyser<CompiledSelectQuery>() {
+class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
 
     private inner class Builder(
-        var output: MutableList<CompiledSelectQuery.Output>? = mutableListOf(),
+        var output: MutableList<SelectQueryStructure.Output>? = mutableListOf(),
         var body: GraphPattern? = null,
         /** GROUP BY <expr> **/
         var grouping: Expression? = null,
@@ -17,7 +17,7 @@ class SelectQueryProcessor: Analyser<CompiledSelectQuery>() {
         /** ORDER BY <expr> **/
         var ordering: Expression? = null
     ) {
-        fun build() = CompiledSelectQuery(
+        fun build() = SelectQueryStructure(
             output = output,
             body = body ?: bail("Query body is missing"),
             grouping = grouping,
@@ -28,7 +28,7 @@ class SelectQueryProcessor: Analyser<CompiledSelectQuery>() {
 
     private lateinit var builder: Builder
 
-    override fun _process(): CompiledSelectQuery {
+    override fun _process(): SelectQueryStructure {
         builder = Builder()
         processSelectQueryStart()
         return builder.build()
@@ -40,7 +40,7 @@ class SelectQueryProcessor: Analyser<CompiledSelectQuery>() {
         // now expecting either binding name, star or the WHERE clause
         when (token) {
             is Token.Binding -> {
-                builder.output!!.add(CompiledSelectQuery.BindingOutput((token as Token.Binding).name))
+                builder.output!!.add(SelectQueryStructure.BindingOutput((token as Token.Binding).name))
                 // consuming it
                 consume()
                 // continuing only accepting bindings, aggregations/operations or the start of the query
@@ -48,7 +48,7 @@ class SelectQueryProcessor: Analyser<CompiledSelectQuery>() {
             }
             Token.Symbol.RoundBracketStart -> {
                 val aggregation = use(AggregationProcessor())
-                builder.output!!.add(CompiledSelectQuery.ExpressionOutput(name = aggregation.target.name, expression = aggregation.expression))
+                builder.output!!.add(SelectQueryStructure.ExpressionOutput(name = aggregation.target.name, expression = aggregation.expression))
                 // continuing only accepting bindings, aggregations/operations or the start of the query
                 processSelectQueryBindingOrBody()
             }
@@ -78,7 +78,7 @@ class SelectQueryProcessor: Analyser<CompiledSelectQuery>() {
         // now expecting either binding name, star or the WHERE clause
         when (token) {
             is Token.Binding -> {
-                builder.output!!.add(CompiledSelectQuery.BindingOutput((token as Token.Binding).name))
+                builder.output!!.add(SelectQueryStructure.BindingOutput((token as Token.Binding).name))
                 // consuming it
                 consume()
                 // still processing the start
@@ -86,7 +86,7 @@ class SelectQueryProcessor: Analyser<CompiledSelectQuery>() {
             }
             Token.Symbol.RoundBracketStart -> {
                 val aggregation = use(AggregationProcessor())
-                builder.output!!.add(CompiledSelectQuery.ExpressionOutput(name = aggregation.target.name, expression = aggregation.expression))
+                builder.output!!.add(SelectQueryStructure.ExpressionOutput(name = aggregation.target.name, expression = aggregation.expression))
                 // still processing the start
                 processSelectQueryBindingOrBody()
             }

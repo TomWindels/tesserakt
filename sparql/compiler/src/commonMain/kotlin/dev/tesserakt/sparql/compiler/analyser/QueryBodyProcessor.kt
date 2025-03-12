@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.ast.*
+import dev.tesserakt.sparql.types.*
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
 

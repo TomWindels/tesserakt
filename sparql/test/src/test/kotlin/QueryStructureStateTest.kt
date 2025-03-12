@@ -4,12 +4,12 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.serialization.Turtle.parseTurtleString
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.query
 import dev.tesserakt.util.console.BindingsTable.Companion.tabulate
 import kotlin.test.Test
 
-class CompiledQueryStateTest {
+class QueryStructureStateTest {
 
     private fun buildAddressesStore() = buildStore {
         "person1".asNamedTerm() has "domicile".asNamedTerm() being blank {
@@ -38,17 +38,17 @@ class CompiledQueryStateTest {
     fun simple() = with (VerboseCompiler) {
         val store = createTestStore()
 
-        val simple = "SELECT * WHERE { ?s ?p ?o }"
-        val spo = store.query<Bindings>(simple)
+        val simple = "SELECT * WHERE { ?s ?p ?o }".toSparqlSelectQuery()
+        val spo = store.query(simple)
         println("Found ${spo.size} bindings for the spo-query. Expected ${store.size}")
 
-        val chain = "SELECT * WHERE { ?person <${FOAF.based_near}>/<number> ?number ; <${FOAF.based_near}>/<street> ?street }"
-        store.query<Bindings>(chain) {
+        val chain = "SELECT * WHERE { ?person <${FOAF.based_near}>/<number> ?number ; <${FOAF.based_near}>/<street> ?street }".toSparqlSelectQuery()
+        store.query(chain) {
             println("Found `chain` binding\n$it")
         }
 
-        val multiple = "SELECT ?friend WHERE { ?person <${FOAF.knows}> ?friend ; a <${FOAF.Person}> }"
-        store.query<Bindings>(multiple) {
+        val multiple = "SELECT ?friend WHERE { ?person <${FOAF.knows}> ?friend ; a <${FOAF.Person}> }".toSparqlSelectQuery()
+        store.query(multiple) {
             println("Found `multiple` binding\n$it")
         }
     }
@@ -57,20 +57,20 @@ class CompiledQueryStateTest {
     fun medium() = with (VerboseCompiler) {
         val store = createTestStore()
 
-        val random = "SELECT ?data { ?s a|<age>|<friend> ?data }"
-        println("Found `random` bindings:\n${store.query<Bindings>(random).tabulate()}")
+        val random = "SELECT ?data { ?s a|<age>|<friend> ?data }".toSparqlSelectQuery()
+        println("Found `random` bindings:\n${store.query(random).tabulate()}")
 
-        val address = "SELECT ?street { ?s (a|<address>)/<street> ?street }"
-        store.query<Bindings>(address) {
+        val address = Query.Select("SELECT ?street { ?s (a|<address>)/<street> ?street }")
+        store.query(address) {
             println("Found `address` binding:\n$it")
         }
 
-        val any = "SELECT ?s ?o { ?s (<>|!<>) ?o }"
-        val result = store.query<Bindings>(any)
+        val any = "SELECT ?s ?o { ?s (<>|!<>) ?o }".toSparqlSelectQuery()
+        val result = store.query(any)
         println("Found ${result.size} elements for the `any` query, expected ${store.size}")
 
-        val info = "SELECT ?s ?o { ?s !(<friend>|<notes>|<address>) ?o }"
-        println("Found `info` data:\n${store.query<Bindings>(info).tabulate()}")
+        val info = "SELECT ?s ?o { ?s !(<friend>|<notes>|<address>) ?o }".toSparqlSelectQuery()
+        println("Found `info` data:\n${store.query(info).tabulate()}")
     }
 
     @Test
@@ -103,27 +103,27 @@ class CompiledQueryStateTest {
                 ?node rdf:rest* ?blank .
                 ?blank rdf:rest rdf:nil .
             }
-        """
+        """.toSparqlSelectQuery()
         // expected result: blank1, blank2, blank3, blank...
-        println("Found blank nodes:\n${store.query<Bindings>(nodes).tabulate()}")
+        println("Found blank nodes:\n${store.query(nodes).tabulate()}")
 
         val list = """
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             SELECT ?person ?note {
                 ?person a <person> ; <notes>/rdf:rest*/rdf:first ?note
             }
-        """
+        """.toSparqlSelectQuery()
         // expected: [person, first-note], [person, second-note] ...
-        println("Found list entries:\n${store.query<Bindings>(list).tabulate()}")
+        println("Found list entries:\n${store.query(list).tabulate()}")
 
         val any = """
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             SELECT * {
                 ?s (<>|!<>)* ?o
             }
-        """
+        """.toSparqlSelectQuery()
         // expecting a lot of results
-        println("Found \"any\" entries:\n${store.query<Bindings>(any).tabulate()}")
+        println("Found \"any\" entries:\n${store.query(any).tabulate()}")
     }
 
     @Test
@@ -141,8 +141,8 @@ class CompiledQueryStateTest {
                     ]
                 ] .
             }
-        """
-        println("Found address:\n${store.query<Bindings>(blank).tabulate()}")
+        """.toSparqlSelectQuery()
+        println("Found address:\n${store.query(blank).tabulate()}")
     }
 
     @Test
@@ -157,8 +157,8 @@ class CompiledQueryStateTest {
                     ?place <city>/<inhabitants> ?count .
                 }
             }
-        """
-        println("Found optional:\n${store.query<Bindings>(optional).tabulate()}")
+        """.toSparqlSelectQuery()
+        println("Found optional:\n${store.query(optional).tabulate()}")
     }
 
     @Test
@@ -178,8 +178,8 @@ class CompiledQueryStateTest {
                     ?place <city> <unknown> .
                 }
             }
-        """
-        println("Found union:\n${store.query<Bindings>(union).tabulate()}")
+        """.toSparqlSelectQuery()
+        println("Found union:\n${store.query(union).tabulate()}")
     }
 
     @Test
@@ -190,8 +190,8 @@ class CompiledQueryStateTest {
             SELECT * {
                 ?a (<domicile>/<address>)|(<city>/<inhabitants>) ?b .
             }
-        """
-        println("Found alt path:\n${store.query<Bindings>(alt).tabulate()}")
+        """.toSparqlSelectQuery()
+        println("Found alt path:\n${store.query(alt).tabulate()}")
     }
 
     @Test
@@ -206,8 +206,8 @@ class CompiledQueryStateTest {
                     SELECT * { ?s ?p ?o }
                 }
             }
-        """
-        println("Found alt path:\n${store.query<Bindings>(union).tabulate()}")
+        """.toSparqlSelectQuery()
+        println("Found alt path:\n${store.query(union).tabulate()}")
     }
 
     @Test
@@ -236,8 +236,8 @@ class CompiledQueryStateTest {
             }
             GROUP BY ?org
             HAVING (SUM(?lprice) > 10)
-        """
-        println("Results:\n${store.query<Bindings>(query).tabulate()}")
+        """.toSparqlSelectQuery()
+        println("Results:\n${store.query(query).tabulate()}")
     }
 
 }

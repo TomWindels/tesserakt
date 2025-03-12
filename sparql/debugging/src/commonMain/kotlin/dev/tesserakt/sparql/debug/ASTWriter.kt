@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.debug
 
-import dev.tesserakt.sparql.ast.*
+import dev.tesserakt.sparql.types.*
 
 class ASTWriter(private val indentStyle: String = "  ") {
 
@@ -232,7 +232,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             process(symbol.element)
         }
 
-        is CompiledSelectQuery -> {
+        is SelectQueryStructure -> {
             append("select query")
             indented {
                 writeLine("outputs")
@@ -240,10 +240,10 @@ class ASTWriter(private val indentStyle: String = "  ") {
                     symbol.output?.forEach {
                         writeLine("name: ${it.name}")
                         when (it) {
-                            is CompiledSelectQuery.BindingOutput -> {
+                            is SelectQueryStructure.BindingOutput -> {
                                 writeLine("value: directly from query")
                             }
-                            is CompiledSelectQuery.ExpressionOutput -> {
+                            is SelectQueryStructure.ExpressionOutput -> {
                                 writeLine("value: ")
                                 process(it.expression)
                             }

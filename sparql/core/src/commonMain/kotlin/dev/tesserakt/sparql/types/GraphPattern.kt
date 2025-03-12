@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql.ast
+package dev.tesserakt.sparql.types
 
 data class GraphPattern(
     /** The full pattern block that is required **/

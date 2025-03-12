@@ -1,8 +1,9 @@
 
-import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.query
+import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.OngoingQueryEvaluation
+import dev.tesserakt.sparql.query
+import dev.tesserakt.sparql.runtime.createState
 import dev.tesserakt.sparql.runtime.query.SelectQueryState
 import dev.tesserakt.util.jsExpect
 import dev.tesserakt.util.mapToArray
@@ -31,7 +32,7 @@ object SPARQLJs {
 
     }
 
-    fun Select(input: String? = undefined) = SelectQueryJs(Compiler.Default.compile(input.jsExpect()) as SelectQueryState)
+    fun Select(input: String? = undefined) = SelectQueryJs(Compiler().compile(input.jsExpect()).structure.createState() as SelectQueryState)
 
     fun query(
         query: SelectQueryJs? = undefined,

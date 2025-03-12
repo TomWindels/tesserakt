@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.debug
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.ast.*
+import dev.tesserakt.sparql.types.*
 import dev.tesserakt.sparql.compiler.lexer.Token
 
 abstract class QueryWriter<RT> {
@@ -240,13 +240,13 @@ abstract class QueryWriter<RT> {
                 }
             }
 
-            is CompiledSelectQuery -> {
+            is SelectQueryStructure -> {
                 add(Token.Keyword.Select)
                 element.output?.forEach { output ->
                     when (output) {
-                        is CompiledSelectQuery.BindingOutput ->
+                        is SelectQueryStructure.BindingOutput ->
                             add(Token.Binding(output.name))
-                        is CompiledSelectQuery.ExpressionOutput -> {
+                        is SelectQueryStructure.ExpressionOutput -> {
                             add(Token.Symbol.RoundBracketStart)
                             process(output.expression)
                             add(Token.Keyword.As)
