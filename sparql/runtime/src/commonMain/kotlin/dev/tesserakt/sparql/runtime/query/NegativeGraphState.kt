@@ -7,23 +7,26 @@ import dev.tesserakt.sparql.util.Counter
 import dev.tesserakt.util.compatibleWith
 import dev.tesserakt.util.replace
 
-interface NegativeGraphState {
+sealed interface NegativeGraphState: MutableFilterState {
 
-    fun peek(delta: DataDelta): OptimisedStream<MappingDelta>
+    /**
+     * Peeks the total impact this filter has when applying the [delta] in this state
+     */
+    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta>
 
     /**
      * Filters the [input] stream, using its processed internal state after applying the [delta]
      */
-    fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta>
+    override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta>
 
     /**
      * Filters the [input] stream, using only its processed internal state
      */
-    fun filter(input: Stream<MappingDelta>): Stream<MappingDelta>
+    override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta>
 
-    fun process(delta: DataDelta)
+    override fun process(delta: DataDelta)
 
-    fun debugInformation(): String
+    override fun debugInformation(): String
 
     /**
      * The typical exclude filter, where its internal state affects parts of the results from its parent; those

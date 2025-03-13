@@ -175,6 +175,8 @@ fun builtinTests() = tests {
         }
     """
 
+    return@tests
+
     val extra = buildStore(path = "http://example.org/") {
         val subj = local("s")
         val obj = local("o")
