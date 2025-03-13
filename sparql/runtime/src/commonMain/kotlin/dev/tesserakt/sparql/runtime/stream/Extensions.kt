@@ -127,6 +127,10 @@ inline fun <I : Any, O : Any> Stream<I>.folded(start: Stream<O>, transform: (acc
     return result
 }
 
+inline fun <I : Any> Stream<I>.zippedWithIndex(): Stream<Pair<Int, I>> {
+    return StreamWithIndex(parent = this)
+}
+
 inline fun <I : Any, O : Any> Iterable<Stream<I>>.transform(transform: (Stream<I>) -> Stream<O>): Stream<O> {
     val iter = iterator()
     if (!iter.hasNext()) {

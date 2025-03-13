@@ -114,7 +114,7 @@ interface NegativeGraphState {
         }
 
         override fun debugInformation(): String = buildString {
-            appendLine("* exclude graph filter (narrow)")
+            appendLine("* Exclude graph filter (narrow)")
             append(state.debugInformation())
             append("blocking ${filtered.current.size} binding variants: ${filtered.current.joinToString()}")
         }
@@ -186,7 +186,7 @@ interface NegativeGraphState {
         }
 
         override fun debugInformation(): String = buildString {
-            appendLine("* exclude graph filter (wide)")
+            appendLine("* Exclude graph filter (wide)")
             append(state.debugInformation())
             append("blocking all binding variants: ${count > 0}")
         }

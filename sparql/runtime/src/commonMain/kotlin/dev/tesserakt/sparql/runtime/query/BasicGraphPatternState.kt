@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.types.GraphPattern
+import dev.tesserakt.sparql.util.Bitmask
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.getAllNamedBindings
 
@@ -36,8 +37,17 @@ class BasicGraphPatternState(ast: GraphPattern) {
     fun peek(delta: DataDelta): Stream<MappingDelta> {
         // getting the max amount of mappings we can yield based on the inner group
         val filtered = excluded.folded(group.peek(delta)) { results, filter -> filter.filter(results, delta = delta) }
-        // FIXME individual results generated here still have to be filtered by the other filters
-        val other = excluded.merge { it.peek(delta).transform(group.cardinality) { group.join(it) } }
+        val other = excluded
+            .zippedWithIndex()
+            .merge { (i, exclude) ->
+                val base = exclude.peek(delta).transform(group.cardinality) { group.join(it) }
+                // all `excluded` minus element `i` still have to filter these result changes
+                Bitmask.onesAt(i, length = excluded.size)
+                    .inv()
+                    .toStream(excluded.size - 1)
+                    .mapped { excluded[it] }
+                    .folded(base) { results, filter -> filter.filter(results, delta = delta) }
+            }
         return filtered.chain(other)
     }
 
@@ -52,7 +62,10 @@ class BasicGraphPatternState(ast: GraphPattern) {
 
     fun debugInformation() = buildString {
         append(group.debugInformation())
-        // TODO: filter state
+        if (excluded.isNotEmpty()) {
+            appendLine("* Filters")
+            excluded.forEach { append(it.debugInformation()) }
+        }
     }
 
 }
