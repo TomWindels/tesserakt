@@ -1,9 +1,9 @@
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.types.GraphPatternSegment
 import dev.tesserakt.sparql.types.Segment
 import dev.tesserakt.sparql.types.SelectQuerySegment
-import dev.tesserakt.sparql.compiler.lexer.Token
 
 /**
  * Processes a segment, consuming statements like `{ SELECT ... }` and
@@ -26,6 +26,7 @@ class SegmentProcessor: Analyser<Segment>() {
             is Token.Binding,
             is Token.NumericLiteral,
             Token.Keyword.Optional,
+            Token.Keyword.Filter,
             Token.Symbol.CurlyBracketStart -> processSegmentAsQueryBody()
 
             // representing a subquery
@@ -34,6 +35,7 @@ class SegmentProcessor: Analyser<Segment>() {
             else -> expectedPatternElementOrBindingOrToken(
                 Token.Keyword.Select,
                 Token.Keyword.Optional,
+                Token.Keyword.Filter,
                 Token.Symbol.CurlyBracketStart
             )
         }

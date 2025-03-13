@@ -21,7 +21,7 @@ sealed interface MappingDelta: Delta {
 @JvmInline
 value class DataAddition(override val value: Quad): AdditionDelta,
     DataDelta {
-    override fun toString() = "Adding of quad $value"
+    override fun toString() = "[+] $value"
 }
 
 data class MappingAddition(
@@ -29,13 +29,13 @@ data class MappingAddition(
     override val origin: DataDelta?
 ): AdditionDelta,
     MappingDelta {
-    override fun toString() = if (origin != null) "Additional mapping $value, caused by $origin" else "Additional mapping $value"
+    override fun toString() = if (origin != null) "[+] $value ($origin)" else "[+] $value"
 }
 
 @JvmInline
 value class DataDeletion(override val value: Quad): DeletionDelta,
     DataDelta {
-    override fun toString() = "Removal of quad $value"
+    override fun toString() = "[-] $value"
 }
 
 data class MappingDeletion(
@@ -43,5 +43,5 @@ data class MappingDeletion(
     override val origin: DataDelta?
 ): DeletionDelta,
     MappingDelta {
-    override fun toString() = if (origin != null) "Removal of mapping $value, caused by $origin" else "Removal of mapping $value"
+    override fun toString() = if (origin != null) "[-] $value ($origin)" else "[-] $value"
 }

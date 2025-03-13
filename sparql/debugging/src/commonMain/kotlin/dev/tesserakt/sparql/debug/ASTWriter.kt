@@ -281,11 +281,8 @@ class ASTWriter(private val indentStyle: String = "  ") {
                     if (symbol.bindingStatements.isNotEmpty()) {
                         writeLine("binding statements")
                         symbol.bindingStatements.forEachIndexed { index, statement ->
-                            writeLine("target: ${statement.target}")
-                            writeLine("expression: ")
-                            indented {
-                                process(statement.expression)
-                            }
+                            writeLine(index.toString())
+                            process(statement)
                         }
                     }
                     if (symbol.unions.isNotEmpty()) {
@@ -316,6 +313,17 @@ class ASTWriter(private val indentStyle: String = "  ") {
             process(symbol.pattern)
         }
 
+        is BindingStatement -> {
+            append("binding:")
+            indented {
+                append("name: ${symbol.target}")
+                append("origin:")
+                indented {
+                    process(symbol.expression)
+                }
+            }
+        }
+
         is Union -> {
             append("union")
             symbol.segments.forEachIndexed { index, segment ->
@@ -335,6 +343,20 @@ class ASTWriter(private val indentStyle: String = "  ") {
                 writeLine("input: ${symbol.input}")
                 writeLine("regex: ${symbol.regex}")
                 writeLine("mode: ${symbol.mode}")
+            }
+        }
+
+        is Filter.Exists -> {
+            writeLine("exists")
+            indented {
+                process(symbol.pattern)
+            }
+        }
+
+        is Filter.NotExists -> {
+            writeLine("not exists")
+            indented {
+                process(symbol.pattern)
             }
         }
 

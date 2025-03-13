@@ -58,6 +58,8 @@ sealed interface Token {
         Optional("OPTIONAL"),
         Bindings("BINDINGS"),
         Values("VALUES"),
+        Exists("EXISTS"),
+        Not("NOT"),
         /* aggregates */
         AggCount("COUNT"),
         AggSum("SUM"),

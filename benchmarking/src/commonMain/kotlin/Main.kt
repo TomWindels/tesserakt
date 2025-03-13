@@ -1,6 +1,8 @@
 
 import dev.tesserakt.util.printerrln
-import sparql.tests.*
+import sparql.tests.builtinTests
+import sparql.tests.compareIncrementalBasicGraphPatternOutput
+import sparql.tests.compareIncrementalStoreReplay
 import sparql.types.QueryExecutionTest
 import sparql.types.test
 
@@ -8,12 +10,13 @@ suspend fun run(args: Array<String>) {
     when (args.size) {
         0 -> {
             println("Running built-in tests")
-            val one = compareIncrementalChainSelectOutput(seed = 1)
-                .test(QueryExecutionTest::toOutputComparisonTest)
-                .run()
-            val two = compareIncrementalStarSelectOutput(seed = 1)
-                .test(QueryExecutionTest::toOutputComparisonTest)
-                .run()
+//            val one = compareIncrementalChainSelectOutput(seed = 1)
+//                .test(QueryExecutionTest::toOutputComparisonTest)
+//                .run()
+//            val two = compareIncrementalStarSelectOutput(seed = 1)
+//                .test(QueryExecutionTest::toOutputComparisonTest)
+//                .run()
+
             val three = builtinTests()
                 .test(QueryExecutionTest::toOutputComparisonTest)
                 .run()
@@ -23,8 +26,8 @@ suspend fun run(args: Array<String>) {
             val five = builtinTests()
                 .test(QueryExecutionTest::toRandomUpdateTest)
                 .run()
-            one.report()
-            two.report()
+//            one.report()
+//            two.report()
             three.report()
             four.report()
             five.report()

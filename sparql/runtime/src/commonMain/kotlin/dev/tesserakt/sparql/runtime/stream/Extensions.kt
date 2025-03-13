@@ -103,6 +103,34 @@ fun <E : Any> Iterable<Stream<E>>.merge(): Stream<E> {
     return result
 }
 
+inline fun <I : Any, O : Any> Stream<I>.merge(transform: (I) -> Stream<O>): Stream<O> {
+    val iter = iterator()
+    if (!iter.hasNext()) {
+        return emptyStream()
+    }
+    var result = transform(iter.next())
+    while (iter.hasNext()) {
+        result = result.chain(transform(iter.next()))
+    }
+    return result
+}
+
+inline fun <I : Any, O : Any> Stream<I>.folded(start: Stream<O>, transform: (acc: Stream<O>, element: I) -> Stream<O>): Stream<O> {
+    val iter = iterator()
+    if (!iter.hasNext()) {
+        return start
+    }
+    var result = transform(start, iter.next())
+    while (iter.hasNext()) {
+        result = transform(result, iter.next())
+    }
+    return result
+}
+
+inline fun <I : Any> Stream<I>.zippedWithIndex(): Stream<Pair<Int, I>> {
+    return StreamWithIndex(parent = this)
+}
+
 inline fun <I : Any, O : Any> Iterable<Stream<I>>.transform(transform: (Stream<I>) -> Stream<O>): Stream<O> {
     val iter = iterator()
     if (!iter.hasNext()) {
@@ -202,9 +230,20 @@ inline fun <I : Any, O : Any> OptimisedStream<I>.mapped(noinline transform: (I) 
 }
 
 inline fun <I : Any, O : Any> Stream<I>.mappedNonNull(noinline transform: (I) -> O?): Stream<O> {
-    return if (hasZeroCardinality()) emptyStream() else dev.tesserakt.sparql.runtime.stream.StreamMappingNullable(
+    return if (hasZeroCardinality()) emptyStream() else StreamMappingNullable(
         source = this,
         transform = transform
+    )
+}
+
+inline fun <reified O : Any> Stream<*>.filteredIsInstance(): Stream<O> {
+    return mappedNonNull { it as? O }
+}
+
+inline fun <E : Any> Stream<E>.filtered(noinline predicate: (E) -> Boolean): Stream<E> {
+    return if (hasZeroCardinality()) emptyStream() else StreamFilter(
+        source = this,
+        predicate = predicate
     )
 }
 

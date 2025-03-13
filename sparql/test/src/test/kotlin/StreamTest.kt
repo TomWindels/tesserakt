@@ -27,9 +27,13 @@ class StreamTest {
     @Test
     fun filtering() {
         val input = (0 until 10) + 13
-        val filtered = input.toStream().mappedNonNull { it.takeIf { it % 2 == 0 } }
-        assertTrue { filtered.all { it % 2 == 0 } }
-        assertEquals(filtered.cardinality.toInt(), input.size)
+        val filtered1 = input.toStream().mappedNonNull { it.takeIf { it % 2 == 1 } }
+        assertTrue { filtered1.all { it % 2 == 1 } }
+        assertEquals(filtered1.cardinality.toInt(), input.size)
+        val filtered2 = input.toStream().filtered { it % 2 == 1 }
+        assertTrue { filtered2.all { it % 2 == 1 } }
+        assertEquals(filtered2.cardinality.toInt(), input.size)
+        assertContentEquals(filtered1, filtered2)
     }
 
     @Test

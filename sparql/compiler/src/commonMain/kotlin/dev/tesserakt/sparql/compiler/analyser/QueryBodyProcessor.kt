@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.types.*
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
+import dev.tesserakt.sparql.types.*
 
 class QueryBodyProcessor: Analyser<GraphPattern>() {
 
@@ -76,7 +76,7 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
                     consume()
                     expectToken(Token.Symbol.RoundBracketEnd)
                     consume()
-                    builder.bindingStatements.add(BindingStatement(expression = expression, target = target))
+                    builder.bindingStatements.add(BindingStatement(expression = expression, target = Binding(target)))
                 }
                 else -> expectedPatternElementOrBindingOrToken(
                     Token.Keyword.Filter,
