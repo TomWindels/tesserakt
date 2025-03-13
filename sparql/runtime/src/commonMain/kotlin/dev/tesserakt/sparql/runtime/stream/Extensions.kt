@@ -103,6 +103,30 @@ fun <E : Any> Iterable<Stream<E>>.merge(): Stream<E> {
     return result
 }
 
+inline fun <I : Any, O : Any> Stream<I>.merge(transform: (I) -> Stream<O>): Stream<O> {
+    val iter = iterator()
+    if (!iter.hasNext()) {
+        return emptyStream()
+    }
+    var result = transform(iter.next())
+    while (iter.hasNext()) {
+        result = result.chain(transform(iter.next()))
+    }
+    return result
+}
+
+inline fun <I : Any, O : Any> Stream<I>.folded(start: Stream<O>, transform: (acc: Stream<O>, element: I) -> Stream<O>): Stream<O> {
+    val iter = iterator()
+    if (!iter.hasNext()) {
+        return start
+    }
+    var result = transform(start, iter.next())
+    while (iter.hasNext()) {
+        result = transform(result, iter.next())
+    }
+    return result
+}
+
 inline fun <I : Any, O : Any> Iterable<Stream<I>>.transform(transform: (Stream<I>) -> Stream<O>): Stream<O> {
     val iter = iterator()
     if (!iter.hasNext()) {
