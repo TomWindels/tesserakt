@@ -7,7 +7,7 @@ import dev.tesserakt.sparql.util.Counter
 import dev.tesserakt.util.compatibleWith
 import dev.tesserakt.util.replace
 
-sealed interface NegativeGraphState: MutableFilterState {
+sealed interface InclusionFilterState: MutableFilterState {
 
     /**
      * Peeks the total impact this filter has when applying the [delta] in this state
@@ -36,7 +36,7 @@ sealed interface NegativeGraphState: MutableFilterState {
     class Narrow(
         private val commonBindingNames: Set<String>,
         private val state: BasicGraphPatternState,
-    ) : NegativeGraphState {
+    ) : InclusionFilterState {
 
         init {
             require(commonBindingNames.isNotEmpty()) { "Invalid filter use detected!" }
@@ -49,8 +49,8 @@ sealed interface NegativeGraphState: MutableFilterState {
             val changes = state.peek(delta).mapped { it.map { it.retain(commonBindingNames) } }
             // these changes, combined with the `filtered` state, will result in a set of bindings that can now be joined
             //  with to find all resulting changes:
-            // * change additions (not in filtered now, but in `changes`) => these have to be removed outwards
-            // * change deletions (in filtered now, but removed in `changes`) => these have to be added outwards
+            // * change deletions (in filtered now, but removed in `changes`) => these have to be removed outwards
+            // * change additions (not in filtered now, but in `changes`) => these have to be added outwards
             val diff = mutableMapOf<Mapping, Int>()
             changes.forEach { mappingDelta ->
                 when (mappingDelta) {
@@ -63,13 +63,13 @@ sealed interface NegativeGraphState: MutableFilterState {
                 val current = filtered[mapping]
                 when {
                     count < 0 && current <= -count -> {
-                        // it's no longer being filtered out, meaning it's addition becomes the result of the peek
-                        results.add(MappingAddition(value = mapping, origin = null))
+                        // it's now being filtered out, meaning it's removal becomes the result of the peek
+                        results.add(MappingDeletion(value = mapping, origin = null))
                     }
 
                     count > 0 && current == 0 -> {
-                        // it's now being filtered out, meaning it's removal becomes the result of the peek
-                        results.add(MappingDeletion(value = mapping, origin = null))
+                        // it's no longer being filtered out, meaning it's addition becomes the result of the peek
+                        results.add(MappingAddition(value = mapping, origin = null))
                     }
                 }
             }
@@ -93,14 +93,14 @@ sealed interface NegativeGraphState: MutableFilterState {
                     }
                 }
             // using that to filter the incoming result
-            return input.filtered { mapping -> total.current.none { it.compatibleWith(mapping.value) } }
+            return input.filtered { mapping -> total.current.any { it.compatibleWith(mapping.value) } }
         }
 
         /**
          * Filters the [input] stream, using only its processed internal state
          */
         override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
-            return input.filtered { mapping -> filtered.current.none { it.compatibleWith(mapping.value) } }
+            return input.filtered { mapping -> filtered.current.any { it.compatibleWith(mapping.value) } }
         }
 
         override fun process(delta: DataDelta) {
@@ -117,9 +117,9 @@ sealed interface NegativeGraphState: MutableFilterState {
         }
 
         override fun debugInformation(): String = buildString {
-            appendLine("* Exclude graph filter (narrow)")
+            appendLine("* Include graph filter (narrow)")
             append(state.debugInformation())
-            append("blocking ${filtered.current.size} binding variants: ${filtered.current.joinToString()}")
+            append("allowing ${filtered.current.size} binding variants: ${filtered.current.joinToString()}")
         }
 
     }
@@ -128,7 +128,7 @@ sealed interface NegativeGraphState: MutableFilterState {
      * Special variant of the exclude filter, where the # of common bindings is zero, meaning that a satisfied internal
      *  state means no bindings are coming through
      */
-    class Broad(private val state: BasicGraphPatternState) : NegativeGraphState {
+    class Broad(private val state: BasicGraphPatternState) : InclusionFilterState {
 
         private var count = 0
 
@@ -139,15 +139,15 @@ sealed interface NegativeGraphState: MutableFilterState {
                     is MappingDeletion -> acc - 1
                 }
             }
-            // if the count becomes > 0 through this delta, all mappings should be removed;
+            // if the count becomes > 0 through this delta, all mappings should be added;
             if (count == 0 && change != 0) {
                 check(change > 0) { "Invalid internal state!" }
-                return streamOf(MappingDeletion(emptyMapping(), null))
+                return streamOf(MappingAddition(emptyMapping(), null))
             }
-            // similarly, if the count becomes 0 through this delta, all mappings should be restored
+            // similarly, if the count becomes 0 through this delta, all mappings should be removed
             if (count > 0 && count + change <= 0) {
                 check(count + change == 0) { "Invalid internal state!" }
-                return streamOf(MappingAddition(emptyMapping(), null))
+                return streamOf(MappingDeletion(emptyMapping(), null))
             }
             // nothing changed, so the peek is empty
             return emptyStream()
@@ -155,10 +155,10 @@ sealed interface NegativeGraphState: MutableFilterState {
 
         override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
             return if (count > 0) {
-                emptyStream()
-            } else {
                 // everything is allowed
                 input
+            } else {
+                emptyStream()
             }
         }
 
@@ -170,10 +170,10 @@ sealed interface NegativeGraphState: MutableFilterState {
                 }
             }
             return if (count + change > 0) {
-                emptyStream()
-            } else {
                 // everything is allowed
                 input
+            } else {
+                emptyStream()
             }
         }
 
@@ -189,7 +189,7 @@ sealed interface NegativeGraphState: MutableFilterState {
         }
 
         override fun debugInformation(): String = buildString {
-            appendLine("* Exclude graph filter (wide)")
+            appendLine("* Include graph filter (wide)")
             append(state.debugInformation())
             append("blocking all binding variants: ${count > 0}")
         }
@@ -198,7 +198,7 @@ sealed interface NegativeGraphState: MutableFilterState {
 
     companion object {
 
-        operator fun invoke(parent: GroupPatternState, filter: Filter.NotExists): NegativeGraphState {
+        operator fun invoke(parent: GroupPatternState, filter: Filter.Exists): InclusionFilterState {
             val state = BasicGraphPatternState(filter.pattern)
             val externalBindings = parent.bindings.intersect(state.bindings)
             return if (externalBindings.isEmpty()) {

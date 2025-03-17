@@ -138,8 +138,8 @@ sealed interface GraphPatternFilterState {
 
         private fun Filter.createFilterState(parent: GroupPatternState): MutableFilterState {
             return when (this) {
-                is Filter.Exists -> TODO()
-                is Filter.NotExists -> NegativeGraphState(parent, this)
+                is Filter.Exists -> InclusionFilterState(parent, this)
+                is Filter.NotExists -> ExclusionFilterState(parent, this)
                 is Filter.Predicate -> TODO()
                 is Filter.Regex -> TODO()
             }
