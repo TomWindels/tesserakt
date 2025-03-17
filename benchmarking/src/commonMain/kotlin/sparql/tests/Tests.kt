@@ -56,6 +56,46 @@ fun builtinTests() = tests {
         }
     """
 
+    val counts = buildStore {
+        val example = prefix("", "http://example/")
+        repeat(10) {
+            example("subj_${it}") has type being example("Example")
+            example("subj_${it}") has example("count") being it.asLiteralTerm()
+        }
+    }
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 3)
+        }
+    """
+
+    val multiFilter = buildStore {
+        val example = prefix("", "http://example.com/")
+        example("a") has example("p") being 1
+        example("a") has example("q") being 1
+        example("a") has example("q") being 2
+
+        example("b") has example("p") being 3.0
+        example("b") has example("q") being 4.0
+        example("b") has example("q") being 5.0
+    }
+
+    using(multiFilter) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER NOT EXISTS {
+                # ?a1 ?a2 ?n .
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            }
+        }
+    """
+
     val filtered = buildStore {
         val example = prefix("", "http://example/")
         example("alice") has type being FOAF.Person

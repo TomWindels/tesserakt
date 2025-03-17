@@ -41,7 +41,7 @@ class FilterProcessor: Analyser<Filter>() {
                 val expr = use(AggregatorProcessor())
                 expectToken(Token.Symbol.RoundBracketEnd)
                 consume()
-                expect(expr is Expression.Conditional)
+                expect(expr is Expression.Comparison)
                 Filter.Predicate(expr)
             }
             Token.Keyword.Exists -> {

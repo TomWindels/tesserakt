@@ -150,7 +150,7 @@ class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
             consume()
             expectToken(Token.Symbol.RoundBracketStart)
             consume()
-            builder.groupingFilter = use(AggregatorProcessor()) as? Expression.Conditional
+            builder.groupingFilter = use(AggregatorProcessor()) as? Expression.Comparison
                 ?: bail("Group filter expression expected")
             expectToken(Token.Symbol.RoundBracketEnd)
             consume()

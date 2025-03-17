@@ -61,7 +61,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             indented { writeLine("target: ${symbol.name}") }
         }
 
-        is Expression.Conditional -> {
+        is Expression.Comparison -> {
             writeLine("conditional")
             indented {
                 writeLine("operand: ${symbol.operand}")

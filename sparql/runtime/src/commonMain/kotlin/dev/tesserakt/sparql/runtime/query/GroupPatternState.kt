@@ -4,37 +4,34 @@ import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingAddition
 import dev.tesserakt.sparql.runtime.evaluation.MappingDeletion
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
-import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.runtime.stream.chain
-import dev.tesserakt.sparql.runtime.stream.join
-import dev.tesserakt.sparql.runtime.stream.optimisedForSingleUse
+import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePatternSet
 import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
 
-class GroupPatternState(pattern: TriplePatternSet, unions: List<Union>) {
+class GroupPatternState(pattern: TriplePatternSet, unions: List<Union>): MutableJoinState {
 
     private val patterns = JoinTree(pattern)
     private val unions = JoinTree(unions)
 
-    val cardinality: Cardinality
+    override val cardinality: Cardinality
         get() = patterns.cardinality * unions.cardinality
 
-    val bindings = this.patterns.bindings + this.unions.bindings
+    override val bindings = this.patterns.bindings + this.unions.bindings
 
-    fun peek(delta: DataDelta): Stream<MappingDelta> {
+    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
         val first = patterns.peek(delta)
         val second = unions.peek(delta)
         // combining these states to get a total set of potential resulting mappings
-        return patterns.join(second).chain(unions.join(first))
+        return patterns.join(second).chain(unions.join(first)).optimisedForSingleUse()
     }
 
-    fun process(delta: DataDelta) {
+    override fun process(delta: DataDelta) {
         patterns.process(delta)
         unions.process(delta)
     }
 
-    fun join(delta: MappingDelta): Stream<MappingDelta> {
+    override fun join(delta: MappingDelta): Stream<MappingDelta> {
         return unions.join(patterns.join(delta).optimisedForSingleUse())
     }
 

@@ -13,6 +13,7 @@ sealed interface Token {
         AngularBracketStart("<"),
         AngularBracketEnd(">"),
         Equals("="),
+        NotEquals("!="),
         LTEQ("<="),
         GTEQ(">="),
         PredicateOr("|"),

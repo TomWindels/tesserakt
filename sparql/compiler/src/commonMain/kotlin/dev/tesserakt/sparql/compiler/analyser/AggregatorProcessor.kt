@@ -18,7 +18,7 @@ class AggregatorProcessor: Analyser<Expression>() {
         return if (filterOperand != null) {
             consume()
             val rhs = processMathStatement()
-            Expression.Conditional(lhs = expr, rhs = rhs, operand = filterOperand)
+            Expression.Comparison(lhs = expr, rhs = rhs, operand = filterOperand)
         } else {
             expr
         }
@@ -92,13 +92,14 @@ class AggregatorProcessor: Analyser<Expression>() {
             else -> null
         }
 
-    private val Token.filterOperand: Expression.Conditional.Operand?
+    private val Token.filterOperand: Expression.Comparison.Operand?
         get() = when (this) {
-            Token.Symbol.AngularBracketStart -> Expression.Conditional.Operand.LESS_THAN
-            Token.Symbol.AngularBracketEnd -> Expression.Conditional.Operand.GREATER_THAN
-            Token.Symbol.LTEQ -> Expression.Conditional.Operand.LESS_THAN_OR_EQ
-            Token.Symbol.GTEQ -> Expression.Conditional.Operand.GREATER_THAN_OR_EQ
-            Token.Symbol.Equals -> Expression.Conditional.Operand.EQUAL
+            Token.Symbol.AngularBracketStart -> Expression.Comparison.Operand.LESS_THAN
+            Token.Symbol.AngularBracketEnd -> Expression.Comparison.Operand.GREATER_THAN
+            Token.Symbol.LTEQ -> Expression.Comparison.Operand.LESS_THAN_OR_EQ
+            Token.Symbol.GTEQ -> Expression.Comparison.Operand.GREATER_THAN_OR_EQ
+            Token.Symbol.Equals -> Expression.Comparison.Operand.EQUAL
+            Token.Symbol.NotEquals -> Expression.Comparison.Operand.NOT_EQUAL
             else -> null
         }
 
