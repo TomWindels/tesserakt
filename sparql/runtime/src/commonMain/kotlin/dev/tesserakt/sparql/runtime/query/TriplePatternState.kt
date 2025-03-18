@@ -1,13 +1,13 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.types.TriplePattern
-import dev.tesserakt.sparql.types.bindingName
-import dev.tesserakt.sparql.types.matches
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.stream.*
+import dev.tesserakt.sparql.types.TriplePattern
+import dev.tesserakt.sparql.types.bindingName
+import dev.tesserakt.sparql.types.matches
 import dev.tesserakt.sparql.util.Cardinality
 
 sealed class TriplePatternState<P : TriplePattern.Predicate>(
@@ -243,9 +243,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
     ) : TriplePatternState<TriplePattern.Sequence>(s, p, o) {
 
         private val tree = JoinTree(p.unfold(start = s, end = o))
-        private val mappings = mutableListOf<Mapping>()
         override val cardinality: Cardinality
-            get() = Cardinality(mappings.size)
+            get() = tree.cardinality
 
         override fun process(delta: DataDelta) {
             tree.process(delta)
@@ -270,9 +269,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
     ) : TriplePatternState<TriplePattern.UnboundSequence>(subj, pred, obj) {
 
         private val tree = JoinTree(pred.unfold(start = subj, end = obj))
-        private val mappings = mutableListOf<Mapping>()
         override val cardinality: Cardinality
-            get() = Cardinality(mappings.size)
+            get() = tree.cardinality
 
         override fun process(delta: DataDelta) {
             tree.process(delta)

@@ -50,4 +50,8 @@ class BufferedStream<E: Any>(
         return Iter()
     }
 
+    override fun supportsReuse(): Boolean {
+        return true
+    }
+
 }

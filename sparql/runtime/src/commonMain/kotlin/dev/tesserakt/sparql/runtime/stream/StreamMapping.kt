@@ -51,4 +51,8 @@ class StreamMapping<I: Any, O: Any>(
         return Iter(source.iterator(), transform)
     }
 
+    override fun supportsReuse(): Boolean {
+        return source.supportsReuse()
+    }
+
 }

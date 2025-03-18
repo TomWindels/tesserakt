@@ -35,6 +35,10 @@ inline fun <E: Any> Iterable<E>.toStream(cardinality: Cardinality) = object: Str
         return this@toStream.iterator()
     }
 
+    override fun supportsReuse(): Boolean {
+        return true
+    }
+
 }
 
 inline fun <E: Any> Collection<E>.toStream(): OptimisedStream<E> = when {

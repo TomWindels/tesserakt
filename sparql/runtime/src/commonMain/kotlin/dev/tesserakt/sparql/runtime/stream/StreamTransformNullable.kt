@@ -60,4 +60,8 @@ class StreamTransformNullable<I: Any, O: Any>(
         return if (stream == null) emptyIterator() else Iter(stream, iter, transform)
     }
 
+    override fun supportsReuse(): Boolean {
+        return source.supportsReuse()
+    }
+
 }

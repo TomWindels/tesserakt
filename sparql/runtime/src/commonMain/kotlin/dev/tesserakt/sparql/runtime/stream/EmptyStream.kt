@@ -25,4 +25,8 @@ object EmptyStream: Stream<Nothing>, OptimisedStream<Nothing> {
 
     override fun iterator() = Iterator
 
+    override fun supportsReuse(): Boolean {
+        return true
+    }
+
 }

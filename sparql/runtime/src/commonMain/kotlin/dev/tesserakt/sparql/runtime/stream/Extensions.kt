@@ -253,7 +253,7 @@ inline fun <E : Any> Stream<E>.collect(): CollectedStream<E> =
 fun <E : Any> Stream<E>.optimisedForReuse(): OptimisedStream<E> = when {
     hasZeroCardinality() -> emptyStream()
     // we *have* to buffer these, as otherwise reuse is not possible
-    this is SingleUseStreamView<E> -> BufferedStream(this)
+    !supportsReuse() -> BufferedStream(this)
     this is OptimisedStream -> this
     supportsEfficientIteration() -> OptimisedStreamView(this)
     this is StreamChain<E> -> {

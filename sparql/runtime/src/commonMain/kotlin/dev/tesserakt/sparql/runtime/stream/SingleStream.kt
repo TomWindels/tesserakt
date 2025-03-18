@@ -28,4 +28,8 @@ value class SingleStream<E: Any>(private val element: E): Stream<E>, OptimisedSt
         return Iter(element)
     }
 
+    override fun supportsReuse(): Boolean {
+        return true
+    }
+
 }

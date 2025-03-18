@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.util
 
 import kotlin.jvm.JvmInline
+import kotlin.math.roundToLong
 
 @JvmInline
 value class Cardinality(private val value: Double): Comparable<Cardinality> {
@@ -34,5 +35,9 @@ value class Cardinality(private val value: Double): Comparable<Cardinality> {
     fun toInt() = value.toInt()
 
     fun toDouble() = value
+
+    override fun toString(): String {
+        return value.roundToLong().toString()
+    }
 
 }

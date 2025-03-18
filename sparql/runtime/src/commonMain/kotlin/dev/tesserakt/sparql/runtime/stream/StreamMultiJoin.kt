@@ -90,4 +90,8 @@ class StreamMultiJoin(
         }
     }
 
+    override fun supportsReuse(): Boolean {
+        return left.supportsReuse() && right.supportsReuse()
+    }
+
 }

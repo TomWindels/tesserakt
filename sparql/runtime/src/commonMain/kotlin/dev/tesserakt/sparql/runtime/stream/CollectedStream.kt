@@ -11,6 +11,10 @@ value class CollectedStream<E: Any>(private val data: List<E>): Stream<E>, Optim
     override val description: String
         get() = "Collected(size = ${data.size})"
 
+    override fun supportsReuse(): Boolean {
+        return true
+    }
+
     companion object {
 
         operator fun <E: Any> invoke(stream: Stream<E>) = CollectedStream<E>(

@@ -54,4 +54,8 @@ class StreamChain<E: Any>(
         return Iter(source1 = source1.iterator(), source2 = source2.iterator())
     }
 
+    override fun supportsReuse(): Boolean {
+        return source1.supportsReuse() && source2.supportsReuse()
+    }
+
 }

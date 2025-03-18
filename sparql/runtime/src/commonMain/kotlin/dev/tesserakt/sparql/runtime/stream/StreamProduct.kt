@@ -78,4 +78,8 @@ class StreamProduct<A: Any, B: Any>(
         return Iter(a = left, b = right)
     }
 
+    override fun supportsReuse(): Boolean {
+        return left.supportsReuse() && right.supportsReuse()
+    }
+
 }
