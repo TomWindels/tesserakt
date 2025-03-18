@@ -4,6 +4,7 @@ import dev.tesserakt.util.printerrln
 
 class TestEnvironment {
 
+    var filter: TestFilter = TestFilter.Default
     private val tests = mutableListOf<Test>()
 
     fun add(test: Test) {
@@ -16,13 +17,18 @@ class TestEnvironment {
     ) {
 
         companion object {
-            private fun List<Pair<Test, Test.Result>>.summary() = "${count { it.second.isSuccess() }} / $size test(s) succeeded!"
+            private fun List<Pair<Test, Test.Result>>.summary(): String {
+                val skipped = count { it.second is Test.Result.Skipped }
+                return "${count { it.second.isSuccess() } - skipped} / $size test(s) succeeded! ($skipped skipped)"
+            }
         }
 
         fun report() {
             println(summary)
             results.forEachIndexed { i, (test, result) ->
-                if (result.isSuccess()) {
+                if (result is Test.Result.Skipped) {
+                    println("Test ${i + 1} / ${results.size} skipped!")
+                } else if (result.isSuccess()) {
                     println("Test ${i + 1} / ${results.size} succeeded!")
                     println(result)
                 } else {
@@ -42,7 +48,15 @@ class TestEnvironment {
     }
 
     suspend fun run(count: Int = 1) = Results(
-        results = (0..<count).flatMap { tests.map { it to it.test() } }
+        results = (0..<count).flatMap {
+            tests.map { test ->
+                if (filter.shouldSkip(test)) {
+                    test to Test.Result.Skipped
+                } else {
+                    test to test.test()
+                }
+            }
+        }
     )
 
 }

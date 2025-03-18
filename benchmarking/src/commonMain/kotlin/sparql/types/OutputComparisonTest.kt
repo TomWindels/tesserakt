@@ -2,7 +2,6 @@ package sparql.types
 
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.testing.Test
@@ -12,17 +11,18 @@ import sparql.ExternalQueryExecution
 import kotlin.time.Duration
 import kotlin.time.measureTime
 
-data class OutputComparisonTest(
-    val query: String,
-    val store: Store
-) : Test {
+class OutputComparisonTest(
+    query: String,
+    store: Store
+) : QueryExecutionTest(query, store) {
+
 
     override suspend fun test() = runTest {
         val actual: List<Bindings>
         val elapsedTime = measureTime {
-            actual = store.query(Query.Select(query))
+            actual = store.query(query)
         }
-        val external = ExternalQueryExecution(query, store)
+        val external = ExternalQueryExecution(queryString, store)
         val expected: List<Bindings>
         val referenceTime = measureTime {
             try {
@@ -42,7 +42,7 @@ data class OutputComparisonTest(
 
     override fun toString(): String =
         "Incremental SPARQL output comparison test\n * Query: `${
-            query.replace(Regex("\\s+"), " ").trim()
+            queryString.replace(Regex("\\s+"), " ").trim()
         }`\n * Input: store with ${store.size} quad(s)"
 
     data class Result(

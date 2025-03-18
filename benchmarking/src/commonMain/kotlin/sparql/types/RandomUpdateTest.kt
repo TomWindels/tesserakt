@@ -18,12 +18,12 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.measureTime
 
-data class RandomUpdateTest(
-    val query: String,
-    val store: Store,
+class RandomUpdateTest(
+    query: String,
+    store: Store,
     val seed: Int = 1,
     val iterations: Int = store.size * 200
-) : Test {
+) : QueryExecutionTest(query, store) {
 
     private val deltas = buildList {
         // getting all delta's by simulating the changes to a hypothetical input store
@@ -39,9 +39,9 @@ data class RandomUpdateTest(
 
     override suspend fun test() = runTest {
         val input = MutableStore()
-        val builder = Result.Builder(query = Query.Select(query), store = store, deltas = deltas)
+        val builder = Result.Builder(query = query, store = store, deltas = deltas)
         suspend fun reference(): Pair<Duration, List<Bindings>> {
-            val external = ExternalQueryExecution(query, input)
+            val external = ExternalQueryExecution(queryString, input)
             val results: List<Bindings>
             val elapsed = measureTime {
                 try {
@@ -55,7 +55,7 @@ data class RandomUpdateTest(
 
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime = measureTime {
-            ongoing = input.query(Query.Select(query))
+            ongoing = input.query(query)
         }
         // checking the initial state (no data)
         builder.add(
@@ -87,7 +87,7 @@ data class RandomUpdateTest(
 
     override fun toString(): String =
         "Random update SPARQL output comparison test\n * Query: `${
-            query.replace(Regex("\\s+"), " ").trim()
+            queryString.replace(Regex("\\s+"), " ").trim()
         }`\n * Input: store with ${store.size} quad(s)"
 
     data class Result(

@@ -1,27 +1,26 @@
 
 import dev.tesserakt.util.printerrln
 import sparql.tests.*
-import sparql.types.QueryExecutionTest
-import sparql.types.test
+import sparql.types.QueryExecutionTestValues
 
 suspend fun run(args: Array<String>) {
     when (args.size) {
         0 -> {
             println("Running built-in tests")
             val one = compareIncrementalChainSelectOutput(seed = 1)
-                .test(QueryExecutionTest::toOutputComparisonTest)
+                .test(QueryExecutionTestValues::toOutputComparisonTest)
                 .run()
             val two = compareIncrementalStarSelectOutput(seed = 1)
-                .test(QueryExecutionTest::toOutputComparisonTest)
+                .test(QueryExecutionTestValues::toOutputComparisonTest)
                 .run()
             val three = builtinTests()
-                .test(QueryExecutionTest::toOutputComparisonTest)
+                .test(QueryExecutionTestValues::toOutputComparisonTest)
                 .run()
             val four = builtinTests()
-                .test(QueryExecutionTest::toIncrementalUpdateTest)
+                .test(QueryExecutionTestValues::toIncrementalUpdateTest)
                 .run()
             val five = builtinTests()
-                .test(QueryExecutionTest::toRandomUpdateTest)
+                .test(QueryExecutionTestValues::toRandomUpdateTest)
                 .run()
             one.report()
             two.report()
@@ -36,7 +35,7 @@ suspend fun run(args: Array<String>) {
         2 -> {
             val (dataset, querypath) = args
             compareIncrementalBasicGraphPatternOutput(datasetFilepath = dataset, queryFilepath = querypath)
-                .test(QueryExecutionTest::toOutputComparisonTest)
+                .test(QueryExecutionTestValues::toOutputComparisonTest)
                 .run()
                 .report()
         }
