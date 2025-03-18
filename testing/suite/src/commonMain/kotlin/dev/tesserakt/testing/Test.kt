@@ -8,6 +8,12 @@ fun interface Test {
 
     interface Result {
 
+        data object Skipped : Result {
+            // not considered a failure
+            override fun isSuccess(): Boolean = true
+            override fun exceptionOrNull(): Throwable? = null
+        }
+
         fun isSuccess(): Boolean
 
         fun exceptionOrNull(): Throwable?

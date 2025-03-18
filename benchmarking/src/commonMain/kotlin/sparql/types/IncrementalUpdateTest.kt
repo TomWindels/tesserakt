@@ -4,7 +4,6 @@ import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.OngoingQueryEvaluation
-import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.query
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
@@ -13,16 +12,16 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.measureTime
 
-data class IncrementalUpdateTest(
-    val query: String,
-    val store: Store
-) : Test {
+class IncrementalUpdateTest(
+    query: String,
+    store: Store
+) : QueryExecutionTest(query, store) {
 
     override suspend fun test() = runTest {
         val input = MutableStore()
         val builder = Result.Builder(store)
         suspend fun reference(): Pair<Duration, List<Bindings>> {
-            val external = ExternalQueryExecution(query, input)
+            val external = ExternalQueryExecution(queryString, input)
             val results: List<Bindings>
             val elapsed = measureTime {
                 try {
@@ -35,7 +34,7 @@ data class IncrementalUpdateTest(
         }
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime= measureTime {
-            ongoing = input.query(Query.Select(query))
+            ongoing = input.query(query)
         }
         // checking the initial state (no data)
         builder.add(
@@ -71,7 +70,7 @@ data class IncrementalUpdateTest(
 
     override fun toString(): String =
         "Incremental update SPARQL output comparison test\n * Query: `${
-            query.replace(Regex("\\s+"), " ").trim()
+            queryString.replace(Regex("\\s+"), " ").trim()
         }`\n * Input: store with ${store.size} quad(s)"
 
     data class Result(

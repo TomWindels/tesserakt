@@ -20,6 +20,8 @@ object FOAF: Ontology {
 }
 
 fun builtinTests() = tests {
+    filter = DefaultTestFiltering
+
     val small = buildStore {
         val subj = local("s")
         val obj = local("o")

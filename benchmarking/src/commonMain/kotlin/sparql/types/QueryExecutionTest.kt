@@ -1,16 +1,16 @@
 package sparql.types
 
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.sparql.Compiler
+import dev.tesserakt.sparql.Query
+import dev.tesserakt.testing.Test
 
-data class QueryExecutionTest(
-    val query: String,
+abstract class QueryExecutionTest(
+    val queryString: String,
     val store: Store
-) {
+): Test {
 
-    fun toOutputComparisonTest() = OutputComparisonTest(query = query, store = store)
-
-    fun toIncrementalUpdateTest() = IncrementalUpdateTest(query = query, store = store)
-
-    fun toRandomUpdateTest() = RandomUpdateTest(query = query, store = store)
+    val structure = Compiler().compile(queryString).structure
+    val query = Query.Select(queryString)
 
 }
