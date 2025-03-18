@@ -56,6 +56,340 @@ fun builtinTests() = tests {
         }
     """
 
+    val counts = buildStore {
+        val example = prefix("", "http://example/")
+        repeat(10) {
+            example("subj_${it}") has type being example("Example")
+            example("subj_${it}") has example("count") being it.asLiteralTerm()
+        }
+    }
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 3)
+        }
+    """
+
+    val numbers = buildStore {
+        val example = prefix("", "http://example.com/")
+        example("a") has example("p") being 1
+        example("a") has example("q") being 1
+        example("a") has example("q") being 2
+
+        example("b") has example("p") being 3.0
+        example("b") has example("q") being 4.0
+        example("b") has example("q") being 5.0
+    }
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER NOT EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER NOT EXISTS {
+                ?a1 ?a2 ?n .
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER NOT EXISTS {
+                {
+                    ?x :q ?m .
+                } UNION {
+                    ?y :q ?m .
+                }
+                FILTER(?n = ?m)
+            }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT ?n WHERE {
+            ?n :p ?c1 .
+            ?n :q ?c2 .
+            FILTER(?c1 < ?c2 - 1.5)
+        }
+    """
+
+    val filtered = buildStore {
+        val example = prefix("", "http://example/")
+        example("alice") has type being FOAF.Person
+        example("alice") has FOAF("name") being example("name")
+        example("name") has example("firstName") being "Alice".asLiteralTerm()
+        example("name") has example("lastName") being "LastName".asLiteralTerm()
+        example("bob") has type being FOAF.Person
+    }
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER NOT EXISTS { ?person foaf:name ?name }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER NOT EXISTS { ?a ?b ?c }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER NOT EXISTS { ?a ?b foaf:Person }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER NOT EXISTS { ?a foaf:name ?b }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER NOT EXISTS {
+                ?person foaf:name ?name
+                FILTER NOT EXISTS {
+                    ?name :firstName ?value
+                }
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER NOT EXISTS {
+                ?a foaf:name ?name
+                FILTER NOT EXISTS {
+                    ?name :firstName ?value
+                }
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            {
+                FILTER NOT EXISTS {
+                    ?person foaf:name ?name
+                }
+            }
+            UNION {
+                ?person foaf:name ?name
+                FILTER NOT EXISTS {
+                    ?name :firstName ?firstName
+                }
+                FILTER NOT EXISTS {
+                    ?name :lastName ?lastName
+                }
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER EXISTS { ?person foaf:name ?name }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER EXISTS { ?a ?b ?c }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER EXISTS { ?a ?b foaf:Person }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER EXISTS { ?a foaf:name ?b }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER EXISTS {
+                ?person foaf:name ?name
+                FILTER EXISTS {
+                    ?name :firstName ?value
+                }
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            FILTER EXISTS {
+                ?a foaf:name ?name
+                FILTER EXISTS {
+                    ?name :firstName ?value
+                }
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            {
+                FILTER NOT EXISTS {
+                    ?person foaf:name ?name
+                }
+            }
+            UNION {
+                ?person foaf:name ?name
+                FILTER EXISTS {
+                    ?name :firstName ?firstName
+                }
+                FILTER EXISTS {
+                    ?name :lastName ?lastName
+                }
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            ?person foaf:name ?name
+            FILTER EXISTS {
+                ?name :firstName ?firstName
+            }
+            FILTER NOT EXISTS {
+                ?name :lastName ?lastName
+            }
+        }
+    """
+
     val extra = buildStore(path = "http://example.org/") {
         val subj = local("s")
         val obj = local("o")

@@ -236,4 +236,62 @@ class CompilerTest {
         "select(count(distinct ?s as ?count){?s?p?o}" causes CompilerError.Type.StructuralError
     }
 
+    @Test
+    fun filters() = test {
+        // source: https://www.w3.org/TR/sparql11-query/
+        // a regular expression filter, but inside an optional graph pattern
+        """
+            PREFIX  dc:  <http://purl.org/dc/elements/1.1/>
+            PREFIX  ns:  <http://example.org/ns#>
+            SELECT  ?title ?price
+            WHERE {
+                ?x dc:title ?title .
+                OPTIONAL { ?x ns:price ?price . FILTER (?price < 30) }
+            }
+        """ satisfies {
+            true
+        }
+        // a graph pattern filter
+        """
+            PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+            PREFIX  foaf:   <http://xmlns.com/foaf/0.1/> 
+
+            SELECT ?person
+            WHERE 
+            {
+                ?person rdf:type  foaf:Person .
+                FILTER EXISTS { ?person foaf:name ?name }
+            }
+        """ satisfies {
+            true
+        }
+        // an inversion of a graph pattern filter
+        """
+            PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+            PREFIX  foaf:   <http://xmlns.com/foaf/0.1/> 
+
+            SELECT ?person
+            WHERE 
+            {
+                ?person rdf:type  foaf:Person .
+                FILTER NOT EXISTS { ?person foaf:name ?name }
+            }
+        """ satisfies {
+            true
+        }
+        // an inversion of a graph pattern filter, having a filter of its own
+        """
+            PREFIX : <http://example.com/>
+            SELECT * WHERE {
+                ?x :p ?n
+                FILTER NOT EXISTS {
+                    ?x :q ?m .
+                    FILTER(?n = ?m)
+                }
+            }
+        """ satisfies {
+            true
+        }
+    }
+
 }

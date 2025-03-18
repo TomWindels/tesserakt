@@ -61,10 +61,10 @@ class ASTWriter(private val indentStyle: String = "  ") {
             indented { writeLine("target: ${symbol.name}") }
         }
 
-        is Expression.Conditional -> {
+        is Expression.Comparison -> {
             writeLine("conditional")
             indented {
-                writeLine("operand: ${symbol.operand}")
+                writeLine("operand: ${symbol.operator}")
                 writeLine("lhs: ")
                 process(symbol.lhs)
                 writeLine("rhs: ")
@@ -95,8 +95,8 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Expression.MathOp.Sum -> {
-            writeLine("sum")
+        is Expression.MathOp -> {
+            writeLine(symbol.operator.name.lowercase())
             indented {
                 writeLine("lhs")
                 process(symbol.lhs)
@@ -105,37 +105,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Expression.MathOp.Diff -> {
-            writeLine("difference")
-            indented {
-                writeLine("lhs")
-                process(symbol.lhs)
-                writeLine("rhs")
-                process(symbol.rhs)
-            }
-        }
-
-        is Expression.MathOp.Mul -> {
-            writeLine("multiplication")
-            indented {
-                writeLine("lhs")
-                process(symbol.lhs)
-                writeLine("rhs")
-                process(symbol.rhs)
-            }
-        }
-
-        is Expression.MathOp.Div -> {
-            writeLine("division")
-            indented {
-                writeLine("lhs")
-                process(symbol.lhs)
-                writeLine("rhs")
-                process(symbol.rhs)
-            }
-        }
-
-        is Expression.MathOp.Negative -> {
+        is Expression.Negative -> {
             writeLine("negative")
             indented {
                 writeLine("input: ")
@@ -281,11 +251,8 @@ class ASTWriter(private val indentStyle: String = "  ") {
                     if (symbol.bindingStatements.isNotEmpty()) {
                         writeLine("binding statements")
                         symbol.bindingStatements.forEachIndexed { index, statement ->
-                            writeLine("target: ${statement.target}")
-                            writeLine("expression: ")
-                            indented {
-                                process(statement.expression)
-                            }
+                            writeLine(index.toString())
+                            process(statement)
                         }
                     }
                     if (symbol.unions.isNotEmpty()) {
@@ -316,6 +283,17 @@ class ASTWriter(private val indentStyle: String = "  ") {
             process(symbol.pattern)
         }
 
+        is BindingStatement -> {
+            append("binding:")
+            indented {
+                append("name: ${symbol.target}")
+                append("origin:")
+                indented {
+                    process(symbol.expression)
+                }
+            }
+        }
+
         is Union -> {
             append("union")
             symbol.segments.forEachIndexed { index, segment ->
@@ -335,6 +313,20 @@ class ASTWriter(private val indentStyle: String = "  ") {
                 writeLine("input: ${symbol.input}")
                 writeLine("regex: ${symbol.regex}")
                 writeLine("mode: ${symbol.mode}")
+            }
+        }
+
+        is Filter.Exists -> {
+            writeLine("exists")
+            indented {
+                process(symbol.pattern)
+            }
+        }
+
+        is Filter.NotExists -> {
+            writeLine("not exists")
+            indented {
+                process(symbol.pattern)
             }
         }
 

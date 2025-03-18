@@ -1,16 +1,18 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.types.GraphPattern
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
-import dev.tesserakt.sparql.runtime.stream.*
+import dev.tesserakt.sparql.runtime.stream.Stream
+import dev.tesserakt.sparql.runtime.stream.collect
+import dev.tesserakt.sparql.types.GraphPattern
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.getAllNamedBindings
 
 class BasicGraphPatternState(ast: GraphPattern) {
 
-    private val patterns = JoinTree(ast.patterns)
-    private val unions = JoinTree(ast.unions)
+    private val group = GroupPatternState(ast.patterns, ast.unions)
+
+    private val filters = GraphPatternFilterState(parent = group, filters = ast.filters)
 
     /**
      * A collection of all bindings found inside this query body; it is not guaranteed that all solutions generated
@@ -19,7 +21,7 @@ class BasicGraphPatternState(ast: GraphPattern) {
     val bindings: Set<String> = ast.getAllNamedBindings().map { it.name }.toSet()
 
     val cardinality: Cardinality
-        get() = patterns.cardinality * unions.cardinality
+        get() = group.cardinality
 
     fun insert(delta: DataDelta): List<MappingDelta> {
         // it's important we collect the results before we process the delta
@@ -29,23 +31,22 @@ class BasicGraphPatternState(ast: GraphPattern) {
     }
 
     fun peek(delta: DataDelta): Stream<MappingDelta> {
-        val first = patterns.peek(delta)
-        val second = unions.peek(delta)
-        return patterns.join(second).chain(unions.join(first))
+        // getting the max amount of mappings we can yield based on the inner group
+        return filters.peek(group, delta)
     }
 
     fun process(delta: DataDelta) {
-        patterns.process(delta)
-        unions.process(delta)
+        group.process(delta)
+        filters.process(delta)
     }
 
     fun join(delta: MappingDelta): Stream<MappingDelta> {
-        return unions.join(patterns.join(delta).optimisedForSingleUse())
+        return filters.filter(group.join(delta))
     }
 
     fun debugInformation() = buildString {
-        appendLine("* Pattern state")
-        append(patterns.debugInformation())
+        append(group.debugInformation())
+        append(filters.debugInformation())
     }
 
 }

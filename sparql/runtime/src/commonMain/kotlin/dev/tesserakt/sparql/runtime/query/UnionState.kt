@@ -1,11 +1,11 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.types.GraphPatternSegment
-import dev.tesserakt.sparql.types.SelectQuerySegment
-import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.stream.*
+import dev.tesserakt.sparql.types.GraphPatternSegment
+import dev.tesserakt.sparql.types.SelectQuerySegment
+import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
 
 class UnionState(union: Union): MutableJoinState {

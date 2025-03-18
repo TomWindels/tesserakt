@@ -1,10 +1,10 @@
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
 import dev.tesserakt.sparql.types.Binding
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.Filter
-import dev.tesserakt.sparql.compiler.lexer.Token
-import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
 
 class FilterProcessor: Analyser<Filter>() {
 
@@ -41,10 +41,26 @@ class FilterProcessor: Analyser<Filter>() {
                 val expr = use(AggregatorProcessor())
                 expectToken(Token.Symbol.RoundBracketEnd)
                 consume()
-                expect(expr is Expression.Conditional)
+                expect(expr is Expression.Comparison)
                 Filter.Predicate(expr)
             }
-            else -> expectedToken(Token.Keyword.Regex, Token.Symbol.RoundBracketStart)
+            Token.Keyword.Exists -> {
+                consume()
+                expectToken(Token.Symbol.CurlyBracketStart)
+                consume()
+                val graph = use(QueryBodyProcessor())
+                Filter.Exists(graph)
+            }
+            Token.Keyword.Not -> {
+                consume()
+                expectToken(Token.Keyword.Exists)
+                consume()
+                expectToken(Token.Symbol.CurlyBracketStart)
+                consume()
+                val graph = use(QueryBodyProcessor())
+                Filter.NotExists(graph)
+            }
+            else -> expectedToken(Token.Keyword.Regex, Token.Symbol.RoundBracketStart, Token.Keyword.Exists, Token.Keyword.Not)
         }
     }
 

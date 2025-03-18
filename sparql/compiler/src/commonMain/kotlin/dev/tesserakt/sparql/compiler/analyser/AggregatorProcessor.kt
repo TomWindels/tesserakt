@@ -14,11 +14,11 @@ class AggregatorProcessor: Analyser<Expression>() {
     override fun _process(): Expression {
         val expr = processMathStatement()
         // filters should be top level afaik, so checking it after completing the math expression stuff
-        val filterOperand = token.filterOperand
+        val filterOperand = token.filterOperator
         return if (filterOperand != null) {
             consume()
             val rhs = processMathStatement()
-            Expression.Conditional(lhs = expr, rhs = rhs, operand = filterOperand)
+            Expression.Comparison(lhs = expr, rhs = rhs, operator = filterOperand)
         } else {
             expr
         }
@@ -58,7 +58,7 @@ class AggregatorProcessor: Analyser<Expression>() {
         }
         Token.Symbol.OpMinus -> {
             consume()
-            Expression.MathOp.Negative.of(nextAggregationOrBindingOrLiteral())
+            Expression.Negative.of(nextAggregationOrBindingOrLiteral())
         }
         is Token.NumericLiteral -> {
             Expression.NumericLiteralValue(token.literalNumericValue)
@@ -86,19 +86,20 @@ class AggregatorProcessor: Analyser<Expression>() {
     private val Token.operator: Expression.MathOp.Operator?
         get() = when (this) {
             Token.Symbol.OpPlus -> Expression.MathOp.Operator.SUM
-            Token.Symbol.OpMinus -> Expression.MathOp.Operator.DIFF
+            Token.Symbol.OpMinus -> Expression.MathOp.Operator.SUB
             Token.Symbol.ForwardSlash -> Expression.MathOp.Operator.DIV
             Token.Symbol.Asterisk -> Expression.MathOp.Operator.MUL
             else -> null
         }
 
-    private val Token.filterOperand: Expression.Conditional.Operand?
+    private val Token.filterOperator: Expression.Comparison.Operator?
         get() = when (this) {
-            Token.Symbol.AngularBracketStart -> Expression.Conditional.Operand.LESS_THAN
-            Token.Symbol.AngularBracketEnd -> Expression.Conditional.Operand.GREATER_THAN
-            Token.Symbol.LTEQ -> Expression.Conditional.Operand.LESS_THAN_OR_EQ
-            Token.Symbol.GTEQ -> Expression.Conditional.Operand.GREATER_THAN_OR_EQ
-            Token.Symbol.Equals -> Expression.Conditional.Operand.EQUAL
+            Token.Symbol.AngularBracketStart -> Expression.Comparison.Operator.LESS_THAN
+            Token.Symbol.AngularBracketEnd -> Expression.Comparison.Operator.GREATER_THAN
+            Token.Symbol.LTEQ -> Expression.Comparison.Operator.LESS_THAN_OR_EQ
+            Token.Symbol.GTEQ -> Expression.Comparison.Operator.GREATER_THAN_OR_EQ
+            Token.Symbol.Equals -> Expression.Comparison.Operator.EQUAL
+            Token.Symbol.NotEquals -> Expression.Comparison.Operator.NOT_EQUAL
             else -> null
         }
 

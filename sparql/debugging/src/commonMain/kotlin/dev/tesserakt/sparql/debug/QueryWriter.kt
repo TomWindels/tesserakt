@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.debug
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.types.*
 import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.types.*
 
 abstract class QueryWriter<RT> {
 
@@ -238,6 +238,12 @@ abstract class QueryWriter<RT> {
                 element.unions.forEach { union ->
                     process(union)
                 }
+                element.filters.forEach { filter ->
+                    process(filter)
+                }
+                element.bindingStatements.forEach { binding ->
+                    process(binding)
+                }
             }
 
             is SelectQueryStructure -> {
@@ -287,6 +293,16 @@ abstract class QueryWriter<RT> {
                 add(Token.StringLiteral("EXPR"))
             }
 
+            is BindingStatement -> {
+                newline()
+                add(Token.Keyword.Bind)
+                add(Token.Symbol.RoundBracketStart)
+                process(element.expression)
+                add(Token.Keyword.As)
+                add(element.target.toToken())
+                add(Token.Symbol.RoundBracketEnd)
+            }
+
             is Aggregation -> {
                 add(Token.Symbol.RoundBracketStart)
                 process(element.expression)
@@ -296,6 +312,7 @@ abstract class QueryWriter<RT> {
             }
 
             is Filter.Predicate -> {
+                newline()
                 add(Token.Keyword.Filter)
                 add(Token.Symbol.RoundBracketStart)
                 process(element.expression)
@@ -303,6 +320,7 @@ abstract class QueryWriter<RT> {
             }
 
             is Filter.Regex -> {
+                newline()
                 add(Token.Keyword.Filter)
                 add(Token.Keyword.Regex)
                 add(Token.Symbol.RoundBracketStart)
@@ -312,6 +330,31 @@ abstract class QueryWriter<RT> {
                 add(Token.Symbol.Comma)
                 add(Token.StringLiteral(element.mode))
                 add(Token.Symbol.RoundBracketEnd)
+            }
+
+            is Filter.Exists -> {
+                newline()
+                add(Token.Keyword.Filter)
+                add(Token.Keyword.Exists)
+                add(Token.Symbol.CurlyBracketStart)
+                indent()
+                process(element.pattern)
+                unindent()
+                newline()
+                add(Token.Symbol.CurlyBracketEnd)
+            }
+
+            is Filter.NotExists -> {
+                newline()
+                add(Token.Keyword.Filter)
+                add(Token.Keyword.Not)
+                add(Token.Keyword.Exists)
+                add(Token.Symbol.CurlyBracketStart)
+                indent()
+                process(element.pattern)
+                unindent()
+                newline()
+                add(Token.Symbol.CurlyBracketEnd)
             }
         }
 

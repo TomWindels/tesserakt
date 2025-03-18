@@ -21,5 +21,5 @@ value class SelectQuerySegment(val query: SelectQueryStructure): Segment, QueryA
 
 data class BindingStatement(
     val expression: Expression,
-    val target: String
-)
+    val target: Binding
+): QueryAtom

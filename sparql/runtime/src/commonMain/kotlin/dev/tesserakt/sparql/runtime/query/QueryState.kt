@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.runtime.compat.Compat
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.into
 import dev.tesserakt.sparql.types.QueryStructure
@@ -12,7 +13,7 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     inner class Processor {
 
-        private val state = BasicGraphPatternState(ast = ast.body)
+        private val state = BasicGraphPatternState(ast = Compat.apply(ast.body))
 
         /**
          * Required when setting up the initial state: sets up initial state

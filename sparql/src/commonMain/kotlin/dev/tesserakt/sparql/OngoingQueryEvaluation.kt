@@ -45,10 +45,12 @@ class OngoingQueryEvaluation<RT>(private val query: QueryState<RT, *>) {
 
     fun add(quad: Quad) {
         processor.process(DataAddition(quad)).forEach { process(it) }
+        ensureValidState()
     }
 
     fun remove(quad: Quad) {
         processor.process(DataDeletion(quad)).forEach { process(it) }
+        ensureValidState()
     }
 
     private fun process(change: QueryState.ResultChange<Bindings>) {
@@ -57,13 +59,14 @@ class OngoingQueryEvaluation<RT>(private val query: QueryState<RT, *>) {
                 _results.replace(mapped.value) { current -> (current ?: 0) + 1 }
             }
             is QueryState.ResultChange.Removed<*> -> {
-                _results.replace(mapped.value) { current ->
-                    when (current) {
-                        null, 0 -> throw IllegalStateException("Could not remove ${mapped.value} from the result list as it did not exist!")
-                        else -> current - 1
-                    }
-                }
+                _results.replace(mapped.value) { current -> (current ?: 0) - 1 }
             }
+        }
+    }
+
+    private fun ensureValidState() {
+        _results.forEach {
+            check(it.value >= 0) { "${it.key} was not removed properly from the result list as it did not exist!" }
         }
     }
 
