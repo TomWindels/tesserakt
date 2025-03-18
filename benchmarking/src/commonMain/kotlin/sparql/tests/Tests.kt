@@ -73,7 +73,7 @@ fun builtinTests() = tests {
         }
     """
 
-    val multiFilter = buildStore {
+    val numbers = buildStore {
         val example = prefix("", "http://example.com/")
         example("a") has example("p") being 1
         example("a") has example("q") being 1
@@ -84,15 +84,61 @@ fun builtinTests() = tests {
         example("b") has example("q") being 5.0
     }
 
-    using(multiFilter) test """
+    using(numbers) test """
         PREFIX : <http://example.com/>
         SELECT * WHERE {
             ?x :p ?n
             FILTER NOT EXISTS {
-                # ?a1 ?a2 ?n .
                 ?x :q ?m .
                 FILTER(?n = ?m)
             }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER NOT EXISTS {
+                ?a1 ?a2 ?n .
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER NOT EXISTS {
+                {
+                    ?x :q ?m .
+                } UNION {
+                    ?y :q ?m .
+                }
+                FILTER(?n = ?m)
+            }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT ?n WHERE {
+            ?n :p ?c1 .
+            ?n :q ?c2 .
+            FILTER(?c1 < ?c2 - 1.5)
         }
     """
 

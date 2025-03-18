@@ -31,32 +31,35 @@ class FilterExpression(expr: Expression) {
                     is BindingValues ->
                         ValueLookUpOperation(name = expr.name)
 
-                    is Expression.Comparison -> when (expr.operand) {
-                        Expression.Comparison.Operand.GREATER_THAN ->
-                            Comparison.GT(left = from(expr.lhs), right = from(expr.rhs))
+                    is Comparison -> when (expr.operator) {
+                        Comparison.Operator.GREATER_THAN ->
+                            ComparisonEval.GT(left = from(expr.lhs), right = from(expr.rhs))
 
-                        Expression.Comparison.Operand.GREATER_THAN_OR_EQ ->
-                            Comparison.GTEQ(left = from(expr.lhs), right = from(expr.rhs))
+                        Comparison.Operator.GREATER_THAN_OR_EQ ->
+                            ComparisonEval.GTEQ(left = from(expr.lhs), right = from(expr.rhs))
 
-                        Expression.Comparison.Operand.LESS_THAN ->
-                            Comparison.LT(left = from(expr.lhs), right = from(expr.rhs))
+                        Comparison.Operator.LESS_THAN ->
+                            ComparisonEval.LT(left = from(expr.lhs), right = from(expr.rhs))
 
-                        Expression.Comparison.Operand.LESS_THAN_OR_EQ ->
-                            Comparison.LTEQ(left = from(expr.lhs), right = from(expr.rhs))
+                        Comparison.Operator.LESS_THAN_OR_EQ ->
+                            ComparisonEval.LTEQ(left = from(expr.lhs), right = from(expr.rhs))
 
-                        Expression.Comparison.Operand.EQUAL ->
-                            Comparison.EQ(left = from(expr.lhs), right = from(expr.rhs))
+                        Comparison.Operator.EQUAL ->
+                            ComparisonEval.EQ(left = from(expr.lhs), right = from(expr.rhs))
 
-                        Expression.Comparison.Operand.NOT_EQUAL ->
-                            Comparison.NEQ(left = from(expr.lhs), right = from(expr.rhs))
+                        Comparison.Operator.NOT_EQUAL ->
+                            ComparisonEval.NEQ(left = from(expr.lhs), right = from(expr.rhs))
+                    }
+
+                    is MathOp -> when (expr.operator) {
+                        MathOp.Operator.SUM -> MathOpEval.Sum(lhs = from(expr.lhs), rhs = from(expr.rhs))
+                        MathOp.Operator.SUB -> MathOpEval.Sub(lhs = from(expr.lhs), rhs = from(expr.rhs))
+                        MathOp.Operator.MUL -> MathOpEval.Mul(lhs = from(expr.lhs), rhs = from(expr.rhs))
+                        MathOp.Operator.DIV -> MathOpEval.Div(lhs = from(expr.lhs), rhs = from(expr.rhs))
                     }
 
                     is FuncCall -> TODO()
-                    is MathOp.Diff -> TODO()
-                    is MathOp.Div -> TODO()
-                    is MathOp.Mul -> TODO()
-                    is MathOp.Sum -> TODO()
-                    is MathOp.Negative -> TODO()
+                    is Negative -> TODO()
                     is NumericLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
                     is StringLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
                 }
@@ -65,11 +68,9 @@ class FilterExpression(expr: Expression) {
 
     }
 
-    sealed interface Comparison : Operation {
+    sealed interface ComparisonEval : Operation {
 
-        override fun eval(input: OperationValue): OperationValue
-
-        class EQ(private val left: Operation, private val right: Operation) : Comparison {
+        class EQ(private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
                 return (left.eval(input).term == right.eval(input).term).asLiteralTerm().into()
@@ -77,7 +78,7 @@ class FilterExpression(expr: Expression) {
 
         }
 
-        class NEQ(private val left: Operation, private val right: Operation) : Comparison {
+        class NEQ(private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
                 return (left.eval(input).term != right.eval(input).term).asLiteralTerm().into()
@@ -85,7 +86,7 @@ class FilterExpression(expr: Expression) {
 
         }
 
-        class LT(private val left: Operation, private val right: Operation) : Comparison {
+        class LT(private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
                 val a = left.eval(input).term ?: return false.asLiteralTerm().into()
@@ -95,7 +96,7 @@ class FilterExpression(expr: Expression) {
         }
 
 
-        class GT(private val left: Operation, private val right: Operation) : Comparison {
+        class GT(private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
                 val a = left.eval(input).term ?: return false.asLiteralTerm().into()
@@ -104,7 +105,7 @@ class FilterExpression(expr: Expression) {
             }
         }
 
-        class LTEQ(private val left: Operation, private val right: Operation) : Comparison {
+        class LTEQ(private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
                 val a = left.eval(input).term ?: return false.asLiteralTerm().into()
@@ -114,7 +115,7 @@ class FilterExpression(expr: Expression) {
 
         }
 
-        class GTEQ(private val left: Operation, private val right: Operation) : Comparison {
+        class GTEQ(private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
                 val a = left.eval(input).term ?: return false.asLiteralTerm().into()
@@ -139,6 +140,53 @@ class FilterExpression(expr: Expression) {
                     else ->
                         throw UnsupportedOperationException("Cannot compare literals with types ${left.type} and ${right.type}")
                 }
+            }
+
+        }
+
+    }
+
+    sealed class MathOpEval : Operation {
+
+        abstract val lhs: Operation
+        abstract val rhs: Operation
+
+        final override fun eval(input: OperationValue): OperationValue {
+            val left = lhs.eval(input).term?.literal?.numericalValue ?: return OperationValue.Unbound
+            val right = rhs.eval(input).term?.literal?.numericalValue ?: return OperationValue.Unbound
+            return eval(left, right).asLiteralTerm().into()
+        }
+
+        abstract fun eval(lhs: Double, rhs: Double): Double
+
+        class Sum(override val lhs: Operation, override val rhs: Operation) : MathOpEval() {
+
+            override fun eval(lhs: Double, rhs: Double): Double {
+                return lhs + rhs
+            }
+
+        }
+
+        class Sub(override val lhs: Operation, override val rhs: Operation) : MathOpEval() {
+
+            override fun eval(lhs: Double, rhs: Double): Double {
+                return lhs - rhs
+            }
+
+        }
+
+        class Mul(override val lhs: Operation, override val rhs: Operation) : MathOpEval() {
+
+            override fun eval(lhs: Double, rhs: Double): Double {
+                return lhs * rhs
+            }
+
+        }
+
+        class Div(override val lhs: Operation, override val rhs: Operation) : MathOpEval() {
+
+            override fun eval(lhs: Double, rhs: Double): Double {
+                return lhs / rhs
             }
 
         }

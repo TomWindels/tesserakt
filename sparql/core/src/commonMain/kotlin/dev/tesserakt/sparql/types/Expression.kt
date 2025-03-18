@@ -34,37 +34,29 @@ sealed interface Expression : QueryAtom {
 
     }
 
-    sealed class MathOp : Expression {
+    /* = - value */
+    @JvmInline
+    value class Negative(val value: Expression) : Expression {
+        override fun toString() = "(- $value)"
 
-        enum class Operator {
-            SUM, MUL, DIFF, DIV
+        companion object {
+            fun of(value: Expression) = if (value is Negative) value.value else Negative(value)
         }
 
-        data class Sum(val lhs: Expression, val rhs: Expression) : MathOp() {
-            override fun toString() = "($lhs + $rhs)"
+    }
+
+    data class MathOp(
+        val lhs: Expression,
+        val rhs: Expression,
+        val operator: Operator,
+    ) : Expression {
+
+        enum class Operator(val sign: Char) {
+            SUM('+'), MUL('⨉'), SUB('-'), DIV('÷')
         }
 
-        data class Diff(val lhs: Expression, val rhs: Expression) : MathOp() {
-            override fun toString() = "($lhs - $rhs)"
-        }
-
-        data class Mul(val lhs: Expression, val rhs: Expression) : MathOp() {
-            override fun toString() = "($lhs * $rhs)"
-        }
-
-        data class Div(val lhs: Expression, val rhs: Expression) : MathOp() {
-            override fun toString() = "($lhs / $rhs)"
-        }
-
-        /* = - value */
-        @JvmInline
-        value class Negative(val value: Expression) : Expression {
-            override fun toString() = "(- $value)"
-
-            companion object {
-                fun of(value: Expression) = if (value is Negative) value.value else Negative(value)
-            }
-
+        override fun toString(): String {
+            return "($lhs ${operator.sign} $rhs)"
         }
 
         /**
@@ -125,9 +117,9 @@ sealed interface Expression : QueryAtom {
     data class Comparison(
         val lhs: Expression,
         val rhs: Expression,
-        val operand: Operand
+        val operator: Operator
     ) : Expression {
-        enum class Operand {
+        enum class Operator {
             GREATER_THAN, GREATER_THAN_OR_EQ, LESS_THAN, LESS_THAN_OR_EQ, EQUAL, NOT_EQUAL
         }
     }
@@ -162,14 +154,10 @@ sealed interface Expression : QueryAtom {
 
 private val Expression.MathOp.Operator.order: Int get() = when (this) {
     Expression.MathOp.Operator.SUM -> 1
-    Expression.MathOp.Operator.DIFF -> 1
+    Expression.MathOp.Operator.SUB -> 1
     Expression.MathOp.Operator.MUL -> 2
     Expression.MathOp.Operator.DIV -> 2
 }
 
-private fun Expression.MathOp.Operator.create(lhs: Expression, rhs: Expression): Expression.MathOp = when (this) {
-    Expression.MathOp.Operator.SUM -> Expression.MathOp.Sum(lhs, rhs)
-    Expression.MathOp.Operator.DIFF -> Expression.MathOp.Diff(lhs, rhs)
-    Expression.MathOp.Operator.MUL -> Expression.MathOp.Mul(lhs, rhs)
-    Expression.MathOp.Operator.DIV -> Expression.MathOp.Div(lhs, rhs)
-}
+private fun Expression.MathOp.Operator.create(lhs: Expression, rhs: Expression): Expression.MathOp =
+    Expression.MathOp(lhs, rhs, this)
