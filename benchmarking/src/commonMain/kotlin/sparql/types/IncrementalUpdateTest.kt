@@ -39,7 +39,8 @@ class IncrementalUpdateTest(
         // checking the initial state (no data)
         builder.add(
             self = setupTime to ongoing.results,
-            reference = reference()
+            reference = reference(),
+            debugInformation = ongoing.debugInformation()
         )
         // building it up
         store.forEach { quad ->
@@ -50,7 +51,8 @@ class IncrementalUpdateTest(
             }
             builder.add(
                 self = elapsedTime to current,
-                reference = reference()
+                reference = reference(),
+                debugInformation = ongoing.debugInformation()
             )
         }
         // breaking it back down
@@ -62,7 +64,8 @@ class IncrementalUpdateTest(
             }
             builder.add(
                 self = elapsedTime to current,
-                reference = reference()
+                reference = reference(),
+                debugInformation = ongoing.debugInformation()
             )
         }
         builder.build()
@@ -85,6 +88,7 @@ class IncrementalUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
+                debugInformation: String,
             ) {
                 list.add(
                     compare(
@@ -92,7 +96,7 @@ class IncrementalUpdateTest(
                         elapsedTime = self.first,
                         expected = reference.second,
                         referenceTime = reference.first,
-                        debugInformation = ""
+                        debugInformation = debugInformation
                     )
                 )
             }

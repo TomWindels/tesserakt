@@ -53,6 +53,10 @@ class OngoingQueryEvaluation<RT>(private val query: QueryState<RT, *>) {
         ensureValidState()
     }
 
+    fun debugInformation(): String {
+        return processor.debugInformation()
+    }
+
     private fun process(change: QueryState.ResultChange<Bindings>) {
         when (val mapped = query.process(change)) {
             is QueryState.ResultChange.New<*> -> {

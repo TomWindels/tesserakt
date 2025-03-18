@@ -60,7 +60,8 @@ class RandomUpdateTest(
         // checking the initial state (no data)
         builder.add(
             self = setupTime to ongoing.results,
-            reference = reference()
+            reference = reference(),
+            debugInformation = ongoing.debugInformation()
         )
         repeat(iterations) { i ->
             // and processing it
@@ -79,7 +80,8 @@ class RandomUpdateTest(
             }
             builder.add(
                 self = elapsedTime to current,
-                reference = reference()
+                reference = reference(),
+                debugInformation = ongoing.debugInformation()
             )
         }
         builder.build()
@@ -108,6 +110,7 @@ class RandomUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
+                debugInformation: String,
             ) {
                 list.add(
                     compare(
@@ -115,7 +118,7 @@ class RandomUpdateTest(
                         elapsedTime = self.first,
                         expected = reference.second,
                         referenceTime = reference.first,
-                        debugInformation = ""
+                        debugInformation = debugInformation
                     )
                 )
             }

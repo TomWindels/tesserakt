@@ -307,6 +307,10 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
             return Iter(indexes.iterator())
         }
 
+        override fun supportsReuse(): Boolean {
+            return true
+        }
+
     }
 
     private fun IndexStream.toStream(): OptimisedStream<Mapping> = Mapper(indexes, Cardinality(cardinality))

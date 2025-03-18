@@ -70,4 +70,8 @@ class StreamSingleJoin(
         return Iter(left = left, source = right.iterator())
     }
 
+    override fun supportsReuse(): Boolean {
+        return right.supportsReuse()
+    }
+
 }

@@ -65,4 +65,8 @@ class StreamMappingNullable<I: Any, O: Any>(
         )
     }
 
+    override fun supportsReuse(): Boolean {
+        return source.supportsReuse()
+    }
+
 }

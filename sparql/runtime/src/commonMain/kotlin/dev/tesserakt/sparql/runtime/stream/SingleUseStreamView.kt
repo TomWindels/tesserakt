@@ -32,4 +32,8 @@ class SingleUseStreamView<E: Any> private constructor(
         return iter ?: throw NoSuchElementException("$sourceDescription has already been consumed!")
     }
 
+    override fun supportsReuse(): Boolean {
+        return false
+    }
+
 }

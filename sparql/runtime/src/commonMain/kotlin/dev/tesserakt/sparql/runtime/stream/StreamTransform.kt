@@ -61,4 +61,8 @@ class StreamTransform<I: Any, O: Any>(
         )
     }
 
+    override fun supportsReuse(): Boolean {
+        return source.supportsReuse()
+    }
+
 }

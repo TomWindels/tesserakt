@@ -69,4 +69,8 @@ class StreamFilter<I: Any>(
         )
     }
 
+    override fun supportsReuse(): Boolean {
+        return source.supportsReuse()
+    }
+
 }

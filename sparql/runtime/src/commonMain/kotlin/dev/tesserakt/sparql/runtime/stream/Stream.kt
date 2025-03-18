@@ -21,4 +21,10 @@ interface Stream<out E: Any>: Iterable<E> {
      */
     fun supportsEfficientIteration(): Boolean
 
+    /**
+     * Analyses this stream's dependencies to detect whether its iteration can be done multiple times, which can be used
+     *  to carefully buffer/collect single use streams when repeated iterations are required.
+     */
+    fun supportsReuse(): Boolean
+
 }

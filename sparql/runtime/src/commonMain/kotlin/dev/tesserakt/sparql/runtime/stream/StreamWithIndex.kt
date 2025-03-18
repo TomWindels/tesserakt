@@ -46,4 +46,8 @@ value class StreamWithIndex<I : Any>(private val parent: Stream<I>): Stream<Pair
         return Iter(iterator = parent.iterator())
     }
 
+    override fun supportsReuse(): Boolean {
+        return parent.supportsReuse()
+    }
+
 }

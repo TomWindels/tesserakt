@@ -1,10 +1,10 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.types.TriplePattern
-import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.stream.*
+import dev.tesserakt.sparql.types.TriplePattern
+import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Bitmask
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.OneCardinality

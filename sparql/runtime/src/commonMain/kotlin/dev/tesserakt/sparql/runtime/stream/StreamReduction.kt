@@ -60,4 +60,8 @@ class StreamReduction<E: Any>(
         return Iter(source = source.iterator(), remove = counter.clone())
     }
 
+    override fun supportsReuse(): Boolean {
+        return source.supportsReuse()
+    }
+
 }
