@@ -62,6 +62,10 @@ fun <RT> MutableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
 }
 
+fun <RT> MutableStore.queryDebug(query: Query<RT>): OngoingQueryEvaluation<RT> {
+    return OngoingQueryEvaluationDebug(query.createState()).also { it.subscribe(this) }
+}
+
 internal fun <RT> MutableStore.query(query: QueryState<RT, *>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationRelease(query).also { it.subscribe(this) }
 }
