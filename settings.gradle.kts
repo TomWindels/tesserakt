@@ -37,7 +37,8 @@ include("interop:rdfjs")
 include("testing:suite")
 include("testing:rdf-test-suite-js")
 
-include("benchmarking:store-replay")
 include("benchmarking")
+include("benchmarking:store-replay")
+include("benchmarking:runner")
 
 include("js-build")
