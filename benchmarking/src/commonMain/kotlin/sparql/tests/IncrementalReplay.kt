@@ -88,7 +88,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
             val received: List<Bindings>
             val time = measureTime {
                 store.apply(diff)
-                received = evaluation.results
+                received = evaluation.results.toList()
             }
             check(store.size == current.size)
             // comparing the results with the reference implementation, using the `current` store version's data

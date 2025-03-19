@@ -6,7 +6,7 @@ import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.OngoingQueryEvaluation
 import dev.tesserakt.sparql.Query
-import dev.tesserakt.sparql.query
+import dev.tesserakt.sparql.queryDebug
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
@@ -55,11 +55,11 @@ class RandomUpdateTest(
 
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime = measureTime {
-            ongoing = input.query(query)
+            ongoing = input.queryDebug(query)
         }
         // checking the initial state (no data)
         builder.add(
-            self = setupTime to ongoing.results,
+            self = setupTime to ongoing.results.toList(),
             reference = reference(),
             debugInformation = ongoing.debugInformation()
         )
@@ -69,7 +69,7 @@ class RandomUpdateTest(
             val elapsedTime = measureTime {
                 try {
                     input.process(deltas[i])
-                    current = ongoing.results
+                    current = ongoing.results.toList()
                 } catch (e: Exception) {
                     val results = builder.build()
                     throw RuntimeException(
