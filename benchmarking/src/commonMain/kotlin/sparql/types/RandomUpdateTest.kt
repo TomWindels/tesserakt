@@ -59,7 +59,7 @@ class RandomUpdateTest(
         }
         // checking the initial state (no data)
         builder.add(
-            self = setupTime to ongoing.results,
+            self = setupTime to ongoing.results.toList(),
             reference = reference(),
             debugInformation = ongoing.debugInformation()
         )
@@ -69,7 +69,7 @@ class RandomUpdateTest(
             val elapsedTime = measureTime {
                 try {
                     input.process(deltas[i])
-                    current = ongoing.results
+                    current = ongoing.results.toList()
                 } catch (e: Exception) {
                     val results = builder.build()
                     throw RuntimeException(

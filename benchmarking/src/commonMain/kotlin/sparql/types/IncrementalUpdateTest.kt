@@ -38,7 +38,7 @@ class IncrementalUpdateTest(
         }
         // checking the initial state (no data)
         builder.add(
-            self = setupTime to ongoing.results,
+            self = setupTime to ongoing.results.toList(),
             reference = reference(),
             debugInformation = ongoing.debugInformation()
         )
@@ -47,7 +47,7 @@ class IncrementalUpdateTest(
             val current: List<Bindings>
             val elapsedTime = measureTime {
                 input.add(quad)
-                current = ongoing.results
+                current = ongoing.results.toList()
             }
             builder.add(
                 self = elapsedTime to current,
@@ -60,7 +60,7 @@ class IncrementalUpdateTest(
             val current: List<Bindings>
             val elapsedTime = measureTime {
                 input.remove(quad)
-                current = ongoing.results
+                current = ongoing.results.toList()
             }
             builder.add(
                 self = elapsedTime to current,

@@ -59,9 +59,9 @@ internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> = bui
 }
 
 fun <RT> MutableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
-    return OngoingQueryEvaluation(query.createState()).also { it.subscribe(this) }
+    return OngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
 }
 
 internal fun <RT> MutableStore.query(query: QueryState<RT, *>): OngoingQueryEvaluation<RT> {
-    return OngoingQueryEvaluation(query).also { it.subscribe(this) }
+    return OngoingQueryEvaluationRelease(query).also { it.subscribe(this) }
 }
