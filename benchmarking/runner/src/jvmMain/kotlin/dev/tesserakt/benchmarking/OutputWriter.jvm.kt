@@ -13,7 +13,7 @@ actual class OutputWriter actual constructor(directory: String): Closeable {
     init {
         check(directory.endsWith('/'))
         val root = File(directory)
-        root.mkdir()
+        root.mkdirs()
         val contents = root.list()
         when {
             contents == null -> throw IllegalArgumentException("Path `$directory` is not a directory!")

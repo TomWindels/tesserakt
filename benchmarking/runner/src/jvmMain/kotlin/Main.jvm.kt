@@ -1,5 +1,8 @@
-import dev.tesserakt.benchmarking.Runner
+import dev.tesserakt.benchmarking.RunnerConfig
 
 fun main(args: Array<String>) {
-    Runner(args).run()
+    val configs = RunnerConfig.fromCommandLine(args)
+    configs.forEach {
+        it.createRunner().run()
+    }
 }

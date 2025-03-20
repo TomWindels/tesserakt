@@ -18,3 +18,7 @@ fun compare(a: List<Any>, b: List<Any>): Evaluator.Output {
         removed = counts.filter { it.value < 0 }.entries.sumOf { entry -> -entry.value },
     )
 }
+
+expect fun String.isFolder(): Boolean
+
+expect fun String.listFiles(): List<String>
