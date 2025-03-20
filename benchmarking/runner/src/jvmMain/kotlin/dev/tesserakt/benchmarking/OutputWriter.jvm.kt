@@ -8,6 +8,7 @@ actual class OutputWriter actual constructor(directory: String): Closeable {
 
     private val memoryObserver: MemoryObserver
     private val timeObserver: TimeObserver
+    private val outputObserver: OutputObserver
 
     init {
         check(directory.endsWith('/'))
@@ -20,6 +21,7 @@ actual class OutputWriter actual constructor(directory: String): Closeable {
         }
         memoryObserver = MemoryObserver(directory + "memory.csv")
         timeObserver = TimeObserver(directory + "time.csv")
+        outputObserver = OutputObserver(directory + "outputs.csv")
     }
 
     /**
@@ -43,6 +45,7 @@ actual class OutputWriter actual constructor(directory: String): Closeable {
     actual override fun close() {
         memoryObserver.stop()
         timeObserver.stop()
+        outputObserver.stop()
     }
 
     /**
@@ -57,6 +60,10 @@ actual class OutputWriter actual constructor(directory: String): Closeable {
      */
     actual fun markEnd(id: String) {
         timeObserver.end(id)
+    }
+
+    actual fun markOutputs(id: String, output: Evaluator.Output) {
+        outputObserver.markResult(id, output)
     }
 
 }

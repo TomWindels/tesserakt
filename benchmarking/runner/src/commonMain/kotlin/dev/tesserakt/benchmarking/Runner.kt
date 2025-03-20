@@ -27,7 +27,8 @@ class Runner(
                 output.reset()
                 deltas.forEach { delta ->
                     evaluator.prepare(delta)
-                    evaluator.apply()
+                    evaluator.eval()
+                    evaluator.finish()
                 }
             }
             output.markEnd("warmup")
@@ -40,8 +41,10 @@ class Runner(
                         val id = RunId(queryIndex = qi, deltaIndex = di, runIndex = runIndex)
                         evaluator.prepare(delta)
                         output.markStart(id.id())
-                        evaluator.apply()
+                        evaluator.eval()
                         output.markEnd(id.id())
+                        val outputs = evaluator.finish()
+                        output.markOutputs(id.id(), outputs)
                     }
                 }
             }

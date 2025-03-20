@@ -30,4 +30,6 @@ expect class OutputWriter(directory: String): Closeable {
      */
     fun markEnd(id: String)
 
+    fun markOutputs(id: String, output: Evaluator.Output)
+
 }

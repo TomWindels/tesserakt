@@ -10,6 +10,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 // to deserialize and evaluate datasets
+                implementation(project(":common"))
                 implementation(project(":serialization"))
                 implementation(project(":benchmarking:store-replay"))
                 // being able to actually execute the queries
