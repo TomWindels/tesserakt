@@ -39,6 +39,7 @@ include("testing:rdf-test-suite-js")
 
 include("benchmarking")
 include("benchmarking:store-replay")
+include("benchmarking:microbench")
 include("benchmarking:runner")
 
 include("js-build")
