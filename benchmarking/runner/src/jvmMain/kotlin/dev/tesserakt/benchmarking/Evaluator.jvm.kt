@@ -1,23 +1,28 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.interop.jena.toJenaDataset
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.interop.jena.toJenaQuad
 import dev.tesserakt.sparql.benchmark.replay.SnapshotStore
-import org.apache.jena.query.Dataset
+import org.apache.jena.query.DatasetFactory
 import org.apache.jena.query.QueryExecutionFactory
 import org.apache.jena.query.QuerySolution
+import org.apache.jena.query.ReadWrite
 
 actual class Reference actual constructor(private val query: String) : Evaluator() {
 
-    private val total = mutableSetOf<Quad>()
-    private lateinit var store: Dataset
+    private val store = DatasetFactory.createTxnMem()
     private var previous = emptyList<QuerySolution>()
     private var current = emptyList<QuerySolution>()
 
     override fun prepare(diff: SnapshotStore.Diff) {
-        diff.deletions.forEach { total.remove(it) }
-        diff.insertions.forEach { total.add(it) }
-        store = total.toJenaDataset()
+        store.begin(ReadWrite.WRITE)
+        try {
+            val graph = store.asDatasetGraph()
+            diff.insertions.forEach { graph.add(it.toJenaQuad()) }
+            diff.deletions.forEach { graph.delete(it.toJenaQuad()) }
+            store.commit()
+        } finally {
+            store.end()
+        }
     }
 
     override fun eval() {

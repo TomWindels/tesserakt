@@ -6,13 +6,11 @@ import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 
 class Runner(
-    inputFilePath: String,
-    outputDirPath: String,
-    private val referenceImplementation: Boolean
+    private val config: RunnerConfig
 ) {
 
-    private val source = ReplayBenchmark.from(TriGSerializer.deserialize(Path(inputFilePath)).consume()).single()
-    private val output = OutputWriter(outputDirPath)
+    private val source = ReplayBenchmark.from(TriGSerializer.deserialize(Path(config.inputFilePath)).consume()).single()
+    private val output = OutputWriter(config)
 
     fun run() {
         // putting the store's diffs in memory
@@ -23,7 +21,7 @@ class Runner(
             // warmup
             output.markStart("warmup")
             source.queries.forEach { query ->
-                val evaluator = if (referenceImplementation) Evaluator.reference(query) else Evaluator.self(query)
+                val evaluator = if (config.referenceImplementation) Evaluator.reference(query) else Evaluator.self(query)
                 output.reset()
                 deltas.forEach { delta ->
                     evaluator.prepare(delta)
@@ -35,7 +33,7 @@ class Runner(
             // actual execution
             repeat(10) { runIndex ->
                 source.queries.forEachIndexed { qi, query ->
-                    val evaluator = if (referenceImplementation) Evaluator.reference(query) else Evaluator.self(query)
+                    val evaluator = if (config.referenceImplementation) Evaluator.reference(query) else Evaluator.self(query)
                     output.reset()
                     deltas.forEachIndexed { di, delta ->
                         val id = RunId(queryIndex = qi, deltaIndex = di, runIndex = runIndex)

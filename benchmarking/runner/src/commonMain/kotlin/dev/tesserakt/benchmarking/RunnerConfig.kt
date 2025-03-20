@@ -6,11 +6,10 @@ data class RunnerConfig(
     val referenceImplementation: Boolean
 ) {
 
-    fun createRunner() = Runner(
-        inputFilePath = inputFilePath,
-        outputDirPath = outputDirPath,
-        referenceImplementation = referenceImplementation
-    )
+    fun createRunner() = Runner(config = this)
+
+    override fun toString() =
+        "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Reference: $referenceImplementation"
 
     companion object {
 
@@ -30,6 +29,7 @@ data class RunnerConfig(
             var output: String? = null
             var i = 0
             var useReference = false
+            var createComparison = false
             while (i < args.size) {
                 when {
                     args[i].isInputFlag() -> {
@@ -51,6 +51,9 @@ data class RunnerConfig(
                     args[i].isReferenceImplementationFlag() -> {
                         useReference = true
                     }
+                    args[i].isComparisonFlag() -> {
+                        createComparison = true
+                    }
                     input == null -> {
                         input = args[i]
                     }
@@ -71,13 +74,32 @@ data class RunnerConfig(
             }
             return when {
                 input.isFolder() -> {
-                    input.listFiles().filter { it.endsWith(".ttl") }.map { i ->
-                        val filename = i.substringAfterLast('/').substringBefore('.')
-                        RunnerConfig(
-                            inputFilePath = i,
-                            outputDirPath = if (output != null) "${output}$filename/" else i.createOutputFilepath(),
-                            referenceImplementation = useReference
-                        )
+                    val files = input.listFiles().filter { it.endsWith(".ttl") }
+                    if (createComparison) {
+                        files.map { name ->
+                            val filename = name.substringAfterLast('/').substringBefore('.')
+                            RunnerConfig(
+                                inputFilePath = name,
+                                outputDirPath = if (output != null) "${output}$filename-self/" else name.createOutputFilepath(),
+                                referenceImplementation = false
+                            )
+                        } + files.map { name ->
+                            val filename = name.substringAfterLast('/').substringBefore('.')
+                            RunnerConfig(
+                                inputFilePath = name,
+                                outputDirPath = if (output != null) "${output}$filename-reference/" else name.createOutputFilepath(),
+                                referenceImplementation = true
+                            )
+                        }
+                    } else {
+                        files.map { name ->
+                            val filename = name.substringAfterLast('/').substringBefore('.')
+                            RunnerConfig(
+                                inputFilePath = name,
+                                outputDirPath = if (output != null) "${output}$filename-${if (useReference) "-reference" else "-self"}/" else name.createOutputFilepath(),
+                                referenceImplementation = useReference
+                            )
+                        }
                     }
                 }
 
@@ -85,13 +107,29 @@ data class RunnerConfig(
                     if (!input.endsWith(".ttl")) {
                         throw IllegalArgumentException("Invalid input filepath! `.ttl` file expected!")
                     }
-                    listOf(
-                        RunnerConfig(
-                            inputFilePath = input,
-                            outputDirPath = output ?: input.createOutputFilepath(),
-                            referenceImplementation = useReference
+                    val filename = input.substringAfterLast('/').substringBefore('.')
+                    if (createComparison) {
+                        listOf(
+                            RunnerConfig(
+                                inputFilePath = input,
+                                outputDirPath = if (output != null) "${output}$filename-self/" else input.createOutputFilepath(),
+                                referenceImplementation = false
+                            ),
+                            RunnerConfig(
+                                inputFilePath = input,
+                                outputDirPath = if (output != null) "${output}$filename-reference/" else input.createOutputFilepath(),
+                                referenceImplementation = true
+                            ),
                         )
-                    )
+                    } else {
+                        listOf(
+                            RunnerConfig(
+                                inputFilePath = input,
+                                outputDirPath = if (output != null) "${output}$filename-${if (useReference) "-reference" else "-self"}/" else input.createOutputFilepath(),
+                                referenceImplementation = useReference
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -101,6 +139,8 @@ data class RunnerConfig(
         private fun String.isOutputFlag() = this == "-o" || this == "--output"
 
         private fun String.isReferenceImplementationFlag() = this == "--use-reference-implementation"
+
+        private fun String.isComparisonFlag() = this == "--compare-implementations"
 
         private fun String.createOutputFilepath() = this.dropLast(3) + "_${currentEpochMs()}/"
 

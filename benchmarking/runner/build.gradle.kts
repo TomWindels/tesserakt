@@ -31,10 +31,10 @@ kotlin {
 val build = layout.buildDirectory
 val graphingTarget = build.dir("graphs")
 
-fun local(name: String): String {
+fun local(name: String): String? {
     val properties = Properties()
     properties.load(File(rootDir.absolutePath + "/local.properties").inputStream())
-    return properties.getProperty(name)
+    return properties.getProperty(name, null)
 }
 
 val cleanGraphTool = tasks.register("cleanGraphingTool", Exec::class.java) {
@@ -43,10 +43,16 @@ val cleanGraphTool = tasks.register("cleanGraphingTool", Exec::class.java) {
     commandLine("rm", "-rf", graphingTarget.get().asFile.path)
 }
 
+val cleanBenchmarkResults = tasks.register("cleanBenchmarkResults", Exec::class.java) {
+    workingDir = build.asFile.get()
+    commandLine("rm", "-rf", build.dir("benchmark_output").get().asFile.path)
+}
+
 val graphPreparation = tasks.register("prepareGraphingTool", Exec::class.java) {
     enabled = !graphingTarget.get().asFile.exists()
     workingDir = build.asFile.get()
     val url = local("benchmarking.graph.url")
+        ?: throw IllegalStateException("No benchmark graph source configured! Please add `benchmarking.graph.url=<url>` to `${project.rootProject.rootDir.path}/local.properties`!")
     commandLine("git", "clone", url, "graphs")
 }
 
@@ -69,7 +75,8 @@ val runner = tasks.register("runBenchmark", Exec::class) {
     val jar = build.dir("libs").get().asFile.listFiles()?.singleOrNull { it.extension == "jar" }?.path
     check(jar != null) { "Could not resolve the executable JAR file!" }
     val source = local("benchmarking.input")
-    commandLine("java", "-jar", jar, "-i", source, "-o", "${build.get().asFile.path}/benchmark_output/")
+        ?: throw IllegalStateException("No benchmark input configured! Please add `benchmarking.input=<path/to/dataset>` to `${project.rootProject.rootDir.path}/local.properties`!")
+    commandLine("java", "-jar", jar, "-i", source, "-o", "${build.get().asFile.path}/benchmark_output/", "--compare-implementations")
 }
 
 val graphing = tasks.register("createBenchmarkGraphs", Exec::class.java) {
