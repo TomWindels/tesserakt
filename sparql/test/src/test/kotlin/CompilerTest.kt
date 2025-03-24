@@ -126,20 +126,22 @@ class CompilerTest {
             require(this is SelectQueryStructure)
             val count = output!!.find { it.name == "count" }!!
             (count as SelectQueryStructure.ExpressionOutput).expression ==
-                    Expression.MathOp.Sum(
+                    Expression.MathOp(
                         lhs = Expression.BindingAggregate(
                             type = Expression.BindingAggregate.Type.AVG,
                             input = Expression.BindingValues("s"),
                             distinct = false
                         ),
-                        rhs = Expression.MathOp.Div(
+                        rhs = Expression.MathOp(
                             lhs = Expression.BindingAggregate(
                                 type = Expression.BindingAggregate.Type.MIN,
                                 input = Expression.BindingValues("s"),
                                 distinct = false
                             ),
-                            rhs = Expression.NumericLiteralValue(3L)
-                        )
+                            rhs = Expression.NumericLiteralValue(3L),
+                            operator = Expression.MathOp.Operator.DIV
+                        ),
+                        operator = Expression.MathOp.Operator.SUM
                     )
         }
         """
@@ -161,7 +163,7 @@ class CompilerTest {
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
             ((avg as SelectQueryStructure.ExpressionOutput).expression as Expression.BindingAggregate).type == Expression.BindingAggregate.Type.AVG &&
-            (c as SelectQueryStructure.ExpressionOutput).expression is Expression.MathOp.Div
+            (c as SelectQueryStructure.ExpressionOutput).expression is Expression.MathOp
         }
         """
             SELECT * WHERE {

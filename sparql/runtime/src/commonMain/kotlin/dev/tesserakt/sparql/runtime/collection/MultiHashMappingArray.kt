@@ -2,7 +2,6 @@ package dev.tesserakt.sparql.runtime.collection
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
-import dev.tesserakt.sparql.runtime.evaluation.toMapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.emptyIterable
 import dev.tesserakt.sparql.util.Cardinality
@@ -212,7 +211,7 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
      * Returns an iterable set of indices compatible with the provided mapping
      */
     private fun indexStreamFor(reference: Mapping): IndexStream {
-        val constraints = reference.filter { it.key in index }
+        val constraints = reference.retain(index.keys)
         // if there aren't any constraints, all mappings (the entire backing array) can be returned instead
         if (constraints.isEmpty()) {
             return IndexStream(indexes = backing.indices, cardinality = backing.size - holes)
@@ -220,7 +219,8 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
         // getting all relevant indexes - if any of the mapping's values don't have an ID list present for the reference's
         //  value, we can bail early: none match the reference
         val indexes = constraints
-            .map { binding -> index[binding.key]!![binding.value] ?: return IndexStream.NONE }
+            .asIterable()
+            .map { binding -> index[binding.first]!![binding.second] ?: return IndexStream.NONE }
         // the resulting array cannot be longer than the smallest index found, so if any of them are empty, no results
         //  are found
         val cardinality = indexes.minOf { it.size }
@@ -247,8 +247,7 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
         // separating the individual references into their constraints
         val constraints: Map<Mapping?, List<Int>> = references.indices.groupBy { i ->
             val current = references[i] ?: return@groupBy null
-            val constraints = current.keys.filter { it in index }.toSet()
-            current.filter { it.key in constraints }.toMapping()
+            current.retain(index.keys)
         }
         // with all relevant & unique constraints formed, the compatible mappings w/o redundant lookup can be retrieved
         val mapped = constraints.map { (constraints, indexes) -> (constraints?.let { indexStreamFor(constraints) } ?: IndexStream.NONE) to indexes }

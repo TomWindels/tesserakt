@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.runtime.stream
 
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.emptyMapping
 import dev.tesserakt.sparql.util.Cardinality
-import dev.tesserakt.util.compatibleWith
 
 class StreamSingleJoin(
     private val left: Mapping,
@@ -15,7 +15,8 @@ class StreamSingleJoin(
         private val source: Iterator<Mapping>,
     ): Iterator<Mapping> {
 
-        private lateinit var right: Mapping
+        // the empty mapping is never read from, so this is not an error (instant `increment()` call)
+        private var right: Mapping = emptyMapping()
 
         private var next: Mapping? = null
 
@@ -35,8 +36,9 @@ class StreamSingleJoin(
 
         private fun getNext(): Mapping? {
             while (increment()) {
-                if (left.compatibleWith(right)) {
-                    return left + right
+                val joined = left.join(right)
+                if (joined != null) {
+                    return joined
                 }
             }
             return null

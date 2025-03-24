@@ -2,6 +2,7 @@ package dev.tesserakt.sparql
 
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.BindingsImpl
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.query.QueryState
@@ -55,7 +56,7 @@ class OngoingQueryEvaluationRelease<RT>(private val query: QueryState<RT, *>): O
         return processor.debugInformation()
     }
 
-    private fun process(change: QueryState.ResultChange<Bindings>) {
+    private fun process(change: QueryState.ResultChange<BindingsImpl>) {
         when (val mapped = query.process(change)) {
             is QueryState.ResultChange.New<*> -> {
                 _results.replace(mapped.value) { current -> (current ?: 0) + 1 }

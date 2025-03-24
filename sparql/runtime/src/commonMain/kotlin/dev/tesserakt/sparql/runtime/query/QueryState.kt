@@ -1,6 +1,5 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.runtime.compat.Compat
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.into
@@ -29,10 +28,10 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
                     )
                 )
                 // mapping them to insertion changes, combining them into the expected return type
-                .map { bindings -> this@QueryState.process(ResultChange.New(bindings.value)).value }
+                .map { bindings -> this@QueryState.process(ResultChange.New(BindingsImpl(bindings.value))).value }
         }
 
-        fun process(data: DataDelta): List<ResultChange<Bindings>> {
+        fun process(data: DataDelta): List<ResultChange<BindingsImpl>> {
             return state.insert(data).map { it.into() }
         }
 
@@ -51,13 +50,13 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
         companion object {
             fun MappingDelta.into() = when (this) {
-                is MappingAddition -> New(value.bindings)
-                is MappingDeletion -> Removed(value.bindings)
+                is MappingAddition -> New(BindingsImpl(value))
+                is MappingDeletion -> Removed(BindingsImpl(value))
             }
         }
 
     }
 
-    abstract fun process(change: ResultChange<Bindings>): ResultChange<ResultType>
+    abstract fun process(change: ResultChange<BindingsImpl>): ResultChange<ResultType>
 
 }

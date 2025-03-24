@@ -49,6 +49,7 @@ val cleanBenchmarkResults = tasks.register("cleanBenchmarkResults", Exec::class.
 }
 
 val graphPreparation = tasks.register("prepareGraphingTool", Exec::class.java) {
+    group = "benchmarking"
     enabled = !graphingTarget.get().asFile.exists()
     workingDir = build.asFile.get()
     val url = local("benchmarking.graph.url")
@@ -57,12 +58,14 @@ val graphPreparation = tasks.register("prepareGraphingTool", Exec::class.java) {
 }
 
 val graphConfiguration = tasks.register("configureGraphingTool", Exec::class.java) {
+    group = "benchmarking"
     enabled = !graphingTarget.get().file("pyvenv.cfg").asFile.exists()
     workingDir = build.asFile.get()
     commandLine("python", "-m", "venv", "graphs")
 }
 
 val graphInstallation = tasks.register("installGraphingTool", Exec::class.java) {
+    group = "benchmarking"
     enabled = !graphingTarget.get().dir("lib").asFile.listFiles()?.singleOrNull { it.isDirectory }?.listFiles()
         ?.singleOrNull { it.name == "site-packages" }?.listFiles()
         .let { it != null && it.any { it.isDirectory && it.name == "pandas" } }
@@ -71,15 +74,16 @@ val graphInstallation = tasks.register("installGraphingTool", Exec::class.java) 
 }
 
 val runner = tasks.register("runBenchmark", Exec::class) {
+    group = "benchmarking"
     workingDir = build.asFile.get()
-    val jar = build.dir("libs").get().asFile.listFiles()?.singleOrNull { it.extension == "jar" }?.path
-    check(jar != null) { "Could not resolve the executable JAR file!" }
+    val jar = build.dir("libs").get().file("runner-jvm-${version}.jar").asFile.path
     val source = local("benchmarking.input")
         ?: throw IllegalStateException("No benchmark input configured! Please add `benchmarking.input=<path/to/dataset>` to `${project.rootProject.rootDir.path}/local.properties`!")
     commandLine("java", "-jar", jar, "-i", source, "-o", "${build.get().asFile.path}/benchmark_output/", "--compare-implementations")
 }
 
 val graphing = tasks.register("createBenchmarkGraphs", Exec::class.java) {
+    group = "benchmarking"
     val targets = build.dir("benchmark_output").get().asFile.path + "/*"
     workingDir = graphingTarget.get().asFile
     commandLine("./bin/python", "main.py", targets)

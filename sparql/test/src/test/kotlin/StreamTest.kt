@@ -3,7 +3,6 @@ import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.runtime.evaluation.mappingOf
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.util.Counter
-import dev.tesserakt.util.compatibleWith
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -43,7 +42,7 @@ class StreamTest {
         val b = (7..10).map { mappingOf("value" to it.asLiteralTerm()) }
             .toStream()
         val joined1 = a.join(b)
-        val joined2 = a.product(b).mappedNonNull { (a, b) -> if (a.compatibleWith(b)) a + b else null }
+        val joined2 = a.product(b).mappedNonNull { (a, b) -> a.join(b) }
         val check = Counter(joined1)
         assertEquals(joined1.cardinality, joined2.cardinality)
         assertTrue { check.current.size == 4 }

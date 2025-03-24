@@ -2,26 +2,21 @@ package dev.tesserakt.sparql.runtime.evaluation
 
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.mapped
-import dev.tesserakt.util.compatibleWith
 
 
 operator fun MappingDelta.plus(other: MappingDelta): MappingDelta? {
     return when {
         this is MappingAddition &&
-        other is MappingAddition &&
-        value.compatibleWith(other.value) ->
-            MappingAddition(
-                value = value + other.value,
-                origin = origin
-            )
+        other is MappingAddition -> value.join(other.value)?.let { MappingAddition(it, origin) }
 
         this is MappingDeletion &&
-        other is MappingDeletion &&
-        value.compatibleWith(other.value) ->
-            MappingDeletion(
-                value = value + other.value,
-                origin = origin
-            )
+        other is MappingDeletion ->
+            value.join(other.value)?.let {
+                MappingDeletion(
+                    value = it,
+                    origin = origin
+                )
+            }
 
         else -> null
     }

@@ -295,8 +295,8 @@ sealed interface JoinTree: MutableJoinState {
                 }
 
                 override fun join(delta: MappingDelta): Stream<MappingDelta> {
-                    val leftOverlap = delta.value.bindings.keys.count { it in left.bindings }
-                    val rightOverlap = delta.value.bindings.keys.count { it in right.bindings }
+                    val leftOverlap = delta.value.keys().count { it in left.bindings }
+                    val rightOverlap = delta.value.keys().count { it in right.bindings }
                     return if (leftOverlap > rightOverlap) {
                         right.join(left.join(delta).optimisedForSingleUse(left.cardinality))
                     } else {
