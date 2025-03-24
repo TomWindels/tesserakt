@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.QueryContext
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.util.Bitmask
@@ -207,14 +208,14 @@ data class GraphPatternFilterState(
 
     companion object {
 
-        operator fun invoke(parent: GroupPatternState, filters: List<Filter>): GraphPatternFilterState {
+        operator fun invoke(context: QueryContext, parent: GroupPatternState, filters: List<Filter>): GraphPatternFilterState {
             val stateful = mutableListOf<MutableFilterState>()
             val stateless = mutableListOf<StatelessFilter>()
             filters.forEach { filter ->
                 when (filter) {
-                    is Filter.Exists -> stateful.add(InclusionFilterState(parent, filter))
-                    is Filter.NotExists -> stateful.add(ExclusionFilterState(parent, filter))
-                    is Filter.Predicate -> stateless.add(ExpressionFilter(filter.expression))
+                    is Filter.Exists -> stateful.add(InclusionFilterState(context, parent, filter))
+                    is Filter.NotExists -> stateful.add(ExclusionFilterState(context, parent, filter))
+                    is Filter.Predicate -> stateless.add(ExpressionFilter(context, filter.expression))
                     is Filter.Regex -> TODO()
                 }
             }

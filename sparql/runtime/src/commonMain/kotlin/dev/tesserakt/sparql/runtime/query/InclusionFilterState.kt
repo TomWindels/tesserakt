@@ -4,7 +4,6 @@ import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.util.Counter
-import dev.tesserakt.util.compatibleWith
 import dev.tesserakt.util.replace
 
 sealed interface InclusionFilterState: MutableFilterState {
@@ -34,6 +33,7 @@ sealed interface InclusionFilterState: MutableFilterState {
      *  collection (which may not be empty!)
      */
     class Narrow(
+        private val context: QueryContext,
         private val commonBindingNames: Set<String>,
         private val state: BasicGraphPatternState,
     ) : InclusionFilterState {
@@ -46,7 +46,7 @@ sealed interface InclusionFilterState: MutableFilterState {
         private val filtered = Counter<Mapping>()
 
         override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-            val changes = state.peek(delta).mapped { it.map { it.retain(commonBindingNames) } }
+            val changes = state.peek(delta).mapped { it.map { it.retain(context, commonBindingNames) } }
             // these changes, combined with the `filtered` state, will result in a set of bindings that can now be joined
             //  with to find all resulting changes:
             // * change deletions (in filtered now, but removed in `changes`) => these have to be removed outwards
@@ -85,7 +85,7 @@ sealed interface InclusionFilterState: MutableFilterState {
             // applying the impact of the new delta to it
             state
                 .peek(delta)
-                .mapped { it.map { it.retain(commonBindingNames) } }
+                .mapped { it.map { it.retain(context, commonBindingNames) } }
                 .forEach { mappingDelta ->
                     when (mappingDelta) {
                         is MappingAddition -> total.increment(mappingDelta.value)
@@ -106,7 +106,7 @@ sealed interface InclusionFilterState: MutableFilterState {
         override fun process(delta: DataDelta) {
             state
                 .peek(delta)
-                .mapped { it.map { it.retain(commonBindingNames) } }
+                .mapped { it.map { it.retain(context, commonBindingNames) } }
                 .forEach { mappingDelta ->
                     when (mappingDelta) {
                         is MappingAddition -> filtered.increment(mappingDelta.value)
@@ -198,13 +198,14 @@ sealed interface InclusionFilterState: MutableFilterState {
 
     companion object {
 
-        operator fun invoke(parent: GroupPatternState, filter: Filter.Exists): InclusionFilterState {
-            val state = BasicGraphPatternState(filter.pattern)
+        operator fun invoke(context: QueryContext, parent: GroupPatternState, filter: Filter.Exists): InclusionFilterState {
+            val state = BasicGraphPatternState(context, filter.pattern)
             val externalBindings = parent.bindings.intersect(state.bindings)
             return if (externalBindings.isEmpty()) {
                 Broad(state = state)
             } else {
                 Narrow(
+                    context = context,
                     commonBindingNames = externalBindings,
                     state = state
                 )

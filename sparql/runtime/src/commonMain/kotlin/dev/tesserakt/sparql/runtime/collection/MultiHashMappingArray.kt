@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.collection
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.QueryContext
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.emptyIterable
 import dev.tesserakt.sparql.util.Cardinality
@@ -10,8 +11,10 @@ import dev.tesserakt.sparql.util.Cardinality
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
  *  algorithm. Hash tables are created for every binding name passed in the constructor.
  */
-class MultiHashMappingArray(bindings: Set<String>): MappingArray {
-
+class MultiHashMappingArray(
+    private val context: QueryContext,
+    bindings: Set<String>
+): MappingArray {
     // the backing structure, contains all mappings ever received
     private val backing = mutableListOf<Mapping?>()
     // the number of holes in the backing structure, indicative of the
@@ -66,7 +69,7 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
         val pos = backing.size
         backing.add(mapping)
         index.forEach { index ->
-            val value = mapping[index.key]
+            val value = mapping.get(context, index.key)
                 ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
             index.value
                 .getOrPut(value) { arrayListOf() }
@@ -88,7 +91,7 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
             val mapping = iter.next()
             backing.add(mapping)
             index.forEach { index ->
-                val value = mapping[index.key]
+                val value = mapping.get(context, index.key)
                     ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
                 index.value
                     .getOrPut(value) { arrayListOf() }
@@ -180,7 +183,7 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
         @Suppress("UNCHECKED_CAST")
         (backing as List<Mapping>).forEachIndexed { i, mapping ->
             index.forEach { index ->
-                val value = mapping[index.key]
+                val value = mapping.get(context, index.key)
                     ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
                 index.value
                     .getOrPut(value) { arrayListOf() }
@@ -211,7 +214,7 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
      * Returns an iterable set of indices compatible with the provided mapping
      */
     private fun indexStreamFor(reference: Mapping): IndexStream {
-        val constraints = reference.retain(index.keys)
+        val constraints = reference.retain(context, index.keys)
         // if there aren't any constraints, all mappings (the entire backing array) can be returned instead
         if (constraints.isEmpty()) {
             return IndexStream(indexes = backing.indices, cardinality = backing.size - holes)
@@ -219,7 +222,7 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
         // getting all relevant indexes - if any of the mapping's values don't have an ID list present for the reference's
         //  value, we can bail early: none match the reference
         val indexes = constraints
-            .asIterable()
+            .asIterable(context)
             .map { binding -> index[binding.first]!![binding.second] ?: return IndexStream.NONE }
         // the resulting array cannot be longer than the smallest index found, so if any of them are empty, no results
         //  are found
@@ -247,7 +250,7 @@ class MultiHashMappingArray(bindings: Set<String>): MappingArray {
         // separating the individual references into their constraints
         val constraints: Map<Mapping?, List<Int>> = references.indices.groupBy { i ->
             val current = references[i] ?: return@groupBy null
-            current.retain(index.keys)
+            current.retain(context, index.keys)
         }
         // with all relevant & unique constraints formed, the compatible mappings w/o redundant lookup can be retrieved
         val mapped = constraints.map { (constraints, indexes) -> (constraints?.let { indexStreamFor(constraints) } ?: IndexStream.NONE) to indexes }

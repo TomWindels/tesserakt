@@ -8,15 +8,15 @@ import kotlin.jvm.JvmName
 @JvmInline
 value class Mapping private constructor(private val data: IntIntPair?) {
 
-    constructor(source: Map<String, Quad.Term>): this(data = convert(source))
+    constructor(context: QueryContext, source: Map<String, Quad.Term>): this(data = convert(context, source))
 
-    constructor(source: Iterable<Pair<String, Quad.Term>>): this(data = convert(source))
+    constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Term>>): this(data = convert(context, source))
 
     init {
         require(data.isNullOr { it.count > 0 })
     }
 
-    fun keys() = object: Iterable<String> {
+    fun keys(context: QueryContext) = object: Iterable<String> {
         override fun iterator(): Iterator<String> = object: Iterator<String> {
 
             private var i = 0
@@ -27,12 +27,12 @@ value class Mapping private constructor(private val data: IntIntPair?) {
             }
 
             override fun next(): String {
-                return BINDING_RLUT[this@Mapping.data!!.key(i++)]!!
+                return context.resolveBinding(this@Mapping.data!!.key(i++))
             }
         }
     }
 
-    fun asIterable() = object: Iterable<Pair<String, Quad.Term>> {
+    fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Term>> {
 
         override fun iterator() = object: Iterator<Pair<String, Quad.Term>> {
 
@@ -45,7 +45,7 @@ value class Mapping private constructor(private val data: IntIntPair?) {
 
             override fun next(): Pair<String, Quad.Term> {
                 data as IntIntPair
-                return (BINDING_RLUT[this@Mapping.data.key(i)]!! to TERM_RLUT[this@Mapping.data.value(i)]!!).also { ++i }
+                return (context.resolveBinding(this@Mapping.data.key(i)) to context.resolveTerm(this@Mapping.data.value(i))).also { ++i }
             }
         }
 
@@ -67,12 +67,12 @@ value class Mapping private constructor(private val data: IntIntPair?) {
         return count(this.data, other.data) != -1
     }
 
-    fun retain(names: Set<String>): Mapping {
+    fun retain(context: QueryContext, names: Set<String>): Mapping {
         if (data == null) {
             return this
         }
         val resolved = names
-            .mapNotNullTo(mutableSetOf()) { binding -> resolveBinding(binding).takeIf { data.search(it) != -1 } }
+            .mapNotNullTo(mutableSetOf()) { binding -> context.resolveBinding(binding).takeIf { data.search(it) != -1 } }
             .ifEmpty { return EmptyMapping }
         val result = IntArray(resolved.size * 2)
         var i = 0
@@ -84,18 +84,22 @@ value class Mapping private constructor(private val data: IntIntPair?) {
         return Mapping(data = result.into())
     }
 
-    fun toMap(): Map<String, Quad.Term> {
+    fun toMap(context: QueryContext): Map<String, Quad.Term> {
         return if (data == null) emptyMap() else buildMap(data.count) {
             repeat(data.count) {
-                put(BINDING_RLUT[data.key(it)]!!, TERM_RLUT[data.value(it)]!!)
+                put(context.resolveBinding(data.key(it)), context.resolveTerm(data.value(it)))
             }
         }
     }
 
     fun isEmpty() = data == null /* zero-sized data is not allowed! */
 
-    operator fun get(binding: String): Quad.Term? {
-        return TERM_RLUT[get(resolveBinding(binding))]
+    fun get(context: QueryContext, binding: String): Quad.Term? {
+        return context.resolveTerm(get(context.resolveBinding(binding)) ?: return null)
+    }
+
+    fun get(binding: BindingIdentifier): TermIdentifier? {
+        return TermIdentifier(id = get(binding.id) ?: return null)
     }
 
     private operator fun get(id: Int): Int? = when {
@@ -105,27 +109,14 @@ value class Mapping private constructor(private val data: IntIntPair?) {
 
     companion object {
 
-        // FIXME this one can be "fixed" based on the query
-        private val BINDING_LUT = mutableMapOf<String, Int>()
-        // FIXME this one can be an array
-        private val BINDING_RLUT = mutableMapOf<Int, String>()
-        private val TERM_LUT = mutableMapOf<Quad.Term, Int>()
-        private val TERM_RLUT = mutableMapOf<Int, Quad.Term>()
+        val EMPTY = Mapping(null)
 
-        private fun convert(input: Map<String, Quad.Term>): IntIntPair? {
-            return if (input.isEmpty()) null else input.map { resolveBinding(it.key) to resolveTerm(it.value) }.sortedBy { it.first }.flatten().into()
+        private fun convert(context: QueryContext, input: Map<String, Quad.Term>): IntIntPair? {
+            return if (input.isEmpty()) null else input.map { context.resolveBinding(it.key) to context.resolveTerm(it.value) }.sortedBy { it.first }.flatten().into()
         }
 
-        private fun convert(input: Iterable<Pair<String, Quad.Term>>): IntIntPair? {
-            return if (!input.iterator().hasNext()) null else input.map { resolveBinding(it.first) to resolveTerm(it.second) }.sortedBy { it.first }.flatten().into()
-        }
-
-        private fun resolveBinding(name: String): Int {
-            return BINDING_LUT.getOrPut(name) { BINDING_RLUT[BINDING_LUT.size] = name; BINDING_LUT.size }
-        }
-
-        private fun resolveTerm(term: Quad.Term): Int {
-            return TERM_LUT.getOrPut(term) { TERM_RLUT[TERM_RLUT.size] = term; TERM_LUT.size }
+        private fun convert(context: QueryContext, input: Iterable<Pair<String, Quad.Term>>): IntIntPair? {
+            return if (!input.iterator().hasNext()) null else input.map { context.resolveBinding(it.first) to context.resolveTerm(it.second) }.sortedBy { it.first }.flatten().into()
         }
 
         private fun List<Pair<Int, Int>>.flatten(): IntArray {
@@ -325,14 +316,14 @@ value class Mapping private constructor(private val data: IntIntPair?) {
 
 }
 
-val EmptyMapping = Mapping(emptyList())
+val EmptyMapping get() = Mapping.EMPTY
 
-fun mappingOf(vararg pairs: Pair<String, Quad.Term>): Mapping =
-    Mapping(pairs.asIterable())
+fun emptyMapping(): Mapping = Mapping.EMPTY
+
+fun mappingOf(context: QueryContext, vararg pairs: Pair<String, Quad.Term>): Mapping =
+    Mapping(context, pairs.asIterable())
 
 @JvmName("mappingOfNullable")
-fun mappingOf(vararg pairs: Pair<String?, Quad.Term>): Mapping =
+fun mappingOf(context: QueryContext, vararg pairs: Pair<String?, Quad.Term>): Mapping =
     @Suppress("UNCHECKED_CAST")
-    Mapping(pairs.filter { it.first != null } as List<Pair<String, Quad.Term>>)
-
-fun emptyMapping(): Mapping = EmptyMapping
+    Mapping(context, pairs.filter { it.first != null } as List<Pair<String, Quad.Term>>)

@@ -2,17 +2,18 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.QueryContext
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.collect
 import dev.tesserakt.sparql.types.GraphPattern
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.getAllNamedBindings
 
-class BasicGraphPatternState(ast: GraphPattern) {
+class BasicGraphPatternState(val context: QueryContext, ast: GraphPattern) {
 
-    private val group = GroupPatternState(ast.patterns, ast.unions)
+    private val group = GroupPatternState(context, ast.patterns, ast.unions)
 
-    private val filters = GraphPatternFilterState(parent = group, filters = ast.filters)
+    private val filters = GraphPatternFilterState(context, parent = group, filters = ast.filters)
 
     /**
      * A collection of all bindings found inside this query body; it is not guaranteed that all solutions generated

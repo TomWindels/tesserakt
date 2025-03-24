@@ -3,6 +3,7 @@ package dev.tesserakt
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.sparql.runtime.evaluation.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
 import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.Scope
@@ -45,6 +46,7 @@ class MappingBenchmark {
     private val right = mutableListOf<MapMapping>()
     private lateinit var l: List<Mapping>
     private lateinit var r: List<Mapping>
+    private val context = GlobalQueryContext
 
     @Setup
     fun createMappings() {
@@ -57,8 +59,8 @@ class MappingBenchmark {
                 right.add(new)
             }
         }
-        l = left.map { Mapping(it) }
-        r = right.map { Mapping(it) }
+        l = left.map { Mapping(context, it) }
+        r = right.map { Mapping(context, it) }
     }
 
     @Benchmark
