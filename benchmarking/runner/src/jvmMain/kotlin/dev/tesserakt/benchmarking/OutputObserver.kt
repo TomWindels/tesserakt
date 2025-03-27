@@ -8,11 +8,11 @@ class OutputObserver(filepath: String) {
     private val writer = BufferedWriter(FileWriter(filepath))
 
     init {
-        writer.write("name,additions,removals\n")
+        writer.write("name,additions,removals,checksum\n")
     }
 
     fun markResult(id: String, output: Evaluator.Output) {
-        writer.write("$id,${output.added},${output.removed}\n")
+        writer.write("$id,${output.added},${output.removed},${output.checksum}\n")
     }
 
     fun stop() {
