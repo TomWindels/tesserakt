@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.collection
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
 import dev.tesserakt.sparql.runtime.evaluation.QueryContext
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
@@ -30,6 +31,8 @@ class MultiHashMappingArray(
             put(binding, mutableMapOf())
         }
     }
+    // the binding set associated with the index
+    private val indexBindingSet = BindingIdentifierSet(context, bindings)
 
     init {
         check(bindings.isNotEmpty()) { "Invalid use of hash join array! No bindings are used!" }
@@ -214,7 +217,7 @@ class MultiHashMappingArray(
      * Returns an iterable set of indices compatible with the provided mapping
      */
     private fun indexStreamFor(reference: Mapping): IndexStream {
-        val constraints = reference.retain(context, index.keys)
+        val constraints = reference.retain(indexBindingSet)
         // if there aren't any constraints, all mappings (the entire backing array) can be returned instead
         if (constraints.isEmpty()) {
             return IndexStream(indexes = backing.indices, cardinality = backing.size - holes)
@@ -250,7 +253,7 @@ class MultiHashMappingArray(
         // separating the individual references into their constraints
         val constraints: Map<Mapping?, List<Int>> = references.indices.groupBy { i ->
             val current = references[i] ?: return@groupBy null
-            current.retain(context, index.keys)
+            current.retain(indexBindingSet)
         }
         // with all relevant & unique constraints formed, the compatible mappings w/o redundant lookup can be retrieved
         val mapped = constraints.map { (constraints, indexes) -> (constraints?.let { indexStreamFor(constraints) } ?: IndexStream.NONE) to indexes }

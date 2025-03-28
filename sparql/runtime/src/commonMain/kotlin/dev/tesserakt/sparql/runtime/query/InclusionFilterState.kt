@@ -33,8 +33,8 @@ sealed interface InclusionFilterState: MutableFilterState {
      *  collection (which may not be empty!)
      */
     class Narrow(
-        private val context: QueryContext,
-        private val commonBindingNames: Set<String>,
+        context: QueryContext,
+        commonBindingNames: Set<String>,
         private val state: BasicGraphPatternState,
     ) : InclusionFilterState {
 
@@ -42,11 +42,12 @@ sealed interface InclusionFilterState: MutableFilterState {
             require(commonBindingNames.isNotEmpty()) { "Invalid filter use detected!" }
         }
 
+        private val commonBindingNames = BindingIdentifierSet(context, commonBindingNames)
         // tracking what binding groups are "invalid" (= should be filtered out)
         private val filtered = Counter<Mapping>()
 
         override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-            val changes = state.peek(delta).mapped { it.map { it.retain(context, commonBindingNames) } }
+            val changes = state.peek(delta).mapped { it.map { it.retain(commonBindingNames) } }
             // these changes, combined with the `filtered` state, will result in a set of bindings that can now be joined
             //  with to find all resulting changes:
             // * change deletions (in filtered now, but removed in `changes`) => these have to be removed outwards
@@ -85,7 +86,7 @@ sealed interface InclusionFilterState: MutableFilterState {
             // applying the impact of the new delta to it
             state
                 .peek(delta)
-                .mapped { it.map { it.retain(context, commonBindingNames) } }
+                .mapped { it.map { it.retain(commonBindingNames) } }
                 .forEach { mappingDelta ->
                     when (mappingDelta) {
                         is MappingAddition -> total.increment(mappingDelta.value)
@@ -106,7 +107,7 @@ sealed interface InclusionFilterState: MutableFilterState {
         override fun process(delta: DataDelta) {
             state
                 .peek(delta)
-                .mapped { it.map { it.retain(context, commonBindingNames) } }
+                .mapped { it.map { it.retain(commonBindingNames) } }
                 .forEach { mappingDelta ->
                     when (mappingDelta) {
                         is MappingAddition -> filtered.increment(mappingDelta.value)

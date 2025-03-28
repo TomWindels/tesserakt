@@ -2,6 +2,8 @@
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
+import dev.tesserakt.sparql.runtime.evaluation.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
 import org.junit.Test
 import kotlin.random.Random
@@ -42,18 +44,18 @@ class MappingTest {
     @Test
     fun mappingConversion1() {
         val data = List(100) { createMapping(it) }
-        val converted = data.map { Mapping(it) }
-        assertContentEquals(data, converted.map { it.toMap() })
+        val converted = data.map { Mapping(GlobalQueryContext, it) }
+        assertContentEquals(data, converted.map { it.toMap(GlobalQueryContext) })
     }
 
     @Test
     fun mappingConversion2() {
         val data = List(100) { createMapping(it) }
-        val converted = data.map { Mapping(it) }
+        val converted = data.map { Mapping(GlobalQueryContext, it) }
         repeat(data.size) { index ->
             val map = data[index]
             map.forEach { (key, value) ->
-                assertEquals(value, converted[index][key])
+                assertEquals(value, converted[index].get(GlobalQueryContext, key))
             }
         }
     }
@@ -61,24 +63,24 @@ class MappingTest {
     @Test
     fun mappingConversion3() {
         val data = List(100) { createMapping(it) }
-        val converted = data.map { Mapping(it) }
+        val converted = data.map { Mapping(GlobalQueryContext, it) }
         repeat(data.size) { index ->
             assertContentEquals(
                 expected = data[index].map { it.toPair() }.sortedBy { it.first },
-                actual = converted[index].asIterable().sortedBy { it.first })
+                actual = converted[index].asIterable(GlobalQueryContext).sortedBy { it.first })
         }
     }
 
     @Test
     fun mappingConversion4() {
         val data = List(100) { createMapping(it) }
-        val converted = data.map { Mapping(it) }
+        val converted = data.map { Mapping(GlobalQueryContext, it) }
         val rng = Random(1)
         val subset = data.map { it.toMutableMap().apply { keys.retainAll { rng.nextBoolean() } } }
         repeat(data.size) { index ->
             assertContentEquals(
                 expected = subset[index].map { it.toPair() }.sortedBy { it.first },
-                actual = converted[index].retain(subset[index].keys).asIterable().sortedBy { it.first })
+                actual = converted[index].retain(BindingIdentifierSet(GlobalQueryContext, subset[index].keys)).asIterable(GlobalQueryContext).sortedBy { it.first })
         }
     }
 
@@ -95,11 +97,11 @@ class MappingTest {
                 right.add(new)
             }
         }
-        val l = left.map { Mapping(it) }
-        val r = right.map { Mapping(it) }
+        val l = left.map { Mapping(GlobalQueryContext, it) }
+        val r = right.map { Mapping(GlobalQueryContext, it) }
         val original = left.flatMap { l -> right.mapNotNull { r -> join(l, r) } }
         val new = l.flatMap { l -> r.mapNotNull { r -> l.join(r) } }
-            .map { it.toMap() }
+            .map { it.toMap(GlobalQueryContext) }
         assertContentEquals(original, new)
     }
 

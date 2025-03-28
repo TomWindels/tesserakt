@@ -67,16 +67,17 @@ value class Mapping private constructor(private val data: IntIntPair?) {
         return count(this.data, other.data) != -1
     }
 
-    fun retain(context: QueryContext, names: Set<String>): Mapping {
+    fun retain(bindings: BindingIdentifierSet): Mapping {
         if (data == null) {
             return this
         }
-        val resolved = names
-            .mapNotNullTo(mutableSetOf()) { binding -> context.resolveBinding(binding).takeIf { data.search(it) != -1 } }
+        val present = bindings
+            // TODO(perf) the fact that these bindings are sorted, this filter can abuse this fact
+            .filter { id -> data.search(id) != -1 }
             .ifEmpty { return EmptyMapping }
-        val result = IntArray(resolved.size * 2)
+        val result = IntArray(present.size * 2)
         var i = 0
-        resolved.sorted().forEach { id ->
+        present.forEach { id ->
             result[i] = id
             result[i + 1] = this[id]!!
             i += 2
