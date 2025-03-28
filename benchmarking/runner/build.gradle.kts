@@ -6,7 +6,7 @@ plugins {
 }
 
 kotlin {
-    jvm()
+    jvm("jena")
 
     sourceSets {
         val commonMain by getting {
@@ -20,7 +20,11 @@ kotlin {
                 implementation(project(":sparql:runtime"))
             }
         }
-        val jvmMain by getting {
+        val jvmMain by creating {
+            dependsOn(commonMain)
+        }
+        val jenaMain by getting {
+            dependsOn(jvmMain)
             dependencies {
                 implementation(project(":interop:jena"))
             }
@@ -89,7 +93,6 @@ val graphing = tasks.register("createBenchmarkGraphs", Exec::class.java) {
     commandLine("./bin/python", "main.py", targets)
 }
 
-runner.get().dependsOn(tasks.named("jvmJar"))
 runner.get().finalizedBy(graphing)
 
 graphing.get().dependsOn(graphInstallation)
