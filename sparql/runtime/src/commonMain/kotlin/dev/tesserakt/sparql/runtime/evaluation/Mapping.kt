@@ -51,6 +51,25 @@ value class Mapping private constructor(private val data: IntIntPair?) {
 
     }
 
+    fun asIterable() = object: Iterable<Pair<BindingIdentifier, TermIdentifier>> {
+
+        override fun iterator() = object: Iterator<Pair<BindingIdentifier, TermIdentifier>> {
+
+            private var i = 0
+
+            override fun hasNext(): Boolean {
+                val data = this@Mapping.data
+                return data != null && i < data.count
+            }
+
+            override fun next(): Pair<BindingIdentifier, TermIdentifier> {
+                data as IntIntPair
+                return (BindingIdentifier(this@Mapping.data.key(i)) to TermIdentifier(this@Mapping.data.value(i))).also { ++i }
+            }
+        }
+
+    }
+
     fun join(other: Mapping): Mapping? {
         return when (val count = count(data, other.data)) {
             -1 -> null
@@ -72,6 +91,7 @@ value class Mapping private constructor(private val data: IntIntPair?) {
             return this
         }
         val present = bindings
+            .asIntIterable()
             // TODO(perf) the fact that these bindings are sorted, this filter can abuse this fact
             .filter { id -> data.search(id) != -1 }
             .ifEmpty { return EmptyMapping }

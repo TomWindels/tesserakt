@@ -1,9 +1,6 @@
 package dev.tesserakt.sparql.runtime.collection
 
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
-import dev.tesserakt.sparql.runtime.evaluation.Mapping
-import dev.tesserakt.sparql.runtime.evaluation.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.emptyIterable
 import dev.tesserakt.sparql.util.Cardinality
@@ -13,7 +10,7 @@ import dev.tesserakt.sparql.util.Cardinality
  *  algorithm. Hash tables are created for every binding name passed in the constructor.
  */
 class MultiHashMappingArray(
-    private val context: QueryContext,
+    context: QueryContext,
     bindings: Set<String>
 ): MappingArray {
     // the backing structure, contains all mappings ever received
@@ -26,9 +23,9 @@ class MultiHashMappingArray(
     // --
     // the positional indices (`ArrayList<Int>`) is guaranteed to be sorted: see the various insertion implementations;
     //  this further allows efficient lookup of multiple constraints at the same time
-    private val index = buildMap<String, MutableMap<Quad.Term, ArrayList<Int>>>(capacity = bindings.size) {
+    private val index = buildMap<BindingIdentifier, MutableMap<TermIdentifier, ArrayList<Int>>>(capacity = bindings.size) {
         bindings.forEach { binding ->
-            put(binding, mutableMapOf())
+            put(BindingIdentifier(context, binding), mutableMapOf())
         }
     }
     // the binding set associated with the index
@@ -72,7 +69,7 @@ class MultiHashMappingArray(
         val pos = backing.size
         backing.add(mapping)
         index.forEach { index ->
-            val value = mapping.get(context, index.key)
+            val value = mapping.get(index.key)
                 ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
             index.value
                 .getOrPut(value) { arrayListOf() }
@@ -94,7 +91,7 @@ class MultiHashMappingArray(
             val mapping = iter.next()
             backing.add(mapping)
             index.forEach { index ->
-                val value = mapping.get(context, index.key)
+                val value = mapping.get(index.key)
                     ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
                 index.value
                     .getOrPut(value) { arrayListOf() }
@@ -186,7 +183,7 @@ class MultiHashMappingArray(
         @Suppress("UNCHECKED_CAST")
         (backing as List<Mapping>).forEachIndexed { i, mapping ->
             index.forEach { index ->
-                val value = mapping.get(context, index.key)
+                val value = mapping.get(index.key)
                     ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${index.key}`")
                 index.value
                     .getOrPut(value) { arrayListOf() }
@@ -225,7 +222,7 @@ class MultiHashMappingArray(
         // getting all relevant indexes - if any of the mapping's values don't have an ID list present for the reference's
         //  value, we can bail early: none match the reference
         val indexes = constraints
-            .asIterable(context)
+            .asIterable()
             .map { binding -> index[binding.first]!![binding.second] ?: return IndexStream.NONE }
         // the resulting array cannot be longer than the smallest index found, so if any of them are empty, no results
         //  are found
