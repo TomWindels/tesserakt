@@ -11,7 +11,9 @@ class QueryContextImpl(ast: QueryStructure): QueryContext {
     private val bindingsLut = bindings.withIndex().associateTo(mutableMapOf()) { (i, value) -> value to i }
 
     private val terms = mutableMapOf<Quad.Term, Int>()
-    private val termsLut = mutableMapOf<Int, Quad.Term>()
+    // as terms are never removed from an active context, we can keep it as a regular list without risking IDs
+    // shifting over
+    private val termsLut = mutableListOf<Quad.Term>()
 
     override fun resolveBinding(value: String): Int {
         return bindingsLut.getOrPut(value) {
@@ -25,7 +27,7 @@ class QueryContextImpl(ast: QueryStructure): QueryContext {
     override fun resolveTerm(value: Quad.Term): Int {
         return terms.getOrPut(value) {
             val i = terms.size
-            termsLut[i] = value
+            termsLut.add(value)
             i
         }
     }
@@ -35,7 +37,7 @@ class QueryContextImpl(ast: QueryStructure): QueryContext {
     }
 
     override fun resolveTerm(id: Int): Quad.Term {
-        return termsLut[id]!!
+        return termsLut[id]
     }
 
 }
