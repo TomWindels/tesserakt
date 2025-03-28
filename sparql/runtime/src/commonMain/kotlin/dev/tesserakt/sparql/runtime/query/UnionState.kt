@@ -2,19 +2,20 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.QueryContext
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.GraphPatternSegment
 import dev.tesserakt.sparql.types.SelectQuerySegment
 import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
 
-class UnionState(union: Union): MutableJoinState {
+class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
     private sealed class Segment {
 
-        class GraphPatternSegmentState(parent: GraphPatternSegment): Segment() {
+        class GraphPatternSegmentState(context: QueryContext, parent: GraphPatternSegment): Segment() {
 
-            private val state = BasicGraphPatternState(parent.pattern)
+            private val state = BasicGraphPatternState(context, parent.pattern)
 
             override val bindings: Set<String> get() = state.bindings
 
@@ -68,7 +69,7 @@ class UnionState(union: Union): MutableJoinState {
 
     }
 
-    private val state = union.map { it.createIncrementalSegmentState() }
+    private val state = union.map { it.createIncrementalSegmentState(context = context) }
 
     override val bindings: Set<String> = buildSet { state.forEach { addAll(it.bindings) } }
 
@@ -92,9 +93,9 @@ class UnionState(union: Union): MutableJoinState {
 
         /* helpers */
 
-        private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState() = when (this) {
+        private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState(context: QueryContext) = when (this) {
             is SelectQuerySegment -> Segment.SubqueryState(this)
-            is GraphPatternSegment -> Segment.GraphPatternSegmentState(this)
+            is GraphPatternSegment -> Segment.GraphPatternSegmentState(context, this)
         }
     }
 

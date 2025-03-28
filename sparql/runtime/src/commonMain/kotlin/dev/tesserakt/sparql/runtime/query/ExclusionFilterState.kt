@@ -4,7 +4,6 @@ import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.util.Counter
-import dev.tesserakt.util.compatibleWith
 import dev.tesserakt.util.replace
 
 sealed interface ExclusionFilterState: MutableFilterState {
@@ -34,7 +33,8 @@ sealed interface ExclusionFilterState: MutableFilterState {
      *  collection (which may not be empty!)
      */
     class Narrow(
-        private val commonBindingNames: Set<String>,
+        context: QueryContext,
+        commonBindingNames: Set<String>,
         private val state: BasicGraphPatternState,
     ) : ExclusionFilterState {
 
@@ -42,6 +42,7 @@ sealed interface ExclusionFilterState: MutableFilterState {
             require(commonBindingNames.isNotEmpty()) { "Invalid filter use detected!" }
         }
 
+        private val commonBindingNames = BindingIdentifierSet(context, commonBindingNames)
         // tracking what binding groups are "invalid" (= should be filtered out)
         private val filtered = Counter<Mapping>()
 
@@ -198,13 +199,14 @@ sealed interface ExclusionFilterState: MutableFilterState {
 
     companion object {
 
-        operator fun invoke(parent: GroupPatternState, filter: Filter.NotExists): ExclusionFilterState {
-            val state = BasicGraphPatternState(filter.pattern)
+        operator fun invoke(context: QueryContext, parent: GroupPatternState, filter: Filter.NotExists): ExclusionFilterState {
+            val state = BasicGraphPatternState(context, filter.pattern)
             val externalBindings = parent.bindings.intersect(state.bindings)
             return if (externalBindings.isEmpty()) {
                 Broad(state = state)
             } else {
                 Narrow(
+                    context = context,
                     commonBindingNames = externalBindings,
                     state = state
                 )

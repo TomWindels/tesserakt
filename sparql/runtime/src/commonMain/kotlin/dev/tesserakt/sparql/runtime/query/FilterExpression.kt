@@ -3,12 +3,16 @@ package dev.tesserakt.sparql.runtime.query
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier.Companion.get
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.Expression.*
 import kotlin.jvm.JvmInline
 
-class FilterExpression(expr: Expression) {
+class FilterExpression(val context: QueryContext, expr: Expression) {
 
     sealed interface OperationValue {
         object Unbound: OperationValue {
@@ -16,6 +20,8 @@ class FilterExpression(expr: Expression) {
         }
         @JvmInline
         value class SingleValue(val term: Quad.Term) : OperationValue
+        @JvmInline
+        value class SingleValueIdentifier(val term: TermIdentifier) : OperationValue
         @JvmInline
         value class SingleMapping(val mapping: Mapping) : OperationValue
     }
@@ -25,37 +31,37 @@ class FilterExpression(expr: Expression) {
         fun eval(input: OperationValue): OperationValue
 
         companion object {
-            fun from(expr: Expression): Operation {
+            fun from(context: QueryContext, expr: Expression): Operation {
                 return when (expr) {
                     is BindingAggregate -> TODO()
                     is BindingValues ->
-                        ValueLookUpOperation(name = expr.name)
+                        ValueLookUpOperation(binding = BindingIdentifier(context, name = expr.name))
 
                     is Comparison -> when (expr.operator) {
                         Comparison.Operator.GREATER_THAN ->
-                            ComparisonEval.GT(left = from(expr.lhs), right = from(expr.rhs))
+                            ComparisonEval.GT(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
 
                         Comparison.Operator.GREATER_THAN_OR_EQ ->
-                            ComparisonEval.GTEQ(left = from(expr.lhs), right = from(expr.rhs))
+                            ComparisonEval.GTEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
 
                         Comparison.Operator.LESS_THAN ->
-                            ComparisonEval.LT(left = from(expr.lhs), right = from(expr.rhs))
+                            ComparisonEval.LT(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
 
                         Comparison.Operator.LESS_THAN_OR_EQ ->
-                            ComparisonEval.LTEQ(left = from(expr.lhs), right = from(expr.rhs))
+                            ComparisonEval.LTEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
 
                         Comparison.Operator.EQUAL ->
-                            ComparisonEval.EQ(left = from(expr.lhs), right = from(expr.rhs))
+                            ComparisonEval.EQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
 
                         Comparison.Operator.NOT_EQUAL ->
-                            ComparisonEval.NEQ(left = from(expr.lhs), right = from(expr.rhs))
+                            ComparisonEval.NEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
                     }
 
                     is MathOp -> when (expr.operator) {
-                        MathOp.Operator.SUM -> MathOpEval.Sum(lhs = from(expr.lhs), rhs = from(expr.rhs))
-                        MathOp.Operator.SUB -> MathOpEval.Sub(lhs = from(expr.lhs), rhs = from(expr.rhs))
-                        MathOp.Operator.MUL -> MathOpEval.Mul(lhs = from(expr.lhs), rhs = from(expr.rhs))
-                        MathOp.Operator.DIV -> MathOpEval.Div(lhs = from(expr.lhs), rhs = from(expr.rhs))
+                        MathOp.Operator.SUM -> MathOpEval.Sum(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
+                        MathOp.Operator.SUB -> MathOpEval.Sub(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
+                        MathOp.Operator.MUL -> MathOpEval.Mul(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
+                        MathOp.Operator.DIV -> MathOpEval.Div(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
                     }
 
                     is FuncCall -> TODO()
@@ -70,56 +76,56 @@ class FilterExpression(expr: Expression) {
 
     sealed interface ComparisonEval : Operation {
 
-        class EQ(private val left: Operation, private val right: Operation) : ComparisonEval {
+        class EQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                return (left.eval(input).term == right.eval(input).term).asLiteralTerm().into()
+                return (left.eval(input).getTerm(context) == right.eval(input).getTerm(context)).asLiteralTerm().into()
             }
 
         }
 
-        class NEQ(private val left: Operation, private val right: Operation) : ComparisonEval {
+        class NEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                return (left.eval(input).term != right.eval(input).term).asLiteralTerm().into()
+                return (left.eval(input).getTerm(context) != right.eval(input).getTerm(context)).asLiteralTerm().into()
             }
 
         }
 
-        class LT(private val left: Operation, private val right: Operation) : ComparisonEval {
+        class LT(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                val a = left.eval(input).term ?: return false.asLiteralTerm().into()
-                val b = right.eval(input).term ?: return false.asLiteralTerm().into()
+                val a = left.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
+                val b = right.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
                 return (compare(a.literal, b.literal) < 0).asLiteralTerm().into()
             }
         }
 
 
-        class GT(private val left: Operation, private val right: Operation) : ComparisonEval {
+        class GT(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                val a = left.eval(input).term ?: return false.asLiteralTerm().into()
-                val b = right.eval(input).term ?: return false.asLiteralTerm().into()
+                val a = left.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
+                val b = right.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
                 return (compare(a.literal, b.literal) > 0).asLiteralTerm().into()
             }
         }
 
-        class LTEQ(private val left: Operation, private val right: Operation) : ComparisonEval {
+        class LTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                val a = left.eval(input).term ?: return false.asLiteralTerm().into()
-                val b = right.eval(input).term ?: return false.asLiteralTerm().into()
+                val a = left.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
+                val b = right.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
                 return (compare(a.literal, b.literal) <= 0).asLiteralTerm().into()
             }
 
         }
 
-        class GTEQ(private val left: Operation, private val right: Operation) : ComparisonEval {
+        class GTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                val a = left.eval(input).term ?: return false.asLiteralTerm().into()
-                val b = right.eval(input).term ?: return false.asLiteralTerm().into()
+                val a = left.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
+                val b = right.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
                 return (compare(a.literal, b.literal) >= 0).asLiteralTerm().into()
             }
 
@@ -146,20 +152,21 @@ class FilterExpression(expr: Expression) {
 
     }
 
-    sealed class MathOpEval : Operation {
-
-        abstract val lhs: Operation
-        abstract val rhs: Operation
+    sealed class MathOpEval(
+        val context: QueryContext,
+        val lhs: Operation,
+        val rhs: Operation,
+    ): Operation {
 
         final override fun eval(input: OperationValue): OperationValue {
-            val left = lhs.eval(input).term?.literal?.numericalValue ?: return OperationValue.Unbound
-            val right = rhs.eval(input).term?.literal?.numericalValue ?: return OperationValue.Unbound
+            val left = lhs.eval(input).getTerm(context)?.literal?.numericalValue ?: return OperationValue.Unbound
+            val right = rhs.eval(input).getTerm(context)?.literal?.numericalValue ?: return OperationValue.Unbound
             return eval(left, right).asLiteralTerm().into()
         }
 
         abstract fun eval(lhs: Double, rhs: Double): Double
 
-        class Sum(override val lhs: Operation, override val rhs: Operation) : MathOpEval() {
+        class Sum(context: QueryContext, lhs: Operation, rhs: Operation) : MathOpEval(context, lhs, rhs) {
 
             override fun eval(lhs: Double, rhs: Double): Double {
                 return lhs + rhs
@@ -167,7 +174,7 @@ class FilterExpression(expr: Expression) {
 
         }
 
-        class Sub(override val lhs: Operation, override val rhs: Operation) : MathOpEval() {
+        class Sub(context: QueryContext, lhs: Operation, rhs: Operation) : MathOpEval(context, lhs, rhs) {
 
             override fun eval(lhs: Double, rhs: Double): Double {
                 return lhs - rhs
@@ -175,7 +182,7 @@ class FilterExpression(expr: Expression) {
 
         }
 
-        class Mul(override val lhs: Operation, override val rhs: Operation) : MathOpEval() {
+        class Mul(context: QueryContext, lhs: Operation, rhs: Operation) : MathOpEval(context, lhs, rhs) {
 
             override fun eval(lhs: Double, rhs: Double): Double {
                 return lhs * rhs
@@ -183,7 +190,7 @@ class FilterExpression(expr: Expression) {
 
         }
 
-        class Div(override val lhs: Operation, override val rhs: Operation) : MathOpEval() {
+        class Div(context: QueryContext, lhs: Operation, rhs: Operation) : MathOpEval(context, lhs, rhs) {
 
             override fun eval(lhs: Double, rhs: Double): Double {
                 return lhs / rhs
@@ -194,9 +201,9 @@ class FilterExpression(expr: Expression) {
     }
 
     @JvmInline
-    private value class ValueLookUpOperation(private val name: String) : Operation {
+    private value class ValueLookUpOperation(private val binding: BindingIdentifier) : Operation {
         override fun eval(input: OperationValue): OperationValue {
-            return input.mapping[name].into()
+            return input.mapping.get(binding).into()
         }
     }
 
@@ -208,11 +215,10 @@ class FilterExpression(expr: Expression) {
         }
     }
 
-    @JvmInline
-    private value class BooleanCoercionOperation(private val parent: Operation) : Operation {
+    private class BooleanCoercionOperation(val context: QueryContext, private val parent: Operation) : Operation {
 
         override fun eval(input: OperationValue): OperationValue {
-            val result = parent.eval(input).term
+            val result = parent.eval(input).getTerm(context)
             return when {
                 result !is Quad.Literal -> {
                     throw IllegalStateException("Unexpected non-literal `$result` received!")
@@ -229,10 +235,10 @@ class FilterExpression(expr: Expression) {
         }
     }
 
-    private val root = BooleanCoercionOperation(parent = Operation.from(expr))
+    private val root = BooleanCoercionOperation(context, parent = Operation.from(context, expr))
 
     fun test(mapping: Mapping): Boolean {
-        return root.eval(mapping.into()).term == true.asLiteralTerm()
+        return root.eval(mapping.into()).getTerm(context) == true.asLiteralTerm()
     }
 
     companion object {
@@ -241,15 +247,17 @@ class FilterExpression(expr: Expression) {
 
         private fun Quad.Term?.into() = this?.let { OperationValue.SingleValue(this) } ?: OperationValue.Unbound
 
+        private fun TermIdentifier?.into() = this?.let { OperationValue.SingleValueIdentifier(this) } ?: OperationValue.Unbound
+
         private fun Mapping.into() = OperationValue.SingleMapping(this)
 
-        private val OperationValue.term: Quad.Term?
-            get() = when (this) {
-                is OperationValue.SingleValue -> term
-                // `is`, as `equals` is always false!
-                is OperationValue.Unbound -> null
-                else -> throw IllegalStateException("Single term value expected, but received a `${this::class.simpleName}` instead!")
-            }
+        private fun OperationValue.getTerm(context: QueryContext): Quad.Term? = when (this) {
+            is OperationValue.SingleValue -> term
+            is OperationValue.SingleValueIdentifier -> context.get(term)
+            // `is`, as `equals` is always false!
+            is OperationValue.Unbound -> null
+            else -> throw IllegalStateException("Single term value expected, but received a `${this::class.simpleName}` instead!")
+        }
 
         private val OperationValue.mapping: Mapping
             get() = (this as? OperationValue.SingleMapping)?.mapping

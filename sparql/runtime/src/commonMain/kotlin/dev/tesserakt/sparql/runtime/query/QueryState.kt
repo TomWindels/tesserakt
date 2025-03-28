@@ -1,6 +1,5 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.runtime.compat.Compat
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.into
@@ -13,7 +12,8 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     inner class Processor {
 
-        private val state = BasicGraphPatternState(ast = Compat.apply(ast.body))
+        val context = QueryContextImpl(ast)
+        private val state = BasicGraphPatternState(context, ast = Compat.apply(ast.body))
 
         /**
          * Required when setting up the initial state: sets up initial state
@@ -29,11 +29,11 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
                     )
                 )
                 // mapping them to insertion changes, combining them into the expected return type
-                .map { bindings -> this@QueryState.process(ResultChange.New(bindings.value)).value }
+                .map { bindings -> this@QueryState.process(ResultChange.New(BindingsImpl(context, bindings.value))).value }
         }
 
-        fun process(data: DataDelta): List<ResultChange<Bindings>> {
-            return state.insert(data).map { it.into() }
+        fun process(data: DataDelta): List<ResultChange<BindingsImpl>> {
+            return state.insert(data).map { it.into(context) }
         }
 
         fun debugInformation() = state.debugInformation()
@@ -50,14 +50,14 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
         value class Removed<T>(override val value: T): ResultChange<T>
 
         companion object {
-            fun MappingDelta.into() = when (this) {
-                is MappingAddition -> New(value.bindings)
-                is MappingDeletion -> Removed(value.bindings)
+            fun MappingDelta.into(context: QueryContext) = when (this) {
+                is MappingAddition -> New(BindingsImpl(context, value))
+                is MappingDeletion -> Removed(BindingsImpl(context, value))
             }
         }
 
     }
 
-    abstract fun process(change: ResultChange<Bindings>): ResultChange<ResultType>
+    abstract fun process(change: ResultChange<BindingsImpl>): ResultChange<ResultType>
 
 }

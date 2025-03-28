@@ -110,13 +110,13 @@ sealed interface JoinTree: MutableJoinState {
         companion object {
 
             @JvmName("forPatterns")
-            operator fun invoke(patterns: List<TriplePattern>) = None(
-                states = patterns.map { TriplePatternState.from(it) }
+            operator fun invoke(context: QueryContext, patterns: List<TriplePattern>) = None(
+                states = patterns.map { TriplePatternState.from(context, it) }
             )
 
             @JvmName("forUnions")
-            operator fun invoke(unions: List<Union>) = None(
-                states = unions.map { UnionState(it) }
+            operator fun invoke(context: QueryContext, unions: List<Union>) = None(
+                states = unions.map { UnionState(context, it) }
             )
 
         }
@@ -183,6 +183,7 @@ sealed interface JoinTree: MutableJoinState {
             }
 
             class Connected<J: MutableJoinState, L: Node<J>, R: Node<J>>(
+                context: QueryContext,
                 private val left: L,
                 private val right: R,
                 indexes: List<String>
@@ -191,6 +192,7 @@ sealed interface JoinTree: MutableJoinState {
                 override val bindings = left.bindings + right.bindings
 
                 private val buf = MappingArray(
+                    context = context,
                     bindings = indexes.intersect(bindings)
                         .also { check(it.isNotEmpty()) { "Connected node used with no valid indices! This is not allowed!" } }
                 )
@@ -272,6 +274,7 @@ sealed interface JoinTree: MutableJoinState {
             }
 
             class Disconnected<J: MutableJoinState, L: Node<J>, R: Node<J>>(
+                val context: QueryContext,
                 val left: L,
                 val right: R
             ): Node<J> {
@@ -295,8 +298,8 @@ sealed interface JoinTree: MutableJoinState {
                 }
 
                 override fun join(delta: MappingDelta): Stream<MappingDelta> {
-                    val leftOverlap = delta.value.bindings.keys.count { it in left.bindings }
-                    val rightOverlap = delta.value.bindings.keys.count { it in right.bindings }
+                    val leftOverlap = delta.value.keys(context).count { it in left.bindings }
+                    val rightOverlap = delta.value.keys(context).count { it in right.bindings }
                     return if (leftOverlap > rightOverlap) {
                         right.join(left.join(delta).optimisedForSingleUse(left.cardinality))
                     } else {
@@ -384,23 +387,23 @@ sealed interface JoinTree: MutableJoinState {
         companion object {
 
             @JvmName("forPatterns")
-            operator fun invoke(patterns: List<TriplePattern>): Dynamic<TriplePatternState<*>> {
-                val states = patterns.map { TriplePatternState.from(it) }
-                val root = build(states)
+            operator fun invoke(context: QueryContext, patterns: List<TriplePattern>): Dynamic<TriplePatternState<*>> {
+                val states = patterns.map { TriplePatternState.from(context, it) }
+                val root = build(context, states)
                 return Dynamic(root)
             }
 
             @JvmName("forUnions")
-            operator fun invoke(unions: List<Union>): Dynamic<UnionState> {
-                val states = unions.map { UnionState(it) }
-                val root = build(states)
+            operator fun invoke(context: QueryContext, unions: List<Union>): Dynamic<UnionState> {
+                val states = unions.map { UnionState(context, it) }
+                val root = build(context, states)
                 return Dynamic(root)
             }
 
             /**
              * Builds a tree, returning the tree's root, using the provided [states]
              */
-            private fun <J: MutableJoinState> build(states: List<J>): Node<J> {
+            private fun <J: MutableJoinState> build(context: QueryContext, states: List<J>): Node<J> {
                 check(states.isNotEmpty())
                 if (states.size == 1) {
                     // hardly a tree, but what can we do
@@ -409,9 +412,9 @@ sealed interface JoinTree: MutableJoinState {
                 // TODO(perf): actually check individual states on overlapping bindings, have them be connected nodes,
                 //  with the total index list depending on the not-yet-inserted patterns
                 val remaining = states.mapTo(ArrayList(states.size)) { Node.Leaf(it) }
-                var result: Node<J> = Node.Disconnected(left = remaining.removeFirst(), right = remaining.removeFirst())
+                var result: Node<J> = Node.Disconnected(context = context, left = remaining.removeFirst(), right = remaining.removeFirst())
                 while (remaining.isNotEmpty()) {
-                    result = Node.Disconnected(left = result, right = remaining.removeFirst())
+                    result = Node.Disconnected(context = context, left = result, right = remaining.removeFirst())
                 }
                 return result
             }
@@ -445,21 +448,21 @@ sealed interface JoinTree: MutableJoinState {
     companion object {
 
         @JvmName("forPatterns")
-        operator fun invoke(patterns: List<TriplePattern>) = when {
+        operator fun invoke(context: QueryContext, patterns: List<TriplePattern>) = when {
             // TODO(perf) specialised empty case
             // TODO(perf) also based on binding overlap
-            patterns.size >= 2 -> Dynamic(patterns)
+            patterns.size >= 2 -> Dynamic(context, patterns)
             patterns.isEmpty() -> Empty
-            else -> None(patterns)
+            else -> None(context, patterns)
         }
 
         @JvmName("forUnions")
-        operator fun invoke(unions: List<Union>) = when {
+        operator fun invoke(context: QueryContext, unions: List<Union>) = when {
             // TODO(perf) specialised empty case
             // TODO(perf) also based on binding overlap
-            unions.size >= 2 -> Dynamic(unions)
+            unions.size >= 2 -> Dynamic(context, unions)
             unions.isEmpty() -> Empty
-            else -> None(unions)
+            else -> None(context, unions)
         }
 
     }

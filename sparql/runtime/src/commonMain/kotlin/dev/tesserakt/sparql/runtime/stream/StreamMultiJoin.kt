@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.runtime.stream
 
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.emptyMapping
 import dev.tesserakt.sparql.util.Cardinality
-import dev.tesserakt.util.compatibleWith
 
 class StreamMultiJoin(
     private val left: Stream<Mapping>,
@@ -19,7 +19,8 @@ class StreamMultiJoin(
         private var source2 = b.iterator()
 
         private var left = source1.next()
-        private lateinit var right: Mapping
+        // the empty mapping is never read from, so this is not an error (instant `increment()` call)
+        private var right: Mapping = emptyMapping()
 
         private var next: Mapping? = null
 
@@ -39,8 +40,9 @@ class StreamMultiJoin(
 
         private fun getNext(): Mapping? {
             while (increment()) {
-                if (left.compatibleWith(right)) {
-                    return left + right
+                val joined = left.join(right)
+                if (joined != null) {
+                    return joined
                 }
             }
             return null

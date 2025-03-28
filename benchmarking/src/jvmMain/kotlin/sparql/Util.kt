@@ -4,6 +4,7 @@ import dev.tesserakt.interop.jena.toJenaDataset
 import dev.tesserakt.interop.jena.toTerm
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.toBindings
 import org.apache.jena.query.Dataset
 import org.apache.jena.query.QueryExecutionFactory
 import kotlin.io.path.Path
@@ -30,7 +31,7 @@ actual class ExternalQueryExecution actual constructor(
                 solution.varNames().forEach { name ->
                     solution[name]?.asNode()?.toTerm()?.let { current[name] = it }
                 }
-                results.add(current)
+                results.add(current.toBindings())
             }
         }
         return results

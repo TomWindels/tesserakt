@@ -1,11 +1,13 @@
 package dev.tesserakt.sparql.runtime.collection
 
-fun MappingArray(bindings: Collection<String>) = when {
-    bindings.isNotEmpty() -> MultiHashMappingArray(bindings = bindings.toSet())
+import dev.tesserakt.sparql.runtime.evaluation.QueryContext
+
+fun MappingArray(context: QueryContext, bindings: Collection<String>) = when {
+    bindings.isNotEmpty() -> MultiHashMappingArray(context, bindings = bindings.toSet())
     else -> SimpleMappingArray()
 }
 
-fun MappingArray(vararg bindings: String?): MappingArray {
+fun MappingArray(context: QueryContext, vararg bindings: String?): MappingArray {
     val set = setOfNotNull(*bindings)
-    return MappingArray(set)
+    return MappingArray(context, set)
 }
