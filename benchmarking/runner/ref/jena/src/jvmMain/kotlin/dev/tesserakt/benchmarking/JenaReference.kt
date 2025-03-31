@@ -10,7 +10,7 @@ import org.apache.jena.query.QueryExecutionFactory
 import org.apache.jena.query.QuerySolution
 import org.apache.jena.query.ReadWrite
 
-actual class Reference actual constructor(private val query: String) : Evaluator() {
+class JenaReference(private val query: String) : Reference() {
 
     private val store = DatasetFactory.createTxnMem()
     private var previous = emptyList<QuerySolution>()
@@ -22,8 +22,8 @@ actual class Reference actual constructor(private val query: String) : Evaluator
         store.begin(ReadWrite.WRITE)
         try {
             val graph = store.asDatasetGraph()
-            diff.insertions.forEach { graph.add(it.toJenaQuad()) }
             diff.deletions.forEach { graph.delete(it.toJenaQuad()) }
+            diff.insertions.forEach { graph.add(it.toJenaQuad()) }
             store.commit()
         } finally {
             store.end()

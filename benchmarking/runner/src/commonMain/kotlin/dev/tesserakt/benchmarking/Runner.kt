@@ -21,28 +21,30 @@ class Runner(
             // warmup
             output.markStart("warmup")
             source.queries.forEach { query ->
-                val evaluator = if (config.referenceImplementation) Evaluator.reference(query) else Evaluator.self(query)
-                output.reset()
-                deltas.forEach { delta ->
-                    evaluator.prepare(delta)
-                    evaluator.eval()
-                    evaluator.finish()
+                config.createEvaluator(query).use { evaluator ->
+                    output.reset()
+                    deltas.forEach { delta ->
+                        evaluator.prepare(delta)
+                        evaluator.eval()
+                        evaluator.finish()
+                    }
                 }
             }
             output.markEnd("warmup")
             // actual execution
             repeat(10) { runIndex ->
                 source.queries.forEachIndexed { qi, query ->
-                    val evaluator = if (config.referenceImplementation) Evaluator.reference(query) else Evaluator.self(query)
-                    output.reset()
-                    deltas.forEachIndexed { di, delta ->
-                        val id = RunId(queryIndex = qi, deltaIndex = di, runIndex = runIndex)
-                        evaluator.prepare(delta)
-                        output.markStart(id.id())
-                        evaluator.eval()
-                        output.markEnd(id.id())
-                        val outputs = evaluator.finish()
-                        output.markOutputs(id.id(), outputs)
+                    config.createEvaluator(query).use { evaluator ->
+                        output.reset()
+                        deltas.forEachIndexed { di, delta ->
+                            val id = RunId(queryIndex = qi, deltaIndex = di, runIndex = runIndex)
+                            evaluator.prepare(delta)
+                            output.markStart(id.id())
+                            evaluator.eval()
+                            output.markEnd(id.id())
+                            val outputs = evaluator.finish()
+                            output.markOutputs(id.id(), outputs)
+                        }
                     }
                 }
             }

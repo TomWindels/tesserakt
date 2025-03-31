@@ -27,7 +27,7 @@ actual class OutputWriter actual constructor(config: RunnerConfig): Closeable {
         memoryObserver = MemoryObserver(directory + "memory.csv")
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-        File(directory + "metadata").writeText("version: $version\ninput: ${config.inputFilePath}\nis_reference: ${config.referenceImplementation}")
+        File(directory + "metadata").writeText("version: $version\ninput: ${config.inputFilePath}\nevaluator: ${config.evaluatorName}")
     }
 
     /**

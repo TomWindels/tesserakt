@@ -6,7 +6,7 @@ plugins {
 }
 
 kotlin {
-    jvm("jena")
+    jvm()
 
     sourceSets {
         val commonMain by getting {
@@ -14,19 +14,20 @@ kotlin {
                 // to deserialize and evaluate datasets
                 implementation(project(":common"))
                 implementation(project(":serialization"))
-                implementation(project(":benchmarking:store-replay"))
                 // being able to actually execute the queries
-                implementation(project(":sparql"))
-                implementation(project(":sparql:runtime"))
+                implementation(project(":benchmarking:runner:core"))
             }
         }
-        val jvmMain by creating {
-            dependsOn(commonMain)
-        }
-        val jenaMain by getting {
-            dependsOn(jvmMain)
+        val jvmMain by getting {
             dependencies {
-                implementation(project(":interop:jena"))
+                // required to get references from child implementors at runtime
+                implementation(kotlin("reflect"))
+                // further used in the reflection implementation to detect all reference implementations
+                implementation("com.google.guava:guava:33.4.6-jre")
+                // TODO: properties-based
+                implementation(project(":benchmarking:runner:ref:blazegraph"))
+                implementation(project(":benchmarking:runner:ref:jena"))
+//                implementation(project(":benchmarking:runner:ref:rdfox"))
             }
         }
     }
