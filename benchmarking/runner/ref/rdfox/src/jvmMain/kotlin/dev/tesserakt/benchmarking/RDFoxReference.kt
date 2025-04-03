@@ -31,7 +31,7 @@ class RDFoxReference(private val query: String) : Reference() {
         }
     }
 
-    override fun eval() {
+    override suspend fun eval() {
         current = mutableListOf()
         connection.newDataStoreConnection("data").use { conn ->
             conn.evaluateQuery(query, emptyMap(), object : QueryAnswerMonitor {

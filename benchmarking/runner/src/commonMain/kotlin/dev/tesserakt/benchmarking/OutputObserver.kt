@@ -1,11 +1,8 @@
 package dev.tesserakt.benchmarking
 
-import java.io.BufferedWriter
-import java.io.FileWriter
-
 class OutputObserver(filepath: String) {
 
-    private val writer = BufferedWriter(FileWriter(filepath))
+    private val writer = Writer(filepath)
 
     init {
         writer.write("name,additions,removals,checksum\n")

@@ -1,54 +1,50 @@
 package dev.tesserakt.benchmarking
 
-import java.io.File
-
-private val version by lazy {
-    CommandExecutor.run("git rev-parse HEAD")
-}
+private val fs = js("require('fs')")
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(config: RunnerConfig): AutoCloseable {
+actual class OutputWriter actual constructor(config: RunnerConfig) : AutoCloseable {
 
-    private val memoryObserver: MemoryObserver
     private val timeObserver: TimeObserver
     private val outputObserver: OutputObserver
 
     init {
         val directory = config.outputDirPath
         check(directory.endsWith('/'))
-        val root = File(directory)
-        root.mkdirs()
-        val contents = root.list()
-        when {
-            contents == null -> throw IllegalArgumentException("Path `$directory` is not a directory!")
-            contents.isNotEmpty() -> throw IllegalArgumentException("Path `$directory` is not empty!")
+        if (!directory.isFolder()) {
+            val opts: dynamic = Any()
+            opts.recursive = true
+            fs.mkdirSync(directory, opts)
         }
-        memoryObserver = MemoryObserver(directory + "memory.csv")
+        if (directory.listFiles().isNotEmpty()) {
+            throw IllegalArgumentException("Path `$directory` is not empty!")
+        }
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-        File(directory + "metadata").writeText("version: $version\ninput: ${config.inputFilePath}\nevaluator: ${config.evaluatorName}")
+        fs.writeFileSync(
+            directory + "metadata",
+            "input: ${config.inputFilePath}\nevaluator: ${config.evaluatorName}"
+        )
     }
 
     /**
      * Called when the benchmark has been started, just before the very first call to [markStart]
      */
     actual fun create() {
-        // starting the periodic memory observations
-        memoryObserver.start()
+        /* nothing to do */
     }
 
     /**
      * Called on every new run start
      */
     actual fun reset() {
-        memoryObserver.reset()
+        /* nothing to do */
     }
 
     /**
      * Called when the benchmark has finished, just after the very last call to [markEnd]
      */
     actual override fun close() {
-        memoryObserver.stop()
         timeObserver.stop()
         outputObserver.stop()
     }

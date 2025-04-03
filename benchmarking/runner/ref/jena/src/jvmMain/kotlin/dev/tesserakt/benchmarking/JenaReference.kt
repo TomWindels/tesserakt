@@ -30,7 +30,7 @@ class JenaReference(private val query: String) : Reference() {
         }
     }
 
-    override fun eval() {
+    override suspend fun eval() {
         QueryExecutionFactory.create(query, store).use { execution ->
             val results = mutableListOf<QuerySolution>()
             val solutions = execution.execSelect()

@@ -6,6 +6,11 @@ group = "benchmarking.runner"
 
 kotlin {
     jvm()
+    js {
+        nodejs {
+            binaries.library()
+        }
+    }
 
     sourceSets {
         val commonMain by getting {

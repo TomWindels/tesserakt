@@ -7,6 +7,12 @@ plugins {
 
 kotlin {
     jvm()
+    js {
+        nodejs {
+            passProcessArgvToMainFunction()
+            binaries.executable()
+        }
+    }
 
     sourceSets {
         val commonMain by getting {
@@ -16,6 +22,8 @@ kotlin {
                 implementation(project(":serialization"))
                 // being able to actually execute the queries
                 implementation(project(":benchmarking:runner:core"))
+                // necessary to properly launch the coroutines associated with the execution
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
             }
         }
         val jvmMain by getting {
@@ -28,6 +36,11 @@ kotlin {
                 implementation(project(":benchmarking:runner:ref:blazegraph"))
                 implementation(project(":benchmarking:runner:ref:jena"))
 //                implementation(project(":benchmarking:runner:ref:rdfox"))
+            }
+        }
+        val jsMain by getting {
+            dependencies {
+                implementation(project(":benchmarking:runner:ref:comunica"))
             }
         }
     }

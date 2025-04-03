@@ -12,7 +12,7 @@ class Runner(
     private val source = ReplayBenchmark.from(TriGSerializer.deserialize(Path(config.inputFilePath)).consume()).single()
     private val output = OutputWriter(config)
 
-    fun run() {
+    suspend fun run() {
         // putting the store's diffs in memory
         val deltas = source.store.diffs.toList()
         // actually executing it
