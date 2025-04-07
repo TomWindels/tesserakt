@@ -23,7 +23,7 @@ class Self(query: Query<Bindings>): Evaluator() {
         this.diff = diff
     }
 
-    override fun eval() {
+    override suspend fun eval() {
         store.apply {
             diff.deletions.forEach { remove(it) }
             diff.insertions.forEach { add(it) }

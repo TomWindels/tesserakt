@@ -98,6 +98,7 @@ data class RunnerConfig(
             }
             return when {
                 input.isFolder() -> {
+                    input = input.dropLastWhile { it == '/' }
                     val files = input.listFiles().filter { it.endsWith(".ttl") }
                     if (createComparison) {
                         implementations.flatMap { implementation ->
@@ -192,10 +193,10 @@ data class RunnerConfig(
         private fun String.createOutputFilepath(implementation: String) =
             this.dropLast(4) + "_${implementation}_${currentEpochMs()}/"
 
-        private const val SELF_IMPL = "self"
-
         private val implementations = listOf(SELF_IMPL) + references.keys
 
     }
 
 }
+
+expect val SELF_IMPL: String

@@ -23,7 +23,7 @@ sealed class Evaluator : AutoCloseable {
     /**
      * Evaluates the diff; this is the method which execution time matters!
      */
-    abstract fun eval()
+    abstract suspend fun eval()
 
     /**
      * Evaluates the result difference after applying the diff

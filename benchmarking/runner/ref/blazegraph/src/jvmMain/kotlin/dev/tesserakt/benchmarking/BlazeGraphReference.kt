@@ -36,7 +36,7 @@ class BlazeGraphReference(private val query: String) : Reference() {
         }
     }
 
-    override fun eval() {
+    override suspend fun eval() {
         val conn = repo.readOnlyConnection
         val eval = try {
             conn.prepareTupleQuery(QueryLanguage.SPARQL, query).evaluate()

@@ -6,6 +6,7 @@ import dev.tesserakt.interop.rdfjs.toN3Store
 import dev.tesserakt.interop.rdfjs.toTerm
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.toBindings
 import kotlinx.coroutines.await
 
 private val engine = ComunicaQueryEngine()
@@ -15,6 +16,7 @@ private fun ComunicaBinding.toBindings(): Bindings = js("Array")
     .unsafeCast<Array<Array<dynamic>>>()
     // [ [ name, term | undefined ], ... ]
     .associate { (name, term) -> name.value as String to term.unsafeCast<N3Term>().toTerm() }
+    .toBindings()
 
 suspend fun Store.comunicaSelectQuery(query: String): List<Bindings> {
     return toN3Store().comunicaSelectQuery(query)
