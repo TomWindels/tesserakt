@@ -14,7 +14,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(project(":serialization:trig"))
-                implementation(project(":rdf-dsl"))
+                implementation(project(":rdf:dsl"))
             }
         }
     }

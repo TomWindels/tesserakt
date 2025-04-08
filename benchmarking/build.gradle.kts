@@ -29,7 +29,7 @@ kotlin {
                 implementation(project(":sparql"))
                 implementation(project(":sparql:runtime")) // providing runtime debug information
                 // built-in tests use the dsl for construction
-                implementation(project(":rdf-dsl"))
+                implementation(project(":rdf:dsl"))
                 // to evaluate the results
                 implementation(project(":testing:suite"))
                 // using the store replay feature for benchmarking

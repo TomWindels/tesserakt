@@ -8,10 +8,10 @@ rootProject.name = "tesserakt"
 include("common")
 
 include("rdf")
-include("rdf-dsl")
+include("rdf:dsl")
 
 include("n3")
-include("n3-dsl")
+include("n3:dsl")
 
 include("sparql")
 include("sparql:core")

@@ -13,7 +13,7 @@ kotlin {
         implementation(project(":sparql:compiler"))
         implementation(project(":sparql:runtime"))
         implementation(project(":testing:suite"))
-        implementation(project(":rdf-dsl"))
+        implementation(project(":rdf:dsl"))
         implementation(project(":serialization"))
     }
 }

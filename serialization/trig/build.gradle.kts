@@ -14,7 +14,7 @@ kotlin {
         }
         val commonTest by getting {
             dependencies {
-                implementation(project(":rdf-dsl"))
+                implementation(project(":rdf:dsl"))
                 implementation(kotlin("test"))
             }
         }

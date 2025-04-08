@@ -14,7 +14,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":rdf"))
-                implementation(project(":rdf-dsl"))
+                implementation(project(":rdf:dsl"))
                 implementation(project(":serialization:trig"))
                 implementation(project(":stream:ldes"))
             }
