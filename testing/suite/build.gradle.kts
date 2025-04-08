@@ -12,7 +12,7 @@ kotlin {
         // core modules tested by all test targets
         val commonMain by getting {
             dependencies {
-                api(project(":common"))
+                implementation(project(":utils"))
             }
         }
     }

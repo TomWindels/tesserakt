@@ -15,7 +15,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(project(":common"))
+                implementation(project(":utils"))
                 implementation(project(":sparql"))
                 api(project(":benchmarking:store-replay"))
             }

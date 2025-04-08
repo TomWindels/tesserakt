@@ -5,7 +5,8 @@ plugins {
 }
 
 rootProject.name = "tesserakt"
-include("common")
+
+/* public facing modules */
 
 include("rdf")
 include("rdf:dsl")
@@ -33,6 +34,12 @@ include("stream:ldes")
 
 include("interop:jena")
 include("interop:rdfjs")
+
+/* internal modules (distributed) */
+
+include("utils")
+
+/* internal modules (not distributed) */
 
 include("testing:suite")
 include("testing:rdf-test-suite-js")

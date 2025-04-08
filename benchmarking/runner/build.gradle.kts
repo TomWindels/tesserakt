@@ -18,7 +18,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 // to deserialize and evaluate datasets
-                implementation(project(":common"))
+                implementation(project(":utils"))
                 implementation(project(":serialization"))
                 // being able to actually execute the queries
                 implementation(project(":benchmarking:runner:core"))

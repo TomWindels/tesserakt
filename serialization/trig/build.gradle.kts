@@ -8,6 +8,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
+                implementation(project(":utils"))
                 implementation(project(":serialization:core"))
                 api(project(":serialization:common"))
             }

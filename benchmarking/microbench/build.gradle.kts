@@ -13,7 +13,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(project(":common"))
+                implementation(project(":utils"))
                 implementation(project(":rdf"))
                 implementation("org.jetbrains.kotlinx:kotlinx-benchmark-runtime:0.4.13")
 
