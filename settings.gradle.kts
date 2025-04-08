@@ -44,7 +44,6 @@ include("benchmarking:runner")
 include("benchmarking:runner:core")
 include("benchmarking:runner:ref:blazegraph")
 include("benchmarking:runner:ref:comunica")
-include("benchmarking:runner:ref:incremunica")
 include("benchmarking:runner:ref:jena")
 include("benchmarking:runner:ref:rdfox")
 
