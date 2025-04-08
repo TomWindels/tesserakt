@@ -1,5 +1,5 @@
 import dev.tesserakt.interop.rdfjs.n3.N3Quad
-import dev.tesserakt.sparql.types.runtime.evaluation.Bindings
+import dev.tesserakt.sparql.Bindings
 import kotlin.js.Promise
 
 // interface ported from https://github.com/rubensworks/rdf-test-suite.js/blob/master/lib/testcase/sparql/IQueryEngine.ts
@@ -45,7 +45,7 @@ data class QueryResultBindings(
 
     internal constructor(variables: Iterable<String>, bindings: List<Bindings>): this(
         variables = variables.map { "?$it" }.toTypedArray(),
-        value = bindings.map { it.mapKeys { "?${it.key}" }.toJsObject() }.toTypedArray(),
+        value = bindings.map { it.map { "?${it.first}" to it.second }.toJsObject() }.toTypedArray(),
     )
 
     val type: String = "bindings"
@@ -79,8 +79,8 @@ data class QueryResultBindings(
 
 }
 
-private fun <T> Map<String, T>.toJsObject(): dynamic {
+private fun <T> List<Pair<String, T>>.toJsObject(): dynamic {
     val result: dynamic = Any()
-    forEach { result[it.key] = it.value }
+    forEach { result[it.first] = it.second }
     return result
 }
