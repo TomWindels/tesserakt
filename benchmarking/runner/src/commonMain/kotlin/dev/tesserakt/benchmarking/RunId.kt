@@ -6,6 +6,6 @@ data class RunId(
     val deltaIndex: Int,
     val runIndex: Int,
 ) {
-    fun id() = "#${queryIndex} Δ${deltaIndex}"
+    fun id() = "Δ${deltaIndex}"
     override fun toString() = "#${queryIndex} Δ${deltaIndex} (${runIndex})"
 }

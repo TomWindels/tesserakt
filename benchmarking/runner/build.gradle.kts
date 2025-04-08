@@ -7,6 +7,12 @@ plugins {
 
 kotlin {
     jvm()
+    js {
+        nodejs {
+            passProcessArgvToMainFunction()
+            binaries.executable()
+        }
+    }
 
     sourceSets {
         val commonMain by getting {
@@ -14,15 +20,27 @@ kotlin {
                 // to deserialize and evaluate datasets
                 implementation(project(":common"))
                 implementation(project(":serialization"))
-                implementation(project(":benchmarking:store-replay"))
                 // being able to actually execute the queries
-                implementation(project(":sparql"))
-                implementation(project(":sparql:runtime"))
+                implementation(project(":benchmarking:runner:core"))
+                // necessary to properly launch the coroutines associated with the execution
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
             }
         }
         val jvmMain by getting {
             dependencies {
-                implementation(project(":interop:jena"))
+                // required to get references from child implementors at runtime
+                implementation(kotlin("reflect"))
+                // further used in the reflection implementation to detect all reference implementations
+                implementation("com.google.guava:guava:33.4.6-jre")
+                // TODO: properties-based
+                implementation(project(":benchmarking:runner:ref:blazegraph"))
+                implementation(project(":benchmarking:runner:ref:jena"))
+//                implementation(project(":benchmarking:runner:ref:rdfox"))
+            }
+        }
+        val jsMain by getting {
+            dependencies {
+                implementation(project(":benchmarking:runner:ref:comunica"))
             }
         }
     }
@@ -73,26 +91,69 @@ val graphInstallation = tasks.register("installGraphingTool", Exec::class.java) 
     commandLine("./bin/pip", "install", "-r", "requirements.txt")
 }
 
-val runner = tasks.register("runBenchmark", Exec::class) {
+val runnerJvm = tasks.register("runBenchmarkJvm", Exec::class) {
     group = "benchmarking"
     workingDir = build.asFile.get()
     val jar = build.dir("libs").get().file("runner-jvm-${version}.jar").asFile.path
     val source = local("benchmarking.input")
         ?: throw IllegalStateException("No benchmark input configured! Please add `benchmarking.input=<path/to/dataset>` to `${project.rootProject.rootDir.path}/local.properties`!")
-    commandLine("java", "-jar", jar, "-i", source, "-o", "${build.get().asFile.path}/benchmark_output/", "--compare-implementations")
+    commandLine("java", "-jar", jar, "-i", source, "-o", "${build.get().asFile.path}/benchmark_output/jvm/", "--compare-implementations")
 }
 
-val graphing = tasks.register("createBenchmarkGraphs", Exec::class.java) {
+runnerJvm.get().dependsOn(tasks.named("jvmJar"))
+
+val runnerJs = tasks.register("runBenchmarkJs", Exec::class) {
     group = "benchmarking"
-    val targets = build.dir("benchmark_output").get().asFile.path + "/*"
-    workingDir = graphingTarget.get().asFile
-    commandLine("./bin/python", "main.py", targets)
+    workingDir = rootDir
+    // retrieved & configured through the "kotlinNodejsSetup" task
+    val node = "${File("${gradle.gradleUserHomeDir}/nodejs").listFiles().single { file -> file.isDirectory }}/bin/node"
+    val file = "build/js/packages/tesserakt-benchmarking-runner/kotlin/tesserakt-benchmarking-runner.js"
+    val source = local("benchmarking.input")
+        ?: throw IllegalStateException("No benchmark input configured! Please add `benchmarking.input=<path/to/dataset>` to `${project.rootProject.rootDir.path}/local.properties`!")
+    commandLine(node, file, "-i", source, "-o", "${build.get().asFile.path}/benchmark_output/js/", "--compare-implementations")
 }
 
-runner.get().dependsOn(tasks.named("jvmJar"))
-runner.get().finalizedBy(graphing)
+runnerJs.get().dependsOn(tasks.named("kotlinNodeJsSetup"))
+runnerJs.get().dependsOn(tasks.named("assemble"))
 
-graphing.get().dependsOn(graphInstallation)
+val runner = tasks.register("runBenchmark") {
+    group = "benchmarking"
+}
+
+runner.get().dependsOn(runnerJvm, runnerJs)
+
+val graphingJvm = tasks.register("createBenchmarkGraphsJvm", Exec::class.java) {
+    group = "benchmarking"
+    val targets = build.dir("benchmark_output").get().asFile.path + "/jvm/*"
+    workingDir = graphingTarget.get().asFile
+    commandLine("./bin/python", "single_graph.py", targets)
+}
+
+val graphingJs = tasks.register("createBenchmarkGraphsJs", Exec::class.java) {
+    group = "benchmarking"
+    val targets = build.dir("benchmark_output").get().asFile.path + "/js/*"
+    workingDir = graphingTarget.get().asFile
+    commandLine("./bin/python", "single_graph.py", targets)
+}
+
+val combinedGraphing = tasks.register("createBenchmarkGraphs", Exec::class.java) {
+    group = "benchmarking"
+    val targets = build
+        .dir("benchmark_output")
+        .get()
+        .asFile
+        .path
+        .let { base -> arrayOf("$base/js/*", "$base/jvm/*") }
+    workingDir = graphingTarget.get().asFile
+    commandLine("./bin/python", "multi_graph.py", *targets)
+}
+
+runnerJvm.get().finalizedBy(graphingJvm)
+runnerJs.get().finalizedBy(graphingJs)
+runner.get().finalizedBy(combinedGraphing)
+
+graphingJvm.get().dependsOn(graphInstallation)
+graphingJs.get().dependsOn(graphInstallation)
 graphInstallation.get().dependsOn(graphConfiguration)
 graphConfiguration.get().dependsOn(graphPreparation)
 

@@ -1,9 +1,8 @@
 package dev.tesserakt.benchmarking
 
-import java.io.Closeable
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-expect class OutputWriter(config: RunnerConfig): Closeable {
+expect class OutputWriter(config: RunnerConfig): AutoCloseable {
 
     /**
      * Called when the benchmark has been started, just before the very first call to [markStart]

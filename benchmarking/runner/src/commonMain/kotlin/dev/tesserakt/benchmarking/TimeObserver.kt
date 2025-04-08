@@ -1,11 +1,8 @@
 package dev.tesserakt.benchmarking
 
-import java.io.BufferedWriter
-import java.io.FileWriter
-
 class TimeObserver(filepath: String) {
 
-    private val writer = BufferedWriter(FileWriter(filepath))
+    private val writer = Writer(filepath)
     private lateinit var id: String
     private var start = 0L
 

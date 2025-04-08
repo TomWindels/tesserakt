@@ -1,6 +1,5 @@
 package dev.tesserakt.benchmarking
 
-import java.io.Closeable
 import java.io.File
 
 private val version by lazy {
@@ -8,7 +7,7 @@ private val version by lazy {
 }
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(config: RunnerConfig): Closeable {
+actual class OutputWriter actual constructor(config: RunnerConfig): AutoCloseable {
 
     private val memoryObserver: MemoryObserver
     private val timeObserver: TimeObserver
@@ -27,7 +26,7 @@ actual class OutputWriter actual constructor(config: RunnerConfig): Closeable {
         memoryObserver = MemoryObserver(directory + "memory.csv")
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-        File(directory + "metadata").writeText("version: $version\ninput: ${config.inputFilePath}\nis_reference: ${config.referenceImplementation}")
+        File(directory + "metadata").writeText("version: $version\ninput: ${config.inputFilePath}\nevaluator: ${config.evaluatorName}")
     }
 
     /**

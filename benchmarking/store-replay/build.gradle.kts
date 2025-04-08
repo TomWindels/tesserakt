@@ -13,7 +13,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(project(":rdf"))
+                api(project(":rdf"))
                 implementation(project(":rdf-dsl"))
                 implementation(project(":serialization:trig"))
                 implementation(project(":stream:ldes"))
