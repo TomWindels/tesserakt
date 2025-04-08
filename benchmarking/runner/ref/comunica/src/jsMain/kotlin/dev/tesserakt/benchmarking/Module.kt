@@ -23,6 +23,8 @@ external class ComunicaBinding {
 
     fun get(name: String): N3Term?
 
+    fun forEach(fn: (value: N3Term, key: /* RDF.Variable */ dynamic) -> Unit)
+
     @JsName("toString")
     fun toPrettyString(): String
 

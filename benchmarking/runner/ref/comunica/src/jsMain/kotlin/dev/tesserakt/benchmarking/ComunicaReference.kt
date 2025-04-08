@@ -31,14 +31,11 @@ class ComunicaReference(private val query: String) : Reference() {
         val query = engine.query(query, settings).await()
         val results = query.toArray().await()
         results.forEach { binding ->
-            js("Array")
-                .from(this)
-                .unsafeCast<Array<Array<dynamic>>>()
-                // [ [ name, term | undefined ], ... ]
-                .forEach { (_, term) ->
-                    val term = term.unsafeCast<N3Term>()
-                    checksum += term.checksumValue
-                }
+            binding.forEach { term, _ ->
+                checksum += term
+                    .unsafeCast<N3Term>()
+                    .checksumValue
+            }
         }
         current = results
     }
