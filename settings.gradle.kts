@@ -22,6 +22,7 @@ include("sparql:debugging")
 include("sparql:compiler")
 include("sparql:runtime")
 include("sparql:test")
+include("sparql:validator")
 
 include("serialization:core")
 include("serialization:common")
@@ -55,7 +56,5 @@ include("testing:tooling:environment")
 include("testing:tooling:replay-benchmark")
 
 include("testing:rdf-test-suite-js")
-
-include("benchmarking")
 
 include("js-build")

@@ -3,6 +3,8 @@ plugins {
     kotlin("multiplatform")
 }
 
+group = "sparql"
+
 kotlin {
     jvm()
     js {
