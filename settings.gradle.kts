@@ -42,17 +42,20 @@ include("utils")
 
 /* internal modules (not distributed) */
 
-include("testing:rdf-test-suite-js")
+include("testing:bench:microbench")
+
+include("testing:bench:sparql")
+include("testing:bench:sparql:core")
+include("testing:bench:sparql:ref:blazegraph")
+include("testing:bench:sparql:ref:comunica")
+include("testing:bench:sparql:ref:jena")
+include("testing:bench:sparql:ref:rdfox")
+
 include("testing:tooling:environment")
 include("testing:tooling:replay-benchmark")
 
+include("testing:rdf-test-suite-js")
+
 include("benchmarking")
-include("benchmarking:microbench")
-include("benchmarking:runner")
-include("benchmarking:runner:core")
-include("benchmarking:runner:ref:blazegraph")
-include("benchmarking:runner:ref:comunica")
-include("benchmarking:runner:ref:jena")
-include("benchmarking:runner:ref:rdfox")
 
 include("js-build")
