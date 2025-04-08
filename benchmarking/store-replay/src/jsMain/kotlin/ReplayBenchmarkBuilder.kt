@@ -7,10 +7,10 @@ import dev.tesserakt.interop.rdfjs.toTerm
 import dev.tesserakt.rdf.serialization.common.Prefixes.Companion.plus
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.benchmark.replay.RBO
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
-import dev.tesserakt.sparql.benchmark.replay.SnapshotStore
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport

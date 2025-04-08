@@ -1,6 +1,5 @@
-package dev.tesserakt.sparql.benchmark.replay
+package dev.tesserakt.rdf.types
 
-import dev.tesserakt.rdf.types.Quad
 import kotlin.jvm.JvmInline
 
 object NaiveSnapshotClustering: SnapshotClustering {

@@ -10,6 +10,7 @@ rootProject.name = "tesserakt"
 
 include("rdf")
 include("rdf:dsl")
+include("rdf:snapshot-store")
 
 include("n3")
 include("n3:dsl")

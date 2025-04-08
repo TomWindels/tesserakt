@@ -1,9 +1,6 @@
-package dev.tesserakt.sparql.benchmark.replay
+package dev.tesserakt.rdf.types
 
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.stream.ldes.StreamTransform
 import dev.tesserakt.stream.ldes.VersionedLinkedDataEventStream
 import kotlinx.datetime.Clock

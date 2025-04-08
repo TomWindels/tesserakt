@@ -13,10 +13,9 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(project(":rdf"))
+                api(project(":rdf:snapshot-store"))
                 implementation(project(":rdf:dsl"))
                 implementation(project(":serialization:trig"))
-                implementation(project(":stream:ldes"))
             }
         }
         val jsMain by getting {
@@ -27,6 +26,9 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
+                implementation(project(":utils"))
+                // we require the ontologies during the encoding test
+                implementation(project(":stream:ldes"))
             }
         }
     }

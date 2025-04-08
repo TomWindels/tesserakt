@@ -1,6 +1,4 @@
-package dev.tesserakt.sparql.benchmark.replay
-
-import dev.tesserakt.rdf.types.Quad
+package dev.tesserakt.rdf.types
 
 interface SnapshotClustering {
 

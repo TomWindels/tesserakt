@@ -5,6 +5,7 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
+import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
 
 class ReplayBenchmark(

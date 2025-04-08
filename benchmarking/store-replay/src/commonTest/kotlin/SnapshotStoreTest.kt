@@ -5,7 +5,7 @@ import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.sparql.benchmark.replay.SnapshotStore
+import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 import dev.tesserakt.stream.ldes.ontology.TREE

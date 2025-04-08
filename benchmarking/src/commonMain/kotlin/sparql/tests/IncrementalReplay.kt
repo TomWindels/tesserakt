@@ -3,11 +3,11 @@ package sparql.tests
 import dev.tesserakt.rdf.serialization.common.Path
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.MutableStore
+import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
-import dev.tesserakt.sparql.benchmark.replay.SnapshotStore
 import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.util.printerrln
