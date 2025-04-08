@@ -59,16 +59,19 @@ kotlin {
             name = "${parent.name}-$name"
             parent = parent.parent?.takeIf { it != project.rootProject }
         }
-        compilations.forEach {
+        compilations.forEach { compilation ->
             // setting the outputModuleName to the entire name value (= incl. the scope) yields
             //  runtime exceptions, so that approach is avoided
             // src for this approach:
             // https://youtrack.jetbrains.com/issue/KT-25878/Provide-Option-to-Define-Scoped-NPM-Package#focus=Comments-27-6742844.0-0
-            it.packageJson {
-                customField("name", "@${project.findProperty("NPM_ORGANISATION")}/${name}")
+            val npmPackageName = "@${project.findProperty("NPM_ORGANISATION")}/${name}"
+            compilation.packageJson {
+                customField("name", npmPackageName)
             }
-            it.outputModuleName = name
-            println("Configured NPM package ${project.findProperty("NPM_ORGANISATION")}/${name}")
+            compilation.outputModuleName = name
+            if (compilation.name != "test") {
+                println("Configured NPM package $npmPackageName")
+            }
         }
         nodejs()
     }
