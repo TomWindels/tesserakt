@@ -32,9 +32,9 @@ kotlin {
                 // built-in tests use the dsl for construction
                 implementation(project(":rdf:dsl"))
                 // to evaluate the results
-                implementation(project(":testing:suite"))
+                implementation(project(":testing:tooling:environment"))
                 // using the store replay feature for benchmarking
-                implementation(project(":benchmarking:store-replay"))
+                implementation(project(":testing:tooling:replay-benchmark"))
             }
         }
         val jvmMain by getting {

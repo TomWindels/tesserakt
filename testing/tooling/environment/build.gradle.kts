@@ -3,6 +3,8 @@ plugins {
     id("component-conventions")
 }
 
+group = "testing"
+
 kotlin {
     jvm()
     js()

@@ -4,6 +4,8 @@ plugins {
     id("package-conventions")
 }
 
+group = "testing"
+
 kotlin {
     js {
         generateTypeScriptDefinitions()

@@ -42,11 +42,11 @@ include("utils")
 
 /* internal modules (not distributed) */
 
-include("testing:suite")
 include("testing:rdf-test-suite-js")
+include("testing:tooling:environment")
+include("testing:tooling:replay-benchmark")
 
 include("benchmarking")
-include("benchmarking:store-replay")
 include("benchmarking:microbench")
 include("benchmarking:runner")
 include("benchmarking:runner:core")

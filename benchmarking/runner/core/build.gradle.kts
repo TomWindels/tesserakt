@@ -17,7 +17,7 @@ kotlin {
             dependencies {
                 implementation(project(":utils"))
                 implementation(project(":sparql"))
-                api(project(":benchmarking:store-replay"))
+                api(project(":testing:tooling:replay-benchmark"))
             }
         }
     }
