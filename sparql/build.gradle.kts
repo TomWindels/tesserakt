@@ -11,7 +11,7 @@ kotlin {
                 api(project(":rdf"))
                 api(project(":sparql:common"))
 
-                implementation(project(":common"))
+                implementation(project(":utils"))
                 implementation(project(":sparql:compiler"))
                 implementation(project(":sparql:runtime"))
             }

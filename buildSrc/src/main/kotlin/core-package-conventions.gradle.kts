@@ -37,7 +37,11 @@ kotlin {
         mingwX64Main.get().dependsOn(nativeMain)
         // the reason for this custom hierarchy:
         // https://slack-chats.kotlinlang.org/t/15994222/hello-hello-i-started-to-use-expected-actual-is-a-module-of-#735f0201-c023-485d-bc23-577addd2215c
-        androidMain.get().dependsOn(jvmMain.get())
+        val commonJvmMain by creating {
+            dependsOn(commonMain.get())
+        }
+        jvmMain.get().dependsOn(commonJvmMain)
+        androidMain.get().dependsOn(commonJvmMain)
     }
     js {
         generateTypeScriptDefinitions()

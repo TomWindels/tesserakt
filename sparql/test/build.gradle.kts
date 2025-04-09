@@ -12,8 +12,8 @@ kotlin {
         implementation(project(":sparql:debugging"))
         implementation(project(":sparql:compiler"))
         implementation(project(":sparql:runtime"))
-        implementation(project(":testing:suite"))
-        implementation(project(":rdf-dsl"))
+        implementation(project(":testing:tooling:environment"))
+        implementation(project(":rdf:dsl"))
         implementation(project(":serialization"))
     }
 }

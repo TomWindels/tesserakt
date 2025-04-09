@@ -5,13 +5,15 @@ plugins {
 }
 
 rootProject.name = "tesserakt"
-include("common")
+
+/* public facing modules */
 
 include("rdf")
-include("rdf-dsl")
+include("rdf:dsl")
+include("rdf:snapshot-store")
 
 include("n3")
-include("n3-dsl")
+include("n3:dsl")
 
 include("sparql")
 include("sparql:core")
@@ -20,6 +22,7 @@ include("sparql:debugging")
 include("sparql:compiler")
 include("sparql:runtime")
 include("sparql:test")
+include("sparql:validator")
 
 include("serialization:core")
 include("serialization:common")
@@ -34,17 +37,24 @@ include("stream:ldes")
 include("interop:jena")
 include("interop:rdfjs")
 
-include("testing:suite")
-include("testing:rdf-test-suite-js")
+/* internal modules (distributed) */
 
-include("benchmarking")
-include("benchmarking:store-replay")
-include("benchmarking:microbench")
-include("benchmarking:runner")
-include("benchmarking:runner:core")
-include("benchmarking:runner:ref:blazegraph")
-include("benchmarking:runner:ref:comunica")
-include("benchmarking:runner:ref:jena")
-include("benchmarking:runner:ref:rdfox")
+include("utils")
+
+/* internal modules (not distributed) */
+
+include("testing:bench:microbench")
+
+include("testing:bench:sparql")
+include("testing:bench:sparql:core")
+include("testing:bench:sparql:ref:blazegraph")
+include("testing:bench:sparql:ref:comunica")
+include("testing:bench:sparql:ref:jena")
+include("testing:bench:sparql:ref:rdfox")
+
+include("testing:tooling:environment")
+include("testing:tooling:replay-benchmark")
+
+include("testing:rdf-test-suite-js")
 
 include("js-build")

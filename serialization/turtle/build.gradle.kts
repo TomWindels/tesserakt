@@ -17,7 +17,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(project(":interop:jena"))
-                implementation(project(":testing:suite"))
+                implementation(project(":testing:tooling:environment"))
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
             }
         }
