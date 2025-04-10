@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
 plugins {
-    kotlin("multiplatform")
+    id("base-config")
 }
 
 repositories {
@@ -60,20 +60,19 @@ kotlin {
             name = "${parent.name}-$name"
             parent = parent.parent?.takeIf { it != project.rootProject }
         }
+        moduleName = name
+        val npmPackageName = "@${project.findProperty("NPM_ORGANISATION")}/${name}"
         compilations.forEach { compilation ->
             // setting the outputModuleName to the entire name value (= incl. the scope) yields
             //  runtime exceptions, so that approach is avoided
             // src for this approach:
             // https://youtrack.jetbrains.com/issue/KT-25878/Provide-Option-to-Define-Scoped-NPM-Package#focus=Comments-27-6742844.0-0
-            val npmPackageName = "@${project.findProperty("NPM_ORGANISATION")}/${name}"
             compilation.packageJson {
                 customField("name", npmPackageName)
             }
             compilation.outputModuleName = name
-            if (compilation.name != "test") {
-                println("Configured NPM package $npmPackageName")
-            }
         }
+        println("Configured NPM package $npmPackageName")
         nodejs()
         browser()
         generateTypeScriptDefinitions()
