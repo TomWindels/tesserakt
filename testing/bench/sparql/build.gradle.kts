@@ -94,7 +94,7 @@ val graphInstallation = tasks.register("installGraphingTool", Exec::class.java) 
 val runnerJvm = tasks.register("runBenchmarkJvm", Exec::class) {
     group = "benchmarking"
     workingDir = build.asFile.get()
-    val jar = build.dir("libs").get().file("runner-jvm-${version}.jar").asFile.path
+    val jar = build.dir("libs").get().file("${project.name}-jvm-${version}.jar").asFile.path
     val source = local("benchmarking.input")
         ?: throw IllegalStateException("No benchmark input configured! Please add `benchmarking.input=<path/to/dataset>` to `${project.rootProject.rootDir.path}/local.properties`!")
     commandLine("java", "-jar", jar, "-i", source, "-o", "${build.get().asFile.path}/benchmark_output/jvm/", "--compare-implementations")
