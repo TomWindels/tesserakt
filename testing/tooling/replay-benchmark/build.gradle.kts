@@ -1,7 +1,7 @@
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 
 plugins {
-    id("package-conventions")
+    id("kmp-package")
 }
 
 group = "testing"

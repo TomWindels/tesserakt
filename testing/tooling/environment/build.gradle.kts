@@ -1,13 +1,15 @@
 plugins {
     // not distributed as a package
-    id("component-conventions")
+    kotlin("multiplatform")
 }
 
 group = "testing"
 
 kotlin {
     jvm()
-    js()
+    js {
+        nodejs()
+    }
     mingwX64()
     linuxX64()
     sourceSets {

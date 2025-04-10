@@ -1,6 +1,6 @@
 plugins {
     // not distributed as a package
-    id("package-conventions")
+    id("kmp-package")
 }
 
 group = "serialization"
