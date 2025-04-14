@@ -1,5 +1,6 @@
 plugins {
     id("base-config")
+    id("maven-publish")
 }
 
 repositories {
@@ -20,5 +21,13 @@ kotlin {
         }
         jvmMain.get().dependsOn(commonJvmMain)
         // in case of an android target, this can now also depend on the `commonJvmMain` sourceset
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            // no further configuration required
+        }
     }
 }
