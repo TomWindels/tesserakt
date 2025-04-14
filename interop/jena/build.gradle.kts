@@ -1,5 +1,5 @@
 plugins {
-    id("package-conventions")
+    id("jvm-package")
 }
 
 kotlin {

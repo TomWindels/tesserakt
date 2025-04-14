@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.debug
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.get
 import dev.tesserakt.util.fit
 import dev.tesserakt.util.toString
 import dev.tesserakt.util.weightedSort
@@ -34,7 +35,7 @@ class BindingsTable(
     private val _bindings: List<Bindings>
 ): Iterable<BindingsTable.Entry> {
 
-    private val _columns = buildSet { _bindings.forEach { addAll(it.keys) } }
+    private val _columns = buildSet { _bindings.forEach { addAll(it.map { it.first }) } }
         .toMutableList()
     private val _widths = _columns
         .map { column ->

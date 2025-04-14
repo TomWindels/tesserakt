@@ -1,3 +1,3 @@
 plugins {
-    id("core-package-conventions")
+    id("kmp-package")
 }

@@ -1,6 +1,6 @@
 plugins {
     // not distributed as a package, build targets are manually defined
-    kotlin("multiplatform")
+    id("base-config")
 }
 
 group = "sparql"
@@ -10,17 +10,6 @@ kotlin {
     js {
         nodejs()
         binaries.executable()
-    }
-
-    // silencing expect/actual warnings
-    targets.all {
-        compilations.all {
-            compileTaskProvider.configure {
-                compilerOptions {
-                    freeCompilerArgs.add("-Xexpect-actual-classes")
-                }
-            }
-        }
     }
 
     sourceSets {
