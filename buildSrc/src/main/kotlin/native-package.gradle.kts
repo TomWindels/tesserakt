@@ -1,6 +1,5 @@
 plugins {
     id("base-config")
-    kotlin("multiplatform")
 }
 
 repositories {

@@ -1,5 +1,5 @@
 plugins {
-    kotlin("multiplatform")
+    id("base-config")
     id("org.jetbrains.kotlinx.benchmark") version "0.4.13"
     kotlin("plugin.allopen") version "2.0.20"
 }

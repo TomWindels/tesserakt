@@ -13,6 +13,7 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
+                implementation(project(":utils"))
                 implementation(project(":serialization:trig"))
                 implementation(project(":rdf:dsl"))
             }

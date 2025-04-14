@@ -1,8 +1,8 @@
 plugins {
-    kotlin("multiplatform")
+    id("base-config")
 }
 
-group = "benchmarking.runner"
+group = "sparql.bench"
 
 kotlin {
     jvm()

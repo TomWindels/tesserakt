@@ -3,10 +3,6 @@ plugins {
 }
 
 kotlin {
-    js {
-        browser()
-        nodejs()
-    }
     sourceSets {
         val jsMain by getting {
             dependencies {

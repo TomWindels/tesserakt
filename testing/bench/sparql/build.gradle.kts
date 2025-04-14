@@ -1,14 +1,18 @@
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 import java.util.*
 
 plugins {
     // not distributed as a package, build targets are manually defined
-    kotlin("multiplatform")
+    id("base-config")
 }
+
+group = "sparql.bench"
 
 kotlin {
     jvm()
     js {
         nodejs {
+            @OptIn(ExperimentalMainFunctionArgumentsDsl::class)
             passProcessArgvToMainFunction()
             binaries.executable()
         }
@@ -59,15 +63,12 @@ val benchmarkingEnabled = benchmarkingInput != null && File(benchmarkingInput).e
 val build = layout.buildDirectory
 val graphingTarget = build.dir("graphs")
 
-val cleanGraphTool = tasks.register("cleanGraphingTool", Exec::class.java) {
-    enabled = !graphingTarget.get().asFile.exists()
-    workingDir = build.asFile.get()
-    commandLine("rm", "-rf", graphingTarget.get().asFile.path)
+val cleanGraphTool = tasks.register("cleanGraphingTool", Delete::class.java) {
+    delete(graphingTarget.get())
 }
 
-val cleanBenchmarkResults = tasks.register("cleanBenchmarkResults", Exec::class.java) {
-    workingDir = build.asFile.get()
-    commandLine("rm", "-rf", build.dir("benchmark_output").get().asFile.path)
+val cleanBenchmarkResults = tasks.register("cleanBenchmarkResults", Delete::class.java) {
+    delete(build.dir("benchmark_output").get())
 }
 
 if (benchmarkingEnabled) {
@@ -83,14 +84,16 @@ if (benchmarkingEnabled) {
 }
 
 fun setupBenchmarkTasks() {
-    val runnerJvm = tasks.register("runBenchmarkJvm", Exec::class) {
-        group = "benchmarking"
-        workingDir = build.asFile.get()
-        val jar = build.dir("libs").get().file("${project.name}-jvm-${version}.jar").asFile.path
-        commandLine("java", "-jar", jar, "-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/jvm/", "--compare-implementations")
-    }
+    // src: https://slack-chats.kotlinlang.org/t/486856/anyone-knows-how-to-create-gradle-javaexec-configuration-for#20242df1-da93-4272-8f2e-168a8891a398
+    val jvmJar by tasks.existing
+    val jvmRuntimeClasspath by configurations.existing
 
-    runnerJvm.get().dependsOn(tasks.named("jvmJar"))
+    val runnerJvm = tasks.register("runBenchmarkJvm", JavaExec::class) {
+        group = "benchmarking"
+        mainClass.set("Main_jvmKt")
+        classpath(jvmJar, jvmRuntimeClasspath)
+        args("-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/jvm/", "--compare-implementations")
+    }
 
     val runnerJs = tasks.register("runBenchmarkJs", Exec::class) {
         group = "benchmarking"
@@ -167,26 +170,9 @@ fun setupGraphingTasks() {
     graphConfiguration.get().dependsOn(graphPreparation)
 
     // the execution tasks should also be created, so we can find them by name
-    tasks.toList().also { println(it.joinToString { it.name }) }
     tasks.named("runBenchmarkJvm").get().finalizedBy(graphingJvm)
     tasks.named("runBenchmarkJs").get().finalizedBy(graphingJs)
     tasks.named("runBenchmark").get().finalizedBy(combinedGraphing)
 }
 
 tasks.named("clean").get().finalizedBy(cleanGraphTool)
-
-// src: https://stackoverflow.com/a/73844513
-tasks.withType<Jar> {
-    doFirst {
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        val main by kotlin.jvm().compilations.getting
-        manifest {
-            attributes(
-                "Main-Class" to "Main_jvmKt",
-            )
-        }
-        from({
-            main.runtimeDependencyFiles.files.filter { it.name.endsWith("jar") }.map { zipTree(it) }
-        })
-    }
-}

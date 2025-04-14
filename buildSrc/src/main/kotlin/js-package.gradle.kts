@@ -74,7 +74,6 @@ kotlin {
         }
         println("Configured NPM package $npmPackageName")
         nodejs()
-        browser()
         generateTypeScriptDefinitions()
         binaries.library()
     }

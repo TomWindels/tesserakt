@@ -1,7 +1,7 @@
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 
 plugins {
-    kotlin("multiplatform")
+    id("base-config")
 }
 
 kotlin {

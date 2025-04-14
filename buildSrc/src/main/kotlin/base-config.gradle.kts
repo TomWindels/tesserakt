@@ -10,6 +10,7 @@ kotlin {
             compileTaskProvider.configure {
                 compilerOptions {
                     freeCompilerArgs.add("-Xexpect-actual-classes")
+                    freeCompilerArgs.add("-Xsuppress-warning=NOTHING_TO_INLINE")
                 }
             }
         }
