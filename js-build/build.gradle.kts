@@ -1,6 +1,6 @@
 plugins {
     // not directly distributed as a package
-    kotlin("multiplatform")
+    id("base-config")
 }
 
 kotlin {

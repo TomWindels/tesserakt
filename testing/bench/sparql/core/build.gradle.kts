@@ -1,5 +1,5 @@
 plugins {
-    kotlin("multiplatform")
+    id("base-config")
 }
 
 group = "benchmarking.runner"

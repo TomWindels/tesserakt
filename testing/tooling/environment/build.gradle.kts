@@ -1,6 +1,6 @@
 plugins {
     // not distributed as a package
-    kotlin("multiplatform")
+    id("base-config")
 }
 
 group = "testing"
