@@ -14,6 +14,6 @@ kotlin {
         implementation(project(":sparql:runtime"))
         implementation(project(":testing:tooling:environment"))
         implementation(project(":rdf:dsl"))
-        implementation(project(":serialization"))
+        implementation(project(":serialization:turtle"))
     }
 }

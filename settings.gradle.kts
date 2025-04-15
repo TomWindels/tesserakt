@@ -30,7 +30,6 @@ include("serialization:n-triples")
 include("serialization:turtle")
 include("serialization:trig")
 include("serialization:n3")
-include("serialization")
 
 include("stream:ldes")
 
