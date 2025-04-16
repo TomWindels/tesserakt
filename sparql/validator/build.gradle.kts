@@ -17,7 +17,8 @@ kotlin {
             dependencies {
                 // to deserialize and evaluate datasets
                 implementation(project(":utils"))
-                implementation(project(":serialization"))
+                implementation(project(":serialization:turtle"))
+                implementation(project(":serialization:trig"))
                 implementation(project(":sparql"))
                 implementation(project(":sparql:runtime")) // providing runtime debug information
                 // built-in tests use the dsl for construction
@@ -40,21 +41,5 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")
             }
         }
-    }
-}
-
-// src: https://stackoverflow.com/a/73844513
-tasks.withType<Jar> {
-    doFirst {
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        val main by kotlin.jvm().compilations.getting
-        manifest {
-            attributes(
-                "Main-Class" to "Main_jvmKt",
-            )
-        }
-        from({
-            main.runtimeDependencyFiles.files.filter { it.name.endsWith("jar") }.map { zipTree(it) }
-        })
     }
 }

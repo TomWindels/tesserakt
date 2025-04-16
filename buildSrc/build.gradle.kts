@@ -6,4 +6,5 @@ plugins {
 dependencies {
     implementation(libs.android.gradlePlugin)
     implementation(libs.kotlin.gradlePlugin)
+    implementation(libs.maven.publish.gradlePlugin)
 }

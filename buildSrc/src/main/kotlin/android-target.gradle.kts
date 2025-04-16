@@ -1,5 +1,5 @@
 plugins {
-    id("jvm-package")
+    id("jvm-target")
     // making them publishable & buildable for android
     id("com.android.library")
 }

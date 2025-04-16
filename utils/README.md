@@ -1,0 +1,2 @@
+# Utils module
+This module contains a series of helper functions and other utilities to make multiplatform development easier. This module is never exposed in other modules, as it has no RDF specific functionality, and offers no API guarantees. You should never depend on this module in your own project directly.

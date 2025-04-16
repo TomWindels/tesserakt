@@ -1,13 +1,15 @@
 [versions]
 
 compileSdk = "35"
-android-plugin = "8.8.0"
-kotlin = "2.1.10"
+android-plugin = "8.9.1"
+kotlin = "2.1.20"
+maven-publish = "0.31.0"
 
 [libraries]
 
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "android-plugin" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+maven-publish-gradlePlugin = { module = "com.vanniktech.maven.publish.base:com.vanniktech.maven.publish.base.gradle.plugin", version.ref = "maven-publish" }
 
 [plugins]
 

@@ -23,7 +23,7 @@ kotlin {
             dependencies {
                 // to deserialize and evaluate datasets
                 implementation(project(":utils"))
-                implementation(project(":serialization"))
+                implementation(project(":serialization:trig"))
                 // being able to actually execute the queries
                 implementation(project(":testing:bench:sparql:core"))
                 // necessary to properly launch the coroutines associated with the execution
