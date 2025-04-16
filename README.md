@@ -2,10 +2,9 @@
 
 ![Static Badge](https://img.shields.io/badge/platform-kmp-mediumorchid) ![Static Badge](https://img.shields.io/badge/platform-android-brightgreen) ![Static Badge](https://img.shields.io/badge/platform-jvm-darkorange) ![Static Badge](https://img.shields.io/badge/platform-js-yellow)
 
-![GitHub Release](https://img.shields.io/github/v/release/tomwindels/tesserakt?label=stable&color=%23208a48)
+![GitHub Release](https://img.shields.io/github/v/release/tomwindels/tesserakt?label=stable&color=%23208a48) [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 </h3>
-
-Tesserakt offers a set of RDF and SPARQL tools, for a wide range of platforms, powered by [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html). The main goal of the library is offering a comprehensive, modular suite of RDF tooling, bringing the power of RDF to the Kotlin (Multiplatform), Java and JavaScript/TypeScript (NodeJS) platforms.
+Tesserakt offers a set of RDF and SPARQL tools, for a wide range of platforms, powered by [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html). The main goal of the library is offering a comprehensive, modular suite of RDF tooling, bringing the power of RDF to the Kotlin (Multiplatform), Java and JavaScript/TypeScript (Node.js) platforms.
 
 The module layout is further described in detail below. More module specific information, such as their APIs (with examples), can be found in separate READMEs located at the root of these modules.
 ## Getting started
@@ -23,7 +22,7 @@ dependencies {
 }
 ```
 Submodules can be retrieved by following the entire module path, using `-` as a separator. For instance, the `:rdf:dsl` module can be obtained using artifact ID `tesserakt-rdf-dsl`.
-### NPM (NodeJS)
+### NPM (Node.js)
 Coming soon.
 ## Module overview
 Most modules have a dedicated README with an API overview and examples to quickly get started.
@@ -58,3 +57,5 @@ A simple implementation of the [LDES](https://semiceu.github.io/LinkedDataEventS
 ### Replay benchmark
 ##### [Module link](testing/tooling/replay-benchmark/)
 A benchmarking tool used to measure the performance of the SPARQL engine's incremental evaluation. Uses the [Snapshot store](rdf/snapshot-store/README.md) type to represent a changing RDF triple store.
+## License
+This code is copyrighted by [Ghent University – imec](http://idlab.ugent.be/) and released under the [MIT license](http://opensource.org/licenses/MIT).
