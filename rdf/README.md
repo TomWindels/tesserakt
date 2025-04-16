@@ -13,6 +13,7 @@ Common ontology definitions are also included. This can be used to create quads 
 ## Usage/Examples
 > [!TIP]
 > It is recommended to use the RDF DSL module, as it makes data creation programmatically more convenient.
+
 Basic quads can be created manually.
 ```kt
 val myQuad = Quad(
