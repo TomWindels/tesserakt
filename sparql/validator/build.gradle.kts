@@ -18,6 +18,7 @@ kotlin {
                 // to deserialize and evaluate datasets
                 implementation(project(":utils"))
                 implementation(project(":serialization:turtle"))
+                implementation(project(":serialization:trig"))
                 implementation(project(":sparql"))
                 implementation(project(":sparql:runtime")) // providing runtime debug information
                 // built-in tests use the dsl for construction

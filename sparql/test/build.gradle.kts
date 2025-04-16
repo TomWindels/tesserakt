@@ -7,6 +7,7 @@ group = "sparql"
 kotlin {
     dependencies {
         implementation(kotlin("test"))
+        implementation(project(":utils"))
         implementation(project(":sparql"))
         implementation(project(":sparql:core"))
         implementation(project(":sparql:debugging"))
