@@ -1,8 +1,10 @@
+![Static Badge](https://img.shields.io/badge/platform-kmp-mediumorchid) ![Static Badge](https://img.shields.io/badge/platform-android-brightgreen) ![Static Badge](https://img.shields.io/badge/platform-jvm-darkorange) ![Static Badge](https://img.shields.io/badge/platform-js-yellow)
+![GitHub Release](https://img.shields.io/github/v/release/tomwindels/tesserakt?label=stable&color=%23208a48)
 # tesserakt
 ## Introduction
-A set of RDF and SPARQL tools, for a wide range of platforms, powered by [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html). The main goal of the library is offering a comprehensive, modular suite of RDF tooling, bringing the power of RDF to the Kotlin (Multiplatform), Java and JavaScript/TypeScript (NodeJS) platforms.
+Tesserakt offers a set of RDF and SPARQL tools, for a wide range of platforms, powered by [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html). The main goal of the library is offering a comprehensive, modular suite of RDF tooling, bringing the power of RDF to the Kotlin (Multiplatform), Java and JavaScript/TypeScript (NodeJS) platforms.
 
-The module layout is further described in detail below. More module-specific information, such as its API and examples, can be found in separate READMEs at the root of these modules.
+The module layout is further described in detail below. More module-specific information, such as their respective API with examples, can be found in separate READMEs at the root of these modules.
 ## Getting started
 > [!CAUTION]
 > When using multiple modules in your project, make sure these versions are consistent. Mixing different module versions in the same project is not supported.

@@ -1,4 +1,4 @@
-# RDF DSL
+# SPARQL
 ## Installation
 * Gradle (Android, Java, Kotlin Multiplatform): this module's artifact ID is `tesserakt-sparql`.
 * NPM (Node.js): Coming soon.
