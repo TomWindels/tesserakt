@@ -8,6 +8,7 @@ plugins {
 mavenPublishing {
     coordinates(project.property("MAVEN_CENTRAL_GROUP_ID") as String, getArtifactId(), version = project.version as String)
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    println("Configured Maven package ${project.property("MAVEN_CENTRAL_GROUP_ID") as String}:${getArtifactId()}:${project.version as String}")
 }
 
 fun getArtifactId(): String {

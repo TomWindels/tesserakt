@@ -1,6 +1,5 @@
 plugins {
     id("base-config")
-    id("maven-publish")
 }
 
 repositories {
