@@ -17,14 +17,25 @@ kotlin {
     }
 }
 
-val StableSemVer = Regex("[0-9]+(?:\\.[0-9]+)+")
-val CurrentVersion = project.property("VERSION_NAME") as String
-val IsUnstableVersion = !CurrentVersion.matches(StableSemVer)
+val configVersion = project.property("VERSION_NAME") as String
+val stableSemVer = Regex("[0-9]+(?:\\.[0-9]+)+")
+require(configVersion matches stableSemVer) {
+    "Invalid version configured! Only regular versions (semver) are allowed!"
+}
+// checking the environment "TARGET" variable to see whether we're built from a release (tag) action or not;
+//  non-release build tasks retain the `-SNAPSHOT` logic, so manual publish actions are automatically released
+//  to snapshot maven repos
+val isSnapshot = System.getenv("TARGET") != "release"
+version = if (isSnapshot) {
+    "$configVersion-SNAPSHOT"
+} else {
+    configVersion
+}
 val IsBuildRequest = gradle.startParameter.taskRequests.any { it.args.any { it.contains("build", ignoreCase = true) } }
 // only enforcing tests when not building, or when building an unstable version
-val TestsEnforced = !IsBuildRequest || !IsUnstableVersion
+val TestsEnforced = !IsBuildRequest || !isSnapshot
 
-println("Configuring ${project.name} v${CurrentVersion} (${if (IsUnstableVersion) "unstable" else "stable"})")
+println("Configuring ${project.name} v${version} (${if (isSnapshot) "unstable" else "stable"})")
 if (!TestsEnforced) {
     println("Unstable build request detected. Not enforcing tests.")
 } else {
