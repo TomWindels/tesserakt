@@ -1,5 +1,4 @@
 package dev.tesserakt.benchmarking
 
-actual val references: Map<String, (String) -> Reference> = mapOf(
-    "comunica" to { ComunicaReference(it) }
-)
+// TODO: make this reference a property generated at build time based on the configuration
+actual val references: Map<String, (String) -> Reference> = mapOf()
