@@ -50,11 +50,11 @@ kotlin {
     }
 }
 
-fun local(name: String): String? {
+fun local(name: String): String? = runCatching {
     val properties = Properties()
     properties.load(File(rootDir.absolutePath + "/local.properties").inputStream())
     return properties.getProperty(name, null)
-}
+}.getOrNull()
 
 val benchmarkingInput = local("benchmarking.input")
 val graphRepoUrl = local("benchmarking.graph.url")
