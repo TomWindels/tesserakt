@@ -3,7 +3,7 @@ on:
   release:
     types: [published]
 jobs:
-  publish:
+  publish-docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,8 @@ jobs:
 
       - name: Generate documentation for release
         run: ./gradlew --no-daemon :dokkaHtmlMultiModule
+        env:
+          GRADLE_OPTS: -Xms1g -Xmx4g
 
       - name: Publish documentation for release
         uses: JamesIves/github-pages-deploy-action@v4.4.0
