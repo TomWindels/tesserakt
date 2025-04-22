@@ -12,7 +12,14 @@ repositories {
 kotlin {
     // target configuration
     androidTarget {
-        publishLibraryVariants("release", "debug")
+        when {
+            (version as String).endsWith("-SNAPSHOT") -> {
+                publishLibraryVariants("debug")
+            }
+            else -> {
+                publishLibraryVariants("release")
+            }
+        }
     }
 
     // source set configuration
