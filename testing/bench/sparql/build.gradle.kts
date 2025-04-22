@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
-import java.util.*
 
 plugins {
     // not distributed as a package, build targets are manually defined
@@ -36,28 +35,29 @@ kotlin {
                 implementation(kotlin("reflect"))
                 // further used in the reflection implementation to detect all reference implementations
                 implementation("com.google.guava:guava:33.4.6-jre")
-                // TODO: properties-based
-                implementation(project(":testing:bench:sparql:ref:blazegraph"))
-                implementation(project(":testing:bench:sparql:ref:jena"))
-//                implementation(project(":testing:bench:sparql:ref:rdfox"))
+                if (project.hasEnabled("bench.sparql.blazegraph")) {
+                    implementation(project(":testing:bench:sparql:ref:blazegraph"))
+                }
+                if (project.hasEnabled("bench.sparql.jena")) {
+                    implementation(project(":testing:bench:sparql:ref:jena"))
+                }
+                if (project.hasEnabled("bench.sparql.rdfox")) {
+                    implementation(project(":testing:bench:sparql:ref:rdfox"))
+                }
             }
         }
         val jsMain by getting {
             dependencies {
-                implementation(project(":testing:bench:sparql:ref:comunica"))
+                if (project.hasEnabled("bench.sparql.comunica")) {
+                    implementation(project(":testing:bench:sparql:ref:comunica"))
+                }
             }
         }
     }
 }
 
-fun local(name: String): String? = runCatching {
-    val properties = Properties()
-    properties.load(File(rootDir.absolutePath + "/local.properties").inputStream())
-    return properties.getProperty(name, null)
-}.getOrNull()
-
-val benchmarkingInput = local("benchmarking.input")
-val graphRepoUrl = local("benchmarking.graph.url")
+val benchmarkingInput = project.local("benchmarking.input")
+val graphRepoUrl = project.local("benchmarking.graph.url")
 val benchmarkingEnabled = benchmarkingInput != null && File(benchmarkingInput).exists()
 
 val build = layout.buildDirectory
