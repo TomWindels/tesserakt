@@ -29,6 +29,10 @@ mavenPublishing {
         }
     }
 
+    if (!(version as String).endsWith("-SNAPSHOT")) {
+        signAllPublications()
+    }
+
     println("Configured Maven package ${project.property("MAVEN_CENTRAL_GROUP_ID") as String}:tesserakt-${artifactId}:${project.version as String}")
 }
 
