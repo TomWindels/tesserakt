@@ -35,12 +35,6 @@ android {
     compileSdk = libs.get("compileSdk").toInt()
     namespace = getNamespace()
     println("Configured Android Library $namespace")
-    compileOptions {
-        // removeFirst was only added to java.util.List in JDK 21
-        // https://github.com/javalin/javalin/issues/2117#issuecomment-1960114620
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
 }
 
 fun getNamespace(): String {

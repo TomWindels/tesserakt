@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+
 plugins {
     id("base-config")
 }
@@ -21,4 +24,18 @@ kotlin {
         jvmMain.get().dependsOn(commonJvmMain)
         // in case of an android target, this can now also depend on the `commonJvmMain` sourceset
     }
+}
+
+// preventing `NoSuchMethodException`s from occurring when dealing with Compile SDK 35 and above on Android when
+//  using extension functions such as `MutableList::removeFirst()`
+// src: https://jakewharton.com/kotlins-jdk-release-compatibility-flag/
+
+tasks.withType(JavaCompile::class.java).configureEach {
+    sourceCompatibility = JavaVersion.VERSION_1_8.name
+    targetCompatibility = JavaVersion.VERSION_1_8.name
+}
+
+tasks.withType(KotlinJvmCompile::class.java).configureEach {
+    compilerOptions.jvmTarget = JvmTarget.JVM_1_8
+    compilerOptions.freeCompilerArgs.add("-Xjdk-release=1.8")
 }
