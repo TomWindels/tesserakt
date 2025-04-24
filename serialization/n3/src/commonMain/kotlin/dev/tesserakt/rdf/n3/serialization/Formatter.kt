@@ -1,6 +1,8 @@
 package dev.tesserakt.rdf.n3.serialization
 
 import dev.tesserakt.util.addFront
+import dev.tesserakt.util.removeFirstElement
+import dev.tesserakt.util.removeLastElement
 import kotlin.jvm.JvmInline
 
 
@@ -65,7 +67,7 @@ data class PrettyFormatter(
         fun advance(): Boolean {
             current = next ?: return false
             next = when {
-                buf.isNotEmpty() -> buf.removeFirst()
+                buf.isNotEmpty() -> buf.removeFirstElement()
                 iterator.hasNext() -> iterator.next()
                 else -> null
             }
@@ -160,7 +162,7 @@ data class PrettyFormatter(
 
         fun stopFrame() {
             check(frames.size > 1) { "Invalid frame termination request! Root frame cannot be removed!" }
-            frames.removeLast()
+            frames.removeLastElement()
         }
 
         override fun toString() = frames.joinToString(" => ")

@@ -4,6 +4,7 @@ import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.emptyIterable
 import dev.tesserakt.sparql.util.Cardinality
+import dev.tesserakt.util.removeLastElement
 
 /**
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
@@ -156,14 +157,14 @@ class MultiHashMappingArray(
         var i = 0
         while (i < size - 1) {
             if (backing[i] == null) {
-                backing[i] = backing.removeLast()
+                backing[i] = backing.removeLastElement()
             } else {
                 ++i
             }
         }
         // trimming the end
         if (backing.isNotEmpty() && backing.last() == null) {
-            backing.removeLast()
+            backing.removeLastElement()
         }
         // resetting the hole count
         holes = 0

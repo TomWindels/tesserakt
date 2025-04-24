@@ -147,10 +147,10 @@ inline fun <T> MutableList<T>.unorderedDropAt(index: Int) {
             clear()
         }
         index == size - 1 -> {
-            removeLast()
+            removeLastElement()
         }
         else -> {
-            this[index] = removeLast()
+            this[index] = removeLastElement()
         }
     }
 }
@@ -161,3 +161,15 @@ inline fun <K, V: Any> Iterable<K>.associateWithNotNull(transform: (K) -> V?): M
         put(key, value)
     }
 }
+
+/**
+ * A custom implementation of the [MutableList.removeFirst] method, implemented to make sure it resolves properly on
+ *  Android 14 and below
+ */
+expect inline fun <T> MutableList<T>.removeFirstElement(): T
+
+/**
+ * A custom implementation of the [MutableList.removeLast] method, implemented to make sure it resolves properly on
+ *  Android 14 and below
+ */
+expect inline fun <T> MutableList<T>.removeLastElement(): T

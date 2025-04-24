@@ -1,6 +1,11 @@
 package dev.tesserakt.util
 
+/**
+ * Replaces the value associated with [key] with the value computed by [transform]ing the original value (if any)
+ */
 actual inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V) {
+    // the `compute` method is only available since Android SDK 24; as we currently have no `minSdk` configured for all
+    //  Android modules, we should fall back on this approach instead
     this[key] = transform(this[key])
 }
 
@@ -9,7 +14,7 @@ actual inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform:
  *  Android 14 and below
  */
 actual inline fun <T> MutableList<T>.removeFirstElement(): T {
-    return removeFirst()
+    return removeAt(0)
 }
 
 /**
@@ -17,5 +22,5 @@ actual inline fun <T> MutableList<T>.removeFirstElement(): T {
  *  Android 14 and below
  */
 actual inline fun <T> MutableList<T>.removeLastElement(): T {
-    return removeLast()
+    return removeAt(size - 1)
 }

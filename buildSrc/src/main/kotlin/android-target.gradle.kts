@@ -1,7 +1,8 @@
 plugins {
     id("jvm-target")
     // making them publishable & buildable for android
-    id("com.android.library")
+    id("com.android.kotlin.multiplatform.library")
+    id("com.android.lint")
 }
 
 repositories {
@@ -10,16 +11,27 @@ repositories {
 }
 
 kotlin {
-    // target configuration
-    androidTarget {
-        when {
-            (version as String).endsWith("-SNAPSHOT") -> {
-                publishLibraryVariants("debug")
-            }
-            else -> {
-                publishLibraryVariants("release")
+    androidLibrary {
+        val libs = versionCatalogs.named("libs")
+        compileSdk = libs.get("compileSdk").toInt()
+        namespace = getNamespace()
+        compilations.configureEach {
+            // the suggested change makes the JVM-specific compiler options unavailable as the compiler
+            //  task only provides the compiler options for the common sourceset...
+            @Suppress("DEPRECATION")
+            compilerOptions.configure {
+                jvmTarget.set(
+                    org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+                )
             }
         }
+        lint {
+            abortOnError = true
+            enable += listOf("NewApi", "InvalidPackage", "NewerVersionAvailable", "NoOp", "StopShip", "SyntheticAccessor")
+            warning += listOf("StopShip")
+            fatal += listOf("NewApi", "InvalidPackage")
+        }
+        println("Configured Android Library $namespace")
     }
 
     // source set configuration
@@ -27,19 +39,6 @@ kotlin {
         // the reason for this custom hierarchy:
         // https://slack-chats.kotlinlang.org/t/15994222/hello-hello-i-started-to-use-expected-actual-is-a-module-of-#735f0201-c023-485d-bc23-577addd2215c
         androidMain.get().dependsOn(sourceSets.named("commonJvmMain").get())
-    }
-}
-
-android {
-    val libs = versionCatalogs.named("libs")
-    compileSdk = libs.get("compileSdk").toInt()
-    namespace = getNamespace()
-    println("Configured Android Library $namespace")
-    compileOptions {
-        // removeFirst was only added to java.util.List in JDK 21
-        // https://github.com/javalin/javalin/issues/2117#issuecomment-1960114620
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
