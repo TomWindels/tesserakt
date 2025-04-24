@@ -36,7 +36,12 @@ jobs:
 
       - name: Redirect stable to new release
         run: |
-          echo "Redirecting stable to newly released version" 
+          echo "Redirecting stable to newly released version" $RELEASE_VERSION
           ln -sf $RELEASE_VERSION stable
           git add stable
           git commit -m "Redirect stable to new version $RELEASE_VERSION"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: gh-pages
