@@ -1,0 +1,761 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Keyword</title>
+<link href="../../../../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="../../../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../../../ui-kit/ui-kit.min.js" defer></script>
+<script type="text/javascript" src="../../../../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+<a class="library-name--link" href="../../../../../index.html">
+                    tesserakt
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":sparql:compiler:dokkaHtmlPartial/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filter=":sparql:compiler:dokkaHtmlPartial/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    tesserakt
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="sparql.compiler::dev.tesserakt.sparql.compiler.lexer/Token.Keyword///PointingToDeclaration//-1577999275">
+  <div class="breadcrumbs"><a href="../../../index.html">sparql.compiler</a><span class="delimiter">/</span><a href="../../index.html">dev.tesserakt.sparql.compiler.lexer</a><span class="delimiter">/</span><a href="../index.html">Token</a><span class="delimiter">/</span><span class="current">Keyword</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Keyword</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">enum </span><a href="index.html">Keyword</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="index.html">Token.Keyword</a><span class="token operator">&gt; </span>, <a href="../index.html">Token</a></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION,EXTENSION_PROPERTY,EXTENSION_FUNCTION">Members &amp; Extensions</button><button class="section-tab" data-togglable="ENTRY">Entries</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="ENTRY">
+        <h2 class="">Entries</h2>
+        <div class="table"><a data-name="-2020570145%2FClasslikes%2F-1577999275" anchor-label="RdfTypePredicate" id="-2020570145%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-rdf-type-predicate/index.html">RdfTypePredicate</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2020570145%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-rdf-type-predicate/index.html">RdfTypePredicate</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="220866472%2FClasslikes%2F-1577999275" anchor-label="Prefix" id="220866472%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-prefix/index.html">Prefix</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="220866472%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-prefix/index.html">Prefix</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1081238382%2FClasslikes%2F-1577999275" anchor-label="Select" id="-1081238382%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-select/index.html">Select</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1081238382%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-select/index.html">Select</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1783016681%2FClasslikes%2F-1577999275" anchor-label="Construct" id="1783016681%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-construct/index.html">Construct</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1783016681%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-construct/index.html">Construct</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-557537905%2FClasslikes%2F-1577999275" anchor-label="Insert" id="-557537905%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-insert/index.html">Insert</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-557537905%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-insert/index.html">Insert</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1373398791%2FClasslikes%2F-1577999275" anchor-label="Where" id="-1373398791%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-where/index.html">Where</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1373398791%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-where/index.html">Where</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="820918856%2FClasslikes%2F-1577999275" anchor-label="As" id="820918856%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-as/index.html">As</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="820918856%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-as/index.html">As</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-581498229%2FClasslikes%2F-1577999275" anchor-label="Ask" id="-581498229%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-ask/index.html">Ask</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-581498229%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-ask/index.html">Ask</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="319729811%2FClasslikes%2F-1577999275" anchor-label="Bind" id="319729811%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-bind/index.html">Bind</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="319729811%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-bind/index.html">Bind</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="386794666%2FClasslikes%2F-1577999275" anchor-label="Concat" id="386794666%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-concat/index.html">Concat</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="386794666%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-concat/index.html">Concat</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="453541677%2FClasslikes%2F-1577999275" anchor-label="StringLength" id="453541677%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-string-length/index.html">StringLength</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="453541677%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-string-length/index.html">StringLength</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1575936526%2FClasslikes%2F-1577999275" anchor-label="Filter" id="1575936526%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-filter/index.html">Filter</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1575936526%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-filter/index.html">Filter</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1996170329%2FClasslikes%2F-1577999275" anchor-label="Regex" id="1996170329%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-regex/index.html">Regex</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1996170329%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-regex/index.html">Regex</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-809803488%2FClasslikes%2F-1577999275" anchor-label="Order" id="-809803488%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-order/index.html">Order</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-809803488%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-order/index.html">Order</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="501667985%2FClasslikes%2F-1577999275" anchor-label="Group" id="501667985%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-group/index.html">Group</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="501667985%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-group/index.html">Group</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1655222779%2FClasslikes%2F-1577999275" anchor-label="Having" id="1655222779%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-having/index.html">Having</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1655222779%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-having/index.html">Having</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-774983763%2FClasslikes%2F-1577999275" anchor-label="By" id="-774983763%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-by/index.html">By</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-774983763%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-by/index.html">By</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1836420301%2FClasslikes%2F-1577999275" anchor-label="Limit" id="1836420301%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-limit/index.html">Limit</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1836420301%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-limit/index.html">Limit</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="370216161%2FClasslikes%2F-1577999275" anchor-label="Union" id="370216161%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-union/index.html">Union</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="370216161%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-union/index.html">Union</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1568154094%2FClasslikes%2F-1577999275" anchor-label="Distinct" id="-1568154094%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-distinct/index.html">Distinct</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1568154094%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-distinct/index.html">Distinct</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="445023094%2FClasslikes%2F-1577999275" anchor-label="Optional" id="445023094%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-optional/index.html">Optional</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="445023094%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-optional/index.html">Optional</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="586444324%2FClasslikes%2F-1577999275" anchor-label="Bindings" id="586444324%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-bindings/index.html">Bindings</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="586444324%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-bindings/index.html">Bindings</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1067747784%2FClasslikes%2F-1577999275" anchor-label="Values" id="-1067747784%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-values/index.html">Values</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1067747784%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-values/index.html">Values</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="793162738%2FClasslikes%2F-1577999275" anchor-label="Exists" id="793162738%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-exists/index.html">Exists</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="793162738%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-exists/index.html">Exists</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1087116955%2FClasslikes%2F-1577999275" anchor-label="Not" id="-1087116955%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-not/index.html">Not</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1087116955%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-not/index.html">Not</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1159605284%2FClasslikes%2F-1577999275" anchor-label="AggCount" id="1159605284%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-count/index.html">AggCount</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1159605284%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-agg-count/index.html">AggCount</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1123093344%2FClasslikes%2F-1577999275" anchor-label="AggSum" id="-1123093344%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-sum/index.html">AggSum</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1123093344%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-agg-sum/index.html">AggSum</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1430011289%2FClasslikes%2F-1577999275" anchor-label="AggMin" id="-1430011289%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-min/index.html">AggMin</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1430011289%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-agg-min/index.html">AggMin</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1263452679%2FClasslikes%2F-1577999275" anchor-label="AggMax" id="-1263452679%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-max/index.html">AggMax</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1263452679%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-agg-max/index.html">AggMax</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-169429273%2FClasslikes%2F-1577999275" anchor-label="AggAvg" id="-169429273%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-avg/index.html">AggAvg</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-169429273%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-agg-avg/index.html">AggAvg</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-250262072%2FClasslikes%2F-1577999275" anchor-label="AggGroupConcat" id="-250262072%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-group-concat/index.html">AggGroupConcat</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-250262072%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-agg-group-concat/index.html">AggGroupConcat</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1143514083%2FClasslikes%2F-1577999275" anchor-label="AggSample" id="-1143514083%2FClasslikes%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="ENTRY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-sample/index.html">AggSample</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1143514083%2FClasslikes%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><a href="-agg-sample/index.html">AggSample</a></div></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="-436717727%2FProperties%2F-1577999275" anchor-label="bindingName" id="-436717727%2FProperties%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_PROPERTY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-companion/binding-name.html"><span>binding</span><wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-436717727%2FProperties%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="../index.html">Token</a><span class="token punctuation">.</span><a href="../-companion/binding-name.html">bindingName</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1944017680%2FProperties%2F-1577999275" anchor-label="entries" id="1944017680%2FProperties%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="entries.html"><span><span>entries</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1944017680%2FProperties%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="entries.html">entries</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.enums/-enum-entries/index.html">EnumEntries</a><span class="token operator">&lt;</span><a href="index.html">Token.Keyword</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns a representation of an immutable list of all enum entries, in the order they're declared.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="210732196%2FProperties%2F-1577999275" anchor-label="literalNumericValue" id="210732196%2FProperties%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_PROPERTY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-companion/literal-numeric-value.html"><span>literal</span><wbr><span>Numeric</span><wbr><span><span>Value</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="210732196%2FProperties%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="../index.html">Token</a><span class="token punctuation">.</span><a href="../-companion/literal-numeric-value.html">literalNumericValue</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-number/index.html">Number</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="452459398%2FProperties%2F-1577999275" anchor-label="literalTextValue" id="452459398%2FProperties%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_PROPERTY" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-companion/literal-text-value.html"><span>literal</span><wbr><span>Text</span><wbr><span><span>Value</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="452459398%2FProperties%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="../index.html">Token</a><span class="token punctuation">.</span><a href="../-companion/literal-text-value.html">literalTextValue</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-372974862%2FProperties%2F-1577999275" anchor-label="name" id="-372974862%2FProperties%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-sample/index.html#-372974862%2FProperties%2F-1577999275"><span><span>name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-372974862%2FProperties%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="-agg-sample/index.html#-372974862%2FProperties%2F-1577999275">name</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-739389684%2FProperties%2F-1577999275" anchor-label="ordinal" id="-739389684%2FProperties%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-agg-sample/index.html#-739389684%2FProperties%2F-1577999275"><span><span>ordinal</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-739389684%2FProperties%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="-agg-sample/index.html#-739389684%2FProperties%2F-1577999275">ordinal</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1173441271%2FProperties%2F-1577999275" anchor-label="syntax" id="1173441271%2FProperties%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="syntax.html"><span><span>syntax</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1173441271%2FProperties%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="syntax.html">syntax</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="-1629428402%2FFunctions%2F-1577999275" anchor-label="toString" id="-1629428402%2FFunctions%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-string.html"><span>to</span><wbr><span><span>String</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1629428402%2FFunctions%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="13958284%2FFunctions%2F-1577999275" anchor-label="valueOf" id="13958284%2FFunctions%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="value-of.html"><span>value</span><wbr><span><span>Of</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="13958284%2FFunctions%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="value-of.html"><span class="token function">valueOf</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Token.Keyword</a></div><div class="brief "><p class="paragraph">Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-290296168%2FFunctions%2F-1577999275" anchor-label="values" id="-290296168%2FFunctions%2F-1577999275" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:compiler:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:compiler:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="values.html"><span><span>values</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-290296168%2FFunctions%2F-1577999275"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:compiler:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="values.html"><span class="token function">values</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><a href="index.html">Token.Keyword</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns an array containing the constants of this enum type, in the order they're declared.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2025 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

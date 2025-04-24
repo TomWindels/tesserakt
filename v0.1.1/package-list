@@ -1,0 +1,154 @@
+$dokka.format:html-v1
+$dokka.linkExtension:html
+$dokka.location:////PointingToDeclaration/testing.tooling.replay-benchmark/[root]/index.html
+$dokka.location://main/#/PointingToDeclaration/js-build/[root]/main.html
+$dokka.location://main/#kotlin.Array[kotlin.String]/PointingToDeclaration/testing.bench.sparql/[root]/[jvm]main.html
+$dokka.location://parse/#kotlin.String#kotlin.collections.Map[kotlin.String,kotlin.Any]/PointingToDeclaration/testing.rdf-test-suite-js/[root]/parse.html
+$dokka.location://process/#/PointingToDeclaration/sparql.validator/[root]/process.html
+$dokka.location://query/#kotlin.Array[dev.tesserakt.interop.rdfjs.n3.N3Quad]#kotlin.String#kotlin.Any/PointingToDeclaration/testing.rdf-test-suite-js/[root]/query.html
+$dokka.location://run/#kotlin.Array[kotlin.String]/PointingToDeclaration/sparql.validator/[root]/run.html
+$dokka.location://toJsGraph/dev.tesserakt.rdf.types.Quad.Graph#/PointingToDeclaration/rdf/[root]/to-js-graph.html
+$dokka.location://toJsMutableStore/kotlin.collections.Collection[dev.tesserakt.rdf.types.Quad]#/PointingToDeclaration/rdf/[root]/to-js-mutable-store.html
+$dokka.location://toJsQuad/dev.tesserakt.rdf.types.Quad#/PointingToDeclaration/rdf/[root]/to-js-quad.html
+$dokka.location://toJsTerm/dev.tesserakt.rdf.types.Quad.Term#/PointingToDeclaration/rdf/[root]/to-js-term.html
+$dokka.location://unwrap/MutableStoreJs#/PointingToDeclaration/rdf/[root]/unwrap.html
+$dokka.location://unwrap/QuadJs#/PointingToDeclaration/rdf/[root]/unwrap.html
+$dokka.location:/IQueryResultBoolean///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-i-query-result-boolean/index.html
+$dokka.location:/MutableStoreJs///PointingToDeclaration/rdf/[root]/-mutable-store-js/index.html
+$dokka.location:/MutableStoreJs/MutableStoreJs/#kotlin.Array[QuadJs]?/PointingToDeclaration/rdf/[root]/-mutable-store-js/-mutable-store-js.html
+$dokka.location:/MutableStoreJs/contains/#QuadJs/PointingToDeclaration/rdf/[root]/-mutable-store-js/contains.html
+$dokka.location:/MutableStoreJs/equals/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-mutable-store-js/equals.html
+$dokka.location:/MutableStoreJs/hashCode/#/PointingToDeclaration/rdf/[root]/-mutable-store-js/hash-code.html
+$dokka.location:/MutableStoreJs/insert/#QuadJs?/PointingToDeclaration/rdf/[root]/-mutable-store-js/insert.html
+$dokka.location:/MutableStoreJs/insertQuad/#QuadJs.TermJs?#QuadJs.TermJs?#QuadJs.TermJs?#QuadJs.GraphJs?/PointingToDeclaration/rdf/[root]/-mutable-store-js/insert-quad.html
+$dokka.location:/MutableStoreJs/isEmpty/#/PointingToDeclaration/rdf/[root]/-mutable-store-js/is-empty.html
+$dokka.location:/MutableStoreJs/remove/#QuadJs?/PointingToDeclaration/rdf/[root]/-mutable-store-js/remove.html
+$dokka.location:/MutableStoreJs/size/#/PointingToDeclaration/rdf/[root]/-mutable-store-js/size.html
+$dokka.location:/MutableStoreJs/toString/#/PointingToDeclaration/rdf/[root]/-mutable-store-js/to-string.html
+$dokka.location:/QuadJs.Builder///PointingToDeclaration/rdf/[root]/-quad-js/-builder/index.html
+$dokka.location:/QuadJs.Builder/graph/#kotlin.String?/PointingToDeclaration/rdf/[root]/-quad-js/-builder/graph.html
+$dokka.location:/QuadJs.Builder/iri/#kotlin.String?/PointingToDeclaration/rdf/[root]/-quad-js/-builder/iri.html
+$dokka.location:/QuadJs.Builder/literal/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-quad-js/-builder/literal.html
+$dokka.location:/QuadJs.GraphJs///PointingToDeclaration/rdf/[root]/-quad-js/-graph-js/index.html
+$dokka.location:/QuadJs.GraphJs/equals/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-quad-js/-graph-js/equals.html
+$dokka.location:/QuadJs.GraphJs/hashCode/#/PointingToDeclaration/rdf/[root]/-quad-js/-graph-js/hash-code.html
+$dokka.location:/QuadJs.GraphJs/toString/#/PointingToDeclaration/rdf/[root]/-quad-js/-graph-js/to-string.html
+$dokka.location:/QuadJs.TermJs///PointingToDeclaration/rdf/[root]/-quad-js/-term-js/index.html
+$dokka.location:/QuadJs.TermJs/equals/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-quad-js/-term-js/equals.html
+$dokka.location:/QuadJs.TermJs/hashCode/#/PointingToDeclaration/rdf/[root]/-quad-js/-term-js/hash-code.html
+$dokka.location:/QuadJs.TermJs/toString/#/PointingToDeclaration/rdf/[root]/-quad-js/-term-js/to-string.html
+$dokka.location:/QuadJs///PointingToDeclaration/rdf/[root]/-quad-js/index.html
+$dokka.location:/QuadJs/QuadJs/#QuadJs.TermJs?#QuadJs.TermJs?#QuadJs.TermJs?#QuadJs.GraphJs/PointingToDeclaration/rdf/[root]/-quad-js/-quad-js.html
+$dokka.location:/QuadJs/g/#/PointingToDeclaration/rdf/[root]/-quad-js/g.html
+$dokka.location:/QuadJs/o/#/PointingToDeclaration/rdf/[root]/-quad-js/o.html
+$dokka.location:/QuadJs/p/#/PointingToDeclaration/rdf/[root]/-quad-js/p.html
+$dokka.location:/QuadJs/s/#/PointingToDeclaration/rdf/[root]/-quad-js/s.html
+$dokka.location:/QueryEngine///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-engine/index.html
+$dokka.location:/QueryEngine/parse/#kotlin.String#kotlin.collections.Map[kotlin.String,kotlin.Any]/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-engine/parse.html
+$dokka.location:/QueryEngine/query/#kotlin.Array[dev.tesserakt.interop.rdfjs.n3.N3Quad]#kotlin.String#kotlin.collections.Map[kotlin.String,kotlin.Any]/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-engine/query.html
+$dokka.location:/QueryResult///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result/index.html
+$dokka.location:/QueryResultBindings///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/index.html
+$dokka.location:/QueryResultBindings/QueryResultBindings/#kotlin.Array[kotlin.String]#kotlin.Array[kotlin.Any]/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/-query-result-bindings.html
+$dokka.location:/QueryResultBindings/checkOrder/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/check-order.html
+$dokka.location:/QueryResultBindings/equals/#kotlin.Any?/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/equals.html
+$dokka.location:/QueryResultBindings/hashCode/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/hash-code.html
+$dokka.location:/QueryResultBindings/toString/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/to-string.html
+$dokka.location:/QueryResultBindings/type/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/type.html
+$dokka.location:/QueryResultBindings/value/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/value.html
+$dokka.location:/QueryResultBindings/variables/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/variables.html
+$dokka.location:/QueryResultQuads///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-quads/index.html
+$dokka.location:/RDFJS///PointingToDeclaration/interop.rdfjs/[root]/-r-d-f-j-s/index.html
+$dokka.location:/RDFJS/fromArray/#kotlin.Array[QuadJs]/PointingToDeclaration/interop.rdfjs/[root]/-r-d-f-j-s/from-array.html
+$dokka.location:/RDFJS/fromSet/#kotlin.js.collections.JsSet[QuadJs]/PointingToDeclaration/interop.rdfjs/[root]/-r-d-f-j-s/from-set.html
+$dokka.location:/RDFJS/fromStore/#MutableStoreJs/PointingToDeclaration/interop.rdfjs/[root]/-r-d-f-j-s/from-store.html
+$dokka.location:/ReplayBenchmarkBuilder///PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/index.html
+$dokka.location:/ReplayBenchmarkBuilder/ReplayBenchmarkBuilder/#dev.tesserakt.interop.rdfjs.n3.N3NamedNode#dev.tesserakt.interop.rdfjs.n3.N3Store/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/-replay-benchmark-builder.html
+$dokka.location:/ReplayBenchmarkBuilder/addQuery/#kotlin.String/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/add-query.html
+$dokka.location:/ReplayBenchmarkBuilder/addSnapshot/#dev.tesserakt.interop.rdfjs.n3.N3Store/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/add-snapshot.html
+$dokka.location:/ReplayBenchmarkBuilder/build/#/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/build.html
+$dokka.location:/ReplayBenchmarkBuilder/buildToFile/#kotlin.String#kotlin.Any/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/build-to-file.html
+$dokka.location:/ReplayBenchmarkReplayer.Companion///PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-companion/index.html
+$dokka.location:/ReplayBenchmarkReplayer.Companion/fromFile/#kotlin.String/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-companion/from-file.html
+$dokka.location:/ReplayBenchmarkReplayer.DiffJs///PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-diff-js/index.html
+$dokka.location:/ReplayBenchmarkReplayer.DiffJs/deletions/#/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-diff-js/deletions.html
+$dokka.location:/ReplayBenchmarkReplayer.DiffJs/insertions/#/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-diff-js/insertions.html
+$dokka.location:/ReplayBenchmarkReplayer///PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/index.html
+$dokka.location:/ReplayBenchmarkReplayer/forEachSnapshot/#kotlin.Function2[MutableStoreJs,ReplayBenchmarkReplayer.DiffJs,kotlin.Unit]/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/for-each-snapshot.html
+$dokka.location:/ReplayBenchmarkReplayer/queries/#/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/queries.html
+$dokka.location:/SPARQLJs.BindingsJs///PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-bindings-js/index.html
+$dokka.location:/SPARQLJs.SelectQueryEvaluationJs///PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-select-query-evaluation-js/index.html
+$dokka.location:/SPARQLJs.SelectQueryEvaluationJs/bindings/#/PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-select-query-evaluation-js/bindings.html
+$dokka.location:/SPARQLJs.SelectQueryJs///PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-select-query-js/index.html
+$dokka.location:/SPARQLJs///PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/index.html
+$dokka.location:/SPARQLJs/Select/#kotlin.String?/PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-select.html
+$dokka.location:/SPARQLJs/query/#SPARQLJs.SelectQueryJs?#MutableStoreJs?/PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/query.html
+module:n3
+dev.tesserakt.rdf.n3
+module:rdf
+dev.tesserakt.rdf.ontology
+dev.tesserakt.rdf.types
+module:sparql
+dev.tesserakt.sparql
+module:utils
+dev.tesserakt.util
+module:interop.jena
+dev.tesserakt.interop.jena
+module:interop.rdfjs
+dev.tesserakt.interop.rdfjs
+dev.tesserakt.interop.rdfjs.n3
+module:n3.dsl
+dev.tesserakt.rdf.n3.dsl
+module:rdf.dsl
+dev.tesserakt.rdf.dsl
+module:rdf.snapshot-store
+dev.tesserakt.rdf.types
+module:serialization.common
+dev.tesserakt.rdf.serialization.common
+module:serialization.core
+dev.tesserakt.rdf.serialization.common
+dev.tesserakt.rdf.serialization.util
+module:serialization.n-triples
+dev.tesserakt.rdf.serialization
+module:serialization.n3
+dev.tesserakt.rdf.n3.serialization
+module:serialization.trig
+dev.tesserakt.rdf.trig.serialization
+module:serialization.turtle
+dev.tesserakt.rdf.serialization
+module:sparql.common
+dev.tesserakt.sparql
+module:sparql.compiler
+dev.tesserakt.sparql.compiler
+dev.tesserakt.sparql.compiler.analyser
+dev.tesserakt.sparql.compiler.lexer
+module:sparql.core
+dev.tesserakt.sparql
+dev.tesserakt.sparql.types
+module:sparql.debugging
+dev.tesserakt.sparql.debug
+module:sparql.runtime
+dev.tesserakt.sparql.runtime
+dev.tesserakt.sparql.runtime.collection
+dev.tesserakt.sparql.runtime.compat
+dev.tesserakt.sparql.runtime.evaluation
+dev.tesserakt.sparql.runtime.query
+dev.tesserakt.sparql.runtime.stream
+dev.tesserakt.sparql.util
+module:sparql.validator
+comunica
+sparql
+sparql.tests
+sparql.types
+module:stream.ldes
+dev.tesserakt.stream.ldes
+dev.tesserakt.stream.ldes.ontology
+module:testing.bench.microbench
+dev.tesserakt
+module:testing.bench.sparql
+dev.tesserakt.benchmarking
+module:testing.tooling.environment
+dev.tesserakt.testing
+module:testing.tooling.replay-benchmark
+dev.tesserakt.sparql.benchmark.replay
+module:testing.bench.sparql.core
+dev.tesserakt.benchmarking
