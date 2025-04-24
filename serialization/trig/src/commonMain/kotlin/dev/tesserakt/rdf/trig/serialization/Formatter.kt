@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.util.addFront
 import dev.tesserakt.util.fit
+import dev.tesserakt.util.removeFirstElement
 import kotlin.jvm.JvmInline
 
 
@@ -73,7 +74,7 @@ data class PrettyFormatter(
         fun advance(): Boolean {
             current = next ?: return false
             next = when {
-                buf.isNotEmpty() -> buf.removeFirst()
+                buf.isNotEmpty() -> buf.removeFirstElement()
                 iterator.hasNext() -> iterator.next().mapped(prefixes)
                 else -> null
             }

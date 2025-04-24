@@ -27,8 +27,9 @@ kotlin {
         }
         lint {
             abortOnError = true
-            enable += "NewApi"
-            fatal += "NewApi"
+            enable += listOf("NewApi", "InvalidPackage", "NewerVersionAvailable", "NoOp", "StopShip", "SyntheticAccessor")
+            warning += listOf("StopShip")
+            fatal += listOf("NewApi", "InvalidPackage")
         }
         println("Configured Android Library $namespace")
     }

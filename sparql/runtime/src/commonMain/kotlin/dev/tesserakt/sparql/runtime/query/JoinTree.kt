@@ -8,6 +8,7 @@ import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Bitmask
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.OneCardinality
+import dev.tesserakt.util.removeFirstElement
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmName
 
@@ -412,9 +413,9 @@ sealed interface JoinTree: MutableJoinState {
                 // TODO(perf): actually check individual states on overlapping bindings, have them be connected nodes,
                 //  with the total index list depending on the not-yet-inserted patterns
                 val remaining = states.mapTo(ArrayList(states.size)) { Node.Leaf(it) }
-                var result: Node<J> = Node.Disconnected(context = context, left = remaining.removeFirst(), right = remaining.removeFirst())
+                var result: Node<J> = Node.Disconnected(context = context, left = remaining.removeFirstElement(), right = remaining.removeFirstElement())
                 while (remaining.isNotEmpty()) {
-                    result = Node.Disconnected(context = context, left = result, right = remaining.removeFirst())
+                    result = Node.Disconnected(context = context, left = result, right = remaining.removeFirstElement())
                 }
                 return result
             }

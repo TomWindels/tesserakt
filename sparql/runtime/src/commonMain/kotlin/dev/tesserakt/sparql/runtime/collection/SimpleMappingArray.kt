@@ -3,6 +3,7 @@ package dev.tesserakt.sparql.runtime.collection
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
 import dev.tesserakt.sparql.runtime.stream.CollectedStream
 import dev.tesserakt.sparql.util.Cardinality
+import dev.tesserakt.util.removeLastElement
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -38,11 +39,11 @@ value class SimpleMappingArray(
                 throw IllegalStateException("$mapping cannot be removed from NestedJoinArray - not found!")
             }
             this.mappings.size - 1 -> {
-                this.mappings.removeLast()
+                this.mappings.removeLastElement()
             }
             else -> {
                 // putting the last element there instead
-                this.mappings[i] = this.mappings.removeLast()
+                this.mappings[i] = this.mappings.removeLastElement()
             }
         }
     }
