@@ -43,3 +43,22 @@ kotlin {
         }
     }
 }
+
+// src: https://slack-chats.kotlinlang.org/t/486856/anyone-knows-how-to-create-gradle-javaexec-configuration-for#20242df1-da93-4272-8f2e-168a8891a398
+val jvmJar by tasks.existing
+val jvmRuntimeClasspath by configurations.existing
+
+val validatorJvm = tasks.register("runValidatorJvm", JavaExec::class) {
+    group = "verification"
+    mainClass.set("Main_jvmKt")
+    classpath(jvmJar, jvmRuntimeClasspath)
+}
+
+// registering "test" ourselves as we don't have the test dependency added
+tasks.register("test") {
+    group = "verification"
+
+    dependsOn(tasks.named("jvmTest"))
+}
+
+tasks.named("jvmTest").get().dependsOn(validatorJvm)

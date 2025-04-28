@@ -8,6 +8,7 @@ import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.debug.BindingsTable.Companion.tabulate
 import dev.tesserakt.sparql.query
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 class QueryStructureStateTest {
 
@@ -195,19 +196,23 @@ class QueryStructureStateTest {
     }
 
     @Test
-    fun subquery() = with(VerboseCompiler) {
-        val store = buildAddressesStore()
+    fun subquery() {
+        with(VerboseCompiler) {
+            val store = buildAddressesStore()
 
-        val union = """
-            SELECT * {
-                ?person <domicile>/<address> ?place .
-                ?place <street> ?street .
-                {
-                    SELECT * { ?s ?p ?o }
+            val union = """
+                SELECT * {
+                    ?person <domicile>/<address> ?place .
+                    ?place <street> ?street .
+                    {
+                        SELECT * { ?s ?p ?o }
+                    }
                 }
+            """.toSparqlSelectQuery()
+            assertFailsWith(NotImplementedError::class) {
+                println("Found alt path:\n${store.query(union).tabulate()}")
             }
-        """.toSparqlSelectQuery()
-        println("Found alt path:\n${store.query(union).tabulate()}")
+        }
     }
 
     @Test
