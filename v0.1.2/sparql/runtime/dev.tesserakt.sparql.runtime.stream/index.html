@@ -1,0 +1,741 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>dev.tesserakt.sparql.runtime.stream</title>
+<link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+<a class="library-name--link" href="../../../index.html">
+                    tesserakt
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":sparql:runtime:dokkaHtmlPartial/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filter=":sparql:runtime:dokkaHtmlPartial/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    tesserakt
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="package" id="content" pageids="sparql.runtime::dev.tesserakt.sparql.runtime.stream////PointingToDeclaration//-2057461972">
+  <div class="breadcrumbs"><a href="../index.html">sparql.runtime</a><span class="delimiter">/</span><span class="current">dev.tesserakt.sparql.runtime.stream</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="10896675%2FClasslikes%2F-2057461972" anchor-label="BufferedStream" id="10896675%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-buffered-stream/index.html"><span>Buffered</span><wbr><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="10896675%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-buffered-stream/index.html">BufferedStream</a><span class="token operator">&lt;</span><a href="-buffered-stream/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">source<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-buffered-stream/index.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-buffered-stream/index.html">E</a><span class="token operator">&gt; </span>, <a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-buffered-stream/index.html">E</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-163700489%2FClasslikes%2F-2057461972" anchor-label="CollectedStream" id="-163700489%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-collected-stream/index.html"><span>Collected</span><wbr><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-163700489%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-collected-stream/index.html">CollectedStream</a><span class="token operator">&lt;</span><a href="-collected-stream/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">data<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-collected-stream/index.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-collected-stream/index.html">E</a><span class="token operator">&gt; </span>, <a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-collected-stream/index.html">E</a><span class="token operator">&gt; </span>, <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-collected-stream/index.html">E</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="426960371%2FClasslikes%2F-2057461972" anchor-label="EmptyStream" id="426960371%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-empty-stream/index.html"><span>Empty</span><wbr><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="426960371%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">object </span><a href="-empty-stream/index.html">EmptyStream</a> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-nothing/index.html">Nothing</a><span class="token operator">&gt; </span>, <a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-nothing/index.html">Nothing</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1915898496%2FClasslikes%2F-2057461972" anchor-label="OptimisedStream" id="1915898496%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-optimised-stream/index.html"><span>Optimised</span><wbr><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1915898496%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-optimised-stream/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-optimised-stream/index.html">E</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Marker type, used to denote streams that can be considered fast iteration-wise; enforced in use cases that are known to be frequently iterated over. A side effect of its typically efficient nature is that the estimated cardinality is much closer to the actual cardinality.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1996123173%2FClasslikes%2F-2057461972" anchor-label="OptimisedStreamView" id="-1996123173%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-optimised-stream-view/index.html"><span>Optimised</span><wbr><span>Stream</span><wbr><span><span>View</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1996123173%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-optimised-stream-view/index.html">OptimisedStreamView</a><span class="token operator">&lt;</span><a href="-optimised-stream-view/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>input<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-optimised-stream-view/index.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-optimised-stream-view/index.html">E</a><span class="token operator">&gt; </span>, <a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-optimised-stream-view/index.html">E</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">A wrapper type to map an inner stream to itself, but signaling it as being optimised type-wise. This has two main use cases:</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="170640602%2FClasslikes%2F-2057461972" anchor-label="SingleStream" id="170640602%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-single-stream/index.html"><span>Single</span><wbr><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="170640602%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-single-stream/index.html">SingleStream</a><span class="token operator">&lt;</span><a href="-single-stream/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">element<span class="token operator">: </span><a href="-single-stream/index.html">E</a></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-single-stream/index.html">E</a><span class="token operator">&gt; </span>, <a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-single-stream/index.html">E</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1360380356%2FClasslikes%2F-2057461972" anchor-label="SingleUseStreamView" id="-1360380356%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-single-use-stream-view/index.html"><span>Single</span><wbr><span>Use</span><wbr><span>Stream</span><wbr><span><span>View</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1360380356%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-single-use-stream-view/index.html">SingleUseStreamView</a><span class="token operator">&lt;</span><a href="-single-use-stream-view/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span> : <a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-single-use-stream-view/index.html">E</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Similar to a <a href="-optimised-stream-view/index.html">OptimisedStreamView</a>, in the sense that it exposes the underlying iterator directly, whilst marking it as optimised, but with an additional runtime check to ensure it's only consumed once, as the use case for this wrapper (as opposed to the <a href="-optimised-stream-view/index.html">OptimisedStreamView</a> variant) is skipping buffering elements that won't be reused, saving no processing time</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1294867202%2FClasslikes%2F-2057461972" anchor-label="Stream" id="1294867202%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream/index.html"><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1294867202%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><span class="token keyword">out </span><a href="-stream/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="-stream/index.html">E</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="92343423%2FClasslikes%2F-2057461972" anchor-label="StreamChain" id="92343423%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-chain/index.html"><span>Stream</span><wbr><span><span>Chain</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="92343423%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-chain/index.html">StreamChain</a><span class="token operator">&lt;</span><a href="-stream-chain/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>source1<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-chain/index.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>source2<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-chain/index.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-chain/index.html">E</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-18285142%2FClasslikes%2F-2057461972" anchor-label="StreamFilter" id="-18285142%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-filter/index.html"><span>Stream</span><wbr><span><span>Filter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-18285142%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-filter/index.html">StreamFilter</a><span class="token operator">&lt;</span><a href="-stream-filter/index.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">source<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-filter/index.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">predicate<span class="token operator">: </span><span class="token punctuation">(</span><a href="-stream-filter/index.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-filter/index.html">I</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="279937874%2FClasslikes%2F-2057461972" anchor-label="StreamMapping" id="279937874%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-mapping/index.html"><span>Stream</span><wbr><span><span>Mapping</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="279937874%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-mapping/index.html">StreamMapping</a><span class="token operator">&lt;</span><a href="-stream-mapping/index.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="-stream-mapping/index.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">source<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-mapping/index.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="-stream-mapping/index.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream-mapping/index.html">O</a></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-mapping/index.html">O</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="286618097%2FClasslikes%2F-2057461972" anchor-label="StreamMappingNullable" id="286618097%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-mapping-nullable/index.html"><span>Stream</span><wbr><span>Mapping</span><wbr><span><span>Nullable</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="286618097%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-mapping-nullable/index.html">StreamMappingNullable</a><span class="token operator">&lt;</span><a href="-stream-mapping-nullable/index.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="-stream-mapping-nullable/index.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">source<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-mapping-nullable/index.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="-stream-mapping-nullable/index.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream-mapping-nullable/index.html">O</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-mapping-nullable/index.html">O</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2134687747%2FClasslikes%2F-2057461972" anchor-label="StreamMultiJoin" id="-2134687747%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-multi-join/index.html"><span>Stream</span><wbr><span>Multi</span><wbr><span><span>Join</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2134687747%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-multi-join/index.html">StreamMultiJoin</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">left<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">right<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="128190033%2FClasslikes%2F-2057461972" anchor-label="StreamProduct" id="128190033%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-product/index.html"><span>Stream</span><wbr><span><span>Product</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="128190033%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-product/index.html">StreamProduct</a><span class="token operator">&lt;</span><a href="-stream-product/index.html">A</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="-stream-product/index.html">B</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">left<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-product/index.html">A</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">right<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-stream-product/index.html">B</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="-stream-product/index.html">A</a><span class="token punctuation">, </span><a href="-stream-product/index.html">B</a><span class="token operator">&gt;</span><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="509398413%2FClasslikes%2F-2057461972" anchor-label="StreamReduction" id="509398413%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-reduction/index.html"><span>Stream</span><wbr><span><span>Reduction</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="509398413%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-reduction/index.html">StreamReduction</a><span class="token operator">&lt;</span><a href="-stream-reduction/index.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">source<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-reduction/index.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">removed<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="-stream-reduction/index.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-reduction/index.html">E</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="85534800%2FClasslikes%2F-2057461972" anchor-label="StreamSingleJoin" id="85534800%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-single-join/index.html"><span>Stream</span><wbr><span>Single</span><wbr><span><span>Join</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="85534800%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-single-join/index.html">StreamSingleJoin</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">left<span class="token operator">: </span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token punctuation">, </span></span><span class="parameter ">right<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-384897356%2FClasslikes%2F-2057461972" anchor-label="StreamTransform" id="-384897356%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-transform/index.html"><span>Stream</span><wbr><span><span>Transform</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-384897356%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-transform/index.html">StreamTransform</a><span class="token operator">&lt;</span><a href="-stream-transform/index.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="-stream-transform/index.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">source<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-stream-transform/index.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="-stream-transform/index.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-transform/index.html">O</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>cardinality<span class="token operator">: </span><a href="../dev.tesserakt.sparql.util/-cardinality/index.html">Cardinality</a></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-transform/index.html">O</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1997298515%2FClasslikes%2F-2057461972" anchor-label="StreamTransformNullable" id="1997298515%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-transform-nullable/index.html"><span>Stream</span><wbr><span>Transform</span><wbr><span><span>Nullable</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1997298515%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stream-transform-nullable/index.html">StreamTransformNullable</a><span class="token operator">&lt;</span><a href="-stream-transform-nullable/index.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="-stream-transform-nullable/index.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">source<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="-stream-transform-nullable/index.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="-stream-transform-nullable/index.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-transform-nullable/index.html">O</a><span class="token operator">&gt;</span><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>cardinality<span class="token operator">: </span><a href="../dev.tesserakt.sparql.util/-cardinality/index.html">Cardinality</a></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-transform-nullable/index.html">O</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-765391244%2FClasslikes%2F-2057461972" anchor-label="StreamWithIndex" id="-765391244%2FClasslikes%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stream-with-index/index.html"><span>Stream</span><wbr><span>With</span><wbr><span><span>Index</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-765391244%2FClasslikes%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-inline/index.html"><span class="token annotation builtin">JvmInline</span></a></div></div><span class="token keyword">value </span><span class="token keyword">class </span><a href="-stream-with-index/index.html">StreamWithIndex</a><span class="token operator">&lt;</span><a href="-stream-with-index/index.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">parent<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="-stream-with-index/index.html">I</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span><a href="-stream-with-index/index.html">I</a><span class="token operator">&gt;</span><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="1093571144%2FFunctions%2F-2057461972" anchor-label="chain" id="1093571144%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="chain.html"><span><span>chain</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1093571144%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="chain.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="chain.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="chain.html"><span class="token function">chain</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="chain.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="chain.html">E</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="chain.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="chain.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="chain.html"><span class="token function">chain</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="chain.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="chain.html">E</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1246510512%2FFunctions%2F-2057461972" anchor-label="collect" id="-1246510512%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="collect.html"><span><span>collect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1246510512%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="collect.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="collect.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="collect.html"><span class="token function">collect</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-collected-stream/index.html">CollectedStream</a><span class="token operator">&lt;</span><a href="collect.html">E</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="72879134%2FFunctions%2F-2057461972" anchor-label="emptyIterable" id="72879134%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="empty-iterable.html"><span>empty</span><wbr><span><span>Iterable</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="72879134%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="empty-iterable.html">T</a><span class="token operator">&gt; </span><a href="empty-iterable.html"><span class="token function">emptyIterable</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="empty-iterable.html">T</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1224279134%2FFunctions%2F-2057461972" anchor-label="emptyIterator" id="-1224279134%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="empty-iterator.html"><span>empty</span><wbr><span><span>Iterator</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1224279134%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="empty-iterator.html">T</a><span class="token operator">&gt; </span><a href="empty-iterator.html"><span class="token function">emptyIterator</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterator/index.html">Iterator</a><span class="token operator">&lt;</span><a href="empty-iterator.html">T</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-146115184%2FFunctions%2F-2057461972" anchor-label="emptyStream" id="-146115184%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="empty-stream.html"><span>empty</span><wbr><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-146115184%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="empty-stream.html">T</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="empty-stream.html"><span class="token function">emptyStream</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="empty-stream.html">T</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1100483559%2FFunctions%2F-2057461972" anchor-label="filtered" id="1100483559%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="filtered.html"><span><span>filtered</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1100483559%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="filtered.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="filtered.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="filtered.html"><span class="token function">filtered</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">noinline </span>predicate<span class="token operator">: </span><span class="token punctuation">(</span><a href="filtered.html">E</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="filtered.html">E</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1071771531%2FFunctions%2F-2057461972" anchor-label="filteredIsInstance" id="-1071771531%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="filtered-is-instance.html"><span>filtered</span><wbr><span>Is</span><wbr><span><span>Instance</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1071771531%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="filtered-is-instance.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="filtered-is-instance.html"><span class="token function">filteredIsInstance</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="filtered-is-instance.html">O</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2043440922%2FFunctions%2F-2057461972" anchor-label="folded" id="2043440922%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="folded.html"><span><span>folded</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2043440922%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="folded.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="folded.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="folded.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="folded.html"><span class="token function">folded</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">start<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="folded.html">O</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span>acc<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="folded.html">O</a><span class="token operator">&gt;</span><span class="token punctuation">, </span>element<span class="token operator">: </span><a href="folded.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="folded.html">O</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="folded.html">O</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1089415086%2FFunctions%2F-2057461972" anchor-label="hasZeroCardinality" id="1089415086%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-zero-cardinality.html"><span>has</span><wbr><span>Zero</span><wbr><span><span>Cardinality</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1089415086%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="has-zero-cardinality.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="has-zero-cardinality.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="has-zero-cardinality.html"><span class="token function">hasZeroCardinality</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Serves as a quick <code class="lang-kotlin">isEmpty</code> check. If it has zero cardinality, no elements are guaranteed to be returned, and the stream can be replaced with an empty one.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1341438523%2FFunctions%2F-2057461972" anchor-label="join" id="1341438523%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="join.html"><span><span>join</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1341438523%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../dev.tesserakt.sparql.runtime.collection/-mapping-array/index.html">MappingArray</a><span class="token punctuation">.</span><a href="join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="../dev.tesserakt.sparql.runtime.collection/-mapping-array/index.html">MappingArray</a><span class="token punctuation">.</span><a href="join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token punctuation">.</span><a href="join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="../dev.tesserakt.sparql.runtime.query/-mutable-join-state/index.html">MutableJoinState</a><span class="token punctuation">.</span><a href="join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping-delta/index.html">MappingDelta</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping-delta/index.html">MappingDelta</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../dev.tesserakt.sparql.runtime.evaluation/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1831899224%2FFunctions%2F-2057461972" anchor-label="mapped" id="1831899224%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="mapped.html"><span><span>mapped</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1831899224%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="mapped.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="mapped.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="mapped.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="mapped.html"><span class="token function">mapped</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">noinline </span>transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="mapped.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="mapped.html">O</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="mapped.html">O</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="mapped.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="mapped.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="mapped.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="mapped.html"><span class="token function">mapped</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">noinline </span>transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="mapped.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="mapped.html">O</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="mapped.html">O</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2026933470%2FFunctions%2F-2057461972" anchor-label="mappedNonNull" id="2026933470%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="mapped-non-null.html"><span>mapped</span><wbr><span>Non</span><wbr><span><span>Null</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2026933470%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="mapped-non-null.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="mapped-non-null.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="mapped-non-null.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="mapped-non-null.html"><span class="token function">mappedNonNull</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">noinline </span>transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="mapped-non-null.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="mapped-non-null.html">O</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="mapped-non-null.html">O</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2116651886%2FFunctions%2F-2057461972" anchor-label="merge" id="-2116651886%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="merge.html"><span><span>merge</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2116651886%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="merge.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="merge.html">E</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="merge.html"><span class="token function">merge</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="merge.html">E</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="merge.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="merge.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="merge.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="merge.html"><span class="token function">merge</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="merge.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="merge.html">O</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="merge.html">O</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1196136879%2FFunctions%2F-2057461972" anchor-label="optimisedForReuse" id="1196136879%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="optimised-for-reuse.html"><span>optimised</span><wbr><span>For</span><wbr><span><span>Reuse</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1196136879%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="optimised-for-reuse.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="optimised-for-reuse.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="optimised-for-reuse.html"><span class="token function">optimisedForReuse</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="optimised-for-reuse.html">E</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1715017010%2FFunctions%2F-2057461972" anchor-label="optimisedForSingleUse" id="-1715017010%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="optimised-for-single-use.html"><span>optimised</span><wbr><span>For</span><wbr><span>Single</span><wbr><span><span>Use</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1715017010%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="optimised-for-single-use.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="optimised-for-single-use.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="optimised-for-single-use.html"><span class="token function">optimisedForSingleUse</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cardinality<span class="token operator">: </span><a href="../dev.tesserakt.sparql.util/-cardinality/index.html">Cardinality</a><span class="token operator"> = </span>this.cardinality</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="optimised-for-single-use.html">E</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="optimised-for-single-use.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="optimised-for-single-use.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="optimised-for-single-use.html"><span class="token function">optimisedForSingleUse</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cardinality<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-number/index.html">Number</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="optimised-for-single-use.html">E</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="34444290%2FFunctions%2F-2057461972" anchor-label="product" id="34444290%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="product.html"><span><span>product</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="34444290%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="product.html"><span class="token function">product</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token punctuation">, </span><a href="product.html">E</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="product.html"><span class="token function">product</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token punctuation">, </span><a href="product.html">E</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="product.html"><span class="token function">product</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="product.html">E</a><span class="token punctuation">, </span><a href="product.html">E</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="401293061%2FFunctions%2F-2057461972" anchor-label="remove" id="401293061%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="remove.html"><span><span>remove</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="401293061%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="remove.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="remove.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="remove.html"><span class="token function">remove</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">elements<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="remove.html">E</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="remove.html">E</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="53478444%2FFunctions%2F-2057461972" anchor-label="streamOf" id="53478444%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="stream-of.html"><span>stream</span><wbr><span><span>Of</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="53478444%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="stream-of.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="stream-of.html"><span class="token function">streamOf</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="stream-of.html">E</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="stream-of.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="stream-of.html"><span class="token function">streamOf</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">element<span class="token operator">: </span><a href="stream-of.html">E</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-single-stream/index.html">SingleStream</a><span class="token operator">&lt;</span><a href="stream-of.html">E</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="stream-of.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="stream-of.html"><span class="token function">streamOf</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">element1<span class="token operator">: </span><a href="stream-of.html">E</a><span class="token punctuation">, </span></span><span class="parameter ">element2<span class="token operator">: </span><a href="stream-of.html">E</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">vararg </span>others<span class="token operator">: </span><a href="stream-of.html">E</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-collected-stream/index.html">CollectedStream</a><span class="token operator">&lt;</span><a href="stream-of.html">E</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1614040548%2FFunctions%2F-2057461972" anchor-label="toStream" id="1614040548%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-stream.html"><span>to</span><wbr><span><span>Stream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1614040548%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-collection/index.html">Collection</a><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="to-stream.html"><span class="token function">toStream</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="to-stream.html"><span class="token function">toStream</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-collected-stream/index.html">CollectedStream</a><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="to-stream.html"><span class="token function">toStream</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cardinality<span class="token operator">: </span><a href="../dev.tesserakt.sparql.util/-cardinality/index.html">Cardinality</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="to-stream.html"><span class="token function">toStream</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cardinality<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-number/index.html">Number</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="to-stream.html">E</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1369400371%2FFunctions%2F-2057461972" anchor-label="transform" id="1369400371%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="transform.html"><span><span>transform</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1369400371%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="transform.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="transform.html"><span class="token function">transform</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">O</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">O</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="transform.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-iterable/index.html">Iterable</a><span class="token operator">&lt;</span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="transform.html"><span class="token function">transform</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">O</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">O</a><span class="token operator">&gt;</span></div><br><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="transform.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="transform.html"><span class="token function">transform</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">maxCardinality<span class="token operator">: </span><a href="../dev.tesserakt.sparql.util/-cardinality/index.html">Cardinality</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">noinline </span>transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="transform.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">O</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">O</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="transform.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="transform.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="transform.html"><span class="token function">transform</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">maxCardinality<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-number/index.html">Number</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">noinline </span>transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="transform.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">O</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform.html">O</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Transforms this <a href="-optimised-stream/index.html">OptimisedStream</a> using the provided <a href="transform.html">transform</a>. The <a href="transform.html">maxCardinality</a> value represents the max expected cardinality of the <a href="-stream/index.html">Stream</a> returned by the <a href="transform.html">transform</a> invocation.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1747213482%2FFunctions%2F-2057461972" anchor-label="transformNonNull" id="-1747213482%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="transform-non-null.html"><span>transform</span><wbr><span>Non</span><wbr><span><span>Null</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1747213482%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="transform-non-null.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="transform-non-null.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="transform-non-null.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="transform-non-null.html"><span class="token function">transformNonNull</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">maxCardinality<span class="token operator">: </span><a href="../dev.tesserakt.sparql.util/-cardinality/index.html">Cardinality</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">noinline </span>transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="transform-non-null.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform-non-null.html">O</a><span class="token operator">&gt;</span><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform-non-null.html">O</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="transform-non-null.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token punctuation">, </span><a href="transform-non-null.html">O</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="transform-non-null.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="transform-non-null.html"><span class="token function">transformNonNull</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">maxCardinality<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-number/index.html">Number</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">noinline </span>transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="transform-non-null.html">I</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform-non-null.html">O</a><span class="token operator">&gt;</span><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="transform-non-null.html">O</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Transforms this <a href="-optimised-stream/index.html">OptimisedStream</a> using the provided <a href="transform-non-null.html">transform</a>. The <a href="transform-non-null.html">maxCardinality</a> value represents the max expected cardinality of the non-null <a href="-stream/index.html">Stream</a>s returned by the <a href="transform-non-null.html">transform</a> invocation.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-714391044%2FFunctions%2F-2057461972" anchor-label="zippedWithIndex" id="-714391044%2FFunctions%2F-2057461972" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:runtime:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="zipped-with-index.html"><span>zipped</span><wbr><span>With</span><wbr><span><span>Index</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-714391044%2FFunctions%2F-2057461972"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="zipped-with-index.html">I</a><span class="token operator"> : </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">&gt; </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="zipped-with-index.html">I</a><span class="token operator">&gt;</span><span class="token punctuation">.</span><a href="zipped-with-index.html"><span class="token function">zippedWithIndex</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span><a href="zipped-with-index.html">I</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2025 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>SelectQueryStructure</title>
+<link href="../../../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="../../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../../ui-kit/ui-kit.min.js" defer></script>
+<script type="text/javascript" src="../../../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+<a class="library-name--link" href="../../../../index.html">
+                    tesserakt
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":sparql:core:dokkaHtmlPartial/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":sparql:core:dokkaHtmlPartial/commonMain" data-filter=":sparql:core:dokkaHtmlPartial/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    tesserakt
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="sparql.core::dev.tesserakt.sparql.types/SelectQueryStructure///PointingToDeclaration//872801621">
+  <div class="breadcrumbs"><a href="../../index.html">sparql.core</a><span class="delimiter">/</span><a href="../index.html">dev.tesserakt.sparql.types</a><span class="delimiter">/</span><span class="current">SelectQueryStructure</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Select</span><wbr><span>Query</span><wbr><span><span>Structure</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">SelectQueryStructure</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>output<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-output/index.html">SelectQueryStructure.Output</a><span class="token operator">&gt;</span><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>body<span class="token operator">: </span><a href="../-graph-pattern/index.html">GraphPattern</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>grouping<span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>groupingFilter<span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>ordering<span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span> : <a href="../-query-structure/index.html">QueryStructure</a></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION,EXTENSION_PROPERTY,EXTENSION_FUNCTION">Members &amp; Extensions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="386860169%2FConstructors%2F872801621" anchor-label="SelectQueryStructure" id="386860169%2FConstructors%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-select-query-structure.html"><span>Select</span><wbr><span>Query</span><wbr><span><span>Structure</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="386860169%2FConstructors%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">output<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-output/index.html">SelectQueryStructure.Output</a><span class="token operator">&gt;</span><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">body<span class="token operator">: </span><a href="../-graph-pattern/index.html">GraphPattern</a><span class="token punctuation">, </span></span><span class="parameter ">grouping<span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">groupingFilter<span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">ordering<span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="213192242%2FClasslikes%2F872801621" anchor-label="BindingOutput" id="213192242%2FClasslikes%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-binding-output/index.html"><span>Binding</span><wbr><span><span>Output</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="213192242%2FClasslikes%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-binding-output/index.html">BindingOutput</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span> : <a href="-output/index.html">SelectQueryStructure.Output</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1869920273%2FClasslikes%2F872801621" anchor-label="ExpressionOutput" id="1869920273%2FClasslikes%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-expression-output/index.html"><span>Expression</span><wbr><span><span>Output</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1869920273%2FClasslikes%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-expression-output/index.html">ExpressionOutput</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>expression<span class="token operator">: </span><a href="../-expression/index.html">Expression</a></span></span><span class="token punctuation">)</span> : <a href="-output/index.html">SelectQueryStructure.Output</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="237664521%2FClasslikes%2F872801621" anchor-label="Output" id="237664521%2FClasslikes%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-output/index.html"><span><span>Output</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="237664521%2FClasslikes%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">sealed </span><span class="token keyword">class </span><a href="-output/index.html">Output</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="713465767%2FProperties%2F872801621" anchor-label="bindings" id="713465767%2FProperties%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="bindings.html"><span><span>bindings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="713465767%2FProperties%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="bindings.html">bindings</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-428735725%2FProperties%2F872801621" anchor-label="body" id="-428735725%2FProperties%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="body.html"><span><span>body</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-428735725%2FProperties%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="body.html">body</a><span class="token operator">: </span><a href="../-graph-pattern/index.html">GraphPattern</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1911644882%2FProperties%2F872801621" anchor-label="grouping" id="1911644882%2FProperties%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="grouping.html"><span><span>grouping</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1911644882%2FProperties%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="grouping.html">grouping</a><span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">GROUP BY <expr></expr></p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1391493754%2FProperties%2F872801621" anchor-label="groupingFilter" id="1391493754%2FProperties%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="grouping-filter.html"><span>grouping</span><wbr><span><span>Filter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1391493754%2FProperties%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="grouping-filter.html">groupingFilter</a><span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">HAVING (filter)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1031555295%2FProperties%2F872801621" anchor-label="ordering" id="-1031555295%2FProperties%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="ordering.html"><span><span>ordering</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1031555295%2FProperties%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="ordering.html">ordering</a><span class="token operator">: </span><a href="../-expression/index.html">Expression</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">ORDER BY <expr></expr></p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1667305108%2FProperties%2F872801621" anchor-label="output" id="1667305108%2FProperties%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="output.html"><span><span>output</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1667305108%2FProperties%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="output.html">output</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-output/index.html">SelectQueryStructure.Output</a><span class="token operator">&gt;</span><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="EXTENSION_FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="2119702984%2FFunctions%2F872801621" anchor-label="extractAllOutputsAsBindings" id="2119702984%2FFunctions%2F872801621" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:core:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:core:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../extract-all-outputs-as-bindings.html"><span>extract</span><wbr><span>All</span><wbr><span>Outputs</span><wbr><span>As</span><wbr><span><span>Bindings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2119702984%2FFunctions%2F872801621"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:core:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="index.html">SelectQueryStructure</a><span class="token punctuation">.</span><a href="../extract-all-outputs-as-bindings.html"><span class="token function">extractAllOutputsAsBindings</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-triple-pattern/-named-binding/index.html">TriplePattern.NamedBinding</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2025 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
