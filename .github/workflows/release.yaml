@@ -1,0 +1,104 @@
+name: Process new release
+on:
+  release:
+    types: [published]
+env:
+  TARGET: release
+jobs:
+  test:
+    name: "Testing"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 'wrapper'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validating Android Lint
+        run: ./gradlew lint
+
+      - name: Executing tests
+        run: ./gradlew test
+
+  publish-release-maven:
+    name: "Publish to Maven Central"
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 'wrapper'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Publish to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE }}
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+
+  publish-release-docs:
+    name: "Publish updated docs"
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 'wrapper'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set version in env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: Generate documentation for release
+        run: ./gradlew :dokkaHtmlMultiModule
+
+      - name: Publish documentation for release
+        uses: JamesIves/github-pages-deploy-action@v4.4.0
+        with:
+          branch: gh-pages
+          folder: build/dokka/htmlMultiModule
+          target-folder: ${{ env.RELEASE_VERSION }}
+
+      - name: Redirect stable to new release
+        run: |
+          echo "Redirecting stable to newly released version" $RELEASE_VERSION
+          ln -sf $RELEASE_VERSION stable
+          git add stable
+          git commit -m "Redirect stable to new version $RELEASE_VERSION"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: gh-pages
