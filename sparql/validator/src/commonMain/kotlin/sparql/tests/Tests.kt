@@ -42,6 +42,12 @@ fun builtinTests() = tests {
 
     using(small) test """
         SELECT * {
+            ?s (<http://example.org/path1>|<http://example.org/path2>) ?s
+        }
+    """
+
+    using(small) test """
+        SELECT * {
             ?s (<http://example.org/path1>/!<http://example.org/path2>) ?o
         }
     """
@@ -548,6 +554,12 @@ fun builtinTests() = tests {
 
     using(fullyConnected) test """
         SELECT * WHERE {
+            ?a <http://example.org/p>* ?a
+        }
+    """
+
+    using(fullyConnected) test """
+        SELECT * WHERE {
             ?a (<http://example.org/p>/<http://example.org/p>/<http://example.org/p>)* <http://example.org/b>
         }
     """
@@ -657,6 +669,13 @@ fun builtinTests() = tests {
         PREFIX : <http://www.example.org/>
         SELECT ?s WHERE {
             :a (:p1|:p2)/(:p3|:p4) ?s
+        }
+    """
+
+    using(unions) test """
+        PREFIX : <http://www.example.org/>
+        SELECT ?s WHERE {
+            ?s (:p1|:p2)/(:p3|:p4) ?s
         }
     """
 
