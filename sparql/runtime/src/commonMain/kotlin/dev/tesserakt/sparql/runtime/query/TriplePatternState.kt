@@ -6,7 +6,6 @@ import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
-import dev.tesserakt.sparql.types.bindingName
 import dev.tesserakt.sparql.types.matches
 import dev.tesserakt.sparql.util.Cardinality
 
@@ -15,7 +14,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
     val s: TriplePattern.Subject,
     val p: P,
     val o: TriplePattern.Object
-): MutableJoinState {
+) : MutableJoinState {
 
     sealed class ArrayBackedPatternState<P : TriplePattern.Predicate>(
         context: QueryContext,
@@ -70,67 +69,55 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class ExactPatternState(
         context: QueryContext,
-        val subj: TriplePattern.Subject,
+        subj: TriplePattern.Subject,
         val pred: TriplePattern.Exact,
-        val obj: TriplePattern.Object
+        obj: TriplePattern.Object
     ) : ArrayBackedPatternState<TriplePattern.Exact>(context, subj, pred, obj) {
 
         override fun peek(quad: Quad): Stream<Mapping> {
-            if (!subj.matches(quad.s) || !pred.matches(quad.p) || !obj.matches(quad.o)) {
+            if (pred.term != quad.p) {
                 return emptyStream()
             }
-            // checking to see if there's any matches with the given triple
-            val match = mappingOf(
-                context,
-                subj.bindingName to quad.s,
-                obj.bindingName to quad.o
-            )
-            return streamOf(match)
+            val s = subjectMappingOrNull(quad) ?: return emptyStream()
+            val o = objectMappingOrNull(quad) ?: return emptyStream()
+            val result = s.join(o) ?: return emptyStream()
+            return streamOf(result)
         }
 
     }
 
     class BindingPatternState(
         context: QueryContext,
-        val subj: TriplePattern.Subject,
-        val pred: TriplePattern.Binding,
-        val obj: TriplePattern.Object
+        subj: TriplePattern.Subject,
+        pred: TriplePattern.Binding,
+        obj: TriplePattern.Object
     ) : ArrayBackedPatternState<TriplePattern.Binding>(context, subj, pred, obj) {
 
         override fun peek(quad: Quad): Stream<Mapping> {
-            if (!subj.matches(quad.s) || !obj.matches(quad.o)) {
-                return emptyStream()
-            }
-            // checking to see if there's any matches with the given triple
-            val match = mappingOf(
-                context,
-                subj.bindingName to quad.s,
-                pred.name to quad.p,
-                obj.bindingName to quad.o
-            )
-            return streamOf(match)
+            val s = subjectMappingOrNull(quad) ?: return emptyStream()
+            val o = objectMappingOrNull(quad) ?: return emptyStream()
+            val p = mappingOf(context, p.name to quad.p)
+            val result = s.join(p)?.join(o) ?: return emptyStream()
+            return streamOf(result)
         }
 
     }
 
     class NegatedPatternState(
         context: QueryContext,
-        val subj: TriplePattern.Subject,
+        subj: TriplePattern.Subject,
         val pred: TriplePattern.Negated,
-        val obj: TriplePattern.Object
+        obj: TriplePattern.Object
     ) : ArrayBackedPatternState<TriplePattern.Negated>(context, subj, pred, obj) {
 
         override fun peek(quad: Quad): Stream<Mapping> {
-            if (!subj.matches(quad.s) || !pred.matches(quad.p) || !obj.matches(quad.o)) {
+            if (!pred.matches(quad.p)) {
                 return emptyStream()
             }
-            // checking to see if there's any matches with the given triple
-            val match = mappingOf(
-                context,
-                subj.bindingName to quad.s,
-                obj.bindingName to quad.o
-            )
-            return streamOf(match)
+            val s = subjectMappingOrNull(quad) ?: return emptyStream()
+            val o = objectMappingOrNull(quad) ?: return emptyStream()
+            val result = s.join(o) ?: return emptyStream()
+            return streamOf(result)
         }
 
     }
@@ -305,11 +292,44 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     final override val bindings: Set<String> = bindingNamesOf(s, p, o)
 
+    /**
+     * Yields a new mapping on (subject-based) match:
+     *  * when [s] is a [TriplePattern.Binding], the [quad]'s [Quad.s] term is returned in a new [Mapping]
+     *  * when [s] is a [TriplePattern.Exact], an empty [Mapping] is returned instead, but only if the term value
+     *   matches (as this acts as a constraint)
+     *
+     * IMPORTANT: this method does not take the [p] (<-> [Quad.p]) or [o] (<-> [Quad.o]) values into account. The
+     *  returned mapping, if any, still has to be altered to satisfy these two constraints.
+     */
+    protected fun subjectMappingOrNull(quad: Quad): Mapping? {
+        return when (s) {
+            is TriplePattern.Binding -> mappingOf(context, s.name to quad.s)
+            is TriplePattern.Exact -> if (s.term == quad.s) EmptyMapping else null
+        }
+    }
+
+    /**
+     * Yields a new mapping on (subject-based) match:
+     *  * when [o] is a [TriplePattern.Binding], the [quad]'s [Quad.o] term is returned in a new [Mapping]
+     *  * when [o] is a [TriplePattern.Exact], an empty [Mapping] is returned instead, but only if the term value
+     *   matches (as this acts as a constraint)
+     *
+     * IMPORTANT: this method does not take the [s] (<-> [Quad.s]) or [p] (<-> [Quad.p]) values into account. The
+     *  returned mapping, if any, still has to be altered to satisfy these two constraints.
+     */
+    protected fun objectMappingOrNull(quad: Quad): Mapping? {
+        return when (o) {
+            is TriplePattern.Binding -> mappingOf(context, o.name to quad.o)
+            is TriplePattern.Exact -> if (o.term == quad.o) EmptyMapping else null
+        }
+    }
+
     abstract fun peek(delta: DataAddition): Stream<Mapping>
 
-    open fun peek(delta: DataDeletion): Stream<Mapping> = peek(delta = DataAddition(
-        delta.value
-    )
+    open fun peek(delta: DataDeletion): Stream<Mapping> = peek(
+        delta = DataAddition(
+            delta.value
+        )
     )
 
     // triple patterns can only get new results upon getting new data and lose results upon removing data, so two
@@ -325,7 +345,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     companion object {
 
-        fun from(context: QueryContext, pattern: TriplePattern): TriplePatternState<*> = from(context, pattern.s, pattern.p, pattern.o)
+        fun from(context: QueryContext, pattern: TriplePattern): TriplePatternState<*> =
+            from(context, pattern.s, pattern.p, pattern.o)
 
         fun from(
             context: QueryContext,
