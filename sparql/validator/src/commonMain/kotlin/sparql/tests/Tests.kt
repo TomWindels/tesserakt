@@ -48,6 +48,12 @@ fun builtinTests() = tests {
 
     using(small) test """
         SELECT * {
+            ?s ?s ?s
+        }
+    """
+
+    using(small) test """
+        SELECT * {
             ?s (<http://example.org/path1>/!<http://example.org/path2>) ?o
         }
     """
