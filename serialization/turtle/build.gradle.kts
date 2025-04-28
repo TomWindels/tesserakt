@@ -16,6 +16,7 @@ kotlin {
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test"))
+                implementation(project(":utils"))
                 implementation(project(":interop:jena"))
                 implementation(project(":testing:tooling:environment"))
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")

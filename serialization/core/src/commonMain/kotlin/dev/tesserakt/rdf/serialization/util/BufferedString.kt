@@ -1,5 +1,8 @@
 package dev.tesserakt.rdf.serialization.util
 
+import dev.tesserakt.rdf.serialization.core.BufferedReader
+import dev.tesserakt.rdf.serialization.core.read
+
 class BufferedString(
     private val reader: BufferedReader,
     private val bufferSize: Int = 4000

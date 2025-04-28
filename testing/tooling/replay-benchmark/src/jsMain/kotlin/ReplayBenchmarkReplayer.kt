@@ -1,5 +1,4 @@
-
-import dev.tesserakt.rdf.serialization.common.Path
+import dev.tesserakt.rdf.serialization.common.Source
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.consume
@@ -41,7 +40,7 @@ class ReplayBenchmarkReplayer private constructor(private val benchmark: ReplayB
         fun fromFile(filepath: String): ReplayBenchmarkReplayer {
             return ReplayBenchmarkReplayer(
                 benchmark = ReplayBenchmark
-                    .from(TriGSerializer.deserialize(Path(filepath)).consume())
+                    .from(TriGSerializer.deserialize(Source.File(filepath)).consume())
                     .single()
             )
         }

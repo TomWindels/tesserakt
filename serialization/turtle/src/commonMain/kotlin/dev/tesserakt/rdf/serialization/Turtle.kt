@@ -2,8 +2,9 @@ package dev.tesserakt.rdf.serialization
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.serialization.common.Source
+import dev.tesserakt.rdf.serialization.core.open
 import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.serialization.util.wrapAsBufferedReader
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Store
@@ -11,8 +12,9 @@ import kotlin.jvm.JvmInline
 
 object Turtle {
 
+    @DelicateSerializationApi
     fun String.parseTurtleString(): Store {
-        return Parser(BufferedString(wrapAsBufferedReader())).toStore()
+        return Parser(BufferedString(Source.Text(this).open())).toStore()
     }
 
     internal fun BufferedString.parseTurtleString(): Store {

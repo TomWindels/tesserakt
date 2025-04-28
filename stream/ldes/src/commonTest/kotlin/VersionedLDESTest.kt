@@ -5,7 +5,10 @@ import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.common.Prefixes
+import dev.tesserakt.rdf.serialization.common.serialize
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.trig.serialization.prefixes
+import dev.tesserakt.rdf.trig.serialization.prettyFormatting
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
@@ -100,11 +103,16 @@ class VersionedLDESTest {
         )
         println(TriGSerializer.serialize(
             data = ldes,
-            prefixes =
-                Prefixes(one.extractPrefixes()) +
-                Prefixes(two.extractPrefixes()) +
-                Prefixes(two2.extractPrefixes()) +
-                Prefixes(DC, TREE, LDES, RDF, XSD)
+            config = {
+                prettyFormatting {
+                    prefixes {
+                        putAll(one.extractPrefixes())
+                        putAll(two.extractPrefixes())
+                        putAll(two2.extractPrefixes())
+                        putAll(Prefixes(DC, TREE, LDES, RDF, XSD))
+                    }
+                }
+            }
         ))
     }
 
@@ -166,7 +174,11 @@ class VersionedLDESTest {
         )
         println(TriGSerializer.serialize(
             data = ldes,
-            prefixes = Prefixes(DC, TREE, LDES, RDF, XSD)
+            config = {
+                prettyFormatting {
+                    prefixes(DC, TREE, LDES, RDF, XSD)
+                }
+            }
         ))
         assertStoreContentEqual(emptySet(), ldes.read(pre_t1))
         assertStoreContentEqual(data1, ldes.read(pre_t2))

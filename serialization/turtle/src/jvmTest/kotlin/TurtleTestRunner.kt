@@ -1,7 +1,8 @@
 
 import dev.tesserakt.rdf.serialization.Turtle
+import dev.tesserakt.rdf.serialization.common.Source
+import dev.tesserakt.rdf.serialization.core.open
 import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.serialization.util.openAsBufferedReader
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.testing.testEnv
 import dev.tesserakt.util.toTruncatedString
@@ -40,7 +41,7 @@ class TurtleTestRunner {
         }
 
         override suspend fun test(): Result {
-            val a = Turtle.Parser(BufferedString(filepath.openAsBufferedReader().getOrThrow())).toList()
+            val a = Turtle.Parser(BufferedString(Source.File(filepath).open())).toList()
             val b = externalTurtleParser(filepath)
             return Result(obtained = a, expected = b)
         }

@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 
 
 @JvmInline
-value class Prefixes(private val map: Map<String /* prefix */, String /* uri */>): Collection<Map.Entry<String, String>> {
+value class Prefixes(private val map: Map<String /* prefix */, String /* uri */>): Map<String, String> by map {
 
     data class PrefixedTerm(
         val prefix: String,
@@ -87,17 +87,8 @@ value class Prefixes(private val map: Map<String /* prefix */, String /* uri */>
         return null
     }
 
-    override fun iterator(): Iterator<Map.Entry<String, String>> {
-        return map.iterator()
-    }
-
     override val size: Int
         get() = map.size
-
-    override fun containsAll(elements: Collection<Map.Entry<String, String>>) =
-        map.entries.containsAll(elements)
-
-    override fun contains(element: Map.Entry<String, String>) = map.entries.contains(element)
 
     override fun isEmpty() = map.isEmpty()
 
