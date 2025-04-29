@@ -14,11 +14,11 @@ class TRiGConfig(
          * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
          *  a set of spaces or tabs
          */
-        var indent: Indent = FixedStepIndent(INDENT_PATTERN),
+        internal var indent: Indent = FixedStepIndent(INDENT_PATTERN),
         /**
          * The strategy used to flatten block structures
          */
-        var flattenStrategy: FlattenStrategy = LengthBasedFlattening(64),
+        internal var flattenStrategy: FlattenStrategy = LengthBasedFlattening(64),
     ) {
         fun build() = PrettyFormatter(
             prefixes = prefixes,

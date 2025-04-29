@@ -2,9 +2,9 @@
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.trig.serialization.prefixes
-import dev.tesserakt.rdf.trig.serialization.prettyFormatting
+import dev.tesserakt.rdf.trig.serialization.withPrefixes
 import dev.tesserakt.rdf.trig.serialization.trig
+import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
@@ -38,8 +38,8 @@ class SnapshotStoreTest {
             .build("snapshotStore".asNamedTerm())
 
         val serializer = trig {
-            prettyFormatting {
-                prefixes(XSD, TREE, LDES, DC, RDF)
+            usePrettyFormatting {
+                withPrefixes(XSD, TREE, LDES, DC, RDF)
             }
         }
         println(serializer.serialize(data = snapshotStore.toStore()))

@@ -5,8 +5,8 @@ import dev.tesserakt.interop.rdfjs.toN3Store
 import dev.tesserakt.interop.rdfjs.toStore
 import dev.tesserakt.interop.rdfjs.toTerm
 import dev.tesserakt.rdf.serialization.common.Prefixes.Companion.plus
-import dev.tesserakt.rdf.trig.serialization.prefixes
-import dev.tesserakt.rdf.trig.serialization.prettyFormatting
+import dev.tesserakt.rdf.trig.serialization.withPrefixes
+import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
 import dev.tesserakt.rdf.trig.serialization.trig
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
@@ -43,8 +43,8 @@ class ReplayBenchmarkBuilder(
     fun buildToFile(path: String = "./${name.value}.ttl", prefixes: dynamic) {
         val keys = js("Object.keys")
         val serializer = trig {
-            prettyFormatting {
-                prefixes(keys(prefixes).unsafeCast<Array<String>>().associateWith { prefixes[it] }.plus(RBO))
+            usePrettyFormatting {
+                withPrefixes(keys(prefixes).unsafeCast<Array<String>>().associateWith { prefixes[it] }.plus(RBO))
             }
         }
         val fs = js("require('fs')")

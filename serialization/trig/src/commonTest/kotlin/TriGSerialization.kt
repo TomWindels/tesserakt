@@ -74,8 +74,9 @@ class TriGSerialization {
     private fun serialize(block: RDF.() -> Unit) {
         val reference = buildStore(block = block)
         val serializer = trig {
-            prettyFormatting {
-                prefixes(block.extractPrefixes())
+            usePrettyFormatting {
+                withPrefixes(block.extractPrefixes())
+                withDynamicIndent()
             }
         }
         val prettyPrinted = serializer.serialize(reference.iterator()).collect()

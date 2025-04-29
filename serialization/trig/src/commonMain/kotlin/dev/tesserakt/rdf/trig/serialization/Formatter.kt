@@ -27,7 +27,7 @@ data object SimpleFormatter: Formatter() {
     }
 }
 
-private const val INDENT_PATTERN = "    "
+internal const val INDENT_PATTERN = "    "
 
 data class PrettyFormatter(
     val prefixes: Prefixes,
@@ -131,10 +131,18 @@ data class PrettyFormatter(
         fun create(stack: Stack): String
     }
 
+    /**
+     * A fixed indent: the indent for new lines is fixed in length, depending on the depth of the preceding
+     *  content (i.e., a single occurrence when in a graph, two occurrences when in a graph and repeated subject, etc.)
+     */
     @JvmInline
     value class FixedStepIndent(private val pattern: String): Indent {
         override fun create(stack: Stack) = pattern.repeat(stack.depth)
     }
+
+    /**
+     * A dynamic indent: the indent for new lines is depending on the length of the preceding content
+     */
     @JvmInline
     value class DynamicIndent(private val pattern: String): Indent {
         override fun create(stack: Stack): String {
