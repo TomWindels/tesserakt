@@ -2,8 +2,7 @@ package dev.tesserakt.rdf.serialization
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.serialization.common.Source
-import dev.tesserakt.rdf.serialization.core.open
+import dev.tesserakt.rdf.serialization.common.TextDataSource
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
@@ -14,7 +13,7 @@ object Turtle {
 
     @DelicateSerializationApi
     fun String.parseTurtleString(): Store {
-        return Parser(BufferedString(Source.Text(this).open())).toStore()
+        return Parser(BufferedString(TextDataSource(this).open())).toStore()
     }
 
     internal fun BufferedString.parseTurtleString(): Store {

@@ -2,10 +2,9 @@ import dev.tesserakt.rdf.dsl.RDF
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
-import dev.tesserakt.rdf.serialization.common.Source
+import dev.tesserakt.rdf.serialization.common.TextDataSource
 import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.serialization.common.serialize
-import dev.tesserakt.rdf.serialization.core.open
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.trig.serialization.*
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
@@ -87,11 +86,11 @@ class TriGSerialization {
             expected = TokenEncoder(reference.iterator()).asIterable(),
             actual = TokenDecoder(
                 BufferedString(
-                    Source.Text(TriGSerializer.serialize(reference.iterator()).collect()).open()
+                    TextDataSource(TriGSerializer.serialize(reference.iterator()).collect()).open()
                 )
             ).asIterable()
         )
-        val complete = Deserializer(TokenDecoder(BufferedString(Source.Text(prettyPrinted).open())))
+        val complete = Deserializer(TokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
             .asIterable().toStore()
         val diffA1 = reference - complete
         val diffB1 = complete - reference
@@ -105,7 +104,7 @@ class TriGSerialization {
             // making sure we're not cutting in the middle of a statement
             .dropLastWhile { it.isNotBlank() }
             .joinToString("\n")
-        val incomplete = Deserializer(TokenDecoder(BufferedString(Source.Text(subset).open())))
+        val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
         val diffA2 = reference - incomplete
         val diffB2 = incomplete - reference

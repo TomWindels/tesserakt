@@ -21,6 +21,6 @@ abstract class Serializer {
     /**
      * Standard deserialization. The [input] is iterated over once, as long as the returned [Iterator] is being consumed.
      */
-    abstract fun deserialize(input: Source): Iterator<Quad>
+    abstract fun deserialize(input: DataSource): Iterator<Quad>
 
 }

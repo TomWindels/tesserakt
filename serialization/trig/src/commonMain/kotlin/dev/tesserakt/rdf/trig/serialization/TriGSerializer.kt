@@ -1,8 +1,7 @@
 package dev.tesserakt.rdf.trig.serialization
 
 import dev.tesserakt.rdf.serialization.common.ConfigurableSerializer
-import dev.tesserakt.rdf.serialization.common.Source
-import dev.tesserakt.rdf.serialization.core.open
+import dev.tesserakt.rdf.serialization.common.DataSource
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
 
@@ -27,7 +26,7 @@ object TriGSerializer: ConfigurableSerializer<TRiGConfig>() {
         return config.formatter.format(TokenEncoder(data))
     }
 
-    override fun deserialize(input: Source): Iterator<Quad> {
+    override fun deserialize(input: DataSource): Iterator<Quad> {
         return Deserializer(TokenDecoder(BufferedString(input.open())))
     }
 

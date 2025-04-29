@@ -18,7 +18,7 @@ fun <C> ConfigurableSerializer<C>.serialize(data: Collection<Quad>, config: C.()
  */
 @DelicateSerializationApi
 fun Serializer.deserialize(input: String): Iterator<Quad> {
-    return deserialize(input = Source.Text(text = input))
+    return deserialize(input = TextDataSource(text = input))
 }
 
 fun Iterator<String>.collect(): String = buildString {
