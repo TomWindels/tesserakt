@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.trig.serialization
+package dev.tesserakt.rdf.turtle.serialization
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
@@ -10,12 +10,12 @@ import kotlin.jvm.JvmInline
 
 sealed class Formatter {
 
-    internal abstract fun format(tokens: Iterator<TriGToken>): Iterator<String>
+    internal abstract fun format(tokens: Iterator<TurtleToken>): Iterator<String>
 
 }
 
 data object SimpleFormatter: Formatter() {
-    override fun format(tokens: Iterator<TriGToken>) = iterator {
+    override fun format(tokens: Iterator<TurtleToken>) = iterator {
         if (!tokens.hasNext()) {
             return@iterator
         }
@@ -36,24 +36,20 @@ data class PrettyFormatter(
     // if we have no prefixes configured, the individual text elements are likely to be lengthy, causing a dynamic
     //  indent to be too long
     val indent: Indent = if (prefixes.isEmpty()) FixedStepIndent(INDENT_PATTERN) else DynamicIndent(INDENT_PATTERN),
-    /**
-     * The strategy used to flatten block structures
-     */
-    val flattenStrategy: FlattenStrategy = LengthBasedFlattening(64),
 ): Formatter() {
 
     /**
      * A small token buffer, buffering two values of the underlying token iterator source
      */
-    private inner class TokenBuffer(private val iterator: Iterator<TriGToken>) {
+    private inner class TokenBuffer(private val iterator: Iterator<TurtleToken>) {
 
-        var current: TriGToken = iterator.next().mapped(prefixes)
+        var current: TurtleToken = iterator.next().mapped(prefixes)
             private set
 
-        var next: TriGToken? = if (iterator.hasNext()) iterator.next().mapped(prefixes) else null
+        var next: TurtleToken? = if (iterator.hasNext()) iterator.next().mapped(prefixes) else null
             private set
 
-        private val buf = mutableListOf<TriGToken>()
+        private val buf = mutableListOf<TurtleToken>()
 
         /**
          * A list of upcoming tokens, starting from [next], containing all following tokens matching those peeked in
@@ -61,7 +57,7 @@ data class PrettyFormatter(
          *
          * IMPORTANT: this can include more non-matching tokens, if [peekUntil] is used more frequently than [advance]
          */
-        val upcoming: List<TriGToken>
+        val upcoming: List<TurtleToken>
             // if next == null, the buf should be guaranteed empty
             get() = next?.let { next -> buf.addFront(next) } ?: emptyList()
 
@@ -84,7 +80,7 @@ data class PrettyFormatter(
          *  tokens are stored for future use through [current], [next] and [advance], including the one resulting
          *  in `false`.
          */
-        inline fun peekUntil(predicate: (TriGToken) -> Boolean) {
+        inline fun peekUntil(predicate: (TurtleToken) -> Boolean) {
             val next = next ?: /* end was reached */ return
             if (!predicate(next)) {
                 // first one already doesn't match, not consuming any further
@@ -103,17 +99,22 @@ data class PrettyFormatter(
             return "TokenBuffer { current: $current, next: $next, buf: $buf }"
         }
 
-        private fun TriGToken.mapped(prefixes: Prefixes): TriGToken = when (this) {
-            is TriGToken.Term -> prefixes
+        private fun TurtleToken.mapped(prefixes: Prefixes): TurtleToken = when (this) {
+            is TurtleToken.Term -> prefixes
                 .format(value.asNamedTerm())
-                ?.let { TriGToken.PrefixedTerm(prefix = it.prefix, value = it.value) }
+                ?.let { TurtleToken.PrefixedTerm(prefix = it.prefix, value = it.value) }
                 ?: this
 
-            is TriGToken.LiteralTerm -> {
-                if (type is TriGToken.Term) {
+            is TurtleToken.LiteralTerm -> {
+                if (type is TurtleToken.Term) {
                     prefixes
                         .format(type.value.asNamedTerm())
-                        ?.let { TriGToken.LiteralTerm(value = value, type = TriGToken.PrefixedTerm(prefix = it.prefix, value = it.value)) }
+                        ?.let {
+                            TurtleToken.LiteralTerm(
+                                value = value,
+                                type = TurtleToken.PrefixedTerm(prefix = it.prefix, value = it.value)
+                            )
+                        }
                         ?: this
                 } else {
                     this
@@ -145,28 +146,9 @@ data class PrettyFormatter(
     value class DynamicIndent(private val pattern: String): Indent {
         override fun create(stack: Stack): String {
             val length =
-                (stack.g?.syntax?.length?.plus(1) ?: 0) +
                 (stack.s?.syntax?.length?.plus(1) ?: 0) +
                 (stack.p?.syntax?.length?.plus(1) ?: 0)
             return pattern.fit(length)
-        }
-    }
-
-    /**
-     * A class dictating what should and should not be flattened in representation for inner structural blocks of formatted outputs.
-     *  Note: blocks containing blocks themselves are never subject to this check
-     */
-    sealed class FlattenStrategy {
-        internal abstract fun shouldBeFlattened(content: List<TriGToken>): Boolean
-    }
-
-    data object NoFlattening: FlattenStrategy() {
-        override fun shouldBeFlattened(content: List<TriGToken>) = false
-    }
-
-    data class LengthBasedFlattening(private val maxLength: Int): FlattenStrategy() {
-        override fun shouldBeFlattened(content: List<TriGToken>): Boolean {
-            return content.sumOf { it.syntax.length } <= maxLength
         }
     }
 
@@ -174,35 +156,16 @@ data class PrettyFormatter(
 
         /* stack state */
 
-        internal var g: TriGToken? = null
+        internal var s: TurtleToken? = null
             private set
-        internal var s: TriGToken? = null
-            private set
-        internal var p: TriGToken? = null
+        internal var p: TurtleToken? = null
             private set
         // we don't have to track the object here
 
         val depth: Int
-            get() {
-                // depth inside the potential graph body
-                val body = if (s == null) 1 else if (p == null) 2 else 3
-                // if we're not actually inside a graph body (= default graph), we have to decrease one depth
-                return if (g == null) body - 1 else body
-            }
+            get() = if (s == null) 0 else if (p == null) 1 else 2
 
-        internal fun setGraph(graph: TriGToken?) {
-            g = graph
-            s = null
-            p = null
-        }
-
-        internal fun clearGraph() {
-            g = null
-            s = null
-            p = null
-        }
-
-        internal fun setSubject(token: TriGToken) {
+        internal fun setSubject(token: TurtleToken) {
             s = token
             p = null
         }
@@ -212,7 +175,7 @@ data class PrettyFormatter(
             p = null
         }
 
-        internal fun setPredicate(token: TriGToken) {
+        internal fun setPredicate(token: TurtleToken) {
             checkNotNull(s)
             p = token
         }
@@ -222,14 +185,14 @@ data class PrettyFormatter(
             p = null
         }
 
-        override fun toString() = "Stack, positioned @ $g, $s, $p"
+        override fun toString() = "Stack, positioned @ $s, $p"
 
     }
 
-    override fun format(tokens: Iterator<TriGToken>) = iterator {
+    override fun format(tokens: Iterator<TurtleToken>) = iterator {
         // first writing all prefixes
         prefixes.forEach { (base, uri) ->
-            yield(TriGToken.Structural.PrefixAnnotationA.syntax)
+            yield(TurtleToken.Structural.PrefixAnnotationA.syntax)
             yield(" ")
             yield(base)
             yield(":")
@@ -238,7 +201,7 @@ data class PrettyFormatter(
             yield(uri)
             yield(">")
             yield(" ")
-            yield(TriGToken.Structural.StatementTermination.syntax)
+            yield(TurtleToken.Structural.StatementTermination.syntax)
             yield("\n")
         }
         if (prefixes.isNotEmpty()) {
@@ -247,14 +210,7 @@ data class PrettyFormatter(
         val stack = Stack()
         val buffer = TokenBuffer(tokens)
         while (buffer.next != null) {
-            when (buffer.next) {
-                TriGToken.Structural.GraphStatementStart -> {
-                    yieldAll(formatGraph(stack, buffer))
-                }
-                else -> {
-                    yieldAll(processStatement(stack = stack, buffer = buffer, multiline = true))
-                }
-            }
+            yieldAll(processStatement(stack = stack, buffer = buffer, multiline = true))
             if (buffer.next != null) {
                 yield("\n\n")
             }
@@ -290,7 +246,7 @@ data class PrettyFormatter(
             yield(formatToken(buffer))
             // TODO: add additional flag/change the multiline argument type to better configure when/how to
             //  inline multiple objects
-            while (buffer.current == TriGToken.Structural.ObjectTermination) {
+            while (buffer.current == TurtleToken.Structural.ObjectTermination) {
                 yield(" ")
                 yield(buffer.current.syntax) // ","
                 yield(" ")
@@ -298,14 +254,14 @@ data class PrettyFormatter(
                 yield(formatToken(buffer))
             }
             when (buffer.current) {
-                TriGToken.Structural.StatementTermination -> {
+                TurtleToken.Structural.StatementTermination -> {
                     yield(" ")
                     yield(buffer.current.syntax)
                     stack.clearSubject()
                     buffer.advance()
                     break
                 }
-                TriGToken.Structural.PredicateTermination -> {
+                TurtleToken.Structural.PredicateTermination -> {
                     yield(" ")
                     yield(buffer.current.syntax)
                     stack.clearPredicate()
@@ -317,7 +273,7 @@ data class PrettyFormatter(
                 // reached our own end
                 return@iterator
             }
-            if (buffer.current == TriGToken.Structural.GraphStatementEnd || buffer.current == TriGToken.Structural.BlankEnd) {
+            if (buffer.current == TurtleToken.Structural.BlankEnd) {
                 // reached the block's end
                 return@iterator
             }
@@ -333,15 +289,15 @@ data class PrettyFormatter(
 
     private fun formatToken(buffer: TokenBuffer): String {
         when (buffer.current) {
-            TriGToken.Structural.BlankStart -> {
+            TurtleToken.Structural.BlankStart -> {
                 TODO("Implementation required, similar to statements list, terminating statements with `;` tokens")
             }
-            is TriGToken.TermToken -> {
+            is TurtleToken.TermToken -> {
                 val result = buffer.current.syntax
                 buffer.advance()
                 return result
             }
-            TriGToken.Structural.TypePredicate -> {
+            TurtleToken.Structural.TypePredicate -> {
                 val result = buffer.current.syntax
                 buffer.advance()
                 return result
@@ -352,67 +308,11 @@ data class PrettyFormatter(
         }
     }
 
-    private fun formatGraph(stack: Stack, buffer: TokenBuffer) = iterator {
-        require(buffer.current is TriGToken.TermToken)
-        val g = buffer.current
-        require(buffer.next == TriGToken.Structural.GraphStatementStart)
-        yield(buffer.current.syntax)
-        yield(" ")
-        buffer.advance()
-        // scanning ahead for the next tokens, deciding what formatting strategy should be applied
-        // 1: taking all terms part of this block, until we start a new block or end this one
-        buffer.peekUntil { token -> !token.isBlockToken() }
-        val upcoming = buffer.upcoming
-        // 2: scanning the tokens to ensure we don't create a new block inside this one
-        val index = upcoming.indexOfFirst { it.isBlockToken() }
-        val multiline =
-            // the first block token should be the one ending this statement list, so we don't have any child block
-            upcoming[index] != TriGToken.Structural.GraphStatementEnd ||
-            // if we don't have a child block, we can ask the configured strategy what to do with this block layout
-            !flattenStrategy.shouldBeFlattened(upcoming.take(index))
-        // adjusting current statement
-        yield(buffer.current.syntax) // "{"
-        buffer.advance()
-        // starting the next statements (yielding relevant tokens) inside a new frame
-        stack.setGraph(g)
-        if (multiline) {
-            yield("\n")
-            yield(indent.create(stack))
-        } else {
-            yield(" ")
-        }
-        yieldAll(processStatement(stack, buffer, multiline = multiline))
-        while (buffer.current != TriGToken.Structural.GraphStatementEnd) {
-            if (multiline) {
-                yield("\n\n")
-                yield(indent.create(stack))
-            } else {
-                yield(" ")
-            }
-            yieldAll(processStatement(stack, buffer, multiline = multiline))
-        }
-        if (buffer.current != TriGToken.Structural.GraphStatementEnd) {
-            throw IllegalStateException("Did not reach the end of the graph statement properly!")
-        }
-        // terminating this frame
-        stack.clearGraph()
-        if (multiline) {
-            yield("\n")
-            yield(indent.create(stack))
-        } else {
-            yield(" ")
-        }
-        yield(buffer.current.syntax) // "}"
-        buffer.advance()
-    }
-
     /**
      * Returns true if this token denotes the start/end of a "block": `[`, `]`, `{` & `}`
      */
-    private fun TriGToken.isBlockToken() =
-        this == TriGToken.Structural.BlankStart ||
-        this == TriGToken.Structural.BlankEnd ||
-        this == TriGToken.Structural.GraphStatementStart ||
-        this == TriGToken.Structural.GraphStatementEnd
+    private fun TurtleToken.isBlockToken() =
+        this == TurtleToken.Structural.BlankStart ||
+        this == TurtleToken.Structural.BlankEnd
 
 }

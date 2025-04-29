@@ -2,6 +2,7 @@ plugins {
     // not distributed as a package, but reusing the target platform conventions/configurations
     id("jvm-target")
     id("native-target")
+    id("wasm-js-target")
 }
 
 group = "testing"

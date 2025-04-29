@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.trig.serialization
+package dev.tesserakt.rdf.turtle.serialization
 
 
 internal val DEFAULT_FORMATTER = SimpleFormatter
