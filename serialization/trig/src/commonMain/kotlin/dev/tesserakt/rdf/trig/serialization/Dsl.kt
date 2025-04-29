@@ -5,6 +5,20 @@ import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.trig.serialization.TRiGConfig.PrettyFormatterConf
 
 
+@TrigSerializerDsl
+fun trig(builder: TRiGConfig.() -> Unit): TriGSerializer {
+    val config = TRiGConfig().apply(builder)
+    return TriGSerializer(config = config)
+}
+
+inline fun TRiGConfig.prettyFormatting(block: PrettyFormatterConf.() -> Unit = {}) {
+    formatter = PrettyFormatterConf().apply(block).build()
+}
+
+inline fun TRiGConfig.simpleFormatting() {
+    formatter = SimpleFormatter
+}
+
 fun PrettyFormatterConf.prefixes(value: Prefixes) {
     this.prefixes = value
 }
@@ -23,12 +37,4 @@ fun PrettyFormatterConf.prefixes(value: Iterable<Pair<String, String>>) {
 
 inline fun PrettyFormatterConf.prefixes(block: MutableMap<String, String>.() -> Unit) {
     prefixes(buildMap(block))
-}
-
-inline fun TRiGConfig.prettyFormatting(block: PrettyFormatterConf.() -> Unit = {}) {
-    formatter = PrettyFormatterConf().apply(block).build()
-}
-
-inline fun TRiGConfig.simpleFormatting() {
-    formatter = SimpleFormatter
 }

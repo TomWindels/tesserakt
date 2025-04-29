@@ -5,10 +5,10 @@ import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.common.Prefixes
-import dev.tesserakt.rdf.serialization.common.serialize
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.trig.serialization.prefixes
 import dev.tesserakt.rdf.trig.serialization.prettyFormatting
+import dev.tesserakt.rdf.trig.serialization.trig
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
@@ -101,19 +101,17 @@ class VersionedLDESTest {
             timestamp = (Clock.System.now() - 10.seconds).asLiteral(),
             data = buildStore(block = two2)
         )
-        println(TriGSerializer.serialize(
-            data = ldes,
-            config = {
-                prettyFormatting {
-                    prefixes {
-                        putAll(one.extractPrefixes())
-                        putAll(two.extractPrefixes())
-                        putAll(two2.extractPrefixes())
-                        putAll(Prefixes(DC, TREE, LDES, RDF, XSD))
-                    }
+        val serializer = trig {
+            prettyFormatting {
+                prefixes {
+                    putAll(one.extractPrefixes())
+                    putAll(two.extractPrefixes())
+                    putAll(two2.extractPrefixes())
+                    putAll(Prefixes(DC, TREE, LDES, RDF, XSD))
                 }
             }
-        ))
+        }
+        println(serializer.serialize(data = ldes))
     }
 
     @Test
@@ -172,14 +170,14 @@ class VersionedLDESTest {
             timestamp = t3,
             data = data1v2
         )
-        println(TriGSerializer.serialize(
-            data = ldes,
-            config = {
-                prettyFormatting {
-                    prefixes(DC, TREE, LDES, RDF, XSD)
+        val serializer = trig {
+            prettyFormatting {
+                prefixes {
+                    putAll(Prefixes(DC, TREE, LDES, RDF, XSD))
                 }
             }
-        ))
+        }
+        println(serializer.serialize(data = ldes))
         assertStoreContentEqual(emptySet(), ldes.read(pre_t1))
         assertStoreContentEqual(data1, ldes.read(pre_t2))
         assertStoreContentEqual(data1 + data2, ldes.read(pre_t3))

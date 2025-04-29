@@ -4,7 +4,6 @@ import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
 import dev.tesserakt.rdf.serialization.common.collect
-import dev.tesserakt.rdf.serialization.common.serialize
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.trig.serialization.*
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
@@ -74,11 +73,12 @@ class TriGSerialization {
     @OptIn(DelicateSerializationApi::class)
     private fun serialize(block: RDF.() -> Unit) {
         val reference = buildStore(block = block)
-        val prettyPrinted = TriGSerializer.serialize(reference.iterator()) {
+        val serializer = trig {
             prettyFormatting {
                 prefixes(block.extractPrefixes())
             }
-        }.collect()
+        }
+        val prettyPrinted = serializer.serialize(reference.iterator()).collect()
         println(prettyPrinted)
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
