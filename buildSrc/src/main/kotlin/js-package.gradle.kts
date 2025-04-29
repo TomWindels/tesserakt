@@ -47,6 +47,15 @@ kotlin {
         nodejs()
         generateTypeScriptDefinitions()
         binaries.library()
+
+        // snapshot releases should not have minimised member names to help with debugging
+        if (SNAPSHOT) {
+            compilations.all {
+                compileTaskProvider.configure {
+                    compilerOptions.freeCompilerArgs.add("-Xir-minimized-member-names=false")
+                }
+            }
+        }
     }
 
     // no custom source set configuration
