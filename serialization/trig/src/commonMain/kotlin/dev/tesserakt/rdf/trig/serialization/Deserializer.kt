@@ -140,29 +140,16 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
 
                         else -> unexpectedToken(token)
                     }
-                    var next: TriGToken? = nextOrBail()
-                    // it's possible for the next token to be a graph term, in which case we'll have to update that as well
-                    val result = if (!inGraphBlock && next is TriGToken.TermToken) {
-                        val graph = resolve(next)
-                        next = nextOrNull()
-                        Quad(
-                            s = s!!,
-                            p = p!!,
-                            o = o!!,
-                            g = graph as? Quad.Graph ?: throw IllegalStateException("$graph is not a valid graph term!")
-                        )
-                    } else {
-                        Quad(
-                            s = s!!,
-                            p = p!!,
-                            o = o!!,
-                            g = g
-                        )
-                    }
+                    val result = Quad(
+                        s = s!!,
+                        p = p!!,
+                        o = o!!,
+                        g = g
+                    )
                     // depending on what this next token is, we either adjust the position and yield, update the graph
                     //  value and yield
                     while (true) {
-                        when (next) {
+                        when (val next: TriGToken? = nextOrNull()) {
                             null -> {
                                 break
                             }
