@@ -1,12 +1,26 @@
 package dev.tesserakt.rdf.serialization
 
+import dev.tesserakt.rdf.serialization.common.DataSource
+import dev.tesserakt.rdf.serialization.common.Serializer
+import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
 
-object NTriples {
+object NTriples: Serializer() {
 
-    fun encodeToNTriples(store: Store): String {
-        return store.joinToString("\n") { "${it.s.encoded()} ${it.p.encoded()} ${it.o.encoded()} ." }
+    @OptIn(InternalSerializationApi::class)
+    override fun deserialize(input: DataSource): Iterator<Quad> {
+        return Deserializer(BufferedString(input.open()))
+    }
+
+    override fun serialize(data: Iterator<Quad>): Iterator<String> = iterator {
+        data.forEach { quad ->
+            yield(quad.s.encoded())
+            yield(" ")
+            yield(quad.p.encoded())
+            yield(" ")
+            yield(quad.o.encoded())
+            yield(" .\n")
+        }
     }
 
     private fun Quad.Term.encoded(): String {

@@ -1,6 +1,7 @@
 package sparql.tests
 
-import dev.tesserakt.rdf.serialization.common.Path
+import bindingComparisonOf
+import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.SnapshotStore
@@ -13,7 +14,6 @@ import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.util.printerrln
 import sparql.ExternalQueryExecution
 import sparql.types.OutputComparisonTest
-import sparql.types.fastCompare
 import kotlin.time.measureTime
 
 private data class ReplayTestResult(
@@ -23,7 +23,7 @@ private data class ReplayTestResult(
     val diff: SnapshotStore.Diff,
 ) {
 
-    private val comparison = previous?.let { fastCompare(it, result.received) }
+    private val comparison = previous?.let { bindingComparisonOf(it, result.received) }
 
     fun isSuccess() = result.isSuccess()
 
@@ -67,7 +67,7 @@ expect fun awaitBenchmarkStart()
 
 suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
     val benchmark = ReplayBenchmark
-        .from(store = TriGSerializer.deserialize(Path(benchmarkFilepath)).consume())
+        .from(store = TriGSerializer.deserialize(FileDataSource(benchmarkFilepath)).consume())
         .single()
     if (benchmark.queries.size == 1) {
         println("Found ${benchmark.queries.size} query that will be used on a store with ${benchmark.store.snapshotCount} snapshot(s)!")

@@ -24,7 +24,7 @@ mavenPublishing {
         sourcesJar = true,
         // configure which Android library variants to publish if this project has an Android target
         // defaults to "release" when using the main plugin and nothing for the base plugin
-        androidVariantsToPublish = if ((version as String).endsWith("-SNAPSHOT")) listOf("debug") else listOf("release"),
+        androidVariantsToPublish = if (SNAPSHOT) listOf("debug") else listOf("release"),
     ))
 
     pom {
@@ -52,7 +52,7 @@ mavenPublishing {
         }
     }
 
-    if (!(version as String).endsWith("-SNAPSHOT")) {
+    if (!SNAPSHOT) {
         signAllPublications()
     }
 

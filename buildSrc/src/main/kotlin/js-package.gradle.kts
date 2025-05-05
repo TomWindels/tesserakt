@@ -33,20 +33,37 @@ kotlin {
         }
         moduleName = name
         val npmPackageName = "@${project.findProperty("NPM_ORGANISATION")}/${name}"
-        compilations.forEach { compilation ->
-            // setting the outputModuleName to the entire name value (= incl. the scope) yields
-            //  runtime exceptions, so that approach is avoided
-            // src for this approach:
-            // https://youtrack.jetbrains.com/issue/KT-25878/Provide-Option-to-Define-Scoped-NPM-Package#focus=Comments-27-6742844.0-0
-            compilation.packageJson {
+        // setting the outputModuleName to the entire name value (= incl. the scope) yields
+        //  runtime exceptions, so that approach is avoided
+        // src for this approach:
+        // https://youtrack.jetbrains.com/issue/KT-25878/Provide-Option-to-Define-Scoped-NPM-Package#focus=Comments-27-6742844.0-0
+        // targeting the main and test compilation target separately, so there is no name collisions when building
+        //  the module & its tests
+        compilations.named("main") {
+            packageJson {
                 customField("name", npmPackageName)
             }
-            compilation.outputModuleName = name
+            outputModuleName = name
+        }
+        compilations.named("test") {
+            packageJson {
+                customField("name", "${npmPackageName}-test")
+            }
+            outputModuleName = "${name}-test"
         }
         println("Configured NPM package $npmPackageName")
         nodejs()
         generateTypeScriptDefinitions()
         binaries.library()
+
+        // snapshot releases should not have minimised member names to help with debugging
+        if (SNAPSHOT) {
+            compilations.all {
+                compileTaskProvider.configure {
+                    compilerOptions.freeCompilerArgs.add("-Xir-minimized-member-names=false")
+                }
+            }
+        }
     }
 
     // no custom source set configuration

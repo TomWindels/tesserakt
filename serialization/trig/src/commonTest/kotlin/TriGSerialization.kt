@@ -1,12 +1,12 @@
 import dev.tesserakt.rdf.dsl.RDF
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.dsl.extractPrefixes
+import dev.tesserakt.rdf.serialization.DelicateSerializationApi
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
+import dev.tesserakt.rdf.serialization.common.TextDataSource
+import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.serialization.util.wrapAsBufferedReader
-import dev.tesserakt.rdf.trig.serialization.Deserializer
-import dev.tesserakt.rdf.trig.serialization.TokenDecoder
-import dev.tesserakt.rdf.trig.serialization.TokenEncoder
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.trig.serialization.*
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.toStore
@@ -37,10 +37,11 @@ class TriGSerialization {
     // smaller; testing inlining behaviour
     @Test
     fun serialize1() = serialize {
-        graph("my-graph") {
-            local("graph") has type being local("test")
+        val ex = prefix("ex", "http://example.org/")
+        graph(ex("my-graph")) {
+            ex("graph") has type being ex("Test")
         }
-        local("data") has local("graph") being local("my-graph")
+        ex("data") has ex("graph") being ex("my-graph")
     }
 
     // testing blank object behaviour
@@ -71,26 +72,33 @@ class TriGSerialization {
         }
     }
 
+    @OptIn(DelicateSerializationApi::class, InternalSerializationApi::class)
     private fun serialize(block: RDF.() -> Unit) {
         val reference = buildStore(block = block)
-        val prettyPrinted = TriGSerializer.serialize(reference, prefixes = block.extractPrefixes())
+        val serializer = trig {
+            usePrettyFormatting {
+                withPrefixes(block.extractPrefixes())
+                withDynamicIndent()
+            }
+        }
+        val prettyPrinted = serializer.serialize(reference.iterator()).collect()
         println(prettyPrinted)
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
         assertContentEquals(
-            expected = TokenEncoder(reference).asIterable(),
+            expected = TokenEncoder(reference.iterator()).asIterable(),
             actual = TokenDecoder(
                 BufferedString(
-                    TriGSerializer.serialize(reference).wrapAsBufferedReader()
+                    TextDataSource(TriGSerializer.serialize(reference.iterator()).collect()).open()
                 )
             ).asIterable()
         )
-        val complete = Deserializer(TokenDecoder(BufferedString(prettyPrinted.wrapAsBufferedReader())))
+        val complete = Deserializer(TokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
             .asIterable().toStore()
         val diffA1 = reference - complete
         val diffB1 = complete - reference
-        assertTrue { diffA1.isEmpty() }
-        assertTrue { diffB1.isEmpty() }
+        assertTrue(diffA1.isEmpty(), "The first difference is not empty! It contains the following items:\n${diffA1.joinToString()}")
+        assertTrue(diffB1.isEmpty(), "The second difference is not empty! It contains the following items:\n${diffB1.joinToString()}")
         // dropping the last line of the pretty printed output, which should result in missing data, which should cause
         //  an incomplete result
         val subset = prettyPrinted
@@ -99,12 +107,12 @@ class TriGSerialization {
             // making sure we're not cutting in the middle of a statement
             .dropLastWhile { it.isNotBlank() }
             .joinToString("\n")
-        val incomplete = Deserializer(TokenDecoder(BufferedString(subset.wrapAsBufferedReader())))
+        val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
         val diffA2 = reference - incomplete
         val diffB2 = incomplete - reference
-        assertTrue { diffA2.isNotEmpty() }
-        assertTrue { diffB2.isEmpty() }
+        assertTrue(diffA2.isNotEmpty(), "The third difference is not empty! It contains the following items:\n${diffA2.joinToString()}")
+        assertTrue(diffB2.isEmpty(), "The fourth difference is not empty! It contains the following items:\n${diffB2.joinToString()}")
         // TODO: another test case where we drop until reaching invalid input
     }
 

@@ -1,6 +1,7 @@
 package dev.tesserakt.rdf.trig.serialization
 
 import dev.tesserakt.rdf.ontology.RDF
+import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 
 // TODO: blank node syntax `[]` support
@@ -124,31 +125,31 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
 
                 position == Position.Object -> {
                     // FIXME: blank objects
-                    check(token is TriGToken.TermToken)
-                    o = resolve(token)
-                    var next: TriGToken? = nextOrBail()
-                    // it's possible for the next token to be a graph term, in which case we'll have to update that as well
-                    val result = if (!inGraphBlock && next is TriGToken.TermToken) {
-                        val graph = resolve(next)
-                        next = nextOrNull()
-                        Quad(
-                            s = s!!,
-                            p = p!!,
-                            o = o!!,
-                            g = graph as? Quad.Graph ?: throw IllegalStateException("$graph is not a valid graph term!")
-                        )
-                    } else {
-                        Quad(
-                            s = s!!,
-                            p = p!!,
-                            o = o!!,
-                            g = g
-                        )
+                    o = when (token) {
+                        is TriGToken.TermToken -> {
+                            resolve(token)
+                        }
+
+                        TriGToken.Structural.TrueLiteral -> {
+                            Quad.Literal(value = "true", type = XSD.boolean)
+                        }
+
+                        TriGToken.Structural.FalseLiteral -> {
+                            Quad.Literal(value = "false", type = XSD.boolean)
+                        }
+
+                        else -> unexpectedToken(token)
                     }
+                    val result = Quad(
+                        s = s!!,
+                        p = p!!,
+                        o = o!!,
+                        g = g
+                    )
                     // depending on what this next token is, we either adjust the position and yield, update the graph
                     //  value and yield
                     while (true) {
-                        when (next) {
+                        when (val next: TriGToken? = nextOrNull()) {
                             null -> {
                                 break
                             }
@@ -197,13 +198,29 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
             //  bail early
             return nextOrBail()
         }
-        var token: TriGToken
+        var token = nextOrNull()
         do {
-            token = source.next()
             when (token) {
+                null -> return null
+
+                TriGToken.Structural.BaseAnnotationA,
+                TriGToken.Structural.BaseAnnotationB -> {
+                    val uri = nextOrBail()
+                    check(uri is TriGToken.Term) { "Invalid base value `${uri}`" }
+                    base = uri.value
+                    token = nextOrNull()
+                    if (token == TriGToken.Structural.StatementTermination) {
+                        token = nextOrNull()
+                    }
+                }
+
                 TriGToken.Structural.PrefixAnnotationA,
                 TriGToken.Structural.PrefixAnnotationB -> {
                     processPrefix()
+                    token = nextOrNull()
+                    if (token == TriGToken.Structural.StatementTermination) {
+                        token = nextOrNull()
+                    }
                 }
 
                 is TriGToken.TermToken -> {
@@ -229,8 +246,6 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
         }
         val uri = nextOrBail()
         check(uri is TriGToken.Term)
-        val termination = nextOrBail()
-        check(termination == TriGToken.Structural.StatementTermination)
         prefixes[prefix.prefix] = uri.value
     }
 

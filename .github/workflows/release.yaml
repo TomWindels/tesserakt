@@ -28,7 +28,7 @@ jobs:
         run: ./gradlew lint
 
       - name: Executing tests
-        run: ./gradlew test
+        run: ./gradlew allTests
 
   publish-release-maven:
     name: "Publish to Maven Central"

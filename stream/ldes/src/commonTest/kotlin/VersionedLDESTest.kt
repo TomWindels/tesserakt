@@ -6,6 +6,9 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.trig.serialization.trig
+import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
+import dev.tesserakt.rdf.trig.serialization.withPrefixes
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
@@ -98,14 +101,17 @@ class VersionedLDESTest {
             timestamp = (Clock.System.now() - 10.seconds).asLiteral(),
             data = buildStore(block = two2)
         )
-        println(TriGSerializer.serialize(
-            data = ldes,
-            prefixes =
-                Prefixes(one.extractPrefixes()) +
-                Prefixes(two.extractPrefixes()) +
-                Prefixes(two2.extractPrefixes()) +
-                Prefixes(DC, TREE, LDES, RDF, XSD)
-        ))
+        val serializer = trig {
+            usePrettyFormatting {
+                withPrefixes {
+                    putAll(one.extractPrefixes())
+                    putAll(two.extractPrefixes())
+                    putAll(two2.extractPrefixes())
+                    putAll(Prefixes(DC, TREE, LDES, RDF, XSD))
+                }
+            }
+        }
+        println(serializer.serialize(data = ldes))
     }
 
     @Test
@@ -164,10 +170,14 @@ class VersionedLDESTest {
             timestamp = t3,
             data = data1v2
         )
-        println(TriGSerializer.serialize(
-            data = ldes,
-            prefixes = Prefixes(DC, TREE, LDES, RDF, XSD)
-        ))
+        val serializer = trig {
+            usePrettyFormatting {
+                withPrefixes {
+                    putAll(Prefixes(DC, TREE, LDES, RDF, XSD))
+                }
+            }
+        }
+        println(serializer.serialize(data = ldes))
         assertStoreContentEqual(emptySet(), ldes.read(pre_t1))
         assertStoreContentEqual(data1, ldes.read(pre_t2))
         assertStoreContentEqual(data1 + data2, ldes.read(pre_t3))

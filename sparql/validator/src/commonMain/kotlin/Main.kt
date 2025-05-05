@@ -7,26 +7,22 @@ suspend fun run(args: Array<String>) {
     when (args.size) {
         0 -> {
             println("Running built-in tests")
-            val one = compareIncrementalChainSelectOutput(seed = 1)
-                .test(QueryExecutionTestValues::toOutputComparisonTest)
-                .run()
-            val two = compareIncrementalStarSelectOutput(seed = 1)
-                .test(QueryExecutionTestValues::toOutputComparisonTest)
-                .run()
-            val three = builtinTests()
-                .test(QueryExecutionTestValues::toOutputComparisonTest)
-                .run()
-            val four = builtinTests()
-                .test(QueryExecutionTestValues::toIncrementalUpdateTest)
-                .run()
-            val five = builtinTests()
-                .test(QueryExecutionTestValues::toRandomUpdateTest)
-                .run()
-            one.report()
-            two.report()
-            three.report()
-            four.report()
-            five.report()
+            val results = listOf(
+                compareIncrementalChainSelectOutput(seed = 1)
+                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+                compareIncrementalStarSelectOutput(seed = 1)
+                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+                builtinTests()
+                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+                builtinTests()
+                    .test(QueryExecutionTestValues::toIncrementalUpdateTest),
+                builtinTests()
+                    .test(QueryExecutionTestValues::toRandomUpdateTest),
+            ).map { it.run() }
+            results.forEach { it.report() }
+            if (results.any { !it.isSuccess() }) {
+                throw IllegalStateException("Not all tests succeeded!")
+            }
         }
         1 -> {
             val (replayBenchmarkPath) = args

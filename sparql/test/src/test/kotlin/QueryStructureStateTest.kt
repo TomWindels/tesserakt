@@ -1,9 +1,11 @@
 
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
-import dev.tesserakt.rdf.serialization.Turtle.parseTurtleString
+import dev.tesserakt.rdf.serialization.DelicateSerializationApi
+import dev.tesserakt.rdf.turtle.serialization.TurtleSerializer.Companion.parseTurtleString
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.debug.BindingsTable.Companion.tabulate
 import dev.tesserakt.sparql.query
@@ -215,6 +217,7 @@ class QueryStructureStateTest {
         }
     }
 
+    @OptIn(DelicateSerializationApi::class)
     @Test
     fun aggregation() = with(VerboseCompiler) {
         // src: https://www.w3.org/TR/sparql11-query/#aggregateExample
@@ -230,7 +233,7 @@ class QueryStructureStateTest {
             :org2 :affiliates :auth3 .
             :auth3 :writesBook :book4 .
             :book4 :price 7 .
-        """.parseTurtleString()
+        """.parseTurtleString().consume()
         val query = """
             PREFIX : <http://books.example/>
             SELECT (SUM(?lprice) AS ?totalPrice)
@@ -245,6 +248,7 @@ class QueryStructureStateTest {
         println("Results:\n${store.query(query).tabulate()}")
     }
 
+    @OptIn(DelicateSerializationApi::class)
     @Test
     fun filters() = with (VerboseCompiler) {
         val data1 = """
@@ -255,7 +259,7 @@ class QueryStructureStateTest {
             :alice  rdf:type   foaf:Person .
             :alice  foaf:name  "Alice" .
             :bob    rdf:type   foaf:Person .
-        """.parseTurtleString()
+        """.parseTurtleString().consume()
         val query1 = """
             PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
             PREFIX  foaf:   <http://xmlns.com/foaf/0.1/> 

@@ -5,7 +5,9 @@ import dev.tesserakt.interop.rdfjs.toN3Store
 import dev.tesserakt.interop.rdfjs.toStore
 import dev.tesserakt.interop.rdfjs.toTerm
 import dev.tesserakt.rdf.serialization.common.Prefixes.Companion.plus
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.trig.serialization.withPrefixes
+import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
+import dev.tesserakt.rdf.trig.serialization.trig
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
@@ -39,16 +41,19 @@ class ReplayBenchmarkBuilder(
     }
 
     fun buildToFile(path: String = "./${name.value}.ttl", prefixes: dynamic) {
-        val fs = js("require('fs')")
         val keys = js("Object.keys")
+        val serializer = trig {
+            usePrettyFormatting {
+                withPrefixes(keys(prefixes).unsafeCast<Array<String>>().associateWith { prefixes[it] }.plus(RBO))
+            }
+        }
+        val fs = js("require('fs')")
         val flags: dynamic = Any()
         // https://nodejs.org/en/learn/manipulating-files/writing-files-with-nodejs#the-flags-youll-likely-use-are
         flags.flag = "a"
-        TriGSerializer.serialize(
-            data = buildToStore(),
-            prefixes = keys(prefixes).unsafeCast<Array<String>>().associateWith { prefixes[it] }.plus(RBO),
-            callback = { content -> fs.writeFileSync(path, content, flags); Unit }
-        )
+        serializer.serialize(data = buildToStore()).forEach { content ->
+            fs.writeFileSync(path, content, flags); Unit
+        }
     }
 
     private fun buildToStore(): Store {
