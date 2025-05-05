@@ -110,7 +110,7 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
             throw IllegalStateException("Invalid term: $prefix")
         }
         source.consume() // ':'
-        val value = consumeWhile { it.isValidPrefixCharacter() }
+        val value = consumePrefixLocalName()
             // resolving escape sequences (identical to turtle)
             // https://www.w3.org/TR/turtle/#h_note_2 -> https://www.w3.org/TR/turtle/#reserved
             .replace(EscapeSequence) { it.groupValues[1] }
@@ -140,10 +140,31 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         return result.toString()
     }
 
-    // FIXME: support escape sequences
-    private fun Char.isValidPrefixCharacter(): Boolean {
-        return !isWhitespace() && this != ',' && this != ';' && this != '.'
+    /**
+     * Consumes, and returns, the prefix local name value, respecting escaping rules.
+     * Examples:
+     *  * `ex:my\,triple` returns "my,triple"
+     */
+    private fun consumePrefixLocalName(): String {
+        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';' || this == '.'
+
+        val result = StringBuilder()
+        var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
+        var escaped = false
+        while (escaped || !c.isTerminatingCharacter()) {
+            result.append(source.peek(0))
+            source.consume()
+            escaped = !escaped && c == '\\'
+            c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
+            check(!escaped || c in ReservedCharacters) {
+                "Invalid escape sequence: `\\${c}`"
+            }
+        }
+        return result.toString()
     }
+
 }
 
-private val EscapeSequence = Regex("\\\\([~.\\-!\$&'()*+,;=/?#@%_])")
+private val ReservedCharacters = setOf('~','.','\\','-','!','\$','&','\'','(',')','*','+',',',';','=','/','?','#','@','%','_')
+
+private val EscapeSequence = Regex("\\\\([${ReservedCharacters.joinToString("")}])")
