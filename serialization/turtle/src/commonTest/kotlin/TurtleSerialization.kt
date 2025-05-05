@@ -3,6 +3,7 @@ import dev.tesserakt.rdf.dsl.RDF
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
 import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.serialization.util.BufferedString
@@ -74,7 +75,7 @@ class TurtleSerialization {
         }
     }
 
-    @OptIn(DelicateSerializationApi::class)
+    @OptIn(DelicateSerializationApi::class, InternalSerializationApi::class)
     private fun serialize(block: RDF.() -> Unit) {
         val reference = buildStore(block = block)
         val serializer = turtle {

@@ -1,6 +1,9 @@
 package dev.tesserakt.rdf.serialization.core
 
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
 
+
+@InternalSerializationApi
 actual class DataSourceStream(private val content: String) : AutoCloseable {
 
     private var pos = 0
@@ -20,10 +23,12 @@ actual class DataSourceStream(private val content: String) : AutoCloseable {
 
 }
 
+@InternalSerializationApi
 actual fun dataSourceStreamOf(text: String): DataSourceStream {
     return DataSourceStream(content = text)
 }
 
+@InternalSerializationApi
 actual fun DataSourceStream.read(count: Int): String? {
     return read(count)
 }

@@ -2,6 +2,7 @@ package dev.tesserakt.rdf.trig.serialization
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.util.isNullOr
 import kotlin.jvm.JvmInline
@@ -9,6 +10,7 @@ import kotlin.jvm.JvmInline
 // TODO: `source.report()` use
 // TODO: improved exception uses
 
+@InternalSerializationApi
 @JvmInline
 internal value class TokenDecoder(private val source: BufferedString): Iterator<TriGToken> {
 

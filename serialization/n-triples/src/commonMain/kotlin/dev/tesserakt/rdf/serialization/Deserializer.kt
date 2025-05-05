@@ -6,6 +6,7 @@ import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.util.isNullOr
 
+@InternalSerializationApi
 internal class Deserializer(private val source: BufferedString) : Iterator<Quad> {
 
     private val lut = mutableMapOf<String, Int>()

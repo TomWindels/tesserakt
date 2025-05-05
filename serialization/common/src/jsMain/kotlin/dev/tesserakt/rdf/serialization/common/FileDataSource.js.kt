@@ -1,10 +1,12 @@
 package dev.tesserakt.rdf.serialization.common
 
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.core.DataSourceStream
 
 private val fs = js("require('fs')")
 
 actual class FileDataSource actual constructor(private val filepath: String) : DataSource {
+    @OptIn(InternalSerializationApi::class)
     actual override fun open(): DataSourceStream {
         // Calling the readFileSync() method
         // to read 'input.txt' file

@@ -7,6 +7,7 @@ import dev.tesserakt.rdf.types.Quad
 
 object NTriples: Serializer() {
 
+    @OptIn(InternalSerializationApi::class)
     override fun deserialize(input: DataSource): Iterator<Quad> {
         return Deserializer(BufferedString(input.open()))
     }
