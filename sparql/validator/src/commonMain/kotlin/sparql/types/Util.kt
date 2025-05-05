@@ -1,5 +1,6 @@
 package sparql.types
 
+import bindingComparisonOf
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.testing.Test
@@ -41,7 +42,7 @@ fun compare(
     referenceTime: Duration,
     debugInformation: String
 ): OutputComparisonTest.Result {
-    val comparison = fastCompare(expected, received)
+    val comparison = bindingComparisonOf(expected, received)
     return OutputComparisonTest.Result(
         received = received,
         expected = expected,
