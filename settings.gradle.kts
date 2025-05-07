@@ -37,6 +37,7 @@ include("sparql:common")
 include("sparql:debugging")
 include("sparql:compiler")
 include("sparql:runtime")
+include("sparql:coroutines")
 include("sparql:test")
 include("sparql:validator")
 
