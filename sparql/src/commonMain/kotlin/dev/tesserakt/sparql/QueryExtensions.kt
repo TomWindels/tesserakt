@@ -2,10 +2,12 @@ package dev.tesserakt.sparql
 
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.query.QueryState
 
+/* collection/iterable variants */
 
 fun <RT> Iterable<Quad>.query(
     query: Query<RT>,
@@ -57,6 +59,59 @@ internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> = bui
     }
     RuntimeStatistics.append(processor.debugInformation())
 }
+
+/* standard store variants */
+
+fun <RT> Store.query(
+    query: Query<RT>,
+    callback: (QueryState.ResultChange<RT>) -> Unit
+) {
+    return query(query.createState(), callback = callback)
+}
+
+internal inline fun <RT> Store.query(
+    query: QueryState<RT, *>,
+    crossinline callback: (QueryState.ResultChange<RT>) -> Unit
+) {
+    RuntimeStatistics.reset()
+    val processor = query.Processor()
+    // setting initial state
+    processor.state().forEach {
+        callback(QueryState.ResultChange.New(it))
+    }
+    // now incrementally evaluating the input
+    forEach { quad ->
+        processor.process(DataAddition(quad)).forEach {
+            val mapped = query.process(it)
+            callback(mapped)
+        }
+    }
+    RuntimeStatistics.append(processor.debugInformation())
+}
+
+fun <RT> Store.query(query: Query<RT>): List<RT> {
+    val queryState = query.createState()
+    return query(queryState)
+}
+
+internal fun <RT> Store.query(query: QueryState<RT, *>): List<RT> = buildList {
+    RuntimeStatistics.reset()
+    val processor = query.Processor()
+    // setting initial state
+    addAll(processor.state())
+    // now incrementally evaluating the input
+    this@query.forEach {
+        processor.process(DataAddition(it)).forEach {
+            when (val mapped = query.process(it)) {
+                is QueryState.ResultChange.New<RT> -> add(mapped.value)
+                is QueryState.ResultChange.Removed<RT> -> remove(mapped.value)
+            }
+        }
+    }
+    RuntimeStatistics.append(processor.debugInformation())
+}
+
+/* ongoing store variants */
 
 fun <RT> MutableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }

@@ -1,6 +1,7 @@
 package dev.tesserakt.rdf.serialization.common
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Store
 
 abstract class Serializer {
 
@@ -10,6 +11,16 @@ abstract class Serializer {
      */
     open fun serialize(data: Collection<Quad>): Iterator<String> {
         return serialize(data = data.iterator())
+    }
+
+    /**
+     * Standard serializer.
+     *
+     * IMPORTANT: this does not come with any concurrency guarantees! Do not mutate the [data] store concurrently with
+     *  an ongoing serialization iterator in use!
+     */
+    open fun serialize(data: Store): Iterator<String> {
+        return serialize(data.toSet())
     }
 
     /**

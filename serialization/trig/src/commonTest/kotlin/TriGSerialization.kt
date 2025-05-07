@@ -81,22 +81,22 @@ class TriGSerialization {
                 withDynamicIndent()
             }
         }
-        val prettyPrinted = serializer.serialize(reference.iterator()).collect()
+        val prettyPrinted = serializer.serialize(reference.toSet().iterator()).collect()
         println(prettyPrinted)
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
         assertContentEquals(
-            expected = TokenEncoder(reference.iterator()).asIterable(),
+            expected = TokenEncoder(reference.toSet().iterator()).asIterable(),
             actual = TokenDecoder(
                 BufferedString(
-                    TextDataSource(TriGSerializer.serialize(reference.iterator()).collect()).open()
+                    TextDataSource(TriGSerializer.serialize(reference.toSet().iterator()).collect()).open()
                 )
             ).asIterable()
         )
         val complete = Deserializer(TokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
             .asIterable().toStore()
-        val diffA1 = reference - complete
-        val diffB1 = complete - reference
+        val diffA1 = reference.toSet() - complete.toSet()
+        val diffB1 = complete.toSet() - reference.toSet()
         assertTrue(diffA1.isEmpty(), "The first difference is not empty! It contains the following items:\n${diffA1.joinToString()}")
         assertTrue(diffB1.isEmpty(), "The second difference is not empty! It contains the following items:\n${diffB1.joinToString()}")
         // dropping the last line of the pretty printed output, which should result in missing data, which should cause
@@ -109,8 +109,8 @@ class TriGSerialization {
             .joinToString("\n")
         val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
-        val diffA2 = reference - incomplete
-        val diffB2 = incomplete - reference
+        val diffA2 = reference.toSet() - incomplete.toSet()
+        val diffB2 = incomplete.toSet() - reference.toSet()
         assertTrue(diffA2.isNotEmpty(), "The third difference is not empty! It contains the following items:\n${diffA2.joinToString()}")
         assertTrue(diffB2.isEmpty(), "The fourth difference is not empty! It contains the following items:\n${diffB2.joinToString()}")
         // TODO: another test case where we drop until reaching invalid input

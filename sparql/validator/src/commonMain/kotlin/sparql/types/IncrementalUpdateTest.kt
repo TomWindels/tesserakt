@@ -2,6 +2,7 @@ package sparql.types
 
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.elementAt
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.OngoingQueryEvaluation
 import dev.tesserakt.sparql.queryDebug
@@ -21,7 +22,7 @@ class IncrementalUpdateTest(
         val input = MutableStore()
         val builder = Result.Builder(store)
         suspend fun reference(): Pair<Duration, List<Bindings>> {
-            val external = ExternalQueryExecution(queryString, input)
+            val external = ExternalQueryExecution(queryString, input.toSet())
             val results: List<Bindings>
             val elapsed = measureTime {
                 try {
@@ -43,7 +44,7 @@ class IncrementalUpdateTest(
             debugInformation = ongoing.debugInformation()
         )
         // building it up
-        store.forEach { quad ->
+        store.toSet().forEach { quad ->
             val current: List<Bindings>
             val elapsedTime = measureTime {
                 input.add(quad)
@@ -56,7 +57,7 @@ class IncrementalUpdateTest(
             )
         }
         // breaking it back down
-        store.forEach { quad ->
+        store.toSet().forEach { quad ->
             val current: List<Bindings>
             val elapsedTime = measureTime {
                 input.remove(quad)

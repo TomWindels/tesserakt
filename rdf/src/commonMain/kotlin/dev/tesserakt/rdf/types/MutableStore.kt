@@ -2,9 +2,7 @@
 
 package dev.tesserakt.rdf.types
 
-import dev.tesserakt.util.fit
-
-class MutableStore(quads: Collection<Quad> = emptyList()): Set<Quad> {
+open class MutableStore: Store {
 
     interface Listener {
         fun onQuadAdded(quad: Quad)
@@ -13,28 +11,19 @@ class MutableStore(quads: Collection<Quad> = emptyList()): Set<Quad> {
 
     // TODO: actually performant implementation
     // stored quads utilize set semantics, duplicates are not allowed
-    private val quads = quads.toMutableSet()
+    final override val quads: MutableSet<Quad>
 
-    private val listeners = mutableListOf<Listener>()
+    protected val listeners = mutableListOf<Listener>()
 
-    override val size: Int
-        get() = quads.size
-
-    override fun iterator() = quads.iterator()
-
-    override fun isEmpty(): Boolean {
-        return quads.isEmpty()
+    constructor(quads: Collection<Quad> = emptyList()) {
+        this.quads = quads.toMutableSet()
     }
 
-    override fun containsAll(elements: Collection<Quad>): Boolean {
-        return quads.containsAll(elements)
+    constructor(store: Store) {
+        this.quads = store.quads.toMutableSet()
     }
 
-    override fun contains(element: Quad): Boolean {
-        return quads.contains(element)
-    }
-
-    fun add(quad: Quad) {
+    open fun add(quad: Quad) {
         if (quads.add(quad)) {
             listeners.forEach {
                 try {
@@ -48,7 +37,11 @@ class MutableStore(quads: Collection<Quad> = emptyList()): Set<Quad> {
         }
     }
 
-    fun remove(quad: Quad) {
+    open fun addAll(quads: Iterable<Quad>) {
+        quads.forEach { this.quads.add(it) }
+    }
+
+    open fun remove(quad: Quad) {
         if (quads.remove(quad)) {
             listeners.forEach {
                 try {
@@ -62,36 +55,16 @@ class MutableStore(quads: Collection<Quad> = emptyList()): Set<Quad> {
         }
     }
 
-    fun addListener(listener: Listener) {
+    open fun removeAll(quads: Iterable<Quad>) {
+        quads.forEach { this.quads.remove(it) }
+    }
+
+    open fun addListener(listener: Listener) {
         listeners.add(listener)
     }
 
-    fun removeListener(listener: Listener) {
-        listeners.remove(listener)
-    }
-
-    override fun toString() = if (isEmpty()) "Empty store" else buildString {
-        val s = quads.map { it.s.toString() }
-        val p = quads.map { it.p.toString() }
-        val o = quads.map { it.o.toString() }
-
-        val sl = s.maxOf { it.length }
-        val pl = p.maxOf { it.length }
-        val ol = o.maxOf { it.length }
-
-        append("Subject".fit(sl))
-        append(" | ")
-        append("Predicate".fit(pl))
-        append(" | ")
-        appendLine("Object".fit(ol))
-
-        repeat(quads.size) { i ->
-            append(s[i].padEnd(sl))
-            append(" | ")
-            append(p[i].padEnd(pl))
-            append(" | ")
-            appendLine(o[i].padEnd(ol))
-        }
+    open fun removeListener(listener: Listener) {
+        check(listeners.remove(listener)) { "The provided listener (class name ${listener::class.simpleName}) was not registered!" }
     }
 
 }

@@ -31,7 +31,7 @@ class RandomUpdateTest(
         val random = Random(seed)
         repeat(iterations) {
             // getting the next delta
-            val delta = getNextDelta(current = temp, source = store, random = random)
+            val delta = getNextDelta(current = temp.toSet(), source = store.toSet(), random = random)
             temp.process(delta)
             add(delta)
         }
@@ -41,7 +41,7 @@ class RandomUpdateTest(
         val input = MutableStore()
         val builder = Result.Builder(query = query, store = store, deltas = deltas)
         suspend fun reference(): Pair<Duration, List<Bindings>> {
-            val external = ExternalQueryExecution(queryString, input)
+            val external = ExternalQueryExecution(queryString, input.toSet())
             val results: List<Bindings>
             val elapsed = measureTime {
                 try {

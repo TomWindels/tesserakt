@@ -1,6 +1,7 @@
 package dev.tesserakt.rdf.dsl
 
 import dev.tesserakt.rdf.dsl.RDF.Environment
+import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import kotlin.contracts.ExperimentalContracts
@@ -45,7 +46,7 @@ fun buildStore(path: String = "", block: RDF.() -> Unit): Store {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
-    return Store().apply { insert(Environment(path = path), block) }
+    return MutableStore().apply { insert(Environment(path = path), block) }
 }
 
 @OptIn(ExperimentalContracts::class)
@@ -53,11 +54,11 @@ fun buildStore(environment: Environment, block: RDF.() -> Unit): Store {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
-    return Store().apply { insert(environment, block) }
+    return MutableStore().apply { insert(environment, block) }
 }
 
 @OptIn(ExperimentalContracts::class)
-fun Store.insert(environment: Environment = Environment(path = ""), block: RDF.() -> Unit): Store {
+fun MutableStore.insert(environment: Environment = Environment(path = ""), block: RDF.() -> Unit): Store {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }

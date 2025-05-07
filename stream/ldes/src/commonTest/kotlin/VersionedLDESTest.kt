@@ -9,10 +9,10 @@ import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.trig.serialization.trig
 import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
 import dev.tesserakt.rdf.trig.serialization.withPrefixes
+import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.stream.ldes.StreamTransform
 import dev.tesserakt.stream.ldes.VersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.ontology.DC
@@ -36,7 +36,7 @@ class VersionedLDESTest {
             versionOfPath = DC.isVersionOf,
             transform = StreamTransform.GraphBased
         )
-        println(TriGSerializer.serialize(ldes))
+        println(TriGSerializer.serialize(ldes.toStore()))
     }
 
     @Test
@@ -45,7 +45,7 @@ class VersionedLDESTest {
             VersionedLinkedDataEventStream(
                 identifier = "myLDES".asNamedTerm(),
                 transform = StreamTransform.GraphBased,
-                store = Store()
+                store = MutableStore()
             )
         }
     }
@@ -111,7 +111,7 @@ class VersionedLDESTest {
                 }
             }
         }
-        println(serializer.serialize(data = ldes))
+        println(serializer.serialize(data = ldes.toStore()))
     }
 
     @Test
@@ -129,8 +129,8 @@ class VersionedLDESTest {
             timestamp = (now - 10.seconds).asLiteral(),
             data = data
         )
-        assertStoreContentEqual(emptySet(), ldes.read((now - 20.seconds).asLiteral()))
-        assertStoreContentEqual(data, ldes.read((now - 5.seconds).asLiteral()))
+        assertStoreContentEqual(emptySet(), ldes.read((now - 20.seconds).asLiteral()).toSet())
+        assertStoreContentEqual(data.toSet(), ldes.read((now - 5.seconds).asLiteral()).toSet())
     }
 
     @Test
@@ -177,11 +177,11 @@ class VersionedLDESTest {
                 }
             }
         }
-        println(serializer.serialize(data = ldes))
-        assertStoreContentEqual(emptySet(), ldes.read(pre_t1))
-        assertStoreContentEqual(data1, ldes.read(pre_t2))
-        assertStoreContentEqual(data1 + data2, ldes.read(pre_t3))
-        assertStoreContentEqual(data1v2 + data2, ldes.read(pre_t4))
+        println(serializer.serialize(data = ldes.toStore()))
+        assertStoreContentEqual(emptySet(), ldes.read(pre_t1).toSet())
+        assertStoreContentEqual(data1.toSet(), ldes.read(pre_t2).toSet())
+        assertStoreContentEqual(data1.toSet() + data2.toSet(), ldes.read(pre_t3).toSet())
+        assertStoreContentEqual(data1v2.toSet() + data2.toSet(), ldes.read(pre_t4).toSet())
     }
 
     private fun assertStoreContentEqual(expected: Set<Quad>, actual: Set<Quad>) {

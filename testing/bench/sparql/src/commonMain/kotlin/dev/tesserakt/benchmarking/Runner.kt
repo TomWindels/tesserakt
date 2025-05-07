@@ -2,7 +2,7 @@ package dev.tesserakt.benchmarking
 
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
@@ -11,7 +11,7 @@ class Runner(
     private val config: RunnerConfig
 ) {
 
-    private val source = ReplayBenchmark.from(TriGSerializer.deserialize(FileDataSource(config.inputFilePath)).consume()).single()
+    private val source = ReplayBenchmark.from(TriGSerializer.deserialize(FileDataSource(config.inputFilePath)).toStore()).single()
     private val output = OutputWriter(config)
 
     suspend fun run() {

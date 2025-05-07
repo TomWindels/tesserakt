@@ -8,7 +8,7 @@ import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.minutes
 
 class SnapshotStore private constructor(
-    private val stream: VersionedLinkedDataEventStream<Set<Quad>>
+    private val stream: VersionedLinkedDataEventStream<Store>
 ) {
 
     data class Diff(
@@ -52,7 +52,7 @@ class SnapshotStore private constructor(
     }
 
     class Builder(
-        start: Store = Store(),
+        start: Store = EmptyStore,
         private val clustering: SnapshotClustering = NaiveSnapshotClustering
     ) {
 
@@ -77,7 +77,7 @@ class SnapshotStore private constructor(
             //  tag (starting from nearest minute)
             val date = Instant.fromEpochSeconds(Clock.System.now().epochSeconds / 60 * 60)
             // keeping track of the previous version; as none are initially encoded, the very first version is empty
-            var previous = emptyMap<SnapshotCluster, Set<Quad>>()
+            var previous = emptyMap<SnapshotCluster, Store>()
             // now encoding all cluster changes
             snapshots.forEachIndexed { i, store ->
                 val timestamp = Quad.Literal(
@@ -136,11 +136,11 @@ class SnapshotStore private constructor(
                 require(members.isNotEmpty())
                 // collecting all original versions
                 members.flatMapTo(old) { base ->
-                    stream.read(base = base, timestampValue = timestamp, inclusive = false) ?: emptySet()
+                    stream.read(base = base, timestampValue = timestamp, inclusive = false)?.toSet() ?: emptySet()
                 }
                 // collecting all updated versions
                 members.flatMapTo(new) { base ->
-                    stream.read(base = base, timestampValue = timestamp, inclusive = true) ?: emptySet()
+                    stream.read(base = base, timestampValue = timestamp, inclusive = true)?.toSet() ?: emptySet()
                 }
                 // calculating & yielding the combined diff
                 yield(Diff.between(old, new))
@@ -148,9 +148,8 @@ class SnapshotStore private constructor(
         }
     }
 
-    fun toStore(target: Store = Store()): Store {
-        target.addAll(stream.toStore())
-        return target
+    fun toStore(): Store {
+        return stream.toStore()
     }
 
 }

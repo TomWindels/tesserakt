@@ -6,42 +6,48 @@ import dev.tesserakt.util.fit
 
 // TODO: make fully immutable
 
-class Store: Set<Quad> {
+abstract class Store {
 
     // TODO: actually performant implementation
     // stored quads utilize set semantics, duplicates are not allowed
-    private val quads = mutableSetOf<Quad>()
+    internal abstract val quads: Set<Quad>
 
-    override val size: Int
+    open val size: Int
         get() = quads.size
 
-    override fun iterator() = quads.iterator()
-
-    override fun isEmpty(): Boolean {
+    open fun isEmpty(): Boolean {
         return quads.isEmpty()
     }
 
-    override fun containsAll(elements: Collection<Quad>): Boolean {
+    open fun containsAll(elements: Collection<Quad>): Boolean {
         return quads.containsAll(elements)
     }
 
-    override fun contains(element: Quad): Boolean {
+    open fun contains(element: Quad): Boolean {
         return quads.contains(element)
     }
 
-    fun addAll(quad: Iterable<Quad>) {
-        quads.addAll(quad)
+    open fun forEach(block: (Quad) -> Unit) {
+        quads.forEach(block)
     }
 
-    fun addAll(quad: Collection<Quad>) {
-        quads.addAll(quad)
-    }
+    open fun toSet() = quads
 
-    fun add(quad: Quad) {
-        quads.add(quad)
-    }
+    open fun first(): Quad = quads.first()
 
-    fun toMutableStore() = MutableStore(quads)
+    open fun last(): Quad = quads.last()
+
+    /**
+     * A special variant of the [forEach] method, capable of halting execution prematurely when [block] returns `true`.
+     * The behaviour is identical to the regular [forEach] method when always returning `false`.
+     */
+    open fun forEachUntil(block: (Quad) -> Boolean) {
+        quads.forEach {
+            if (block(it)) {
+                return
+            }
+        }
+    }
 
     override fun toString() = if (isEmpty()) "<empty store>" else buildString {
         val s = quads.map { it.s.toString() }

@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Store
 import kotlin.jvm.JvmInline
 
 @Suppress("NOTHING_TO_INLINE", "PropertyName", "unused")
@@ -219,6 +220,14 @@ class RDF internal constructor(
     fun multiple(vararg data: Quad.Term) = Multiple(data)
 
     operator fun Iterable<Quad>.unaryPlus() = forEach { quad ->
+        when (val s = quad.s) {
+            is Quad.BlankTerm -> consumer.process(subject = s, predicate = quad.p, `object` = quad.o, graph = quad.g)
+            is Quad.NamedTerm -> consumer.process(subject = s, predicate = quad.p, `object` = quad.o, graph = quad.g)
+            is Quad.Literal -> throw IllegalStateException()
+        }
+    }
+
+    operator fun Store.unaryPlus() = forEach { quad ->
         when (val s = quad.s) {
             is Quad.BlankTerm -> consumer.process(subject = s, predicate = quad.p, `object` = quad.o, graph = quad.g)
             is Quad.NamedTerm -> consumer.process(subject = s, predicate = quad.p, `object` = quad.o, graph = quad.g)

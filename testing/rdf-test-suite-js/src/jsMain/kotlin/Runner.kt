@@ -1,7 +1,7 @@
 
 import dev.tesserakt.interop.rdfjs.n3.N3Quad
 import dev.tesserakt.interop.rdfjs.toQuad
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.ReadOnlyStore
 import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.query
@@ -23,7 +23,7 @@ fun parse(queryString: String, options: Map<String, dynamic>) {
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 fun query(data: Array<N3Quad>, queryString: String, options: dynamic): QueryResult {
-    val store = Store().also { it.addAll(data.map { n3Quad -> n3Quad.toQuad() }) }
+    val store = ReadOnlyStore(data.map { it.toQuad() })
     val compiled = Compiler().compile(queryString)
     return store
         .query(Query.Select(queryString))

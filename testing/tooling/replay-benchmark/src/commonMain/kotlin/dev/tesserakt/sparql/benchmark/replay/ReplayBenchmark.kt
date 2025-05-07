@@ -3,10 +3,8 @@ package dev.tesserakt.sparql.benchmark.replay
 import dev.tesserakt.rdf.dsl.insert
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.SnapshotStore
-import dev.tesserakt.rdf.types.Store
 
 class ReplayBenchmark(
     private val identifier: Quad.NamedTerm,
@@ -32,7 +30,7 @@ class ReplayBenchmark(
         check(!diffs.hasNext())
     }
 
-    fun toStore(target: Store = Store()): Store = target.insert {
+    fun toStore(target: MutableStore = MutableStore()): Store = target.insert {
         identifier has type being RBO.ReplayBenchmark
         identifier has RBO.usesQuery being multiple(queries.map { it.toCleanedUpQuery().asLiteralTerm() })
         identifier has RBO.usesDataset being store.identifier

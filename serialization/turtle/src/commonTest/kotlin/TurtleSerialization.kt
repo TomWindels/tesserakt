@@ -11,6 +11,7 @@ import dev.tesserakt.rdf.turtle.serialization.*
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.map
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.testing.comparisonOf
 import kotlin.test.Test
@@ -84,15 +85,15 @@ class TurtleSerialization {
                 withDynamicIndent()
             }
         }
-        val prettyPrinted = serializer.serialize(reference.iterator()).collect()
+        val prettyPrinted = serializer.serialize(reference.toSet().iterator()).collect()
         println(prettyPrinted)
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
         assertContentEquals(
-            expected = TokenEncoder(reference.iterator()).asIterable(),
+            expected = TokenEncoder(reference.toSet().iterator()).asIterable(),
             actual = TokenDecoder(
                 BufferedString(
-                    TextDataSource(TurtleSerializer.serialize(reference.iterator()).collect()).open()
+                    TextDataSource(TurtleSerializer.serialize(reference.toSet().iterator()).collect()).open()
                 )
             ).asIterable()
         )
@@ -101,8 +102,8 @@ class TurtleSerialization {
         // as turtle doesn't contain graphs, every read-in quad should have the default graph
         val r = reference.map { it.copy(g = Quad.DefaultGraph) }.toStore()
         var comparison = comparisonOf(
-            a = r,
-            b = complete
+            a = r.toSet(),
+            b = complete.toSet()
         )
         assertTrue(comparison.isIdentical(), comparison.toString())
         // dropping the last line of the pretty printed output, which should result in missing data, which should cause
@@ -116,8 +117,8 @@ class TurtleSerialization {
         val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
         comparison = comparisonOf(
-            a = r,
-            b = incomplete
+            a = r.toSet(),
+            b = incomplete.toSet()
         )
         assertTrue(comparison.missing.isNotEmpty() && comparison.leftOver.isEmpty(), comparison.toString())
         // TODO: another test case where we drop until reaching invalid input

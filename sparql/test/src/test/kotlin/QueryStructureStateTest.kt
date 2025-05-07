@@ -5,7 +5,7 @@ import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.turtle.serialization.TurtleSerializer.Companion.parseTurtleString
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.debug.BindingsTable.Companion.tabulate
 import dev.tesserakt.sparql.query
@@ -233,7 +233,7 @@ class QueryStructureStateTest {
             :org2 :affiliates :auth3 .
             :auth3 :writesBook :book4 .
             :book4 :price 7 .
-        """.parseTurtleString().consume()
+        """.parseTurtleString().toStore()
         val query = """
             PREFIX : <http://books.example/>
             SELECT (SUM(?lprice) AS ?totalPrice)
@@ -259,7 +259,7 @@ class QueryStructureStateTest {
             :alice  rdf:type   foaf:Person .
             :alice  foaf:name  "Alice" .
             :bob    rdf:type   foaf:Person .
-        """.parseTurtleString().consume()
+        """.parseTurtleString().toStore()
         val query1 = """
             PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
             PREFIX  foaf:   <http://xmlns.com/foaf/0.1/> 

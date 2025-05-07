@@ -5,9 +5,7 @@ import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.NTriples
 import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.serialization.common.deserialize
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.types.*
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -52,7 +50,7 @@ class NTriplesTest {
 
     @OptIn(DelicateSerializationApi::class)
     private inline fun test(nt: String, block: (Store) -> Boolean) {
-        val deserialized = NTriples.deserialize(nt).consume()
+        val deserialized = NTriples.deserialize(nt).toStore()
         println(deserialized)
         val serialized = NTriples.serialize(deserialized).collect()
         println(serialized)

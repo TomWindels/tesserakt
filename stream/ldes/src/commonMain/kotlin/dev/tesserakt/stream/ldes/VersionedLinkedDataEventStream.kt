@@ -1,17 +1,16 @@
 package dev.tesserakt.stream.ldes
 
 import dev.tesserakt.rdf.ontology.RDF
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 
 class VersionedLinkedDataEventStream<StreamElement>(
     val identifier: Quad.NamedTerm,
-    private val store: Store,
+    private val store: MutableStore,
     private val comparator: Comparator<Quad.Literal> = DateComparator,
     private val transform: StreamTransform<StreamElement>,
-): Set<Quad> by store {
+) {
 
     data class Member(
         /**
@@ -113,6 +112,8 @@ class VersionedLinkedDataEventStream<StreamElement>(
         )
     }
 
+    fun toStore(): Store = store
+
     companion object {
 
         fun <StreamUnit> initialise(
@@ -125,7 +126,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
             identifier = identifier,
             transform = transform,
             comparator = comparator,
-            store = Store()
+            store = MutableStore()
                 .apply {
                     // minimum set of triples required for a valid versioned LDES with the provided arguments
                     add(Quad(identifier, RDF.type, LDES.EventStream))
@@ -142,7 +143,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
             comparator: Comparator<Quad.Literal> = DateComparator
         ): VersionedLinkedDataEventStream<StreamUnit> = VersionedLinkedDataEventStream(
             identifier = identifier,
-            store = store,
+            store = MutableStore(store),
             comparator = comparator,
             transform = transform,
         )

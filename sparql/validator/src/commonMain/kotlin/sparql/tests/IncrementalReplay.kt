@@ -5,7 +5,7 @@ import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.SnapshotStore
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
@@ -67,7 +67,7 @@ expect fun awaitBenchmarkStart()
 
 suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
     val benchmark = ReplayBenchmark
-        .from(store = TriGSerializer.deserialize(FileDataSource(benchmarkFilepath)).consume())
+        .from(store = TriGSerializer.deserialize(FileDataSource(benchmarkFilepath)).toStore())
         .single()
     if (benchmark.queries.size == 1) {
         println("Found ${benchmark.queries.size} query that will be used on a store with ${benchmark.store.snapshotCount} snapshot(s)!")
@@ -95,7 +95,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
             val external: ExternalQueryExecution
             val solution: List<Bindings>
             val reference = measureTime {
-                external = ExternalQueryExecution(query, current)
+                external = ExternalQueryExecution(query, current.toSet())
                 solution = external.execute()
             }
             val comparison = OutputComparisonTest.Result.from(

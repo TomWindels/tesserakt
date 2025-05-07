@@ -22,7 +22,7 @@ class OutputComparisonTest(
         val elapsedTime = measureTime {
             actual = store.query(query)
         }
-        val external = ExternalQueryExecution(queryString, store)
+        val external = ExternalQueryExecution(queryString, store.toSet())
         val expected: List<Bindings>
         val referenceTime = measureTime {
             try {

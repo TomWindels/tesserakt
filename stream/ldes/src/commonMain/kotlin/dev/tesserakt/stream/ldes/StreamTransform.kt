@@ -1,8 +1,6 @@
 package dev.tesserakt.stream.ldes
 
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.toStore
+import dev.tesserakt.rdf.types.*
 
 
 interface StreamTransform<StreamUnit> {
@@ -13,7 +11,7 @@ interface StreamTransform<StreamUnit> {
      *
      * @return the used identifier, which may be equal to the provided [hint] identifier
      */
-    fun encode(target: Store, element: StreamUnit, hint: Quad.NamedTerm): Quad.NamedTerm
+    fun encode(target: MutableStore, element: StreamUnit, hint: Quad.NamedTerm): Quad.NamedTerm
 
     /**
      * Decodes data associated with [identifier] from the [source]
@@ -25,15 +23,17 @@ interface StreamTransform<StreamUnit> {
      */
     fun decode(source: Store, identifiers: Set<Quad.NamedTerm>): Store
 
-    object GraphBased: StreamTransform<Set<Quad>> {
+    object GraphBased : StreamTransform<Store> {
 
-        override fun encode(target: Store, element: Set<Quad>, hint: Quad.NamedTerm): Quad.NamedTerm {
+        override fun encode(target: MutableStore, element: Store, hint: Quad.NamedTerm): Quad.NamedTerm {
             target.addAll(element.map { it.copy(g = hint) })
             return hint
         }
 
-        override fun decode(source: Store, identifier: Quad.NamedTerm): Set<Quad> {
-            return source.mapNotNullTo(mutableSetOf()) { if (it.g == identifier) it.copy(g = Quad.DefaultGraph) else null }
+        override fun decode(source: Store, identifier: Quad.NamedTerm): Store {
+            return source
+                .mapNotNullTo(mutableSetOf()) { if (it.g == identifier) it.copy(g = Quad.DefaultGraph) else null }
+                .toStore()
         }
 
         override fun decode(source: Store, identifiers: Set<Quad.NamedTerm>): Store {

@@ -2,10 +2,9 @@
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.trig.serialization.withPrefixes
-import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
 import dev.tesserakt.rdf.trig.serialization.trig
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
+import dev.tesserakt.rdf.trig.serialization.withPrefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
@@ -82,9 +81,9 @@ class ReplayBenchmarkTest {
         return ReplayBenchmark(identifier = "benchmark".asNamedTerm(), snapshotStore, listOf("SELECT * WHERE { ?s ?p ?o }"))
     }
 
-    private fun assertStoreContentEqual(expected: Set<Quad>, actual: Set<Quad>) {
-        val missing = expected - actual
-        val superfluous = actual - expected
+    private fun assertStoreContentEqual(expected: Store, actual: Store) {
+        val missing = expected.toSet() - actual.toSet()
+        val superfluous = actual.toSet() - expected.toSet()
         if (missing.isNotEmpty() || superfluous.isNotEmpty()) {
             fail("Store content mismatch!\nMissing quads: ${missing.toTruncatedString(200)}\nUnexpected quads: ${superfluous.toTruncatedString(200)}")
         }

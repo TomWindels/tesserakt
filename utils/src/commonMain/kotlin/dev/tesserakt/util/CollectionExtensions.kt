@@ -106,7 +106,7 @@ inline infix fun IntRange.shifted(shift: Int): IntRange = (first + shift) .. (la
 /**
  * Replaces the value associated with [key] with the value computed by [transform]ing the original value (if any)
  */
-expect inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V)
+expect inline fun <K, V: Any> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V?)
 
 /**
  * Drops at most one occurrence of every element inside [elements]. Order of the returned list is not guaranteed! If
