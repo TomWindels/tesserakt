@@ -45,6 +45,10 @@ class TestEnvironment {
             }
         }
 
+        fun isSuccess(): Boolean {
+            return results.all { (_, result) -> result is Test.Result.Skipped || result.isSuccess() }
+        }
+
     }
 
     suspend fun run(count: Int = 1) = Results(

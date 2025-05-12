@@ -1,75 +1,39 @@
 package dev.tesserakt.rdf.trig.serialization
 
-import dev.tesserakt.rdf.serialization.common.Path
-import dev.tesserakt.rdf.serialization.common.Prefixes
-import dev.tesserakt.rdf.serialization.common.open
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
+import dev.tesserakt.rdf.serialization.common.DataSource
+import dev.tesserakt.rdf.serialization.common.Serializer
+import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
 
-object TriGSerializer {
+class TriGSerializer(private val config: TRiGConfig): Serializer() {
 
-    /* serialization API (and internals) */
-
-    val NoPrefixes = Prefixes(emptyMap())
-
-    fun serialize(
-        data: Iterable<Quad>,
-        prefixes: Prefixes = NoPrefixes,
-    ): String {
-        val formatter = PrettyFormatter(prefixes)
-        val serializer = TokenEncoder(data)
-        return serializer.iterator().writeToString(formatter)
+    override fun serialize(data: Collection<Quad>): Iterator<String> {
+        return config.formatter.format(TokenEncoder(data))
     }
 
-    fun serialize(
-        data: Iterable<Quad>,
-        prefixes: Map<String, String>,
-    ): String {
-        val formatter = PrettyFormatter(Prefixes(prefixes))
-        val serializer = TokenEncoder(data)
-        return serializer.iterator().writeToString(formatter)
+    override fun serialize(data: Iterator<Quad>): Iterator<String> {
+        return config.formatter.format(TokenEncoder(data))
     }
 
-    inline fun serialize(
-        data: Iterable<Quad>,
-        prefixes: Map<String, String>,
-        callback: (String) -> Unit
-    ) {
-        serialize(data, PrettyFormatter(Prefixes(prefixes))).forEach(callback)
+    @OptIn(InternalSerializationApi::class)
+    override fun deserialize(input: DataSource): Iterator<Quad> {
+        return Deserializer(TokenDecoder(BufferedString(input.open())))
     }
 
-    fun serialize(
-        data: Iterable<Quad>,
-        formatter: Formatter,
-    ): Iterator<String> {
-        return formatter.format(TokenEncoder(data).iterator())
-    }
+    companion object: Serializer() {
+        override fun serialize(data: Collection<Quad>): Iterator<String> {
+            return DEFAULT_FORMATTER.format(TokenEncoder(data))
+        }
 
-    fun serialize(
-        data: Iterator<Quad>,
-        formatter: Formatter,
-    ): Iterator<String> {
-        return formatter.format(TokenEncoder(data).iterator())
-    }
+        override fun serialize(data: Iterator<Quad>): Iterator<String> {
+            return DEFAULT_FORMATTER.format(TokenEncoder(data))
+        }
 
-    private fun Iterator<TriGToken>.writeToString(formatter: Formatter): String {
-        val result = StringBuilder()
-        formatter
-            .format(this)
-            .forEach { text -> result.append(text) }
-        return result.toString()
-    }
-
-    /* deserialization API (and internals) */
-
-    inline fun deserialize(
-        path: Path,
-        consumer: (Quad) -> Unit
-    ) {
-        deserialize(path).forEach(consumer)
-    }
-
-    fun deserialize(path: Path): Iterator<Quad> {
-        return Deserializer(TokenDecoder(path.open().getOrThrow()))
+        @OptIn(InternalSerializationApi::class)
+        override fun deserialize(input: DataSource): Iterator<Quad> {
+            return Deserializer(TokenDecoder(BufferedString(input.open())))
+        }
     }
 
 }

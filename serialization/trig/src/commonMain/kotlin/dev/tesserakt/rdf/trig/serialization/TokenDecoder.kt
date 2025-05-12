@@ -1,5 +1,8 @@
 package dev.tesserakt.rdf.trig.serialization
 
+import dev.tesserakt.rdf.ontology.RDF
+import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.util.isNullOr
 import kotlin.jvm.JvmInline
@@ -7,6 +10,7 @@ import kotlin.jvm.JvmInline
 // TODO: `source.report()` use
 // TODO: improved exception uses
 
+@InternalSerializationApi
 @JvmInline
 internal value class TokenDecoder(private val source: BufferedString): Iterator<TriGToken> {
 
@@ -23,28 +27,37 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
                 return it
             }
         }
+        val next = source.peek()
         return when {
-            source.peek() == null -> throw NoSuchElementException("End was reached!")
-            source.peek() == '<' -> consumeTerm()
-            source.peek() == '"' -> consumeLiteralTerm()
+            next == null -> throw NoSuchElementException("End was reached!")
+            next == '<' -> consumeTerm()
+            next == '"' -> consumeLiteralTerm()
+            next.isDigit() -> consumeLiteralValue()
             else -> consumePrefixedTermOrBail()
         }
     }
 
     private fun consumeWhitespace() {
         var next = source.peek()
-        while (next != null && next.isWhitespace()) {
+        var inComment = next == '#'
+        while (next != null && (next.isWhitespace() || inComment)) {
             source.consume()
             next = source.peek()
+            inComment = (inComment && next != '\n') || next == '#'
         }
     }
 
-    private fun consumeTerm(): TriGToken.Term {
+    private fun consumeTerm(): TriGToken.TermToken {
         check(source.peek() == '<')
         source.consume() // '<'
         val content = consumeWhile { check(!it.isWhitespace()); it != '>' }
         source.consume() // '>'
-        return TriGToken.Term(value = content)
+        // valid non-relative terms start with `mailto:`, `http(s)://`, etc.
+        return if (':' !in content) {
+            TriGToken.RelativeTerm(value = content)
+        } else {
+            TriGToken.Term(value = content)
+        }
     }
 
     private fun consumeLiteralTerm(): TriGToken.LiteralTerm {
@@ -52,13 +65,42 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         source.consume() // '"'
         val value = consumeWhile { it != '"' }
         source.consume() // '"'
-        check(source.peek() == '^')
-        source.consume() // '^'
-        check(source.peek() == '^')
-        source.consume() // '^'
-        val type = next()
-        check(type is TriGToken.NonLiteralTerm) { "Invalid literal type: $type" }
-        return TriGToken.LiteralTerm(value, type)
+        if (source.peek() == '^') {
+            source.consume() // '^'
+            check(source.peek() == '^')
+            source.consume() // '^'
+            val type = next()
+            check(type is TriGToken.NonLiteralTerm) { "Invalid literal type: $type" }
+            return TriGToken.LiteralTerm(value, type)
+        } else if (source.peek() == '@') {
+            // language tag, ignored for now
+            // FIXME use the language tag
+            consumeWhile { !it.isWhitespace() }
+            return TriGToken.LiteralTerm(value, TriGToken.Term(RDF.langString.value))
+        } else {
+            return TriGToken.LiteralTerm(value, TriGToken.Term(XSD.string.value))
+        }
+    }
+
+    private fun consumeLiteralValue(): TriGToken.LiteralTerm {
+        val result = StringBuilder()
+        var next = source.peek()
+        while (next != null && next.isDigit() || next == '.') {
+            result.append(next)
+            source.consume()
+            next = source.peek()
+        }
+        return when (result.count { it == '.' }) {
+            1 -> {
+                TriGToken.LiteralTerm(value = result.toString(), type = TriGToken.Term(XSD.double.value))
+            }
+            0 -> {
+                TriGToken.LiteralTerm(value = result.toString(), type = TriGToken.Term(XSD.int.value))
+            }
+            else -> {
+                throw IllegalStateException("Invalid numeric literal: `${result}`")
+            }
+        }
     }
 
     private fun consumePrefixedTermOrBail(): TriGToken.PrefixedTerm {
@@ -68,7 +110,7 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
             throw IllegalStateException("Invalid term: $prefix")
         }
         source.consume() // ':'
-        val value = consumeWhile { !it.isWhitespace() }
+        val value = consumePrefixLocalName()
             // resolving escape sequences (identical to turtle)
             // https://www.w3.org/TR/turtle/#h_note_2 -> https://www.w3.org/TR/turtle/#reserved
             .replace(EscapeSequence) { it.groupValues[1] }
@@ -98,6 +140,31 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         return result.toString()
     }
 
+    /**
+     * Consumes, and returns, the prefix local name value, respecting escaping rules.
+     * Examples:
+     *  * `ex:my\,triple` returns "my,triple"
+     */
+    private fun consumePrefixLocalName(): String {
+        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';' || this == '.'
+
+        val result = StringBuilder()
+        var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
+        var escaped = false
+        while (escaped || !c.isTerminatingCharacter()) {
+            result.append(source.peek(0))
+            source.consume()
+            escaped = !escaped && c == '\\'
+            c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
+            check(!escaped || c in ReservedCharacters) {
+                "Invalid escape sequence: `\\${c}`"
+            }
+        }
+        return result.toString()
+    }
+
 }
 
-private val EscapeSequence = Regex("\\\\([~.\\-!\$&'()*+,;=/?#@%_])")
+private val ReservedCharacters = setOf('~','.','\\','-','!','\$','&','\'','(',')','*','+',',',';','=','/','?','#','@','%','_')
+
+private val EscapeSequence = Regex("\\\\([${ReservedCharacters.joinToString("")}])")
