@@ -2,7 +2,7 @@
 
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.compiler.CompilerError
+import dev.tesserakt.sparql.compiler.CompilerException
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.types.QueryAtom
@@ -155,10 +155,10 @@ abstract class Analyser<RT: QueryAtom?> {
     }
 
     protected fun bail(message: String = "Internal compiler error"): Nothing {
-        throw CompilerError(
+        throw CompilerException(
             message = "Failed during the execution of `${this::class.simpleName!!}`",
-            type = CompilerError.Type.StructuralError,
-            stacktrace = lexer.stacktrace(message = message, type = CompilerError.Type.StructuralError)
+            type = CompilerException.Type.StructuralError,
+            stacktrace = lexer.stacktrace(message = message, type = CompilerException.Type.StructuralError)
         )
     }
 
