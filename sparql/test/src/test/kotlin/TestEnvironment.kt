@@ -1,6 +1,6 @@
 
 import dev.tesserakt.sparql.Compiler
-import dev.tesserakt.sparql.compiler.CompilerError
+import dev.tesserakt.sparql.compiler.CompilerException
 import dev.tesserakt.sparql.debug.ASTWriter
 import dev.tesserakt.sparql.types.QueryStructure
 import dev.tesserakt.util.printerrln
@@ -45,7 +45,7 @@ class TestEnvironment private constructor() {
                 .replace(Regex("#.*+\\n?"), "")
                 .replace(Regex("\\s+"), " ")
                 .trim()
-            if (t is CompilerError) {
+            if (t is CompilerException) {
                 printerrln("Query ${i + 1} failed due to a compiler error: `${compact}`\n${t.message}")
             } else {
                 printerrln("Query ${i + 1} failed due to an unexpected error: `${compact}`\n${t.message}")
@@ -75,14 +75,14 @@ class TestEnvironment private constructor() {
 
     data class CompilationFailureTest(
         override val input: String,
-        val type: CompilerError.Type
+        val type: CompilerException.Type
     ): Test() {
 
         override operator fun invoke() {
             try {
                 Compiler().compile(input)
                 throw AssertionError("Compilation succeeded unexpectedly!")
-            } catch (c: CompilerError) {
+            } catch (c: CompilerException) {
                 // exactly what is expected, so not throwing anything
                 assertEquals(c.type, type, "Compilation failed for a different reason!")
             }
@@ -95,7 +95,7 @@ class TestEnvironment private constructor() {
         addTest(ASTTest(input = this, test = validation))
     }
 
-    infix fun String.causes(error: CompilerError.Type) {
+    infix fun String.causes(error: CompilerException.Type) {
         addTest(CompilationFailureTest(input = this, type = error))
     }
 

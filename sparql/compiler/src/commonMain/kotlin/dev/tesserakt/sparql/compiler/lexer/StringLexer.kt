@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.compiler.lexer
 
-import dev.tesserakt.sparql.compiler.CompilerError
+import dev.tesserakt.sparql.compiler.CompilerException
 
 @Suppress("NOTHING_TO_INLINE")
 class StringLexer(private val input: String): Lexer() {
@@ -24,10 +24,10 @@ class StringLexer(private val input: String): Lexer() {
 
     override fun position() = start
 
-    override fun stacktrace(type: CompilerError.Type, message: String): String {
+    override fun stacktrace(type: CompilerException.Type, message: String): String {
         return when (type) {
-            CompilerError.Type.SyntaxError -> syntaxErrorStacktrace(message = message)
-            CompilerError.Type.StructuralError -> analyserStacktrace(message = message)
+            CompilerException.Type.SyntaxError -> syntaxErrorStacktrace(message = message)
+            CompilerException.Type.StructuralError -> analyserStacktrace(message = message)
         }
     }
 

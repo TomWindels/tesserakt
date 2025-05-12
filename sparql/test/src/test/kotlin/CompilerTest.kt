@@ -1,7 +1,7 @@
 
 import TestEnvironment.Companion.test
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.compiler.CompilerError
+import dev.tesserakt.sparql.compiler.CompilerException
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.SelectQueryStructure
 import dev.tesserakt.sparql.types.TriplePattern
@@ -34,7 +34,7 @@ class CompilerTest {
         "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }" satisfies {
             body.patterns.first().p is TriplePattern.UnboundSequence
         }
-        "SELECT * WHERE { ?s a/?p1*/?p2?o. }" causes CompilerError.Type.StructuralError
+        "SELECT * WHERE { ?s a/?p1*/?p2?o. }" causes CompilerException.Type.StructuralError
         "SELECT * WHERE { ?s (<predicate2>|<predicate3>)?o. }" satisfies {
             body.patterns.first().p is TriplePattern.SimpleAlts
         }
@@ -224,16 +224,16 @@ class CompilerTest {
                     }
                 }
             }
-        """ causes CompilerError.Type.SyntaxError
+        """ causes CompilerException.Type.SyntaxError
         /* expected failure cases */
-        "SELECT TEST WHERE { ?s a TEST . }" causes CompilerError.Type.SyntaxError
-        "SELECT * WHERE { ?s () TEST . }" causes CompilerError.Type.StructuralError
-        "SELECT * WHERE { ?s a ?test " causes CompilerError.Type.StructuralError
-        "SELECT * WHERE { ?s <predicate2>/(<predicate3> ?o2.}" causes CompilerError.Type.StructuralError
-        "SELECT * WHERE { ?s a ?type , }" causes CompilerError.Type.StructuralError
-        "PREFIX ex: <http://example.org> SELECT * WHERE { ?s ex:prop/other ?o }" causes CompilerError.Type.SyntaxError
-        "prefix ex: <http://example.org> select*{?s dc:title ?o}" causes CompilerError.Type.StructuralError
-        "select(count(distinct ?s as ?count){?s?p?o}" causes CompilerError.Type.StructuralError
+        "SELECT TEST WHERE { ?s a TEST . }" causes CompilerException.Type.SyntaxError
+        "SELECT * WHERE { ?s () TEST . }" causes CompilerException.Type.StructuralError
+        "SELECT * WHERE { ?s a ?test " causes CompilerException.Type.StructuralError
+        "SELECT * WHERE { ?s <predicate2>/(<predicate3> ?o2.}" causes CompilerException.Type.StructuralError
+        "SELECT * WHERE { ?s a ?type , }" causes CompilerException.Type.StructuralError
+        "PREFIX ex: <http://example.org> SELECT * WHERE { ?s ex:prop/other ?o }" causes CompilerException.Type.SyntaxError
+        "prefix ex: <http://example.org> select*{?s dc:title ?o}" causes CompilerException.Type.StructuralError
+        "select(count(distinct ?s as ?count){?s?p?o}" causes CompilerException.Type.StructuralError
     }
 
     @Test

@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.compiler.lexer
 
-import dev.tesserakt.sparql.compiler.CompilerError
+import dev.tesserakt.sparql.compiler.CompilerException
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
@@ -57,15 +57,15 @@ abstract class Lexer {
      * Returns a visual overview for the current line being processed and a line indicating the currently observed
      *  range
      */
-    abstract fun stacktrace(type: CompilerError.Type, message: String): String
+    abstract fun stacktrace(type: CompilerException.Type, message: String): String
 
     abstract fun position(): Int
 
     protected fun bail(message: String = "Internal compiler error"): Nothing {
-        throw CompilerError(
+        throw CompilerException(
             message = "Syntax error at index ${position()}",
-            type = CompilerError.Type.SyntaxError,
-            stacktrace = stacktrace(CompilerError.Type.SyntaxError, message)
+            type = CompilerException.Type.SyntaxError,
+            stacktrace = stacktrace(CompilerException.Type.SyntaxError, message)
         )
     }
 
