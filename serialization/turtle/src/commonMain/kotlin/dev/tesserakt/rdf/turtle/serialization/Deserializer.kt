@@ -193,9 +193,6 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
     private fun processPrefix() {
         val prefix = nextOrBail()
         check(prefix is TurtleToken.PrefixedTerm && prefix.value.isEmpty())
-        check(prefix.prefix !in prefixes) {
-            "The prefix ${prefix.prefix} is already registered as ${prefixes[prefix.prefix]}"
-        }
         val uri = nextOrBail()
         check(uri is TurtleToken.Term)
         prefixes[prefix.prefix] = uri.value
