@@ -62,4 +62,8 @@ internal sealed interface TurtleToken {
         override fun toString(): String = "literal `$syntax`"
     }
 
+    data object EOF : TurtleToken {
+        override val syntax: String = ""
+    }
+
 }
