@@ -72,14 +72,14 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
                     token = nextOrBail()
                 }
 
-                position == Position.Predicate && token == TurtleToken.Structural.TypePredicate -> {
+                position == Position.Predicate && token == TurtleToken.Keyword.TypePredicate -> {
                     p = RDF.type
                     position = Position.Object
                     token = nextOrBail()
                 }
 
                 position == Position.Predicate -> {
-                    throw IllegalStateException("Invalid predicate token: $token")
+                    unexpectedToken(token)
                 }
 
                 position == Position.Object -> {
@@ -89,11 +89,11 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
                             resolve(token)
                         }
 
-                        TurtleToken.Structural.TrueLiteral -> {
+                        TurtleToken.Keyword.TrueLiteral -> {
                             Quad.Literal(value = "true", type = XSD.boolean)
                         }
 
-                        TurtleToken.Structural.FalseLiteral -> {
+                        TurtleToken.Keyword.FalseLiteral -> {
                             Quad.Literal(value = "false", type = XSD.boolean)
                         }
 
@@ -155,8 +155,8 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
             when (token) {
                 null -> return null
 
-                TurtleToken.Structural.BaseAnnotationA,
-                TurtleToken.Structural.BaseAnnotationB -> {
+                TurtleToken.Keyword.BaseAnnotationA,
+                TurtleToken.Keyword.BaseAnnotationB -> {
                     val uri = nextOrBail()
                     check(uri is TurtleToken.Term) { "Invalid base value `${uri}`" }
                     base = uri.value
@@ -166,8 +166,8 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
                     }
                 }
 
-                TurtleToken.Structural.PrefixAnnotationA,
-                TurtleToken.Structural.PrefixAnnotationB -> {
+                TurtleToken.Keyword.PrefixAnnotationA,
+                TurtleToken.Keyword.PrefixAnnotationB -> {
                     processPrefix()
                     token = nextOrNull()
                     if (token == TurtleToken.Structural.StatementTermination) {

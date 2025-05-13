@@ -152,7 +152,7 @@ internal class TokenEncoder(
         is Quad.Literal ->
             TurtleToken.LiteralTerm(value = value, type = type.toToken() as TurtleToken.NonLiteralTerm)
 
-        RDF.type -> TurtleToken.Structural.TypePredicate
+        RDF.type -> TurtleToken.Keyword.TypePredicate
 
         is Quad.NamedTerm ->
             TurtleToken.Term(value = value)
