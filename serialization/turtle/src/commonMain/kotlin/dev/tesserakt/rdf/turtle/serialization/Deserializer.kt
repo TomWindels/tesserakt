@@ -7,23 +7,121 @@ import dev.tesserakt.rdf.types.Quad
 // TODO: blank node syntax `[]` support
 // TODO: improved exception handling
 
-internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterator<Quad> {
+internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
-    enum class Position {
-        Subject,
-        Predicate,
-        Object,
+    private inner class BlankNodeProcessor : Iterator<Quad> {
+
+        val name = Quad.BlankTerm(id = unnamedBlankNodeCount++)
+        private var p: Quad.NamedTerm? = null
+        private var child: BlankNodeProcessor? = null
+        private var next: Quad? = null
+
+        init {
+            check(source.peek() == TurtleToken.Structural.BlankStart) {
+                "Expected ${TurtleToken.Structural.BlankStart}, got ${source.peek()}"
+            }
+            source.consume()
+        }
+
+        override fun hasNext(): Boolean {
+            if (next != null) {
+                return true
+            }
+            next = prepareNext()
+            return next != null
+        }
+
+        override fun next(): Quad {
+            val next = next ?: prepareNext()
+            this.next = null
+            return next ?: throw NoSuchElementException()
+        }
+
+        private fun prepareNext(): Quad? {
+            while (true) {
+                val token = source.peek()
+                val child = this.child
+                when {
+                    child != null -> {
+                        if (child.hasNext()) {
+                            return child.next()
+                        }
+                        // the inner blank node has finished, setting it to `null` and emitting its name as the next quad
+                        check(source.peek() == TurtleToken.Structural.BlankEnd)
+                        source.consume()
+                        val o = child.name
+                        this.child = null
+                        val result = Quad(s = name, p = p!!, o = o)
+                        if (source.peek() == TurtleToken.Structural.ObjectTermination) {
+                            source.consume()
+                        } else if (source.peek() == TurtleToken.Structural.PredicateTermination) {
+                            p = null
+                            source.consume()
+                        }
+                        return result
+                    }
+
+                    token == TurtleToken.EOF -> unexpectedToken(TurtleToken.EOF)
+
+                    token == TurtleToken.Structural.BlankEnd -> {
+                        return null
+                    }
+
+                    p == null -> {
+                        p = resolve(token.into()).into()
+                        source.consume()
+                    }
+
+                    token == TurtleToken.Structural.BlankStart -> {
+                        this.child = BlankNodeProcessor()
+                    }
+
+                    token is TurtleToken.TermToken -> {
+                        val o = resolve(token)
+                        val result = Quad(s = name, p = p!!, o = o)
+                        // consuming token `o`
+                        source.consume()
+                        when (source.peek()) {
+                            TurtleToken.Structural.BlankEnd -> {
+                                // not consuming this token, next iteration will yield null
+                            }
+
+                            TurtleToken.Structural.ObjectTermination -> {
+                                source.consume()
+                            }
+
+                            TurtleToken.Structural.PredicateTermination -> {
+                                source.consume()
+                                p = null
+                            }
+
+                            else -> unexpectedToken(source.peek())
+                        }
+                        return result
+                    }
+
+                    else -> unexpectedToken(token)
+                }
+            }
+        }
+
     }
 
     /* state/input logic */
 
-    private var position = Position.Subject
+    private val source = TokenBuffer(source)
+
     private val prefixes = mutableMapOf<String /* prefix */, String /* uri */>()
-    private val blanks = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
+    private val namedBlankNodes = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
+    private var unnamedBlankNodeCount = 0
     private var base = ""
+    private var child: BlankNodeProcessor? = null
     private var s: Quad.Term? = null
     private var p: Quad.NamedTerm? = null
-    private var o: Quad.Term? = null
+
+    init {
+        parsePrefixes()
+    }
 
     /* iterator/output logic */
 
@@ -44,47 +142,60 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
     }
 
     private fun prepareNext(): Quad? {
-        if (!source.hasNext()) {
-            return null
-        }
-        // consuming tokens until we reach something we can work with
-        // from hereon out, we can assure it's a valid position-specific token
-        var token = consumeUntilInsideStatement()
         while (true) {
+            val child = child
+            val token = source.peek()
             when {
-                token == null -> return null
-
-                position == Position.Subject -> {
-                    check(token is TurtleToken.TermToken) {
-                        "$token is not a valid subject / graph term"
+                child != null -> {
+                    if (child.hasNext()) {
+                        return child.next()
                     }
-                    val resolved = resolve(token)
-                    s = resolved
-                    position = Position.Predicate
-                    token = nextOrBail()
+                    // clearing out the child as it's finished
+                    this.child = null
+                    check(source.peek() == TurtleToken.Structural.BlankEnd)
+                    source.consume()
+                    // using the child from this iteration one last time - to reference its name in the appropriate
+                    //  quad
+                    when {
+                        s == null -> {
+                            val next = source.peek()
+                            if (next == TurtleToken.Structural.StatementTermination || next == TurtleToken.EOF) {
+                                // state was already cleared
+                                source.consume()
+                            } else {
+                                // subsequent terms use this blank node as a subject
+                                s = child.name
+                            }
+                        }
+
+                        else -> {
+                            return onObjectElement(o = child.name)
+                        }
+                    }
                 }
 
-                position == Position.Predicate && token is TurtleToken.TermToken -> {
-                    val predicate = resolve(token)
-                    p = predicate as? Quad.NamedTerm
-                        ?: throw IllegalStateException("$predicate is not a valid predicate term!")
-                    position = Position.Object
-                    token = nextOrBail()
+                token == TurtleToken.EOF -> return null
+
+                token == TurtleToken.Structural.BlankStart -> {
+                    this.child = BlankNodeProcessor()
                 }
 
-                position == Position.Predicate && token == TurtleToken.Keyword.TypePredicate -> {
-                    p = RDF.type
-                    position = Position.Object
-                    token = nextOrBail()
+                s == null -> {
+                    s = resolve(source.peek().into())
+                    source.consume()
                 }
 
-                position == Position.Predicate -> {
-                    unexpectedToken(token)
+                p == null -> {
+                    p = if (source.peek() == TurtleToken.Keyword.TypePredicate) {
+                        RDF.type
+                    } else {
+                        resolve(source.peek().into()).into()
+                    }
+                    source.consume()
                 }
 
-                position == Position.Object -> {
-                    // FIXME: blank objects
-                    o = when (token) {
+                else -> {
+                    val o = when (token) {
                         is TurtleToken.TermToken -> {
                             resolve(token)
                         }
@@ -99,41 +210,33 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
 
                         else -> unexpectedToken(token)
                     }
-                    val result = Quad(
-                        s = s!!,
-                        p = p!!,
-                        o = o!!,
-                    )
-                    // depending on what this next token is, we either adjust the position and yield, update the graph
-                    //  value and yield
-                    while (true) {
-                        when (val next: TurtleToken? = nextOrNull()) {
-                            null -> {
-                                break
-                            }
-
-                            TurtleToken.Structural.StatementTermination -> {
-                                position = Position.Subject
-                                break
-                            }
-
-                            TurtleToken.Structural.PredicateTermination -> {
-                                position = Position.Predicate
-                                break
-                            }
-
-                            TurtleToken.Structural.ObjectTermination -> {
-                                position = Position.Object
-                                break
-                            }
-
-                            else -> unexpectedToken(next)
-                        }
-                    }
-                    return result
+                    return onObjectElement(o)
                 }
             }
         }
+    }
+
+    private fun onObjectElement(o: Quad.Term): Quad {
+        val result = Quad(s = s!!, p = p!!, o = o)
+        // the object itself
+        source.consume()
+        when (val terminator = source.consume()) {
+            TurtleToken.Structural.StatementTermination -> {
+                s = null
+                p = null
+            }
+
+            TurtleToken.Structural.PredicateTermination -> {
+                p = null
+            }
+
+            TurtleToken.Structural.ObjectTermination, TurtleToken.EOF -> {
+                /* nothing to do */
+            }
+
+            else -> unexpectedToken(terminator)
+        }
+        return result
     }
 
     /**
@@ -141,19 +244,11 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
      *  said start, or `null` if no statement follows. If already inside a statement according to the [position] state,
      *  this method will immediately return.
      */
-    private fun consumeUntilInsideStatement(): TurtleToken? {
-        if (!source.hasNext()) {
-            return null
-        }
-        if (position != Position.Subject) {
-            // we are inside a statement, meaning we shouldn't encounter any prefixes now and can
-            //  bail early
-            return nextOrBail()
-        }
-        var token = nextOrNull()
+    private fun parsePrefixes() {
+        var token = source.peekOrNull()
         do {
             when (token) {
-                null -> return null
+                null -> return
 
                 TurtleToken.Keyword.BaseAnnotationA,
                 TurtleToken.Keyword.BaseAnnotationB -> {
@@ -175,19 +270,12 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
                     }
                 }
 
-                is TurtleToken.TermToken -> {
-                    // found ourselves a statement, we can continue
+                else -> {
+                    // not our concern, exiting
                     break
                 }
-
-                else -> unexpectedToken(token)
             }
         } while (source.hasNext())
-        // if we bailed because we reached the end, we should return null
-        if (!source.hasNext()) {
-            return null
-        }
-        return token
     }
 
     private fun processPrefix() {
@@ -208,7 +296,7 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
 
             is TurtleToken.PrefixedTerm -> {
                 if (term.prefix == "_") {
-                    blanks.getOrPut(term.value) { Quad.BlankTerm(id = blanks.size) }
+                    namedBlankNodes.getOrPut(term.value) { Quad.BlankTerm(id = namedBlankNodes.size) }
                 } else {
                     val uri = prefixes[term.prefix]
                         ?: throw IllegalStateException("Unknown prefix `${term.prefix}` in token $term")
@@ -222,24 +310,28 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
     }
 
     private fun nextOrNull(): TurtleToken? {
-        if (!source.hasNext()) {
-            return null
-        }
-        return source.next()
+        source.consume()
+        return source.peekOrNull()
     }
 
     private fun nextOrBail(): TurtleToken {
-        if (!source.hasNext()) {
-            throw NoSuchElementException("Reached end of token stream unexpectedly!")
-        }
-        return source.next()
+        source.consume()
+        return source.peek()
+            .also { if (it == TurtleToken.EOF) throw NoSuchElementException("Reached end of token stream unexpectedly!") }
     }
 
     private fun unexpectedToken(token: TurtleToken?): Nothing {
         if (token == null) {
             throw IllegalStateException("Unexpected end of input")
         }
-        throw IllegalStateException("Unexpected token $token\nState: pos=${position}, s=${s}, p=${p}, o=${o}")
+        throw IllegalStateException("Unexpected token $token\nState: s=${s}, p=${p}")
+    }
+
+    private inline fun <reified T> Any.into(): T {
+        if (this !is T) {
+            throw IllegalStateException("Unexpected token $this, expected ${T::class.simpleName}\nState: s=${s}, p=${p}")
+        }
+        return this
     }
 
 }
