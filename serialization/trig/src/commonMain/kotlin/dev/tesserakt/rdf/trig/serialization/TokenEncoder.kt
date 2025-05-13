@@ -191,7 +191,7 @@ internal class TokenEncoder(
     }
 
     private fun Quad.Predicate.toToken() = when (this) {
-        RDF.type -> TriGToken.Structural.TypePredicate
+        RDF.type -> TriGToken.Keyword.TypePredicate
         else /* is Quad.NamedTerm */ -> TriGToken.Term(value = value)
     }
 

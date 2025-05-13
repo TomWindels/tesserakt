@@ -6,17 +6,25 @@ internal sealed interface TurtleToken {
 
     val syntax: String
 
+    /**
+     * A structural token: the token does not have to be followed by whitespace
+     */
     enum class Structural(override val syntax: String): TurtleToken {
         StatementTermination("."),
         PredicateTermination(";"),
         ObjectTermination(","),
         BlankStart("["),
         BlankEnd("]"),
+    }
+
+    /**
+     * A keyword token: the token has to be followed by a whitespace (or EOF)
+     */
+    enum class Keyword(override val syntax: String): TurtleToken {
         BaseAnnotationA("@base"),
         BaseAnnotationB("BASE"),
         PrefixAnnotationA("@prefix"),
         PrefixAnnotationB("PREFIX"),
-        GraphAnnotation("GRAPH"),
         TypePredicate("a"),
         TrueLiteral("true"),
         FalseLiteral("false"),
