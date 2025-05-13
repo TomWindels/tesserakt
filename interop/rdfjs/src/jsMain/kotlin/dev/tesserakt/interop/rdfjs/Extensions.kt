@@ -27,7 +27,7 @@ fun Quad.Element.toN3Term() = when (this) {
 
 private val DefaultN3Graph = object: N3Term {
     override val termType: String = "DefaultGraph"
-    override val value: String = "DefaultGraph"
+    override val value: String = ""
 }
 
 fun Quad.Graph.toN3GraphTerm() = when (this) {
