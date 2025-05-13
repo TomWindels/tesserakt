@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedString
+import dev.tesserakt.rdf.serialization.util.EscapeSequenceHelper
 import dev.tesserakt.util.isNullOr
 import kotlin.jvm.JvmInline
 
@@ -51,6 +52,7 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         check(source.peek() == '<')
         source.consume() // '<'
         val content = consumeWhile { check(!it.isWhitespace()); it != '>' }
+            .let { EscapeSequenceHelper.decodeNumericEscapes(it) }
         source.consume() // '>'
         // valid non-relative terms start with `mailto:`, `http(s)://`, etc.
         return if (':' !in content) {

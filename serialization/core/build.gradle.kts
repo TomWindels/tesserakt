@@ -13,5 +13,10 @@ kotlin {
                 api(project(":serialization:common"))
             }
         }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
     }
 }
