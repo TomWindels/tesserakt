@@ -125,7 +125,7 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
     /* iterator/output logic */
 
-    private var next: Quad? = prepareNext()
+    private var next: Quad? = null
 
     override fun hasNext(): Boolean {
         if (next != null) {
@@ -137,7 +137,7 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
     override fun next(): Quad {
         val result = next ?: prepareNext() ?: throw NoSuchElementException("No quads available!")
-        next = prepareNext()
+        next = null
         return result
     }
 
@@ -210,6 +210,8 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
                         else -> unexpectedToken(token)
                     }
+                    // the object's token
+                    source.consume()
                     return onObjectElement(o)
                 }
             }
@@ -218,8 +220,6 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
     private fun onObjectElement(o: Quad.Term): Quad {
         val result = Quad(s = s!!, p = p!!, o = o)
-        // the object itself
-        source.consume()
         when (val terminator = source.consume()) {
             TurtleToken.Structural.StatementTermination -> {
                 s = null
