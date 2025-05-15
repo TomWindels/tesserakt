@@ -21,7 +21,7 @@ fun Quad.toN3Triple() = N3Quad(
 fun Quad.Element.toN3Term() = when (this) {
     is Quad.NamedTerm -> createN3NamedNode(value)
     is Quad.Literal -> createN3Literal(value, createN3NamedNode(type.value))
-    is Quad.BlankTerm -> createN3NamedNode("_:b_$id")
+    is Quad.BlankTerm -> createN3BlankNode("_:b_$id")
     Quad.DefaultGraph -> DefaultN3Graph
 }
 
