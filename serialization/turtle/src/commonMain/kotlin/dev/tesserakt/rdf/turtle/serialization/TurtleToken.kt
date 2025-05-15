@@ -15,6 +15,8 @@ internal sealed interface TurtleToken {
         ObjectTermination(","),
         BlankStart("["),
         BlankEnd("]"),
+        ListStart("("),
+        ListEnd(")"),
     }
 
     /**
