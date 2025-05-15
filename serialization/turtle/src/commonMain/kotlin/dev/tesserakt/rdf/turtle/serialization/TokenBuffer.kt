@@ -12,9 +12,18 @@ internal class TokenBuffer(private val source: Iterator<TurtleToken>) {
         return current.takeIf { it != TurtleToken.EOF }
     }
 
+    /**
+     * Consumes the token, yielding it one last time. The result is identical to calling [peek] followed
+     *  by [consume] (when discarding the result):
+     * ```kt
+     * val token = buffer.peek()
+     * check(token == buffer.consume())
+     * ```
+     */
     fun consume(): TurtleToken {
+        val original = current
         current = if (source.hasNext()) source.next() else TurtleToken.EOF
-        return current
+        return original
     }
 
     fun hasNext(): Boolean {
