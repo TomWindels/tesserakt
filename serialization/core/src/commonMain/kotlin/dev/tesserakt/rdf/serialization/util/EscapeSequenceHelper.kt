@@ -10,6 +10,47 @@ object EscapeSequenceHelper {
             .replace(LongUnicodeSequence) { match -> decode(match.groups[1]!!.value.toInt(16)) }
     }
 
+    fun decodeMappedCharacterEscapes(
+        input: String,
+        mapping: Map<Char, String> = DefaultReservedCharacterEscapes
+    ): String {
+        var escaped = false
+        val result = StringBuilder()
+        input.forEachIndexed { i, c ->
+            val mapped = mapping[c]
+            when {
+                !escaped && c == '\\' -> {
+                    escaped = true
+                }
+
+                !escaped -> {
+                    result.append(c)
+                }
+
+                escaped && mapped != null -> {
+                    result.append(mapped)
+                    escaped = false
+                }
+
+                escaped -> {
+                    throw IllegalArgumentException("Unknown escape sequence at index $i: `${input}` - ${input[i]}")
+                }
+            }
+        }
+        return result.toString()
+    }
+
+    val DefaultReservedCharacterEscapes = mapOf(
+        't' to decode(0x09),
+        'b' to decode(0x08),
+        'n' to decode(0x0A),
+        'r' to decode(0x0D),
+        'f' to decode(0x0C),
+        '"' to decode(0x22),
+        '\'' to decode(0x27),
+        '\\' to decode(0x5C),
+    )
+
 }
 
 internal expect fun decode(codepoint: Int): String
@@ -24,12 +65,14 @@ internal fun codepointToString(codepoint: Int): String {
         codepoint <= 0x00007F -> {
             byteArrayOf(codepoint.toByte())
         }
+
         codepoint <= 0x0007FF -> {
             val data = byteArrayOf(0b1100_0000.toByte(), 0b1000_0000.toByte())
             data[0] = data[0] or (codepoint shr 6).toByte()
             data[1] = data[1] or (codepoint and 0x3F).toByte()
             data
         }
+
         codepoint <= 0x00FFFF -> {
             val data = byteArrayOf(0b1110_0000.toByte(), 0b1000_0000.toByte(), 0b1000_0000.toByte())
             data[0] = data[0] or (codepoint shr 12).toByte()
@@ -37,14 +80,17 @@ internal fun codepointToString(codepoint: Int): String {
             data[2] = data[2] or (codepoint and 0x3F).toByte()
             data
         }
+
         codepoint <= 0x10FFFF -> {
-            val data = byteArrayOf(0b1111_0000.toByte(), 0b1000_0000.toByte(), 0b1000_0000.toByte(), 0b1000_0000.toByte())
+            val data =
+                byteArrayOf(0b1111_0000.toByte(), 0b1000_0000.toByte(), 0b1000_0000.toByte(), 0b1000_0000.toByte())
             data[0] = data[0] or (codepoint shr 18).toByte()
             data[1] = data[1] or ((codepoint shr 12) and 0x3F).toByte()
             data[2] = data[2] or ((codepoint shr 6) and 0x3F).toByte()
             data[3] = data[3] or (codepoint and 0x3F).toByte()
             data
         }
+
         else -> throw IllegalArgumentException("Codepoint exceeds bounds: $codepoint > 0x10FFFF")
     }
     return encoded.decodeToString()
