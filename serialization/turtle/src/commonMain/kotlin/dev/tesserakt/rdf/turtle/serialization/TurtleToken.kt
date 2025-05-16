@@ -64,6 +64,14 @@ internal sealed interface TurtleToken {
         override fun toString(): String = "literal `$syntax`"
     }
 
+    data class LocalizedLiteralTerm(
+        val value: String,
+        val language: String,
+    ): TurtleToken, TermToken {
+        override val syntax get() = "\"$value\"@$language"
+        override fun toString(): String = "literal `$syntax@$language`"
+    }
+
     data object EOF : TurtleToken {
         override val syntax: String = ""
     }

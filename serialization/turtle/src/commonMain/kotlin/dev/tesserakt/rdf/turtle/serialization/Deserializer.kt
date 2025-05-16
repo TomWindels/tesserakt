@@ -428,6 +428,11 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
                 Quad.Literal(value = term.value, type = type)
             }
 
+            is TurtleToken.LocalizedLiteralTerm -> {
+                // FIXME
+                Quad.Literal(value = term.value, type = RDF.langString)
+            }
+
             is TurtleToken.PrefixedTerm -> {
                 if (term.prefix == "_") {
                     namedBlankNodes.getOrPut(term.value) { Quad.BlankTerm(id = namedBlankNodes.size) }
