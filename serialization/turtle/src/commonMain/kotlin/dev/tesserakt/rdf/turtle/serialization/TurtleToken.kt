@@ -17,6 +17,25 @@ internal sealed interface TurtleToken {
         BlankEnd("]"),
         ListStart("("),
         ListEnd(")"),
+        ;
+
+        companion object {
+
+            private val min: Int
+            private val backing: Array<Structural?>
+
+            init {
+                val mapped = entries.associateBy { it.syntax.single().code }
+                min = entries.minOf { it.syntax.single().code }
+                val max = entries.maxOf { it.syntax.single().code }
+                backing = Array(max - min + 1) { mapped[it + min] }
+            }
+
+            operator fun get(char: Char): Structural? {
+                val i = char.code - min
+                return if (i < backing.size) backing[i] else null
+            }
+        }
     }
 
     /**
@@ -30,6 +49,15 @@ internal sealed interface TurtleToken {
         TypePredicate("a"),
         TrueLiteral("true"),
         FalseLiteral("false"),
+        ;
+
+        companion object {
+            val CaseInsensitive = listOf(
+                BaseAnnotationB,
+                PrefixAnnotationB,
+            )
+            val CaseSensitive = entries - CaseInsensitive
+        }
     }
 
     sealed interface TermToken: TurtleToken

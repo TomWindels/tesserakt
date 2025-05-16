@@ -83,7 +83,17 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
                         }
 
                         p == null -> {
-                            p = parent.resolve(token.into()).into()
+                            p = when (token) {
+                                is TurtleToken.TermToken -> {
+                                    parent.resolve(token).into()
+                                }
+
+                                TurtleToken.Keyword.TypePredicate -> {
+                                    RDF.type
+                                }
+
+                                else -> unexpectedToken(token)
+                            }
                             parent.source.consume()
                         }
 
@@ -138,12 +148,10 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
             override val name = Quad.BlankTerm(id = parent.blankTermCount++)
 
-            private var currentValue = nextItemValue()
-            private var nextValue = nextItemValue()
+            // the currently consumed value, made nullable to indicate when it's finished
+            private var currentValue: ListItem? = nextItemValue()
 
             private var currentNode: Quad.BlankTerm? = name
-            private var nextNode: Quad.BlankTerm? =
-                if (nextValue != null) Quad.BlankTerm(id = parent.blankTermCount++) else null
 
             override fun hasNext(): Boolean {
                 return currentNode != null
@@ -172,22 +180,20 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
                     }
                 }
                 // then ensuring we emitted the link to the next node
-                this.currentValue = nextValue
+                if (parent.source.peek() == TurtleToken.Structural.ListEnd) {
+                    parent.source.consume()
+                    // indicating we're finished here
+                    this.currentNode = null
+                    return Quad(currentNode, RDF.rest, RDF.nil)
+                }
+                val nextNode = Quad.BlankTerm(id = parent.blankTermCount++)
+                // already updating the local value, which will be consumed in subsequent iterations
+                this.currentValue = nextItemValue()
                 this.currentNode = nextNode
-                // only getting a next value if the original value was not null
-                if (nextValue != null) {
-                    nextValue = nextItemValue()
-                }
-                // if we have another item in the queue, we also need a new node to associate it with
-                nextNode = if (nextValue != null) {
-                    Quad.BlankTerm(id = parent.blankTermCount++)
-                } else {
-                    null
-                }
-                return Quad(currentNode, RDF.rest, this.currentNode ?: RDF.nil)
+                return Quad(currentNode, RDF.rest, nextNode)
             }
 
-            private fun nextItemValue(): ListItem? {
+            private fun nextItemValue(): ListItem {
                 return when (val current = parent.source.peek()) {
                     TurtleToken.Structural.ListStart -> {
                         ListItem.StructureItem(List(parent))
@@ -199,11 +205,6 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
                     is TurtleToken.TermToken -> {
                         ListItem.SimpleItem(item = parent.resolve(current)).also { parent.source.consume() }
-                    }
-
-                    TurtleToken.Structural.ListEnd -> {
-                        parent.source.consume()
-                        null
                     }
 
                     else -> unexpectedToken(current)
@@ -255,10 +256,6 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
     private var child: Structure? = null
     private var s: Quad.Term? = null
     private var p: Quad.NamedTerm? = null
-
-    init {
-        parsePrefixes()
-    }
 
     /* iterator/output logic */
 
@@ -320,6 +317,11 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
                 }
 
                 s == null -> {
+                    if (source.peek().isBaseOrPrefixDeclaration()) {
+                        processPrefix()
+                        continue
+                    }
+
                     s = resolve(source.peek().into())
                     source.consume()
                 }
@@ -375,49 +377,69 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
             else -> unexpectedToken(terminator)
         }
-        return result
-    }
-
-    private fun parsePrefixes() {
-        var token = source.peekOrNull()
-        do {
-            when (token) {
-                null -> return
-
-                TurtleToken.Keyword.BaseAnnotationA,
-                TurtleToken.Keyword.BaseAnnotationB -> {
-                    val uri = nextOrBail()
-                    check(uri is TurtleToken.Term) { "Invalid base value `${uri}`" }
-                    base = uri.value
-                    token = nextOrNull()
-                    if (token == TurtleToken.Structural.StatementTermination) {
-                        token = nextOrNull()
-                    }
+        // it's possible for other termination characters to occur now, so repeating in case this happens
+        while (true) {
+            when (source.peek()) {
+                TurtleToken.Structural.StatementTermination -> {
+                    source.consume()
+                    s = null
+                    p = null
                 }
 
-                TurtleToken.Keyword.PrefixAnnotationA,
-                TurtleToken.Keyword.PrefixAnnotationB -> {
-                    processPrefix()
-                    token = nextOrNull()
-                    if (token == TurtleToken.Structural.StatementTermination) {
-                        token = nextOrNull()
-                    }
+                TurtleToken.Structural.PredicateTermination -> {
+                    source.consume()
+                    p = null
                 }
 
-                else -> {
-                    // not our concern, exiting
-                    break
+                TurtleToken.Structural.ObjectTermination -> {
+                    source.consume()
                 }
+
+                // finished
+                else -> return result
             }
-        } while (source.hasNext())
+        }
     }
+
+    private fun TurtleToken.isBaseOrPrefixDeclaration(): Boolean =
+        this == TurtleToken.Keyword.BaseAnnotationA || this == TurtleToken.Keyword.BaseAnnotationB ||
+        this == TurtleToken.Keyword.PrefixAnnotationA || this == TurtleToken.Keyword.PrefixAnnotationB
 
     private fun processPrefix() {
-        val prefix = nextOrBail()
-        check(prefix is TurtleToken.PrefixedTerm && prefix.value.isEmpty())
-        val uri = nextOrBail()
-        check(uri is TurtleToken.Term)
-        prefixes[prefix.prefix] = uri.value
+        when (val token = source.consume()) {
+            TurtleToken.Keyword.BaseAnnotationA,
+            TurtleToken.Keyword.BaseAnnotationB -> {
+                base = when (val uri = source.consume()) {
+                    is TurtleToken.Term -> uri.value
+
+                    // appends to the original base
+                    is TurtleToken.RelativeTerm -> "$base${uri.value}"
+
+                    else -> unexpectedToken(uri)
+                }
+                if (source.peek() == TurtleToken.Structural.StatementTermination) {
+                    source.consume()
+                }
+            }
+
+            TurtleToken.Keyword.PrefixAnnotationA,
+            TurtleToken.Keyword.PrefixAnnotationB -> {
+                val prefix = source.consume()
+                check(prefix is TurtleToken.PrefixedTerm && prefix.value.isEmpty())
+                prefixes[prefix.prefix] = when (val uri = source.consume()) {
+                    is TurtleToken.Term -> uri.value
+
+                    is TurtleToken.RelativeTerm -> "$base${uri.value}"
+
+                    else -> unexpectedToken(uri)
+                }
+                if (source.peek() == TurtleToken.Structural.StatementTermination) {
+                    source.consume()
+                }
+            }
+
+            else -> unexpectedToken(token)
+        }
     }
 
     private fun resolve(term: TurtleToken.TermToken): Quad.Term {
@@ -435,7 +457,7 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
 
             is TurtleToken.PrefixedTerm -> {
                 if (term.prefix == "_") {
-                    namedBlankNodes.getOrPut(term.value) { Quad.BlankTerm(id = namedBlankNodes.size) }
+                    namedBlankNodes.getOrPut(term.value) { Quad.BlankTerm(id = blankTermCount++) }
                 } else {
                     val uri = prefixes[term.prefix]
                         ?: throw IllegalStateException("Unknown prefix `${term.prefix}` in token $term")
@@ -446,17 +468,6 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
             is TurtleToken.RelativeTerm -> Quad.NamedTerm(value = "$base${term.value}")
             is TurtleToken.Term -> Quad.NamedTerm(value = term.value)
         }
-    }
-
-    private fun nextOrNull(): TurtleToken? {
-        source.consume()
-        return source.peekOrNull()
-    }
-
-    private fun nextOrBail(): TurtleToken {
-        source.consume()
-        return source.peek()
-            .also { if (it == TurtleToken.EOF) throw NoSuchElementException("Reached end of token stream unexpectedly!") }
     }
 
     internal companion object {
