@@ -1,6 +1,5 @@
 package dev.tesserakt.rdf.turtle.serialization
 
-import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedString
@@ -73,7 +72,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
         }
     }
 
-    private fun consumeLiteralTerm(terminator: Char): TurtleToken.LiteralTerm {
+    private fun consumeLiteralTerm(terminator: Char): TurtleToken.TermToken {
         check(source.peek() == terminator)
         source.consume() // terminator
         val value = consumeWhile { it != terminator }
@@ -91,21 +90,28 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
             check(type is TurtleToken.NonLiteralTerm) { "Invalid literal type: $type" }
             return TurtleToken.LiteralTerm(value, type)
         } else if (source.peek() == '@') {
-            // language tag, ignored for now
-            // FIXME use the language tag
-            consumeWhile { !it.isWhitespace() }
-            return TurtleToken.LiteralTerm(value, TurtleToken.Term(RDF.langString.value))
+            source.consume()
+            // language tag
+            val language = consumeWhile { !it.isWhitespace() }
+            return TurtleToken.LocalizedLiteralTerm(value, language)
         } else {
             return TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value))
         }
     }
 
-    private fun consumeLongLiteralTerm(terminator: String): TurtleToken.LiteralTerm {
+    private fun consumeLongLiteralTerm(terminator: String): TurtleToken.TermToken {
         check(matches(terminator))
         source.consume(terminator.length)
         val value = consumeWhile { !matches(terminator) }
         source.consume(terminator.length)
-        return TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value))
+        return if (source.peek() == '@') {
+            source.consume()
+            // language tag
+            val language = consumeWhile { !it.isWhitespace() }
+            TurtleToken.LocalizedLiteralTerm(value, language)
+        } else {
+            TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value))
+        }
     }
 
     private fun consumeSignedLiteralValue(): TurtleToken.LiteralTerm {
