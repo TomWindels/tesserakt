@@ -44,6 +44,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
             next == '"' -> consumeLiteralTerm('"')
             next == '\'' -> consumeLiteralTerm('\'')
             next.isDigit() -> consumeLiteralValue()
+            next == '+' || next == '-' -> consumeSignedLiteralValue()
             else -> consumePrefixedTermOrBail()
         }
     }
@@ -107,25 +108,38 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
         return TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value))
     }
 
+    private fun consumeSignedLiteralValue(): TurtleToken.LiteralTerm {
+        val sign = source.peek() ?: throw IllegalStateException()
+        source.consume()
+        val literal = consumeLiteralValue()
+        return literal.copy(value = sign + literal.value)
+    }
+
     private fun consumeLiteralValue(): TurtleToken.LiteralTerm {
         val result = StringBuilder()
         var next = source.peek()
-        while (next != null && next.isDigit() || next == '.') {
+        while (next != null && next.isDigit() || next == '.' || next?.lowercaseChar() == 'e') {
             result.append(next)
             source.consume()
             next = source.peek()
         }
-        return when (result.count { it == '.' }) {
-            1 -> {
+        val periods = result.count { it == '.' }
+        val exponents = result.count { it.lowercaseChar() == 'e' }
+        return when {
+            exponents > 1 || periods > 1 -> {
+                throw IllegalStateException("Invalid numeric literal: `${result}`")
+            }
+
+            exponents == 1 -> {
                 TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.double.value))
             }
 
-            0 -> {
-                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.int.value))
+            periods == 1 -> {
+                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.decimal.value))
             }
 
             else -> {
-                throw IllegalStateException("Invalid numeric literal: `${result}`")
+                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.int.value))
             }
         }
     }
