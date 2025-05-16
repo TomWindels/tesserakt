@@ -200,7 +200,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
     private fun consumePrefixLocalName(): String {
         var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
 
-        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';'
+        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';' || this == '#'
 
         val result = StringBuilder()
         var escaped = false
