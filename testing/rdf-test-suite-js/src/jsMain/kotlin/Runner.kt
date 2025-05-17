@@ -4,14 +4,14 @@ import dev.tesserakt.interop.rdfjs.toN3Triple
 import dev.tesserakt.interop.rdfjs.toQuad
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
-import dev.tesserakt.rdf.turtle.serialization.TurtleSerializer
+import dev.tesserakt.rdf.turtle.serialization.setBase
+import dev.tesserakt.rdf.turtle.serialization.turtle
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.types.SelectQueryStructure
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlin.js.Promise
 
 // IMPORTANT: this file cannot be part of a package, as otherwise `parse` & `query` are not properly accessible in the
@@ -21,7 +21,7 @@ import kotlin.js.Promise
 //  for an example of the available functions to export and their signatures ; adheres to the `QueryEngine` interface
 
 // not adhering to the promise type as this causes odd printing behavior
-@OptIn(ExperimentalJsExport::class, DelicateSerializationApi::class, DelicateCoroutinesApi::class)
+@OptIn(ExperimentalJsExport::class, DelicateSerializationApi::class)
 @JsExport
 fun parse(data: String, options: Any): Promise<dynamic> {
     if (options !is String) {
@@ -31,7 +31,10 @@ fun parse(data: String, options: Any): Promise<dynamic> {
         val result = runCatching {
             when {
                 "rdf-turtle" in options -> {
-                    TurtleSerializer
+                    val serializer = turtle {
+                        setBase(options)
+                    }
+                    serializer
                         .deserialize(data)
                         .consume()
                         .map { it.toN3Triple() }
@@ -46,7 +49,7 @@ fun parse(data: String, options: Any): Promise<dynamic> {
         }
         result.fold(
             onSuccess = { resolve(it) },
-            onFailure = { reject(it) }
+            onFailure = { println("Failed `$options` with the following input:\n$data"); reject(it) }
         )
     }
 }

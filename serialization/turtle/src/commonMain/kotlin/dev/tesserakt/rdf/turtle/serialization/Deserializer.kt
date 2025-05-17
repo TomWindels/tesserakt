@@ -8,7 +8,43 @@ import kotlin.jvm.JvmInline
 // TODO: blank node syntax `[]` support
 // TODO: improved exception handling
 
-internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
+internal class Deserializer(
+    source: Iterator<TurtleToken>,
+    base: String = DEFAULT_BASE,
+) : Iterator<Quad> {
+
+    data class Base(private val value: String) {
+
+        private val parentPath = run {
+            val delimiterPos = value.lastIndexOfAny(charArrayOf('#', '/'))
+            when {
+                delimiterPos != -1 ->  value.take(delimiterPos + 1)
+                else -> value
+            }
+        }
+
+        fun update(new: TurtleToken.TermToken): Base {
+            return when (new) {
+                is TurtleToken.RelativeTerm -> {
+                    Base(value = resolve(new).value)
+                }
+                is TurtleToken.Term -> {
+                    Base(value = new.value)
+                }
+                else -> throw IllegalArgumentException("Invalid base declaration: $new")
+            }
+        }
+
+        fun resolve(term: TurtleToken.RelativeTerm): Quad.NamedTerm {
+            val value = if (term.value[0] == '#') {
+                "$value${term.value}"
+            } else {
+                "$parentPath${term.value}"
+            }
+            return Quad.NamedTerm(value)
+        }
+
+    }
 
     /**
      * An abstraction representing a more complex structure at the subject or object position defined within
@@ -252,7 +288,7 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
     private val prefixes = mutableMapOf<String /* prefix */, String /* uri */>()
     private val namedBlankNodes = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
     private var blankTermCount = 0
-    private var base = ""
+    private var base = Base(base)
     private var child: Structure? = null
     private var s: Quad.Term? = null
     private var p: Quad.NamedTerm? = null
@@ -409,14 +445,8 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
         when (val token = source.consume()) {
             TurtleToken.Keyword.BaseAnnotationA,
             TurtleToken.Keyword.BaseAnnotationB -> {
-                base = when (val uri = source.consume()) {
-                    is TurtleToken.Term -> uri.value
-
-                    // appends to the original base
-                    is TurtleToken.RelativeTerm -> "$base${uri.value}"
-
-                    else -> unexpectedToken(uri)
-                }
+                val uri = source.consume().into<TurtleToken.TermToken>()
+                base = base.update(uri)
                 if (source.peek() == TurtleToken.Structural.StatementTermination) {
                     source.consume()
                 }
@@ -429,7 +459,7 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
                 prefixes[prefix.prefix] = when (val uri = source.consume()) {
                     is TurtleToken.Term -> uri.value
 
-                    is TurtleToken.RelativeTerm -> "$base${uri.value}"
+                    is TurtleToken.RelativeTerm -> base.resolve(uri).value
 
                     else -> unexpectedToken(uri)
                 }
@@ -465,7 +495,7 @@ internal class Deserializer(source: Iterator<TurtleToken>) : Iterator<Quad> {
                 }
             }
 
-            is TurtleToken.RelativeTerm -> Quad.NamedTerm(value = "$base${term.value}")
+            is TurtleToken.RelativeTerm -> base.resolve(term)
             is TurtleToken.Term -> Quad.NamedTerm(value = term.value)
         }
     }
