@@ -76,8 +76,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
         source.consume() // terminator
         var escaped = false
         val value = consumeWhile { c -> (escaped || c != terminator).also { escaped = !escaped && c == '\\' } }
-            .let { EscapeSequenceHelper.decodeNumericEscapes(input = it) }
-            .let { EscapeSequenceHelper.decodeMappedCharacterEscapes(input = it) }
+            .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
         source.consume() // terminator
         if (source.peek() == '@') {
             source.consume()
@@ -101,8 +100,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
         source.consume(terminator.length)
         var escaped = false
         val value = consumeWhile { c -> (escaped || !matches(terminator)).also { escaped = !escaped && c == '\\' } }
-            .let { EscapeSequenceHelper.decodeNumericEscapes(input = it) }
-            .let { EscapeSequenceHelper.decodeMappedCharacterEscapes(input = it) }
+            .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
         source.consume(terminator.length)
         return if (source.peek() == '@') {
             source.consume()
