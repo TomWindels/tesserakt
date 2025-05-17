@@ -6,6 +6,7 @@ import dev.tesserakt.rdf.turtle.serialization.PrettyFormatter.Indent
 
 
 class TurtleConfig(
+    var base: String = DEFAULT_BASE,
     var formatter: Formatter = DEFAULT_FORMATTER
 ) {
 

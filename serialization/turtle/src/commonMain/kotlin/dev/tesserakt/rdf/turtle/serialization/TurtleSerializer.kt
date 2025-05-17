@@ -20,7 +20,10 @@ class TurtleSerializer(private val config: TurtleConfig): Serializer() {
 
     @OptIn(InternalSerializationApi::class)
     override fun deserialize(input: DataSource): Iterator<Quad> {
-        return Deserializer(TokenDecoder(BufferedString(input.open())))
+        return Deserializer(
+            base = config.base,
+            source = TokenDecoder(BufferedString(input.open())),
+        )
     }
 
     companion object: Serializer() {
@@ -34,7 +37,10 @@ class TurtleSerializer(private val config: TurtleConfig): Serializer() {
 
         @OptIn(InternalSerializationApi::class)
         override fun deserialize(input: DataSource): Iterator<Quad> {
-            return Deserializer(TokenDecoder(BufferedString(input.open())))
+            return Deserializer(
+                base = "",
+                source = TokenDecoder(BufferedString(input.open())),
+            )
         }
 
         @DelicateSerializationApi
