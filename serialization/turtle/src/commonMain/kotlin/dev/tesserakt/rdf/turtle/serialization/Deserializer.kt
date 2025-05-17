@@ -13,35 +13,75 @@ internal class Deserializer(
     base: String = DEFAULT_BASE,
 ) : Iterator<Quad> {
 
-    data class Base(private val value: String) {
+    data class Base(
+        // scheme + host + path + file part of the path only, e.g. `http://example.org/my/path/my-file.ttl`
+        private val full: String
+    ) {
 
-        private val parentPath = run {
-            val delimiterPos = value.lastIndexOfAny(charArrayOf('#', '/'))
+        // scheme part of the path only, e.g. `http:`
+        private val scheme = full.substring(
+            startIndex = 0,
+            endIndex = full.indexOf(':') + 1
+        )
+
+        // scheme + host part of the path only, e.g. `http://example.org`
+        private val host = run {
+            val delimiterPos = full.indexOf('/', startIndex = scheme.length + 2)
             when {
-                delimiterPos != -1 ->  value.take(delimiterPos + 1)
-                else -> value
+                delimiterPos != -1 -> full.take(delimiterPos)
+                else -> full
+            }
+        }
+
+        // scheme + host + path part of the path only, e.g. `http://example.org/my/path/`
+        private val path = run {
+            val delimiterPos = full.lastIndexOf('/')
+            when {
+                delimiterPos != -1 -> full.take(delimiterPos + 1)
+                else -> "$full/"
             }
         }
 
         fun update(new: TurtleToken.TermToken): Base {
             return when (new) {
                 is TurtleToken.RelativeTerm -> {
-                    Base(value = resolve(new).value)
+                    Base(full = resolve(new).value)
                 }
+
                 is TurtleToken.Term -> {
-                    Base(value = new.value)
+                    Base(full = new.value)
                 }
+
                 else -> throw IllegalArgumentException("Invalid base declaration: $new")
             }
         }
 
         fun resolve(term: TurtleToken.RelativeTerm): Quad.NamedTerm {
-            val value = if (term.value[0] == '#') {
-                "$value${term.value}"
-            } else {
-                "$parentPath${term.value}"
+            val value = when {
+                term.value.isEmpty() -> full
+
+                term.value.length > 1 && term.value[0] == '/' && term.value[1] == '/' -> {
+                    scheme + term.value
+                }
+
+                term.value[0] == PathDelimiter -> {
+                    host + term.value
+                }
+
+                term.value[0] in OtherDelimiters -> {
+                    full.substringBeforeLast(term.value[0]) + term.value
+                }
+
+                else -> {
+                    path + term.value
+                }
             }
-            return Quad.NamedTerm(value)
+            return createNamedTerm(value)
+        }
+
+        companion object {
+            val PathDelimiter = '/'
+            val OtherDelimiters = charArrayOf('#', '?')
         }
 
     }
@@ -491,12 +531,12 @@ internal class Deserializer(
                 } else {
                     val uri = prefixes[term.prefix]
                         ?: throw IllegalStateException("Unknown prefix `${term.prefix}` in token $term")
-                    Quad.NamedTerm(value = "$uri${term.value}")
+                    createNamedTerm(value = "$uri${term.value}")
                 }
             }
 
             is TurtleToken.RelativeTerm -> base.resolve(term)
-            is TurtleToken.Term -> Quad.NamedTerm(value = term.value)
+            is TurtleToken.Term -> createNamedTerm(value = term.value)
         }
     }
 
@@ -514,6 +554,75 @@ internal class Deserializer(
                 throw IllegalStateException("Unexpected token $this, expected ${T::class.simpleName}")
             }
             return this
+        }
+
+        /**
+         * Creates a [Quad.NamedTerm] using the constructor, passing the [value] after resolving the IRI: `/./` is
+         *  removed, as well as `/abc/../`
+         */
+        fun createNamedTerm(value: String): Quad.NamedTerm {
+            val paths = mutableListOf<String>()
+
+            var i = value.length - 1
+            var skipPaths = 0
+
+            if (value[i] == '.') {
+                if (i > 1 && value[i - 1] == '/') {
+                    // skipping this character, only '/' is added
+                    i -= 1
+                    paths.add("/")
+                } else if (i > 2 && value[i - 1] == '.' && value[i - 2] == '/') {
+                    // skipping, and dropping a regular path too
+                    i -= 2
+                    ++skipPaths
+                    paths.add("/")
+                }
+            } else {
+                // appending the trail of this path
+                while (i > -1 && value[i] != '/') {
+                    --i
+                }
+                paths.add(value.substring(i))
+            }
+
+            // appending individual path segments; if they match `/./` or `/../`, other behaviour is required
+            while (i > -1) {
+                // value[i] == '/'
+                if (
+                    i > 2 &&
+                    value[i - 1] == '.' &&
+                    value[i - 2] == '/'
+                ) {
+                    // not inserting the result
+                    i -= 2
+                } else if (
+                    i > 3 &&
+                    value[i - 1] == '.' &&
+                    value[i - 2] == '.' &&
+                    value[i - 3] == '/'
+                ) {
+                    // not inserting the result, and instead, skipping the next non-matching path
+                    i -= 3
+                    ++skipPaths
+                } else if (
+                    skipPaths > 0
+                ) {
+                    // skipping until next '/'
+                    do {
+                        --i
+                    } while (i > -1 && value[i] != '/')
+                    --skipPaths
+                } else {
+                    // appending until next '/'
+                    val end = i
+                    do {
+                        --i
+                    } while (i > -1 && value[i] != '/')
+                    paths.add(value.substring(i, end))
+                }
+            }
+
+            return Quad.NamedTerm(value = paths.asReversed().joinToString(""))
         }
 
     }
