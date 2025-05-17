@@ -4,51 +4,112 @@ import kotlin.experimental.or
 
 object EscapeSequenceHelper {
 
+    /**
+     * Decodes numeric escape sequences into their code point values and mapped character escapes into their target
+     *  representation in the resulting string.
+     *
+     * IMPORTANT: this method **throws an IllegalArgumentException** upon encountering unknown or invalid escape
+     *  sequences
+     */
     fun decodeNumericEscapes(input: String): String {
-        return input
-            .replace(UnicodeSequence) { match -> decode(match.groups[1]!!.value.toInt(16)) }
-            .replace(LongUnicodeSequence) { match -> decode(match.groups[1]!!.value.toInt(16)) }
+        val result = StringBuilder()
+        var i = 0
+        while (i < input.length - 1) {
+            val first = input[i]
+            if (first == '\\') {
+                when (input[i + 1]) {
+                    'u' -> {
+                        if (i + 6 > input.length) {
+                            throw IllegalArgumentException("Incomplete escape sequence at ${i + 1} for input `${input}`")
+                        }
+                        val code = input.substring(i + 2, i + 6).toInt(16)
+                        i += 6
+                        result.append(decode(code))
+                    }
+                    'U' -> {
+                        if (i + 10 > input.length) {
+                            throw IllegalArgumentException("Incomplete escape sequence at ${i + 1} for input `${input}`")
+                        }
+                        val code = input.substring(i + 2, i + 10).toInt(16)
+                        i += 10
+                        result.append(decode(code))
+                    }
+                    else -> {
+                        throw IllegalArgumentException("Invalid escape sequence at ${i + 1} for input `${input}`: \\${input[i + 1]}")
+                    }
+                }
+            } else {
+                result.append(first)
+                ++i
+            }
+        }
+        if (i == input.length - 1) {
+            result.append(input.last())
+        }
+        return result.toString()
     }
 
-    fun decodeMappedCharacterEscapes(
+    /**
+     * Decodes numeric escape sequences into their code point values and mapped character escapes into their target
+     *  representation in the resulting string.
+     *
+     * IMPORTANT: this method **throws an IllegalArgumentException** upon encountering unknown or invalid escape
+     *  sequences
+     */
+    fun decodeNumericAndMappedCharacterEscapes(
         input: String,
-        mapping: Map<Char, String> = DefaultReservedCharacterEscapes
+        mapping: Map<Char, Char> = DefaultReservedCharacterEscapes
     ): String {
-        var escaped = false
         val result = StringBuilder()
-        input.forEachIndexed { i, c ->
-            val mapped = mapping[c]
-            when {
-                !escaped && c == '\\' -> {
-                    escaped = true
+        var i = 0
+        while (i < input.length - 1) {
+            val first = input[i]
+            if (first == '\\') {
+                val second = input[i + 1]
+                when (second) {
+                    'u' -> {
+                        if (i + 6 > input.length) {
+                            throw IllegalArgumentException("Incomplete escape sequence at ${i + 1} for input `${input}`")
+                        }
+                        val code = input.substring(i + 2, i + 6).toInt(16)
+                        i += 6
+                        result.append(decode(code))
+                    }
+                    'U' -> {
+                        if (i + 10 > input.length) {
+                            throw IllegalArgumentException("Incomplete escape sequence at ${i + 1} for input `${input}`")
+                        }
+                        val code = input.substring(i + 2, i + 10).toInt(16)
+                        i += 10
+                        result.append(decode(code))
+                    }
+                    else -> {
+                        val mapped = mapping[second]
+                            ?: throw IllegalArgumentException("Invalid escape sequence at ${i + 1} for input `${input}`: \\${input[i + 1]}")
+                        result.append(mapped)
+                        i += 2
+                    }
                 }
-
-                !escaped -> {
-                    result.append(c)
-                }
-
-                escaped && mapped != null -> {
-                    result.append(mapped)
-                    escaped = false
-                }
-
-                escaped -> {
-                    throw IllegalArgumentException("Unknown escape sequence at index $i: `${input}` - ${input[i]}")
-                }
+            } else {
+                result.append(first)
+                ++i
             }
+        }
+        if (i == input.length - 1) {
+            result.append(input.last())
         }
         return result.toString()
     }
 
     val DefaultReservedCharacterEscapes = mapOf(
-        't' to decode(0x09),
-        'b' to decode(0x08),
-        'n' to decode(0x0A),
-        'r' to decode(0x0D),
-        'f' to decode(0x0C),
-        '"' to decode(0x22),
-        '\'' to decode(0x27),
-        '\\' to decode(0x5C),
+        't' to  Char(0x09),
+        'b' to  Char(0x08),
+        'n' to  Char(0x0A),
+        'r' to  Char(0x0D),
+        'f' to  Char(0x0C),
+        '"' to  Char(0x22),
+        '\'' to Char(0x27),
+        '\\' to Char(0x5C),
     )
 
 }
@@ -95,7 +156,3 @@ internal fun codepointToString(codepoint: Int): String {
     }
     return encoded.decodeToString()
 }
-
-private val UnicodeSequence = Regex("\\\\u([0-9a-fA-F]{4})")
-
-private val LongUnicodeSequence = Regex("\\\\U([0-9a-fA-F]{8})")
