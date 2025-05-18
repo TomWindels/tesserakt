@@ -76,7 +76,7 @@ internal class Deserializer(
                     path + term.value
                 }
             }
-            return createNamedTerm(value)
+            return Quad.NamedTerm(value)
         }
 
         companion object {
@@ -531,12 +531,12 @@ internal class Deserializer(
                 } else {
                     val uri = prefixes[term.prefix]
                         ?: throw IllegalStateException("Unknown prefix `${term.prefix}` in token $term")
-                    createNamedTerm(value = "$uri${term.value}")
+                    Quad.NamedTerm(value = "$uri${term.value}")
                 }
             }
 
             is TurtleToken.RelativeTerm -> base.resolve(term)
-            is TurtleToken.Term -> createNamedTerm(value = term.value)
+            is TurtleToken.Term -> Quad.NamedTerm(value = term.value)
         }
     }
 
@@ -554,75 +554,6 @@ internal class Deserializer(
                 throw IllegalStateException("Unexpected token $this, expected ${T::class.simpleName}")
             }
             return this
-        }
-
-        /**
-         * Creates a [Quad.NamedTerm] using the constructor, passing the [value] after resolving the IRI: `/./` is
-         *  removed, as well as `/abc/../`
-         */
-        fun createNamedTerm(value: String): Quad.NamedTerm {
-            val paths = mutableListOf<String>()
-
-            var i = value.length - 1
-            var skipPaths = 0
-
-            if (value[i] == '.') {
-                if (i > 1 && value[i - 1] == '/') {
-                    // skipping this character, only '/' is added
-                    i -= 1
-                    paths.add("/")
-                } else if (i > 2 && value[i - 1] == '.' && value[i - 2] == '/') {
-                    // skipping, and dropping a regular path too
-                    i -= 2
-                    ++skipPaths
-                    paths.add("/")
-                }
-            } else {
-                // appending the trail of this path
-                while (i > -1 && value[i] != '/') {
-                    --i
-                }
-                paths.add(value.substring(i))
-            }
-
-            // appending individual path segments; if they match `/./` or `/../`, other behaviour is required
-            while (i > -1) {
-                // value[i] == '/'
-                if (
-                    i > 2 &&
-                    value[i - 1] == '.' &&
-                    value[i - 2] == '/'
-                ) {
-                    // not inserting the result
-                    i -= 2
-                } else if (
-                    i > 3 &&
-                    value[i - 1] == '.' &&
-                    value[i - 2] == '.' &&
-                    value[i - 3] == '/'
-                ) {
-                    // not inserting the result, and instead, skipping the next non-matching path
-                    i -= 3
-                    ++skipPaths
-                } else if (
-                    skipPaths > 0
-                ) {
-                    // skipping until next '/'
-                    do {
-                        --i
-                    } while (i > -1 && value[i] != '/')
-                    --skipPaths
-                } else {
-                    // appending until next '/'
-                    val end = i
-                    do {
-                        --i
-                    } while (i > -1 && value[i] != '/')
-                    paths.add(value.substring(i, end))
-                }
-            }
-
-            return Quad.NamedTerm(value = paths.asReversed().joinToString(""))
         }
 
     }
