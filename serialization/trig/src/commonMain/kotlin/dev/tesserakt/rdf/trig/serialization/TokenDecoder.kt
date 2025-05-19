@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedString
+import dev.tesserakt.rdf.serialization.util.EscapeSequenceHelper
 import dev.tesserakt.util.isNullOr
 import kotlin.jvm.JvmInline
 
@@ -23,6 +24,12 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         consumeWhitespace()
         TriGToken.Structural.entries.forEach {
             if (matches(it.syntax)) {
+                source.consume(it.syntax.length)
+                return it
+            }
+        }
+        TriGToken.Keyword.entries.forEach {
+            if (matchesKeyword(it.syntax)) {
                 source.consume(it.syntax.length)
                 return it
             }
@@ -51,6 +58,7 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         check(source.peek() == '<')
         source.consume() // '<'
         val content = consumeWhile { check(!it.isWhitespace()); it != '>' }
+            .let { EscapeSequenceHelper.decodeNumericEscapes(it) }
         source.consume() // '>'
         // valid non-relative terms start with `mailto:`, `http(s)://`, etc.
         return if (':' !in content) {
@@ -128,6 +136,20 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
             }
             ++i
         }
+        return true
+    }
+
+    /**
+     * Returns `true` when [text] matches with the current [source] position, terminated by a whitespace or EOF
+     */
+    private fun matchesKeyword(text: String): Boolean {
+        var i = 0
+        while (i < text.length) {
+            if (text[i] != source.peek(i)) {
+                return false
+            }
+            ++i
+        }
         return source.peek(i).isNullOr { it.isWhitespace() }
     }
 
@@ -146,7 +168,7 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
      *  * `ex:my\,triple` returns "my,triple"
      */
     private fun consumePrefixLocalName(): String {
-        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';' || this == '.'
+        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';'
 
         val result = StringBuilder()
         var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")

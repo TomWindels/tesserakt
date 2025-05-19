@@ -16,6 +16,7 @@ object XSD: Ontology {
     val long = "${base_uri}long".asNamedTerm()
     val float = "${base_uri}float".asNamedTerm()
     val double = "${base_uri}double".asNamedTerm()
+    val decimal = "${base_uri}decimal".asNamedTerm()
     val duration = "${base_uri}duration".asNamedTerm()
     val dateTime = "${base_uri}dateTime".asNamedTerm()
     val time = "${base_uri}time".asNamedTerm()

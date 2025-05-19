@@ -93,7 +93,7 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                                 position = Position.Object
                             }
 
-                            TriGToken.Structural.TypePredicate -> {
+                            TriGToken.Keyword.TypePredicate -> {
                                 s = resolved
                                 p = RDF.type
                                 position = Position.Object
@@ -113,14 +113,14 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                     token = nextOrBail()
                 }
 
-                position == Position.Predicate && token == TriGToken.Structural.TypePredicate -> {
+                position == Position.Predicate && token == TriGToken.Keyword.TypePredicate -> {
                     p = RDF.type
                     position = Position.Object
                     token = nextOrBail()
                 }
 
                 position == Position.Predicate -> {
-                    throw IllegalStateException("Invalid predicate token: $token")
+                    unexpectedToken(token)
                 }
 
                 position == Position.Object -> {
@@ -130,11 +130,11 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                             resolve(token)
                         }
 
-                        TriGToken.Structural.TrueLiteral -> {
+                        TriGToken.Keyword.TrueLiteral -> {
                             Quad.Literal(value = "true", type = XSD.boolean)
                         }
 
-                        TriGToken.Structural.FalseLiteral -> {
+                        TriGToken.Keyword.FalseLiteral -> {
                             Quad.Literal(value = "false", type = XSD.boolean)
                         }
 
@@ -203,8 +203,8 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
             when (token) {
                 null -> return null
 
-                TriGToken.Structural.BaseAnnotationA,
-                TriGToken.Structural.BaseAnnotationB -> {
+                TriGToken.Keyword.BaseAnnotationA,
+                TriGToken.Keyword.BaseAnnotationB -> {
                     val uri = nextOrBail()
                     check(uri is TriGToken.Term) { "Invalid base value `${uri}`" }
                     base = uri.value
@@ -214,8 +214,8 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                     }
                 }
 
-                TriGToken.Structural.PrefixAnnotationA,
-                TriGToken.Structural.PrefixAnnotationB -> {
+                TriGToken.Keyword.PrefixAnnotationA,
+                TriGToken.Keyword.PrefixAnnotationB -> {
                     processPrefix()
                     token = nextOrNull()
                     if (token == TriGToken.Structural.StatementTermination) {
@@ -241,9 +241,6 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
     private fun processPrefix() {
         val prefix = nextOrBail()
         check(prefix is TriGToken.PrefixedTerm && prefix.value.isEmpty())
-        check(prefix.prefix !in prefixes) {
-            "The prefix ${prefix.prefix} is already registered as ${prefixes[prefix.prefix]}"
-        }
         val uri = nextOrBail()
         check(uri is TriGToken.Term)
         prefixes[prefix.prefix] = uri.value

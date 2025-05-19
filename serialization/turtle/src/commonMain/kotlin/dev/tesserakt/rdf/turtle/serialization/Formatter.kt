@@ -192,7 +192,7 @@ data class PrettyFormatter(
     override fun format(tokens: Iterator<TurtleToken>) = iterator {
         // first writing all prefixes
         prefixes.forEach { (base, uri) ->
-            yield(TurtleToken.Structural.PrefixAnnotationA.syntax)
+            yield(TurtleToken.Keyword.PrefixAnnotationA.syntax)
             yield(" ")
             yield(base)
             yield(":")
@@ -297,7 +297,7 @@ data class PrettyFormatter(
                 buffer.advance()
                 return result
             }
-            TurtleToken.Structural.TypePredicate -> {
+            TurtleToken.Keyword.TypePredicate -> {
                 val result = buffer.current.syntax
                 buffer.advance()
                 return result

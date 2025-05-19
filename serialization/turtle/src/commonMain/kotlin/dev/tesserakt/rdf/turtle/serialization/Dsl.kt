@@ -3,12 +3,21 @@ package dev.tesserakt.rdf.turtle.serialization
 import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.turtle.serialization.TurtleConfig.PrettyFormatterConf
+import dev.tesserakt.rdf.types.Quad
 
 
 @TurtleSerializerDsl
 fun turtle(builder: TurtleConfig.() -> Unit): TurtleSerializer {
     val config = TurtleConfig().apply(builder)
     return TurtleSerializer(config = config)
+}
+
+inline fun TurtleConfig.setBase(iri: String) {
+    base = iri
+}
+
+inline fun TurtleConfig.setBase(term: Quad.NamedTerm) {
+    setBase(iri = term.value)
 }
 
 inline fun TurtleConfig.usePrettyFormatting(block: PrettyFormatterConf.() -> Unit = {}) {

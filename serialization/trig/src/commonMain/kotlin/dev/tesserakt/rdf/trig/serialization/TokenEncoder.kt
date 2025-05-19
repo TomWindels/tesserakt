@@ -198,7 +198,7 @@ internal class TokenEncoder(
         is Quad.Literal ->
             TriGToken.LiteralTerm(value = value, type = type.toToken() as TriGToken.NonLiteralTerm)
 
-        RDF.type -> TriGToken.Structural.TypePredicate
+        RDF.type -> TriGToken.Keyword.TypePredicate
 
         is Quad.NamedTerm ->
             TriGToken.Term(value = value)
