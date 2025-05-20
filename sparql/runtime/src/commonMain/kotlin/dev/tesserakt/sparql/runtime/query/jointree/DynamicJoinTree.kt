@@ -10,7 +10,6 @@ import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
-import dev.tesserakt.util.removeFirstElement
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmName
 
@@ -78,7 +77,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
             context: QueryContext,
             private val left: L,
             private val right: R,
-            indexes: List<String>
+            indexes: Iterable<String>
         ): Node<J> {
 
             override val bindings = left.bindings + right.bindings
@@ -301,14 +300,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 // hardly a tree, but what can we do
                 return Node.Leaf(states.single())
             }
-            // TODO(perf): actually check individual states on overlapping bindings, have them be connected nodes,
-            //  with the total index list depending on the not-yet-inserted patterns
-            val remaining = states.mapTo(ArrayList(states.size)) { Node.Leaf(it) }
-            var result: Node<J> = Node.Disconnected(context = context, left = remaining.removeFirstElement(), right = remaining.removeFirstElement())
-            while (remaining.isNotEmpty()) {
-                result = Node.Disconnected(context = context, left = result, right = remaining.removeFirstElement())
-            }
-            return result
+            return DynamicJoinTreeBuilder.build(context, states)
         }
     }
 
