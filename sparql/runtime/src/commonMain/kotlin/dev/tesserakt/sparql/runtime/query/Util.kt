@@ -3,6 +3,7 @@ package dev.tesserakt.sparql.runtime.query
 import dev.tesserakt.sparql.newAnonymousBinding
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.plus
+import dev.tesserakt.sparql.runtime.query.jointree.JoinTree
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.mappedNonNull
