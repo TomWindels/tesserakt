@@ -1,9 +1,5 @@
-package dev.tesserakt
+package dev.tesserakt.mapping
 
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.sparql.runtime.evaluation.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.Mapping
 import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.Scope
@@ -11,16 +7,6 @@ import kotlinx.benchmark.Setup
 import kotlinx.benchmark.State
 import kotlin.random.Random
 
-const val SIZE = 7_500
-const val VARIANCE = 50
-val BINDINGS = listOf(
-    "person" to List(VARIANCE) { "http://example/person_${it}".asNamedTerm() },
-    "job" to List(VARIANCE) { "http://example/job_${it}".asNamedTerm() },
-    "name" to List(VARIANCE) { "http://example/name_${it}".asNamedTerm() },
-    "age" to List(VARIANCE) { it.asLiteralTerm() },
-)
-
-typealias MapMapping = Map<String, Quad.Term>
 
 private fun createMapping(id: Int): MapMapping {
     val rng = Random(id)
@@ -42,25 +28,17 @@ private fun join(a: MapMapping, b: MapMapping): MapMapping? {
 @State(Scope.Benchmark)
 class MappingBenchmark {
 
-    private val left = mutableListOf<MapMapping>()
-    private val right = mutableListOf<MapMapping>()
+    private lateinit var left: List<MapMapping>
+    private lateinit var right: List<MapMapping>
     private lateinit var l: List<Mapping>
     private lateinit var r: List<Mapping>
-    private val context = GlobalQueryContext
 
     @Setup
     fun createMappings() {
-        val random = Random(1)
-        repeat(SIZE) {
-            val new = createMapping(random.nextInt())
-            if (random.nextBoolean()) {
-                left.add(new)
-            } else {
-                right.add(new)
-            }
-        }
-        l = left.map { Mapping(context, it) }
-        r = right.map { Mapping(context, it) }
+        left = generateMappingSet(1)
+        right = generateMappingSet(2)
+        l = left.map { it.toMapping() }
+        r = right.map { it.toMapping() }
     }
 
     @Benchmark

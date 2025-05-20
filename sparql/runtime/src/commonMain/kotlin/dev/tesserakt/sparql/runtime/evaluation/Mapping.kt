@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmName
 
 @JvmInline
-value class Mapping private constructor(private val data: IntIntPair?) {
+value class Mapping private constructor(internal val data: IntIntPair?) {
 
     constructor(context: QueryContext, source: Map<String, Quad.Term>): this(data = convert(context, source))
 
@@ -152,7 +152,7 @@ value class Mapping private constructor(private val data: IntIntPair?) {
         /**
          * Counts the total number of bindings that would be part of this mapping, or -1 if incompatible
          */
-        private fun count(left: IntIntPair?, right: IntIntPair?): Int {
+        internal fun count(left: IntIntPair?, right: IntIntPair?): Int {
             when {
                 left == null && right == null -> {
                     return 0
@@ -202,6 +202,56 @@ value class Mapping private constructor(private val data: IntIntPair?) {
                         }
                     }
                 }
+            }
+        }
+
+        /**
+         * Counts the total number of bindings that would be part of this mapping, or -1 if incompatible
+         */
+        internal fun count(
+            values: List<IntIntPair>,
+            scratch: IntArray = IntArray(values.size) { 0 }
+        ): Int {
+            // clearing positions
+            repeat(values.size) { scratch[it] = 0 }
+            var result = 0
+            while (true) {
+                // getting the next key/value pairs
+                val i = next(values, scratch)
+                if (i == -1) {
+                    return result
+                }
+                val currentKey = values[i].key(scratch[i])
+                val currentValue = values[i].value(scratch[i])
+                // already advancing value[i], as that one doesn't have to be checked anymore
+                ++scratch[i]
+                // ensuring all hits for the current key match in value
+                repeat(values.size) { i ->
+                    val v = values[i]
+                    // advancing until we've exhausted this value or reached a key in this value relevant for
+                    //  compatibility check
+                    // TODO(perf) is this part necessary?
+                    while (
+                        scratch[i] < v.count &&
+                        v.key(scratch[i]) < currentKey
+                    ) {
+                        ++scratch[i]
+                    }
+                    // with the position now far enough advanced, if the key matches, an identical value is required
+                    if (
+                        scratch[i] < v.count &&
+                        v.key(scratch[i]) == currentKey
+                    ) {
+                        if (v.value(scratch[i]) != currentValue) {
+                            // matching key values, but mismatching values, so not compatible
+                            return -1
+                        } else {
+                            // matching key and value, so advancing this position one past
+                            ++scratch[i]
+                        }
+                    }
+                }
+                ++result
             }
         }
 
@@ -276,11 +326,81 @@ value class Mapping private constructor(private val data: IntIntPair?) {
             }
         }
 
+        internal fun combine(
+            values: List<IntIntPair>,
+            size: Int,
+            scratch: IntArray = IntArray(values.size) { 0 }
+        ): IntIntPair {
+            if (values.size == 1) {
+                val value = values[0]
+                require(value.count == size)
+                return value
+            }
+            // clearing positions
+            repeat(values.size) { scratch[it] = 0 }
+            val result = IntArray(size * 2)
+            var p = 0
+            while (true) {
+                // getting the next key/value pairs
+                val i = next(values, scratch)
+                if (i == -1) {
+                    return result.into()
+                }
+                val currentKey = values[i].key(scratch[i])
+                val currentValue = values[i].value(scratch[i])
+                // already advancing value[i], as that one doesn't have to be checked anymore
+                result[p++] = currentKey
+                result[p++] = currentValue
+                ++scratch[i]
+                // ensuring all hits for the current key match in value
+                repeat(values.size) { i ->
+                    val v = values[i]
+                    // advancing until we've exhausted this value or reached a key in this value relevant for
+                    //  compatibility check
+                    // TODO(perf) is this part necessary?
+                    while (
+                        scratch[i] < v.count &&
+                        v.key(scratch[i]) < currentKey
+                    ) {
+                        ++scratch[i]
+                    }
+                    // with the position now far enough advanced, if the key matches, an identical value is required
+                    if (
+                        scratch[i] < v.count &&
+                        v.key(scratch[i]) == currentKey
+                    ) {
+                        if (v.value(scratch[i]) != currentValue) {
+                            // matching key values, but mismatching values, so not compatible
+                            throw IllegalStateException()
+                        } else {
+                            // matching key and value, so advancing this position one past
+                            ++scratch[i]
+                        }
+                    }
+                }
+            }
+        }
+
+        operator fun invoke(mappings: List<Mapping>): Mapping? {
+            return invoke(pairs = mappings.mapNotNull { it.data })
+        }
+
+        internal operator fun invoke(pairs: List<IntIntPair>): Mapping? {
+            val scratch = IntArray(pairs.size) { 0 }
+            return when (val count = count(pairs, scratch)) {
+                -1 -> null
+                0 -> Mapping(null)
+                else -> {
+                    Mapping(combine(pairs, count, scratch))
+                }
+            }
+        }
+
         private fun IntArray.into() = IntIntPair(value = this)
 
     }
 
-    private class IntIntPair(private val value: IntArray) {
+    internal class IntIntPair(private val value: IntArray) {
 
         val count = value.size / 2
         private val hashCode = value.contentHashCode()
@@ -348,3 +468,21 @@ fun mappingOf(context: QueryContext, vararg pairs: Pair<String, Quad.Term>): Map
 fun mappingOf(context: QueryContext, vararg pairs: Pair<String?, Quad.Term>): Mapping =
     @Suppress("UNCHECKED_CAST")
     Mapping(context, pairs.filter { it.first != null } as List<Pair<String, Quad.Term>>)
+
+/* extra helpers */
+
+/**
+ * Returns the index of the value inside [values], of which its associated position in [positions] points to the next
+ *  element that should be checked, or -1 if all ends have been reached.
+ */
+internal inline fun next(values: List<Mapping.IntIntPair>, positions: IntArray): Int {
+    var result = -1
+    repeat(values.size) { i ->
+        val pos = positions[i]
+        val value = values[i]
+        if (value.count > pos && (result == -1 || values[result].value(positions[result]) < value.value(pos))) {
+            result = i
+        }
+    }
+    return result
+}
