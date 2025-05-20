@@ -7,6 +7,8 @@ import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
+import dev.tesserakt.sparql.runtime.query.jointree.JoinTree
+import dev.tesserakt.sparql.runtime.query.jointree.from
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.matches
@@ -246,7 +248,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         o: TriplePattern.Object
     ) : TriplePatternState<TriplePattern.Sequence>(context, s, p, o) {
 
-        private val tree = JoinTree(context, p.unfold(start = s, end = o))
+        private val tree = JoinTree.from(context, p.unfold(start = s, end = o))
         override val cardinality: Cardinality
             get() = tree.cardinality
 
@@ -273,7 +275,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         obj: TriplePattern.Object
     ) : TriplePatternState<TriplePattern.UnboundSequence>(context, subj, pred, obj) {
 
-        private val tree = JoinTree(context, pred.unfold(start = subj, end = obj))
+        private val tree = JoinTree.from(context, pred.unfold(start = subj, end = obj))
         override val cardinality: Cardinality
             get() = tree.cardinality
 

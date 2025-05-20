@@ -5,6 +5,8 @@ import dev.tesserakt.sparql.runtime.evaluation.MappingAddition
 import dev.tesserakt.sparql.runtime.evaluation.MappingDeletion
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.query.jointree.JoinTree
+import dev.tesserakt.sparql.runtime.query.jointree.from
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePatternSet
 import dev.tesserakt.sparql.types.Union
@@ -12,8 +14,8 @@ import dev.tesserakt.sparql.util.Cardinality
 
 class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions: List<Union>): MutableJoinState {
 
-    private val patterns = JoinTree(context, pattern)
-    private val unions = JoinTree(context, unions)
+    private val patterns = JoinTree.from(context, pattern)
+    private val unions = JoinTree.from(context, unions)
 
     override val cardinality: Cardinality
         get() = patterns.cardinality * unions.cardinality
