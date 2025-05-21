@@ -28,6 +28,14 @@ value class Cardinality(internal val value: Double): Comparable<Cardinality> {
         return Cardinality(value = this.value.plus(other.toDouble()))
     }
 
+    operator fun minus(other: Cardinality): Cardinality {
+        return Cardinality(value = this.value.minus(other.value))
+    }
+
+    operator fun minus(other: Number): Cardinality {
+        return Cardinality(value = this.value.minus(other.toDouble()))
+    }
+
     override fun compareTo(other: Cardinality): Int {
         return value.compareTo(other.value)
     }

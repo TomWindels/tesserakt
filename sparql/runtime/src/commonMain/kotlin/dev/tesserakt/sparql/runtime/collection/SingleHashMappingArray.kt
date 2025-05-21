@@ -21,8 +21,8 @@ class SingleHashMappingArray(
     private val key = BindingIdentifier(context, binding)
     private val backing = mutableMapOf<TermIdentifier, SimpleMappingArray>()
 
-    override val cardinality: Cardinality
-        get() = Cardinality(backing.asIterable().sumOf { it.value.cardinality.value })
+    override var cardinality = Cardinality(0)
+        private set
 
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
@@ -63,6 +63,7 @@ class SingleHashMappingArray(
                 ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${key}`"),
             defaultValue = { SimpleMappingArray() }
         ).add(mapping)
+        cardinality += 1
     }
 
     /**
@@ -76,6 +77,7 @@ class SingleHashMappingArray(
         backing
             .get(mapping.get(key) ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${key}`"))!!
             .remove(mapping)
+        cardinality -= 1
     }
 
     override fun removeAll(mappings: Iterable<Mapping>) {
