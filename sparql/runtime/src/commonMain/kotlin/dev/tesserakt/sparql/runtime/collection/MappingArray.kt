@@ -6,8 +6,6 @@ import dev.tesserakt.sparql.util.Cardinality
 
 interface MappingArray {
 
-    val mappings: List<Mapping>
-
     val cardinality: Cardinality
 
     /**
