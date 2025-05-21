@@ -68,6 +68,14 @@ class AggregatorProcessor: Analyser<Expression>() {
             Expression.StringLiteralValue(token.literalTextValue)
                 .also { consume() }
         }
+        Token.Keyword.True -> {
+            Expression.BooleanLiteralValue(true)
+                .also { consume() }
+        }
+        Token.Keyword.False -> {
+            Expression.BooleanLiteralValue(false)
+                .also { consume() }
+        }
         Token.Keyword.StringLength,
         Token.Keyword.Concat -> {
             processRegularFunction()
