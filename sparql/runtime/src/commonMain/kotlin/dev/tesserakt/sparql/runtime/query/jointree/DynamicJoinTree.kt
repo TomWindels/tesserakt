@@ -77,15 +77,14 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
             context: QueryContext,
             private val left: L,
             private val right: R,
-            indexes: Iterable<String>
+            indexes: Collection<String>
         ): Node<J> {
 
             override val bindings = left.bindings + right.bindings
 
             private val buf = MappingArray(
                 context = context,
-                bindings = indexes.intersect(bindings)
-                    .also { check(it.isNotEmpty()) { "Connected node used with no valid indices! This is not allowed!" } }
+                bindings = indexes
             )
             private val cache = StreamCache<DataDelta, MappingDelta>()
 
