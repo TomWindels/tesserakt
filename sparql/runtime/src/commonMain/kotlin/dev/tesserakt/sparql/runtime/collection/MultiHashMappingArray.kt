@@ -33,17 +33,7 @@ class MultiHashMappingArray(
     private val indexBindingSet = BindingIdentifierSet(context, bindings)
 
     init {
-        check(bindings.isNotEmpty()) { "Invalid use of hash join array! No bindings are used!" }
-    }
-
-    override val mappings: List<Mapping> get() = if (holes == 0) {
-        // should be valid if we're tracking the holes correctly
-        @Suppress("UNCHECKED_CAST")
-        backing as List<Mapping>
-    } else {
-        backing
-            .also { println("WARN: inefficient mapping retrieval occurred!") }
-            .filterNotNullTo(ArrayList(backing.size - holes))
+        check(bindings.isNotEmpty()) { "Invalid use of MultiHashMappingArray! No bindings are used!" }
     }
 
     override val cardinality: Cardinality
@@ -105,7 +95,7 @@ class MultiHashMappingArray(
     override fun remove(mapping: Mapping) {
         holes += 1
         val pos = find(mapping)
-        require(pos != -1) { "$mapping cannot be removed from HashJoinArray - not found!" }
+        require(pos != -1) { "$mapping cannot be removed from MultiHashMappingArray - not found!" }
         backing[pos] = null
         // considering optimising
         if (shouldOptimise()) {
@@ -117,7 +107,7 @@ class MultiHashMappingArray(
         var count = 0
         mappings.forEach { mapping ->
             val pos = find(mapping)
-            require(pos != -1) { "$mapping cannot be removed from HashJoinArray - not found!" }
+            require(pos != -1) { "$mapping cannot be removed from MultiHashMappingArray - not found!" }
             backing[pos] = null
             ++count
         }
@@ -209,7 +199,7 @@ class MultiHashMappingArray(
     }
 
     override fun toString(): String =
-        "HashJoinArray (cardinality ${backing.size - holes}, indexed on ${index.keys.joinToString()})"
+        "MultiHashMappingArray (cardinality ${backing.size - holes}, indexed on ${index.keys.joinToString()})"
 
     /**
      * Returns an iterable set of indices compatible with the provided mapping
