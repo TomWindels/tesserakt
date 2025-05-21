@@ -1,10 +1,13 @@
 package dev.tesserakt.stream.ldes
 
 import dev.tesserakt.rdf.ontology.RDF
+import dev.tesserakt.rdf.types.IndexedStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
+import dev.tesserakt.util.mapTo
+import dev.tesserakt.util.singleOrNull
 
 class VersionedLinkedDataEventStream<StreamElement>(
     val identifier: Quad.NamedTerm,
@@ -34,7 +37,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
     private val versionOfPath = store.singleOrNull { it.s == identifier && it.p == LDES.versionOfPath }?.o
         as? Quad.NamedTerm ?: streamFormatError("Expected exactly one `versionOfPath`!")
 
-    private val _members = materializeVersionedMembers(store)
+    private val _members = materializeVersionedMembers(IndexedStore(store))
         .also { members ->
             if (members.isEmpty()) {
                 return@also
@@ -151,9 +154,9 @@ class VersionedLinkedDataEventStream<StreamElement>(
 
     /* build up methods */
 
-    private fun materializeVersionedMembers(store: Store): MutableList<Member> =
+    private fun materializeVersionedMembers(store: IndexedStore): MutableList<Member> =
         store
-            .filter { it.s == identifier && it.p == LDES.member }
+            .iter(s = identifier, p = LDES.member)
             .mapTo(mutableListOf()) {
                 val identifier = it.o as? Quad.NamedTerm
                     ?: streamFormatError("Member $identifier is not an IRI")
@@ -161,14 +164,14 @@ class VersionedLinkedDataEventStream<StreamElement>(
             }
 
     private fun materialize(
-        store: Store,
+        store: IndexedStore,
         identifier: Quad.NamedTerm,
     ): Member {
         return Member(
             identifier = identifier,
-            base = store.singleOrNull { it.s == identifier && it.p == versionOfPath }?.o as? Quad.NamedTerm
+            base = store.iter(s = identifier, p = versionOfPath).singleOrNull()?.o as? Quad.NamedTerm
                 ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $versionOfPath associated, or is not an IRI"),
-            timestampValue = store.singleOrNull { it.s == identifier && it.p == timestampPath }?.o as? Quad.Literal
+            timestampValue = store.iter(s = identifier, p = timestampPath).singleOrNull()?.o as? Quad.Literal
                 ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $timestampPath associated, or is not a literal term"),
         )
     }
