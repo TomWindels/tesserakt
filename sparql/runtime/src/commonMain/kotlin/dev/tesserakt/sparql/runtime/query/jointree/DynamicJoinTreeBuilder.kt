@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
-import dev.tesserakt.sparql.runtime.evaluation.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree.Node
 
