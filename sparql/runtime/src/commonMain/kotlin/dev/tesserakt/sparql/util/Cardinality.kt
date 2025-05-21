@@ -4,7 +4,7 @@ import kotlin.jvm.JvmInline
 import kotlin.math.roundToLong
 
 @JvmInline
-value class Cardinality(private val value: Double): Comparable<Cardinality> {
+value class Cardinality(internal val value: Double): Comparable<Cardinality> {
 
     constructor(value: Number): this(value = value.toDouble())
 
