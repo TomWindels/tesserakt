@@ -3,10 +3,10 @@ package dev.tesserakt.sparql.compiler.analyser
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.sparql.types.TriplePattern
-import dev.tesserakt.sparql.types.TriplePatternSet
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.newAnonymousBinding
+import dev.tesserakt.sparql.types.TriplePattern
+import dev.tesserakt.sparql.types.TriplePatternSet
 
 class PatternProcessor: Analyser<TriplePatternSet>() {
 
@@ -141,6 +141,8 @@ class PatternProcessor: Analyser<TriplePatternSet>() {
         is Token.StringLiteral -> TriplePattern.Exact(value.asLiteralTerm())
         is Token.NumericLiteral -> TriplePattern.Exact(value.asLiteralTerm())
         Token.Keyword.RdfTypePredicate -> TriplePattern.Exact(RDF.type)
+        Token.Keyword.True -> TriplePattern.Exact(true.asLiteralTerm())
+        Token.Keyword.False -> TriplePattern.Exact(false.asLiteralTerm())
         else -> null
     }
 

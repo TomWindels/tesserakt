@@ -8,6 +8,8 @@ kotlin {
             dependencies {
                 api(project(":rdf"))
                 api("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
+
+                implementation(project(":utils"))
             }
         }
         val commonTest by getting {

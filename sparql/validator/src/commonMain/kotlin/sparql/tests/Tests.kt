@@ -87,6 +87,62 @@ fun builtinTests() = tests {
         }
     """
 
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c <= 3)
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 2)
+            FILTER(?c < 5)
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 2) .
+            FILTER(?c < 5) .
+        }
+    """
+
+    val conditional = buildStore {
+        val example = prefix("", "http://example.com/")
+        val conditional = example("condition")
+        val a = example("A")
+        val b = example("B")
+        a has conditional being false.asLiteralTerm()
+        b has conditional being true.asLiteralTerm()
+    }
+
+    using(conditional) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?a :condition true
+        }
+    """
+
+    using(conditional) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?a :condition ?condition .
+            FILTER (?condition = true)
+        }
+    """
+
     val numbers = buildStore {
         val example = prefix("", "http://example.com/")
         example("a") has example("p") being 1
@@ -113,10 +169,32 @@ fun builtinTests() = tests {
         PREFIX : <http://example.com/>
         SELECT * WHERE {
             ?x :p ?n
+            FILTER NOT EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            } .
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
             FILTER EXISTS {
                 ?x :q ?m .
                 FILTER(?n = ?m)
             }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            } .
         }
     """
 

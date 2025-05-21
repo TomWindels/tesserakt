@@ -4,7 +4,7 @@ import kotlin.jvm.JvmInline
 import kotlin.math.roundToLong
 
 @JvmInline
-value class Cardinality(private val value: Double): Comparable<Cardinality> {
+value class Cardinality(internal val value: Double): Comparable<Cardinality> {
 
     constructor(value: Number): this(value = value.toDouble())
 
@@ -26,6 +26,14 @@ value class Cardinality(private val value: Double): Comparable<Cardinality> {
 
     operator fun plus(other: Number): Cardinality {
         return Cardinality(value = this.value.plus(other.toDouble()))
+    }
+
+    operator fun minus(other: Cardinality): Cardinality {
+        return Cardinality(value = this.value.minus(other.value))
+    }
+
+    operator fun minus(other: Number): Cardinality {
+        return Cardinality(value = this.value.minus(other.toDouble()))
     }
 
     override fun compareTo(other: Cardinality): Int {
