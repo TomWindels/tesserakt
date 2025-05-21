@@ -18,8 +18,7 @@ internal object DynamicJoinTreeBuilder {
             // getting all bindings found in the other groups, and intersecting these with the individual bindings
             //  found in this group
             val indices = groups.flatMapTo(mutableSetOf()) { it.bindings }.apply {
-                retainAll(a.bindings)
-                retainAll(b.bindings)
+                retainAll(a.bindings + b.bindings)
             }
 
             val segment = if (indices.isNotEmpty()) {
@@ -79,7 +78,7 @@ internal object DynamicJoinTreeBuilder {
                 context: QueryContext,
                 first: TreeSegment<J>,
                 second: TreeSegment<J>,
-                bindings: Iterable<String>
+                bindings: Collection<String>
             ) = TreeSegment(
                 node = Node.Connected(context, first.node, second.node, bindings),
                 length = first.length + second.length,
