@@ -250,6 +250,14 @@ inline fun <E : Any> Stream<E>.filtered(noinline predicate: (E) -> Boolean): Str
 inline fun <E : Any> Stream<E>.collect(): CollectedStream<E> =
     if (this is CollectedStream) this else CollectedStream(this)
 
+/**
+ * Caches this stream into the target [stream], appending elements
+ */
+inline fun <E : Any> Stream<E>.collectTo(stream: CachedStream<E>): OptimisedStream<E> {
+    stream.insert(this)
+    return stream
+}
+
 fun <E : Any> Stream<E>.optimisedForReuse(): OptimisedStream<E> = when {
     hasZeroCardinality() -> emptyStream()
     // we *have* to buffer these, as otherwise reuse is not possible

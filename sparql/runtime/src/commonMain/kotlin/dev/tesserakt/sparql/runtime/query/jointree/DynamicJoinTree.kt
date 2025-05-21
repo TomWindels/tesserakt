@@ -87,14 +87,17 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 bindings = indexes.intersect(bindings)
                     .also { check(it.isNotEmpty()) { "Connected node used with no valid indices! This is not allowed!" } }
             )
+            private val cache = StreamCache<DataDelta, MappingDelta>()
 
             override val cardinality: Cardinality
                 get() = buf.cardinality
 
             override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-                val one = left.peek(delta)
-                val two = right.peek(delta)
-                return right.join(one).chain(left.join(two)).chain(join(one, two)).optimisedForSingleUse()
+                return cache.getOrCache(delta) {
+                    val one = left.peek(delta)
+                    val two = right.peek(delta)
+                    right.join(one).chain(left.join(two)).chain(join(one, two))
+                }
             }
 
             override fun process(delta: DataDelta) {
@@ -104,6 +107,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                         is MappingDeletion -> buf.remove(diff.value)
                     }
                 }
+                // with left and right changing, `peek()` can no longer be cached
+                cache.clear()
                 left.process(delta)
                 right.process(delta)
             }
