@@ -97,6 +97,26 @@ fun builtinTests() = tests {
         }
     """
 
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 2)
+            FILTER(?c < 5)
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 2) .
+            FILTER(?c < 5) .
+        }
+    """
+
     val conditional = buildStore {
         val example = prefix("", "http://example.com/")
         val conditional = example("condition")
@@ -149,10 +169,32 @@ fun builtinTests() = tests {
         PREFIX : <http://example.com/>
         SELECT * WHERE {
             ?x :p ?n
+            FILTER NOT EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            } .
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
             FILTER EXISTS {
                 ?x :q ?m .
                 FILTER(?n = ?m)
             }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            } .
         }
     """
 

@@ -30,6 +30,9 @@ class FilterProcessor: Analyser<Filter>() {
                 consume()
                 expectToken(Token.Symbol.RoundBracketEnd)
                 consume()
+                if (token == Token.Symbol.Period) {
+                    consume()
+                }
                 Filter.Regex(
                     input = Binding(target.name),
                     regex = regex,
@@ -41,6 +44,9 @@ class FilterProcessor: Analyser<Filter>() {
                 val expr = use(AggregatorProcessor())
                 expectToken(Token.Symbol.RoundBracketEnd)
                 consume()
+                if (token == Token.Symbol.Period) {
+                    consume()
+                }
                 expect(expr is Expression.Comparison)
                 Filter.Predicate(expr)
             }
@@ -49,6 +55,9 @@ class FilterProcessor: Analyser<Filter>() {
                 expectToken(Token.Symbol.CurlyBracketStart)
                 consume()
                 val graph = use(QueryBodyProcessor())
+                if (token == Token.Symbol.Period) {
+                    consume()
+                }
                 Filter.Exists(graph)
             }
             Token.Keyword.Not -> {
@@ -58,6 +67,9 @@ class FilterProcessor: Analyser<Filter>() {
                 expectToken(Token.Symbol.CurlyBracketStart)
                 consume()
                 val graph = use(QueryBodyProcessor())
+                if (token == Token.Symbol.Period) {
+                    consume()
+                }
                 Filter.NotExists(graph)
             }
             else -> expectedToken(Token.Keyword.Regex, Token.Symbol.RoundBracketStart, Token.Keyword.Exists, Token.Keyword.Not)
