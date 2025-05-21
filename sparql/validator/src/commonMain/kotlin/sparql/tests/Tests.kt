@@ -97,6 +97,32 @@ fun builtinTests() = tests {
         }
     """
 
+    val conditional = buildStore {
+        val example = prefix("", "http://example.com/")
+        val conditional = example("condition")
+        val a = example("A")
+        val b = example("B")
+        a has conditional being false.asLiteralTerm()
+        b has conditional being true.asLiteralTerm()
+    }
+
+    using(conditional) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?a :condition true
+        }
+    """
+
+    using(conditional) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?a :condition ?condition .
+            FILTER (?condition = true)
+        }
+    """
+
     val numbers = buildStore {
         val example = prefix("", "http://example.com/")
         example("a") has example("p") being 1

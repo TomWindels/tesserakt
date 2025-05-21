@@ -67,6 +67,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                     is FuncCall -> TODO()
                     is Negative -> TODO()
                     is NumericLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
+                    is BooleanLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
                     is StringLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
                 }
             }

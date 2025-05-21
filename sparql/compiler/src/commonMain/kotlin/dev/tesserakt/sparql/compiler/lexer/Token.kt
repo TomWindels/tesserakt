@@ -36,7 +36,11 @@ sealed interface Token {
     }
 
     enum class Keyword(override val syntax: String): Token {
+        /* term keywords */
         RdfTypePredicate("a"),
+        True("TRUE"),
+        False("FALSE"),
+        /* structural keywords */
         Prefix("PREFIX"),
         Select("SELECT"),
         Construct("CONSTRUCT"),
