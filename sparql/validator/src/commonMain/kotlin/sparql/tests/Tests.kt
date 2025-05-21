@@ -87,6 +87,16 @@ fun builtinTests() = tests {
         }
     """
 
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c <= 3)
+        }
+    """
+
     val numbers = buildStore {
         val example = prefix("", "http://example.com/")
         example("a") has example("p") being 1
