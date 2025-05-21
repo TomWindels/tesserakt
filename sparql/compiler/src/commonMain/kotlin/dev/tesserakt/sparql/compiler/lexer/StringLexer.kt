@@ -126,8 +126,8 @@ class StringLexer(private val input: String): Lexer() {
         return if (input[start] == '<') {
             val terminator = input.indexOf('>', startIndex = start, endIndex = end)
             if (terminator == -1) {
-                // only emitting the `<` sign, the rest will have to be parsed separately
-                return Token.Symbol.AngularBracketStart
+                // only emitting the `<` (or `<=`) sign, the rest will have to be parsed separately
+                return if (input[start + 1] == '=') Token.Symbol.LTEQ else Token.Symbol.AngularBracketStart
             }
             // summing two extra to the start, same logic as `?...` bindings
             start += 2
