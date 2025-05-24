@@ -1,17 +1,18 @@
-package dev.tesserakt
+package dev.tesserakt.sparql.runtime.evaluation.mapping
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.util.bitIterator
 
-class LowBindingCountMapping private constructor(
+class BitsetMapping private constructor(
     // self-managed bitmask
     private val bindings: Int,
     // all term values associated with the various bindings above
     private val terms: IntArray,
-) {
+) : Mapping {
 
     constructor(context: QueryContext, source: Map<String, Quad.Term>): this(
         bindings = source.asIterable().fold(initial = 0) { acc, entry -> acc or (1 shl context.resolveBinding(entry.key)) },
@@ -19,13 +20,13 @@ class LowBindingCountMapping private constructor(
     )
 
     constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Term>>): this(
-        bindings = source.asIterable().fold(initial = 0) { acc, entry -> acc or context.resolveBinding(entry.first) },
+        bindings = source.asIterable().fold(initial = 0) { acc, entry -> acc or (1 shl context.resolveBinding(entry.first)) },
         terms = source.asIterable().sortedBy { context.resolveBinding(it.first) }.map { context.resolveTerm(it.second) }.toIntArray(),
     )
 
     private val hashCode = bindings + terms.contentHashCode()
 
-    fun get(binding: BindingIdentifier): TermIdentifier? {
+    override fun get(binding: BindingIdentifier): TermIdentifier? {
         // getting the binding index associated with `binding`
         val index = bindingIndex(target = binding.id)
         if (index == -1) {
@@ -34,7 +35,28 @@ class LowBindingCountMapping private constructor(
         return TermIdentifier(terms[index])
     }
 
-    fun join(other: LowBindingCountMapping): LowBindingCountMapping? {
+    override fun retain(bindings: BindingIdentifierSet): Mapping {
+        val remaining = bindings.asIntIterable().fold(0) { acc, i -> acc or (1 shl i) }
+        val common = this.bindings and remaining
+        val iter = common.bitIterator()
+        val terms = IntArray(common.countOneBits()) { terms[bindingIndex(iter.next())] }
+        return BitsetMapping(
+            bindings = common,
+            terms = terms,
+        )
+    }
+
+    override fun compatibleWith(other: Mapping): Boolean {
+        require(other is BitsetMapping)
+        return count(other) != -1
+    }
+
+    override fun isEmpty(): Boolean {
+        return bindings == 0
+    }
+
+    override fun join(other: Mapping): BitsetMapping? {
+        require(other is BitsetMapping)
         if (this.bindings == 0) {
             return other
         }
@@ -107,13 +129,72 @@ class LowBindingCountMapping private constructor(
                 }
             }
         }
-        return LowBindingCountMapping(
+        return BitsetMapping(
             bindings = bindings or other.bindings,
             terms = terms,
         )
     }
 
-    private fun count(other: LowBindingCountMapping): Int {
+    override fun keys(context: QueryContext) = object: Iterable<String> {
+        override fun iterator() = object: Iterator<String> {
+            private val iter = bindings.bitIterator()
+
+            override fun hasNext(): Boolean {
+                return iter.hasNext()
+            }
+
+            override fun next(): String {
+                return context.resolveBinding(iter.next())
+            }
+        }
+    }
+
+    override fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Term>> {
+        override fun iterator() = object: Iterator<Pair<String, Quad.Term>> {
+            private val iterator = this@BitsetMapping.asIterable().iterator()
+
+            override fun hasNext(): Boolean {
+                return iterator.hasNext()
+            }
+
+            override fun next(): Pair<String, Quad.Term> {
+                val (bId, tId) = iterator.next()
+                return context.resolveBinding(bId.id) to context.resolveTerm(tId.id)
+            }
+        }
+    }
+
+    override fun asIterable() = object: Iterable<Pair<BindingIdentifier, TermIdentifier>> {
+        override fun iterator() = object: Iterator<Pair<BindingIdentifier, TermIdentifier>> {
+            private val iter = bindings.bitIterator()
+            private var i = 0
+
+            override fun hasNext(): Boolean {
+                return iter.hasNext()
+            }
+
+            override fun next(): Pair<BindingIdentifier, TermIdentifier> {
+                val binding = iter.next()
+                val term = i++
+                return BindingIdentifier(binding) to TermIdentifier(terms[term])
+            }
+        }
+    }
+
+    override fun toMap(context: QueryContext): Map<String, Quad.Term> {
+        return asIterable(context).toMap()
+    }
+
+    override fun get(context: QueryContext, binding: String): Quad.Term? {
+        val index = bindingIndex(context.resolveBinding(binding))
+        return if (index == -1) {
+            null
+        } else {
+            context.resolveTerm(terms[index])
+        }
+    }
+
+    private fun count(other: BitsetMapping): Int {
         val common = bindings and other.bindings
         // ensuring all those that are in common, are in fact identical; if there aren't any, no checks are required
         common.bitIterator().forEach { bindingId ->
@@ -142,7 +223,7 @@ class LowBindingCountMapping private constructor(
 
     @OptIn(ExperimentalStdlibApi::class)
     override fun toString(): String {
-        return "Mapping { bindings: 0x${bindings.toHexString(format = HexFormat { upperCase = true })}, terms: [${terms.joinToString()}] }"
+        return "BitsetMapping { bindings: 0x${bindings.toHexString(format = HexFormat { upperCase = true })}, terms: [${terms.joinToString()}] }"
     }
 
     override fun hashCode(): Int {
@@ -153,13 +234,19 @@ class LowBindingCountMapping private constructor(
         if (this === other) {
             return true
         }
-        if (other !is LowBindingCountMapping) {
+        if (other !is BitsetMapping) {
             return false
         }
         if (hashCode != other.hashCode) {
             return false
         }
         return bindings == other.bindings && terms.contentEquals(other.terms)
+    }
+
+    companion object {
+
+        val EMPTY = BitsetMapping(0, intArrayOf())
+
     }
 
 }

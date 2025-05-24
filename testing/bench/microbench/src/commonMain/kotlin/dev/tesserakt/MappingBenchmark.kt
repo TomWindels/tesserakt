@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.IntPairMapping
 import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.Scope
@@ -46,8 +47,8 @@ class MappingBenchmark {
     private val right = mutableListOf<MapMapping>()
     private lateinit var mapping1left: List<IntPairMapping>
     private lateinit var mapping1right: List<IntPairMapping>
-    private lateinit var mapping2left: List<LowBindingCountMapping>
-    private lateinit var mapping2right: List<LowBindingCountMapping>
+    private lateinit var mapping2left: List<BitsetMapping>
+    private lateinit var mapping2right: List<BitsetMapping>
     private val context = GlobalQueryContext
 
     @Setup
@@ -63,8 +64,8 @@ class MappingBenchmark {
         }
         mapping1left = left.map { IntPairMapping(context, it) }
         mapping1right = right.map { IntPairMapping(context, it) }
-        mapping2left = left.map { LowBindingCountMapping(context, it) }
-        mapping2right = right.map { LowBindingCountMapping(context, it) }
+        mapping2left = left.map { BitsetMapping(context, it) }
+        mapping2right = right.map { BitsetMapping(context, it) }
     }
 
     @Benchmark
@@ -80,7 +81,7 @@ class MappingBenchmark {
     }
 
     @Benchmark
-    fun joinNew2(): List<LowBindingCountMapping> {
+    fun joinNew2(): List<BitsetMapping> {
         return mapping2left.flatMap { l -> mapping2right.mapNotNull { r -> l.join(r) } }
             .also { println("Result size new 2: ${it.size}") }
     }
