@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import kotlin.jvm.JvmInline
 
 // not a value class as we have a custom equals check based on the contents of the `IntArray`, instead of reference equality

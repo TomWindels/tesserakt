@@ -2,6 +2,8 @@ package dev.tesserakt.sparql.runtime.evaluation
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 
 class BindingsImpl(private val context: QueryContext, private val mapping: Mapping): Bindings {
 
@@ -19,7 +21,14 @@ class BindingsImpl(private val context: QueryContext, private val mapping: Mappi
         if (other !is BindingsImpl) {
             return false
         }
-        return mapping == other.mapping
+        val a = mapping.asIterable().iterator()
+        val b = other.mapping.asIterable().iterator()
+        while (a.hasNext() && b.hasNext()) {
+            if (a.next() != b.next()) {
+                return false
+            }
+        }
+        return !a.hasNext() && !b.hasNext()
     }
 
     override fun toString() = iterable.joinToString(prefix = "{", postfix = "}") { "${it.first} = ${it.second}" }

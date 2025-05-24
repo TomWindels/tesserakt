@@ -1,6 +1,7 @@
-package dev.tesserakt.sparql.runtime.evaluation
+package dev.tesserakt.sparql.runtime.evaluation.context
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 
 interface QueryContext {
 
@@ -11,5 +12,9 @@ interface QueryContext {
     fun resolveBinding(id: Int): String
 
     fun resolveTerm(id: Int): Quad.Term
+
+    fun create(terms: Iterable<Pair<String, Quad.Term>>): Mapping
+
+    fun emptyMapping(): Mapping
 
 }

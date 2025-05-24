@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.runtime.stream
 
 import dev.tesserakt.sparql.runtime.collection.MappingArray
-import dev.tesserakt.sparql.runtime.evaluation.Mapping
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.ZeroCardinality

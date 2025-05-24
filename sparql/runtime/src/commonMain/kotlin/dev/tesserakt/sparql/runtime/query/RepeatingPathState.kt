@@ -3,7 +3,12 @@ package dev.tesserakt.sparql.runtime.query
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.newAnonymousBinding
 import dev.tesserakt.sparql.runtime.collection.MappingArray
-import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.evaluation.DataAddition
+import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
+import dev.tesserakt.sparql.runtime.evaluation.DataDelta
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.matches
@@ -610,7 +615,7 @@ sealed class RepeatingPathState {
                 val new = segments.newPathsOnAdding(segment)
                 // checking if any valid path has been reached
                 if (new.any { it.start == start.term && it.end == end.term }) {
-                    return streamOf(emptyMapping())
+                    return streamOf(context.emptyMapping())
                 }
             }
             return emptyStream()
@@ -632,7 +637,7 @@ sealed class RepeatingPathState {
                 val remaining = segments.remainingPathsOnRemoving(segment)
                 // checking if any valid path remains
                 if (remaining.none { it.start == start.term && it.end == end.term }) {
-                    return streamOf(emptyMapping())
+                    return streamOf(context.emptyMapping())
                 }
             }
             return emptyStream()
@@ -728,7 +733,7 @@ sealed class RepeatingPathState {
                     )
                 }
             if (segments.newPathsOnAdding(added).any { it.start == start.term && it.end == end.term }) {
-                return streamOf(emptyMapping())
+                return streamOf(context.emptyMapping())
             }
             return emptyStream()
         }
@@ -754,7 +759,7 @@ sealed class RepeatingPathState {
                     .remainingPathsOnRemoving(removed)
                     .none { it.start == start.term && it.end == end.term }
             ) {
-                return streamOf(emptyMapping())
+                return streamOf(context.emptyMapping())
             }
             return emptyStream()
         }
@@ -1197,7 +1202,7 @@ sealed class RepeatingPathState {
         override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             return if (!satisfied && inner.matches(quad.p)) {
-                streamOf(emptyMapping())
+                streamOf(context.emptyMapping())
             } else {
                 emptyStream()
             }
@@ -1275,7 +1280,7 @@ sealed class RepeatingPathState {
                         )
                     }
                 if (segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }) {
-                    return streamOf(emptyMapping())
+                    return streamOf(context.emptyMapping())
                 }
             }
             return emptyStream()

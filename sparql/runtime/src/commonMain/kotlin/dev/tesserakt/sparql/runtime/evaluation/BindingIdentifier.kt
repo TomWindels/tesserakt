@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import kotlin.jvm.JvmInline
 
 @JvmInline

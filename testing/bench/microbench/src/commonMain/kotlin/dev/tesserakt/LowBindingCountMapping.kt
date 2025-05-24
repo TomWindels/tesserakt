@@ -2,8 +2,9 @@ package dev.tesserakt
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.util.bitIterator
 
 class LowBindingCountMapping private constructor(
     // self-managed bitmask
@@ -161,23 +162,4 @@ class LowBindingCountMapping private constructor(
         return bindings == other.bindings && terms.contentEquals(other.terms)
     }
 
-}
-
-private fun Int.bitIterator() = BitIterator(this)
-
-private class BitIterator(private var bits: Int): Iterator<Int> {
-    override fun hasNext(): Boolean {
-        return bits != 0
-    }
-
-    override fun next(): Int {
-        val bit = bits.takeLowestOneBit()
-        val index = bit.countTrailingZeroBits()
-        bits = bits xor bit
-        return index
-    }
-
-    fun remaining(): Int {
-        return bits.countOneBits()
-    }
 }

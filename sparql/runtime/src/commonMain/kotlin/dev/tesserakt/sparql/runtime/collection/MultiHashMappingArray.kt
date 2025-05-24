@@ -1,6 +1,10 @@
 package dev.tesserakt.sparql.runtime.collection
 
-import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.emptyIterable
 import dev.tesserakt.sparql.util.Cardinality

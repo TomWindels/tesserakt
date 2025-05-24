@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.mapped
 

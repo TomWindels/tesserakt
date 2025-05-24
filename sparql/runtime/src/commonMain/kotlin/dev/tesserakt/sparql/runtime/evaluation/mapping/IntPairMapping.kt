@@ -1,12 +1,15 @@
-package dev.tesserakt.sparql.runtime.evaluation
+package dev.tesserakt.sparql.runtime.evaluation.mapping
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.util.isNullOr
 import kotlin.jvm.JvmInline
-import kotlin.jvm.JvmName
 
 @JvmInline
-value class Mapping private constructor(private val data: IntIntPair?) {
+value class IntPairMapping private constructor(private val data: IntIntPair?) : Mapping {
 
     constructor(context: QueryContext, source: Map<String, Quad.Term>): this(data = convert(context, source))
 
@@ -16,77 +19,77 @@ value class Mapping private constructor(private val data: IntIntPair?) {
         require(data.isNullOr { it.count > 0 })
     }
 
-    fun keys(context: QueryContext) = object: Iterable<String> {
+    override fun keys(context: QueryContext) = object: Iterable<String> {
         override fun iterator(): Iterator<String> = object: Iterator<String> {
 
             private var i = 0
 
             override fun hasNext(): Boolean {
-                val data = this@Mapping.data
+                val data = this@IntPairMapping.data
                 return data != null && i < data.count
             }
 
             override fun next(): String {
-                return context.resolveBinding(this@Mapping.data!!.key(i++))
+                return context.resolveBinding(this@IntPairMapping.data!!.key(i++))
             }
         }
     }
 
-    fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Term>> {
+    override fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Term>> {
 
         override fun iterator() = object: Iterator<Pair<String, Quad.Term>> {
 
             private var i = 0
 
             override fun hasNext(): Boolean {
-                val data = this@Mapping.data
+                val data = this@IntPairMapping.data
                 return data != null && i < data.count
             }
 
             override fun next(): Pair<String, Quad.Term> {
                 data as IntIntPair
-                return (context.resolveBinding(this@Mapping.data.key(i)) to context.resolveTerm(this@Mapping.data.value(i))).also { ++i }
+                return (context.resolveBinding(this@IntPairMapping.data.key(i)) to context.resolveTerm(this@IntPairMapping.data.value(i))).also { ++i }
             }
         }
 
     }
 
-    fun asIterable() = object: Iterable<Pair<BindingIdentifier, TermIdentifier>> {
+    override fun asIterable() = object: Iterable<Pair<BindingIdentifier, TermIdentifier>> {
 
         override fun iterator() = object: Iterator<Pair<BindingIdentifier, TermIdentifier>> {
 
             private var i = 0
 
             override fun hasNext(): Boolean {
-                val data = this@Mapping.data
+                val data = this@IntPairMapping.data
                 return data != null && i < data.count
             }
 
             override fun next(): Pair<BindingIdentifier, TermIdentifier> {
                 data as IntIntPair
-                return (BindingIdentifier(this@Mapping.data.key(i)) to TermIdentifier(this@Mapping.data.value(i))).also { ++i }
+                return (BindingIdentifier(this@IntPairMapping.data.key(i)) to TermIdentifier(this@IntPairMapping.data.value(i))).also { ++i }
             }
         }
 
     }
 
-    fun join(other: Mapping): Mapping? {
+    override fun join(other: Mapping): IntPairMapping? {
+        require(other is IntPairMapping)
         return when (val count = count(data, other.data)) {
             -1 -> null
-            0 -> Mapping(null)
+            0 -> IntPairMapping(null)
             else -> {
-                Mapping(combine(data, other.data, count))
+                IntPairMapping(combine(data, other.data, count))
             }
         }
     }
 
-    operator fun plus(other: Mapping): Mapping = join(other)!!
-
-    fun compatibleWith(other: Mapping): Boolean {
+    override fun compatibleWith(other: Mapping): Boolean {
+        require(other is IntPairMapping)
         return count(this.data, other.data) != -1
     }
 
-    fun retain(bindings: BindingIdentifierSet): Mapping {
+    override fun retain(bindings: BindingIdentifierSet): IntPairMapping {
         if (data == null) {
             return this
         }
@@ -94,7 +97,7 @@ value class Mapping private constructor(private val data: IntIntPair?) {
             .asIntIterable()
             // TODO(perf) the fact that these bindings are sorted, this filter can abuse this fact
             .filter { id -> data.search(id) != -1 }
-            .ifEmpty { return EmptyMapping }
+            .ifEmpty { return EMPTY }
         val result = IntArray(present.size * 2)
         var i = 0
         present.forEach { id ->
@@ -102,10 +105,10 @@ value class Mapping private constructor(private val data: IntIntPair?) {
             result[i + 1] = this[id]!!
             i += 2
         }
-        return Mapping(data = result.into())
+        return IntPairMapping(data = result.into())
     }
 
-    fun toMap(context: QueryContext): Map<String, Quad.Term> {
+    override fun toMap(context: QueryContext): Map<String, Quad.Term> {
         return if (data == null) emptyMap() else buildMap(data.count) {
             repeat(data.count) {
                 put(context.resolveBinding(data.key(it)), context.resolveTerm(data.value(it)))
@@ -113,13 +116,13 @@ value class Mapping private constructor(private val data: IntIntPair?) {
         }
     }
 
-    fun isEmpty() = data == null /* zero-sized data is not allowed! */
+    override fun isEmpty() = data == null /* zero-sized data is not allowed! */
 
-    fun get(context: QueryContext, binding: String): Quad.Term? {
+    override fun get(context: QueryContext, binding: String): Quad.Term? {
         return context.resolveTerm(get(context.resolveBinding(binding)) ?: return null)
     }
 
-    fun get(binding: BindingIdentifier): TermIdentifier? {
+    override fun get(binding: BindingIdentifier): TermIdentifier? {
         return TermIdentifier(id = get(binding.id) ?: return null)
     }
 
@@ -130,7 +133,7 @@ value class Mapping private constructor(private val data: IntIntPair?) {
 
     companion object {
 
-        val EMPTY = Mapping(null)
+        val EMPTY = IntPairMapping(null)
 
         private fun convert(context: QueryContext, input: Map<String, Quad.Term>): IntIntPair? {
             return if (input.isEmpty()) null else input.map { context.resolveBinding(it.key) to context.resolveTerm(it.value) }.sortedBy { it.first }.flatten().into()
@@ -336,15 +339,3 @@ value class Mapping private constructor(private val data: IntIntPair?) {
     }
 
 }
-
-val EmptyMapping get() = Mapping.EMPTY
-
-fun emptyMapping(): Mapping = Mapping.EMPTY
-
-fun mappingOf(context: QueryContext, vararg pairs: Pair<String, Quad.Term>): Mapping =
-    Mapping(context, pairs.asIterable())
-
-@JvmName("mappingOfNullable")
-fun mappingOf(context: QueryContext, vararg pairs: Pair<String?, Quad.Term>): Mapping =
-    @Suppress("UNCHECKED_CAST")
-    Mapping(context, pairs.filter { it.first != null } as List<Pair<String, Quad.Term>>)
