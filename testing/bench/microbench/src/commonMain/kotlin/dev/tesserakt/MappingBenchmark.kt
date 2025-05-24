@@ -44,8 +44,10 @@ class MappingBenchmark {
 
     private val left = mutableListOf<MapMapping>()
     private val right = mutableListOf<MapMapping>()
-    private lateinit var l: List<Mapping>
-    private lateinit var r: List<Mapping>
+    private lateinit var mapping1left: List<Mapping>
+    private lateinit var mapping1right: List<Mapping>
+    private lateinit var mapping2left: List<LowBindingCountMapping>
+    private lateinit var mapping2right: List<LowBindingCountMapping>
     private val context = GlobalQueryContext
 
     @Setup
@@ -59,8 +61,10 @@ class MappingBenchmark {
                 right.add(new)
             }
         }
-        l = left.map { Mapping(context, it) }
-        r = right.map { Mapping(context, it) }
+        mapping1left = left.map { Mapping(context, it) }
+        mapping1right = right.map { Mapping(context, it) }
+        mapping2left = left.map { LowBindingCountMapping(context, it) }
+        mapping2right = right.map { LowBindingCountMapping(context, it) }
     }
 
     @Benchmark
@@ -71,8 +75,14 @@ class MappingBenchmark {
 
     @Benchmark
     fun joinNew(): List<Mapping> {
-        return l.flatMap { l -> r.mapNotNull { r -> l.join(r) } }
-            .also { println("Result size new: ${it.size}") }
+        return mapping1left.flatMap { l -> mapping1right.mapNotNull { r -> l.join(r) } }
+            .also { println("Result size new 1: ${it.size}") }
+    }
+
+    @Benchmark
+    fun joinNew2(): List<LowBindingCountMapping> {
+        return mapping2left.flatMap { l -> mapping2right.mapNotNull { r -> l.join(r) } }
+            .also { println("Result size new 2: ${it.size}") }
     }
 
 }
