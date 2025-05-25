@@ -6,6 +6,7 @@ import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.util.bitIterator
+import dev.tesserakt.util.cloneTo
 
 class BitsetMapping private constructor(
     // self-managed bitmask
@@ -82,10 +83,13 @@ class BitsetMapping private constructor(
                         a.next()
                     } else {
                         // all other elements to the right can get added right away
-                        terms[i++] = other.get(right)
-                        b.forEach {
-                            terms[i++] = other.get(it)
-                        }
+                        val remaining = b.remaining() + 1
+                        other.terms.cloneTo(
+                            target = terms,
+                            thisOffset = other.terms.size - remaining,
+                            targetOffset = i,
+                            length = remaining
+                        )
                         break
                     }
                 }
@@ -95,10 +99,13 @@ class BitsetMapping private constructor(
                         b.next()
                     } else {
                         // all other elements to the right can get added right away
-                        terms[i++] = this.get(left)
-                        a.forEach {
-                            terms[i++] = this.get(it)
-                        }
+                        val remaining = a.remaining() + 1
+                        this.terms.cloneTo(
+                            target = terms,
+                            thisOffset = this.terms.size - remaining,
+                            targetOffset = i,
+                            length = remaining
+                        )
                         break
                     }
                 }
@@ -110,20 +117,26 @@ class BitsetMapping private constructor(
                     } else {
                         // all other elements to the right can get added right away
                         // this first step, `terms[i++] = other.get(right)`, is not required, as here, left == right
-                        b.forEach {
-                            terms[i++] = other.get(it)
-                        }
+                        val remaining = b.remaining()
+                        other.terms.cloneTo(
+                            target = terms,
+                            thisOffset = other.terms.size - remaining,
+                            targetOffset = i,
+                            length = remaining
+                        )
                         break
                     }
                     right = if (b.hasNext()) {
                         b.next()
                     } else {
                         // all other elements to the right can get added right away
-                        terms[i++] = this.get(left)
-                        // FIXME use `remaining()` instead to avoid unnecessary `get()` calls
-                        a.forEach {
-                            terms[i++] = this.get(it)
-                        }
+                        val remaining = a.remaining() + 1
+                        this.terms.cloneTo(
+                            target = terms,
+                            thisOffset = this.terms.size - remaining,
+                            targetOffset = i,
+                            length = remaining
+                        )
                         break
                     }
                 }
