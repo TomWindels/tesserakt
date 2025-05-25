@@ -11,7 +11,7 @@ fun Collection<Quad>.toJsMutableStore() = MutableStoreJs(
 
 fun QuadJs.unwrap() = this.value
 
-fun Quad.Term.toJsTerm() = QuadJs.TermJs(this)
+fun Quad.Element.toJsTerm() = QuadJs.TermJs(this)
 
 fun Quad.Graph.toJsGraph() = QuadJs.GraphJs(this)
 

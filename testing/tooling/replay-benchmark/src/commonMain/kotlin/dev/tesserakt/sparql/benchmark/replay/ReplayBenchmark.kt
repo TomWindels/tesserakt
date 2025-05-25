@@ -54,11 +54,11 @@ class ReplayBenchmark(
             }
         }
 
-        private fun extractBenchmarkIdentifierOrBail(term: Quad.Term): Quad.NamedTerm {
+        private fun extractBenchmarkIdentifierOrBail(term: Quad.Element): Quad.NamedTerm {
             return term as? Quad.NamedTerm ?: throw IllegalStateException("$term is not a valid benchmark identifier!")
         }
 
-        private fun extractQueryOrBail(term: Quad.Term): String {
+        private fun extractQueryOrBail(term: Quad.Element): String {
             check(term is Quad.Literal && term.type == XSD.string)
             return term.value
         }

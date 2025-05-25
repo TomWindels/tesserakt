@@ -28,10 +28,12 @@ internal class Deserializer(private val source: BufferedString) : Iterator<Quad>
 
     private fun getNext(): Quad? {
         val s = consumeTerm() ?: return null
+        check(s is Quad.Subject)
         val p = (consumeTerm() ?: throw IllegalStateException("Predicate is missing!")).let { term ->
             term as? Quad.NamedTerm ?: throw IllegalStateException("Expected a named term, but got $term instead!")
         }
         val o = consumeTerm() ?: throw IllegalStateException("Object is missing!")
+        check(o is Quad.Object)
         consumeWhitespace()
         check(source.peek() == '.') {
             "Failed reaching the end of the statement. Read terms $s $p $o"
@@ -40,7 +42,7 @@ internal class Deserializer(private val source: BufferedString) : Iterator<Quad>
         return Quad(s, p, o)
     }
 
-    private fun consumeTerm(): Quad.Term? {
+    private fun consumeTerm(): Quad.Element? {
         consumeWhitespace()
         return when (val c = source.peek().also { source.consume() }) {
             null -> return null

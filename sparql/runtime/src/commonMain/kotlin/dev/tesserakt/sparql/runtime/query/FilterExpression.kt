@@ -19,7 +19,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             override fun equals(other: Any?) = false
         }
         @JvmInline
-        value class SingleValue(val term: Quad.Term) : OperationValue
+        value class SingleValue(val term: Quad.Element) : OperationValue
         @JvmInline
         value class SingleValueIdentifier(val term: TermIdentifier) : OperationValue
         @JvmInline
@@ -243,15 +243,15 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
     companion object {
 
-        private fun Quad.Term.into() = OperationValue.SingleValue(this)
+        private fun Quad.Element.into() = OperationValue.SingleValue(this)
 
-        private fun Quad.Term?.into() = this?.let { OperationValue.SingleValue(this) } ?: OperationValue.Unbound
+        private fun Quad.Element?.into() = this?.let { OperationValue.SingleValue(this) } ?: OperationValue.Unbound
 
         private fun TermIdentifier?.into() = this?.let { OperationValue.SingleValueIdentifier(this) } ?: OperationValue.Unbound
 
         private fun Mapping.into() = OperationValue.SingleMapping(this)
 
-        private fun OperationValue.getTerm(context: QueryContext): Quad.Term? = when (this) {
+        private fun OperationValue.getTerm(context: QueryContext): Quad.Element? = when (this) {
             is OperationValue.SingleValue -> term
             is OperationValue.SingleValueIdentifier -> context.get(term)
             // `is`, as `equals` is always false!
@@ -263,7 +263,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             get() = (this as? OperationValue.SingleMapping)?.mapping
                 ?: throw IllegalStateException("Single mapping value expected, but received a `${this::class.simpleName}` instead!")
 
-        private val Quad.Term.literal
+        private val Quad.Element.literal
             get() = (this as? Quad.Literal)
                 ?: throw IllegalStateException("Literal term value expected, but received $this instead!")
 

@@ -17,9 +17,9 @@ Common ontology definitions are also included. This can be used to create quads 
 Basic quads can be created manually.
 ```kt
 val myQuad = Quad(
-    s = /* any `Quad.Term` any */,
-    p = /* any `Quad.NamedTerm` instance */,
-    o = /* any `Quad.Term` instance */,
+    s = /* any `Quad.Subject` instance */,
+    p = /* any `Quad.Predicate` instance */,
+    o = /* any `Quad.Object` instance */,
     g = /* optional graph parameter, defaults to the default graph */,
 )
 ```

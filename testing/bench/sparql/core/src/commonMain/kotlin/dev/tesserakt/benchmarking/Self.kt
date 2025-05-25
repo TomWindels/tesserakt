@@ -40,9 +40,10 @@ class Self(query: Query<Bindings>): Evaluator() {
 
 }
 
-private val Quad.Term.checksumLength: Int
+private val Quad.Element.checksumLength: Int
     get() = when (this) {
         is Quad.BlankTerm -> id.toString().length
         is Quad.Literal -> value.length
         is Quad.NamedTerm -> value.length
+        Quad.DefaultGraph -> 0
     }

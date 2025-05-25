@@ -24,7 +24,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         // all terms that have been discovered (count of "zero-length" segments)
-        private val terms = Counter<Quad.Term>()
+        private val terms = Counter<Quad.Element>()
         private val segments = SegmentsList()
         private val arr = MappingArray(context, start.name, end.name)
 
@@ -116,7 +116,7 @@ sealed class RepeatingPathState {
 
         private val segments = SegmentsList()
         // all terms that have been discovered (count of "zero-length" segments)
-        private val terms = Counter<Quad.Term>()
+        private val terms = Counter<Quad.Element>()
         private val arr = MappingArray(context, start.name, end.name)
         private val inner = TriplePatternState.from(context, start, inner, end)
 
@@ -968,7 +968,7 @@ sealed class RepeatingPathState {
         // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
         //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
         //  (inner repeating paths may return too many results due to the bridge binding)
-        private val reached = mutableSetOf<Quad.Term>()
+        private val reached = mutableSetOf<Quad.Element>()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -998,11 +998,11 @@ sealed class RepeatingPathState {
             TODO("Not yet implemented")
         }
 
-        private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
+        private fun peekNewlyReachable(quad: Quad): Set<Quad.Element> {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Quad.Term>()
+            val result = mutableSetOf<Quad.Element>()
             segments.newPathsOnAdding(new)
                 .forEach {
                     if (it.end != end.term) {
@@ -1109,7 +1109,7 @@ sealed class RepeatingPathState {
         // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
         //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
         //  (inner repeating paths may return too many results due to the bridge binding)
-        private val reached = mutableSetOf<Quad.Term>()
+        private val reached = mutableSetOf<Quad.Element>()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -1139,11 +1139,11 @@ sealed class RepeatingPathState {
             TODO("Not yet implemented")
         }
 
-        private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
+        private fun peekNewlyReachable(quad: Quad): Set<Quad.Element> {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Quad.Term>()
+            val result = mutableSetOf<Quad.Element>()
             segments.newPathsOnAdding(new)
                 .forEach {
                     if (it.start != start.term) {

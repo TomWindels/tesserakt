@@ -19,7 +19,7 @@ class QuadJs(
 ) {
 
     @JsName("Term")
-    class TermJs internal constructor(internal val value: Quad.Term) {
+    class TermJs internal constructor(internal val value: Quad.Element) {
 
         override fun hashCode(): Int {
             return value.hashCode()
@@ -53,9 +53,9 @@ class QuadJs(
     }
 
     internal val value = Quad(
-        s = s.jsExpect().value,
+        s = s.jsExpect().value.jsCastOrBail(),
         p = p.jsExpect().value.jsCastOrBail(),
-        o = o.jsExpect().value,
+        o = o.jsExpect().value.jsCastOrBail(),
         g = g.value
     )
 

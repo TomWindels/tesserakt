@@ -21,7 +21,7 @@ val BINDINGS = listOf(
     "age" to List(VARIANCE) { it.asLiteralTerm() },
 )
 
-typealias MapMapping = Map<String, Quad.Term>
+typealias MapMapping = Map<String, Quad.Element>
 
 private fun createMapping(id: Int): MapMapping {
     val rng = Random(id)

@@ -6,42 +6,50 @@ import kotlin.jvm.JvmStatic
 
 @Suppress("unused")
 data class Quad(
-    val s: Term,
-    val p: NamedTerm,
-    val o: Term,
+    val s: Subject,
+    val p: Predicate,
+    val o: Object,
     val g: Graph = DefaultGraph
 ) {
 
     override fun toString() = "$s $p $o"
 
-    sealed interface Term {
+    sealed interface Element {
         val value: String
     }
 
-    sealed interface Graph
+    sealed interface Subject : Element
+
+    sealed interface Predicate : Element
+
+    sealed interface Object : Element
+
+    sealed interface Graph : Element
 
     @JvmInline
-    value class BlankTerm(val id: Int): Term, Graph {
+    value class BlankTerm(val id: Int): Subject, Object, Graph {
         override val value: String
             get() = "blank_$id"
         override fun toString() = value
     }
 
     @JvmInline
-    value class NamedTerm(override val value: String): Term, Graph {
+    value class NamedTerm(override val value: String): Subject, Predicate, Object, Graph {
         override fun toString() = value
     }
 
     data class Literal(
         override val value: String,
         val type: NamedTerm
-    ): Term {
+    ): Object {
         override fun toString(): String {
             return "\"$value\"^^${type.value}"
         }
     }
 
-    data object DefaultGraph: Graph
+    data object DefaultGraph: Graph {
+        override val value: String = ""
+    }
 
     companion object {
 

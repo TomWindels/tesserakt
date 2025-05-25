@@ -18,9 +18,9 @@ fun RDF_DSL.extractPrefixes(): Map<String, String> {
         environment = Environment(""),
         consumer = object: RDF.Consumer {
             override fun process(
-                subject: Quad.NamedTerm,
-                predicate: Quad.NamedTerm,
-                `object`: Quad.Term,
+                subject: Quad.Subject,
+                predicate: Quad.Predicate,
+                `object`: Quad.Object,
                 graph: Quad.Graph
             ) {
                 // nop
@@ -28,8 +28,8 @@ fun RDF_DSL.extractPrefixes(): Map<String, String> {
 
             override fun process(
                 subject: Quad.BlankTerm,
-                predicate: Quad.NamedTerm,
-                `object`: Quad.Term,
+                predicate: Quad.Predicate,
+                `object`: Quad.Object,
                 graph: Quad.Graph
             ) {
                 // nop

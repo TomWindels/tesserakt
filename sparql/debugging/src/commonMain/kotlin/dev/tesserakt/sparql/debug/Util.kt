@@ -15,7 +15,7 @@ inline fun Quad.toStylisedString(): StylisedString =
         add("\n}")
     }
 
-inline fun Quad.Term.toStylisedString(): StylisedString = when (this) {
+inline fun Quad.Element.toStylisedString(): StylisedString = when (this) {
     is Quad.BlankTerm ->
         "blank_$id".stylise(Color.BLACK)
     is Quad.Literal -> buildStylisedString {
@@ -25,4 +25,5 @@ inline fun Quad.Term.toStylisedString(): StylisedString = when (this) {
         add(type.value, Color.WHITE)
     }
     is Quad.NamedTerm -> value.stylise(Color.BRIGHT_BLUE)
+    Quad.DefaultGraph -> StylisedString()
 }

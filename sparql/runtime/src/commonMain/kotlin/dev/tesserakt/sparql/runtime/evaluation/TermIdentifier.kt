@@ -8,7 +8,7 @@ import kotlin.jvm.JvmInline
 value class TermIdentifier(val id: Int) {
 
     companion object {
-        fun QueryContext.get(term: TermIdentifier): Quad.Term = resolveTerm(id = term.id)
+        fun QueryContext.get(term: TermIdentifier): Quad.Element = resolveTerm(id = term.id)
     }
 
 }

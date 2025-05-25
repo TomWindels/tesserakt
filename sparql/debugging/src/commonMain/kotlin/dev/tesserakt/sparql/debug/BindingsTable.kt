@@ -61,7 +61,7 @@ class BindingsTable(
         _widths.weightedSort(weights)
     }
 
-    operator fun get(index: Int, name: String): Quad.Term? =
+    operator fun get(index: Int, name: String): Quad.Element? =
         _bindings.getOrNull(index)?.get(name)
 
     override fun toString(): String {
@@ -90,11 +90,11 @@ class BindingsTable(
         }
     }
 
-    inner class Entry internal constructor(private val binding: Bindings): Iterable<Quad.Term?> {
+    inner class Entry internal constructor(private val binding: Bindings): Iterable<Quad.Element?> {
 
-        operator fun get(name: String): Quad.Term? = binding[name]
+        operator fun get(name: String): Quad.Element? = binding[name]
 
-        override operator fun iterator(): Iterator<Quad.Term?> = iterator {
+        override operator fun iterator(): Iterator<Quad.Element?> = iterator {
             _columns.forEach { column ->
                 yield(binding[column])
             }

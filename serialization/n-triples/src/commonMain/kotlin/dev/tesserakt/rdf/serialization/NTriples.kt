@@ -23,11 +23,12 @@ object NTriples: Serializer() {
         }
     }
 
-    private fun Quad.Term.encoded(): String {
+    private fun Quad.Element.encoded(): String {
         return when (this) {
             is Quad.BlankTerm -> "_:b$id"
             is Quad.Literal -> toString()
             is Quad.NamedTerm -> "<$value>"
+            Quad.DefaultGraph -> throw IllegalStateException("Graph terms (including default graph) are not encoded in the N-Triples format!")
         }
     }
 

@@ -8,10 +8,10 @@ object GlobalQueryContext: QueryContext {
     private val bindings = mutableListOf<String>()
     private val bindingsLut = mutableMapOf<String, Int>()
 
-    private val terms = mutableMapOf<Quad.Term, Int>()
+    private val terms = mutableMapOf<Quad.Element, Int>()
     // as terms are never removed from an active context, we can keep it as a regular list without risking IDs
     // shifting over
-    private val termsLut = mutableListOf<Quad.Term>()
+    private val termsLut = mutableListOf<Quad.Element>()
 
     override fun resolveBinding(value: String): Int {
         return bindingsLut.getOrPut(value) {
@@ -22,7 +22,7 @@ object GlobalQueryContext: QueryContext {
         }
     }
 
-    override fun resolveTerm(value: Quad.Term): Int {
+    override fun resolveTerm(value: Quad.Element): Int {
         return terms.getOrPut(value) {
             val i = terms.size
             termsLut.add(value)
@@ -34,11 +34,11 @@ object GlobalQueryContext: QueryContext {
         return bindings[id]
     }
 
-    override fun resolveTerm(id: Int): Quad.Term {
+    override fun resolveTerm(id: Int): Quad.Element {
         return termsLut[id]
     }
 
-    override fun create(terms: Iterable<Pair<String, Quad.Term>>): IntPairMapping =
+    override fun create(terms: Iterable<Pair<String, Quad.Element>>): IntPairMapping =
         IntPairMapping(this, terms)
 
     override fun emptyMapping(): IntPairMapping = IntPairMapping.EMPTY

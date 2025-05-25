@@ -11,9 +11,9 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class IntPairMapping private constructor(private val data: IntIntPair?) : Mapping {
 
-    constructor(context: QueryContext, source: Map<String, Quad.Term>): this(data = convert(context, source))
+    constructor(context: QueryContext, source: Map<String, Quad.Element>): this(data = convert(context, source))
 
-    constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Term>>): this(data = convert(context, source))
+    constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Element>>): this(data = convert(context, source))
 
     init {
         require(data.isNullOr { it.count > 0 })
@@ -35,9 +35,9 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
         }
     }
 
-    override fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Term>> {
+    override fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Element>> {
 
-        override fun iterator() = object: Iterator<Pair<String, Quad.Term>> {
+        override fun iterator() = object: Iterator<Pair<String, Quad.Element>> {
 
             private var i = 0
 
@@ -46,7 +46,7 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
                 return data != null && i < data.count
             }
 
-            override fun next(): Pair<String, Quad.Term> {
+            override fun next(): Pair<String, Quad.Element> {
                 data as IntIntPair
                 return (context.resolveBinding(this@IntPairMapping.data.key(i)) to context.resolveTerm(this@IntPairMapping.data.value(i))).also { ++i }
             }
@@ -108,7 +108,7 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
         return IntPairMapping(data = result.into())
     }
 
-    override fun toMap(context: QueryContext): Map<String, Quad.Term> {
+    override fun toMap(context: QueryContext): Map<String, Quad.Element> {
         return if (data == null) emptyMap() else buildMap(data.count) {
             repeat(data.count) {
                 put(context.resolveBinding(data.key(it)), context.resolveTerm(data.value(it)))
@@ -118,7 +118,7 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
 
     override fun isEmpty() = data == null /* zero-sized data is not allowed! */
 
-    override fun get(context: QueryContext, binding: String): Quad.Term? {
+    override fun get(context: QueryContext, binding: String): Quad.Element? {
         return context.resolveTerm(get(context.resolveBinding(binding)) ?: return null)
     }
 
@@ -135,11 +135,11 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
 
         val EMPTY = IntPairMapping(null)
 
-        private fun convert(context: QueryContext, input: Map<String, Quad.Term>): IntIntPair? {
+        private fun convert(context: QueryContext, input: Map<String, Quad.Element>): IntIntPair? {
             return if (input.isEmpty()) null else input.map { context.resolveBinding(it.key) to context.resolveTerm(it.value) }.sortedBy { it.first }.flatten().into()
         }
 
-        private fun convert(context: QueryContext, input: Iterable<Pair<String, Quad.Term>>): IntIntPair? {
+        private fun convert(context: QueryContext, input: Iterable<Pair<String, Quad.Element>>): IntIntPair? {
             return if (!input.iterator().hasNext()) null else input.map { context.resolveBinding(it.first) to context.resolveTerm(it.second) }.sortedBy { it.first }.flatten().into()
         }
 

@@ -22,9 +22,9 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
     private val prefixes = mutableMapOf<String /* prefix */, String /* uri */>()
     private val blanks = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
     private var base = ""
-    private var s: Quad.Term? = null
-    private var p: Quad.NamedTerm? = null
-    private var o: Quad.Term? = null
+    private var s: Quad.Subject? = null
+    private var p: Quad.Predicate? = null
+    private var o: Quad.Object? = null
     private var g: Quad.Graph = Quad.DefaultGraph
     private var inGraphBlock = false
 
@@ -71,7 +71,7 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                     if (inGraphBlock) {
                         // we're already in a graph block, the only valid next term is also a term token, which we won't
                         //  explicitly test for now
-                        s = resolved
+                        s = resolved as Quad.Subject
                         position = Position.Predicate
                         token = nextOrBail()
                     } else {
@@ -86,7 +86,7 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                             }
 
                             is TriGToken.TermToken -> {
-                                s = resolved
+                                s = resolved as Quad.Subject
                                 val predicate = resolve(next)
                                 p = predicate as? Quad.NamedTerm
                                     ?: throw IllegalStateException("$predicate is not a valid predicate term!")
@@ -94,7 +94,7 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                             }
 
                             TriGToken.Structural.TypePredicate -> {
-                                s = resolved
+                                s = resolved as Quad.Subject
                                 p = RDF.type
                                 position = Position.Object
                             }
@@ -127,7 +127,7 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                     // FIXME: blank objects
                     o = when (token) {
                         is TriGToken.TermToken -> {
-                            resolve(token)
+                            resolve(token) as Quad.Object
                         }
 
                         TriGToken.Structural.TrueLiteral -> {
@@ -249,7 +249,7 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
         prefixes[prefix.prefix] = uri.value
     }
 
-    private fun resolve(term: TriGToken.TermToken): Quad.Term {
+    private fun resolve(term: TriGToken.TermToken): Quad.Element {
         return when (term) {
             is TriGToken.LiteralTerm -> {
                 val type = resolve(term.type) as? Quad.NamedTerm

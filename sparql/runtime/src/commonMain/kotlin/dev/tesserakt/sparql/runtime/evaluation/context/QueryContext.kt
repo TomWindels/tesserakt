@@ -7,13 +7,13 @@ interface QueryContext {
 
     fun resolveBinding(value: String): Int
 
-    fun resolveTerm(value: Quad.Term): Int
+    fun resolveTerm(value: Quad.Element): Int
 
     fun resolveBinding(id: Int): String
 
-    fun resolveTerm(id: Int): Quad.Term
+    fun resolveTerm(id: Int): Quad.Element
 
-    fun create(terms: Iterable<Pair<String, Quad.Term>>): Mapping
+    fun create(terms: Iterable<Pair<String, Quad.Element>>): Mapping
 
     fun emptyMapping(): Mapping
 
