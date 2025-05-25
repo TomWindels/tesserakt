@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.collection
 
-import dev.tesserakt.sparql.runtime.evaluation.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.util.Cardinality
 

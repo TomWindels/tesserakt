@@ -1,7 +1,6 @@
 package dev.tesserakt.sparql.runtime.stream
 
-import dev.tesserakt.sparql.runtime.evaluation.Mapping
-import dev.tesserakt.sparql.runtime.evaluation.emptyMapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.util.Cardinality
 
 class StreamMultiJoin(
@@ -20,7 +19,7 @@ class StreamMultiJoin(
 
         private var left = source1.next()
         // the empty mapping is never read from, so this is not an error (instant `increment()` call)
-        private var right: Mapping = emptyMapping()
+        private lateinit var right: Mapping
 
         private var next: Mapping? = null
 

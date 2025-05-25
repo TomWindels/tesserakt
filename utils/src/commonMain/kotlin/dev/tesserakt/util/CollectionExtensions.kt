@@ -173,3 +173,5 @@ expect inline fun <T> MutableList<T>.removeFirstElement(): T
  *  Android 14 and below
  */
 expect inline fun <T> MutableList<T>.removeLastElement(): T
+
+expect inline fun IntArray.cloneTo(target: IntArray, thisOffset: Int, targetOffset: Int, length: Int)

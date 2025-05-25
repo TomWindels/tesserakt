@@ -19,3 +19,16 @@ actual inline fun <T> MutableList<T>.removeFirstElement(): T {
 actual inline fun <T> MutableList<T>.removeLastElement(): T {
     return removeLast()
 }
+
+actual inline fun IntArray.cloneTo(
+    target: IntArray,
+    thisOffset: Int,
+    targetOffset: Int,
+    length: Int
+) {
+    var i = 0
+    while (i < length) {
+        target[i + targetOffset] = this[i + thisOffset]
+        ++i
+    }
+}

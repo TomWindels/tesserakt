@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.Union

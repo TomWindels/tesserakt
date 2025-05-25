@@ -1,11 +1,15 @@
-package dev.tesserakt.sparql.runtime.evaluation
+package dev.tesserakt.sparql.runtime.evaluation.context
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
+import dev.tesserakt.sparql.types.QueryStructure
+import dev.tesserakt.sparql.types.extractAllBindings
 
-object GlobalQueryContext: QueryContext {
+class BitsetQueryContext(ast: QueryStructure): QueryContext {
 
-    private val bindings = mutableListOf<String>()
-    private val bindingsLut = mutableMapOf<String, Int>()
+    // note: this cannot be a read only list, as some add bindings during initialisation, such as repeating paths
+    private val bindings = ast.body.extractAllBindings().mapTo(mutableListOf()) { it.name }
+    private val bindingsLut = bindings.withIndex().associateTo(mutableMapOf()) { (i, value) -> value to i }
 
     private val terms = mutableMapOf<Quad.Term, Int>()
     // as terms are never removed from an active context, we can keep it as a regular list without risking IDs
@@ -15,6 +19,7 @@ object GlobalQueryContext: QueryContext {
     override fun resolveBinding(value: String): Int {
         return bindingsLut.getOrPut(value) {
             val i = bindings.size
+            require(i < 32)
             require(bindingsLut.size == i)
             bindings.add(value)
             i
@@ -35,6 +40,14 @@ object GlobalQueryContext: QueryContext {
 
     override fun resolveTerm(id: Int): Quad.Term {
         return termsLut[id]
+    }
+
+    override fun create(terms: Iterable<Pair<String, Quad.Term>>): BitsetMapping {
+        return BitsetMapping(this, terms)
+    }
+
+    override fun emptyMapping(): BitsetMapping {
+        return BitsetMapping.EMPTY
     }
 
 }

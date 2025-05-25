@@ -4,6 +4,9 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.matches
@@ -304,7 +307,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
     protected fun subjectMappingOrNull(quad: Quad): Mapping? {
         return when (s) {
             is TriplePattern.Binding -> mappingOf(context, s.name to quad.s)
-            is TriplePattern.Exact -> if (s.term == quad.s) EmptyMapping else null
+            is TriplePattern.Exact -> if (s.term == quad.s) context.emptyMapping() else null
         }
     }
 
@@ -320,7 +323,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
     protected fun objectMappingOrNull(quad: Quad): Mapping? {
         return when (o) {
             is TriplePattern.Binding -> mappingOf(context, o.name to quad.o)
-            is TriplePattern.Exact -> if (o.term == quad.o) EmptyMapping else null
+            is TriplePattern.Exact -> if (o.term == quad.o) context.emptyMapping() else null
         }
     }
 

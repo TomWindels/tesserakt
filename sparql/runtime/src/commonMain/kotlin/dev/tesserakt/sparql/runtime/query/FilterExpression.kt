@@ -4,10 +4,10 @@ import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.Mapping
-import dev.tesserakt.sparql.runtime.evaluation.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier.Companion.get
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.Expression.*
 import kotlin.jvm.JvmInline

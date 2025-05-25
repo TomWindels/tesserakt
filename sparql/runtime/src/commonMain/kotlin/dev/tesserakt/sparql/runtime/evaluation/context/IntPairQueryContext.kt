@@ -1,10 +1,11 @@
-package dev.tesserakt.sparql.runtime.evaluation
+package dev.tesserakt.sparql.runtime.evaluation.context
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.mapping.IntPairMapping
 import dev.tesserakt.sparql.types.QueryStructure
 import dev.tesserakt.sparql.types.extractAllBindings
 
-class QueryContextImpl(ast: QueryStructure): QueryContext {
+class IntPairQueryContext(ast: QueryStructure): QueryContext {
 
     // note: this cannot be a read only list, as some add bindings during initialisation, such as repeating paths
     private val bindings = ast.body.extractAllBindings().mapTo(mutableListOf()) { it.name }
@@ -38,6 +39,14 @@ class QueryContextImpl(ast: QueryStructure): QueryContext {
 
     override fun resolveTerm(id: Int): Quad.Term {
         return termsLut[id]
+    }
+
+    override fun create(terms: Iterable<Pair<String, Quad.Term>>): IntPairMapping {
+        return IntPairMapping(this, terms)
+    }
+
+    override fun emptyMapping(): IntPairMapping {
+        return IntPairMapping.EMPTY
     }
 
 }

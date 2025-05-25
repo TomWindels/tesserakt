@@ -1,7 +1,7 @@
 
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.sparql.runtime.evaluation.GlobalQueryContext
-import dev.tesserakt.sparql.runtime.evaluation.mappingOf
+import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.util.Counter
 import kotlin.test.Test

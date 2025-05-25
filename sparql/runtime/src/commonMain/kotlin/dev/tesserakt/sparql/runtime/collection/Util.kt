@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.collection
 
-import dev.tesserakt.sparql.runtime.evaluation.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 
 fun MappingArray(context: QueryContext, bindings: Collection<String>) = when {
     bindings.isNotEmpty() -> MultiHashMappingArray(context, bindings = bindings.toSet())
