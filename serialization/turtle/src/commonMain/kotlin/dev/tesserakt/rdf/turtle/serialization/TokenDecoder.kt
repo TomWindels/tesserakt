@@ -1,18 +1,18 @@
 package dev.tesserakt.rdf.turtle.serialization
 
-import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
-import dev.tesserakt.rdf.serialization.util.BufferedString
+import dev.tesserakt.rdf.serialization.util.*
 import dev.tesserakt.util.isNullOr
 import kotlin.jvm.JvmInline
+import kotlin.text.isWhitespace
 
 // TODO: `source.report()` use
 // TODO: improved exception uses
 
 @InternalSerializationApi
 @JvmInline
-internal value class TokenDecoder(private val source: BufferedString): Iterator<TurtleToken> {
+internal value class TokenDecoder(private val source: BufferedString) : Iterator<TurtleToken> {
 
     override fun hasNext(): Boolean {
         consumeWhitespace()
@@ -21,8 +21,14 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
 
     override fun next(): TurtleToken {
         consumeWhitespace()
-        TurtleToken.Structural.entries.forEach {
-            if (matches(it.syntax)) {
+        TurtleToken.Keyword.CaseSensitive.forEach {
+            if (matchesKeyword(it.syntax)) {
+                source.consume(it.syntax.length)
+                return it
+            }
+        }
+        TurtleToken.Keyword.CaseInsensitive.forEach {
+            if (matchesKeywordIgnoreCase(it.syntax)) {
                 source.consume(it.syntax.length)
                 return it
             }
@@ -31,9 +37,13 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         return when {
             next == null -> throw NoSuchElementException("End was reached!")
             next == '<' -> consumeTerm()
-            next == '"' -> consumeLiteralTerm()
-            next.isDigit() -> consumeLiteralValue()
-            else -> consumePrefixedTermOrBail()
+            matches("\"\"\"") -> consumeLongLiteralTerm("\"\"\"")
+            matches("\'\'\'") -> consumeLongLiteralTerm("\'\'\'")
+            next == '"' -> consumeLiteralTerm('"')
+            next == '\'' -> consumeLiteralTerm('\'')
+            next.isDigit() || next == '+' || next == '-' || (next == '.'  && source.peek(1).isDigit()) ->
+                consumeLiteralValue()
+            else -> TurtleToken.Structural[next]?.also { source.consume() } ?: consumePrefixedTermOrBail()
         }
     }
 
@@ -51,6 +61,7 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         check(source.peek() == '<')
         source.consume() // '<'
         val content = consumeWhile { check(!it.isWhitespace()); it != '>' }
+            .let { EscapeSequenceHelper.decodeNumericEscapes(it) }
         source.consume() // '>'
         // valid non-relative terms start with `mailto:`, `http(s)://`, etc.
         return if (':' !in content) {
@@ -60,45 +71,70 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         }
     }
 
-    private fun consumeLiteralTerm(): TurtleToken.LiteralTerm {
-        check(source.peek() == '"')
-        source.consume() // '"'
-        val value = consumeWhile { it != '"' }
-        source.consume() // '"'
-        if (source.peek() == '^') {
+    private fun consumeLiteralTerm(terminator: Char): TurtleToken.TermToken {
+        check(source.peek() == terminator)
+        source.consume() // terminator
+        var escaped = false
+        val value = consumeWhile { c -> (escaped || c != terminator).also { escaped = !escaped && c == '\\' } }
+            .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
+        source.consume() // terminator
+        if (source.peek() == '@') {
+            source.consume()
+            // language tag
+            val language = consumeLanguageTag()
+            return TurtleToken.LocalizedLiteralTerm(value, language)
+        } else if (terminator == '"' && source.peek() == '^') {
             source.consume() // '^'
             check(source.peek() == '^')
             source.consume() // '^'
             val type = next()
             check(type is TurtleToken.NonLiteralTerm) { "Invalid literal type: $type" }
             return TurtleToken.LiteralTerm(value, type)
-        } else if (source.peek() == '@') {
-            // language tag, ignored for now
-            // FIXME use the language tag
-            consumeWhile { !it.isWhitespace() }
-            return TurtleToken.LiteralTerm(value, TurtleToken.Term(RDF.langString.value))
         } else {
             return TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value))
+        }
+    }
+
+    private fun consumeLongLiteralTerm(terminator: String): TurtleToken.TermToken {
+        check(matches(terminator))
+        source.consume(terminator.length)
+        var escaped = false
+        val value = consumeWhile { c -> (escaped || !matches(terminator)).also { escaped = !escaped && c == '\\' } }
+            .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
+        source.consume(terminator.length)
+        return if (source.peek() == '@') {
+            source.consume()
+            // language tag
+            val language = consumeLanguageTag()
+            TurtleToken.LocalizedLiteralTerm(value, language)
+        } else {
+            TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value))
         }
     }
 
     private fun consumeLiteralValue(): TurtleToken.LiteralTerm {
         val result = StringBuilder()
         var next = source.peek()
-        while (next != null && next.isDigit() || next == '.') {
+        while (next != null && (next.isDigit() || next == '.' || next.lowercaseChar() == 'e' || next == '+' || next == '-')) {
             result.append(next)
             source.consume()
             next = source.peek()
         }
-        return when (result.count { it == '.' }) {
-            1 -> {
+        return when {
+            !DecimalFormat.matches(result) -> {
+                throw IllegalStateException("Invalid numeric literal: `${result}`")
+            }
+
+            result.any { it == 'e' || it == 'E' } -> {
                 TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.double.value))
             }
-            0 -> {
-                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.int.value))
+
+            result.any { it == '.' } -> {
+                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.decimal.value))
             }
+
             else -> {
-                throw IllegalStateException("Invalid numeric literal: `${result}`")
+                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.int.value))
             }
         }
     }
@@ -111,10 +147,12 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         }
         source.consume() // ':'
         val value = consumePrefixLocalName()
-            // resolving escape sequences (identical to turtle)
-            // https://www.w3.org/TR/turtle/#h_note_2 -> https://www.w3.org/TR/turtle/#reserved
-            .replace(EscapeSequence) { it.groupValues[1] }
         return TurtleToken.PrefixedTerm(prefix, value)
+    }
+
+    private inline fun consumeLanguageTag(): String {
+        // it's invalid to have a dtype present in a language tag
+        return consumeWhile { check(!matches("^^")); !it.isWhitespace() }
     }
 
     /**
@@ -124,6 +162,34 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
         var i = 0
         while (i < text.length) {
             if (text[i] != source.peek(i)) {
+                return false
+            }
+            ++i
+        }
+        return true
+    }
+
+    /**
+     * Returns `true` when [text] matches with the current [source] position, terminated by a whitespace or EOF
+     */
+    private fun matchesKeyword(text: String): Boolean {
+        var i = 0
+        while (i < text.length) {
+            if (text[i] != source.peek(i)) {
+                return false
+            }
+            ++i
+        }
+        return source.peek(i).isNullOr { it.isWhitespace() }
+    }
+
+    /**
+     * Returns `true` when [text] matches with the current [source] position, terminated by a whitespace or EOF
+     */
+    private fun matchesKeywordIgnoreCase(text: String): Boolean {
+        var i = 0
+        while (i < text.length) {
+            if (text[i].lowercaseChar() != source.peek(i)?.lowercaseChar()) {
                 return false
             }
             ++i
@@ -146,18 +212,45 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
      *  * `ex:my\,triple` returns "my,triple"
      */
     private fun consumePrefixLocalName(): String {
-        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';' || this == '.'
+        var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
+
+        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';' || this == '#'
 
         val result = StringBuilder()
-        var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
         var escaped = false
+
         while (escaped || !c.isTerminatingCharacter()) {
-            result.append(source.peek(0))
-            source.consume()
-            escaped = !escaped && c == '\\'
-            c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
-            check(!escaped || c in ReservedCharacters) {
-                "Invalid escape sequence: `\\${c}`"
+            val isReserved = c in ReservedCharacters
+            if (escaped) {
+                check(isReserved) { "Invalid character `$c` encountered - unexpected escape!" }
+                result.append(c)
+                escaped = false
+                source.consume()
+                c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+            } else /* !escaped */ {
+                if (c == '%' && source.peek(1).isHexDecimal() && source.peek(2).isHexDecimal()) {
+                    result.append(source.peek())
+                    result.append(source.peek(1))
+                    result.append(source.peek(2))
+                    source.consume(3)
+                    c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+                } else if (c == '.' && !source.peek(1).isWhitespace()) {
+                    result.append('.')
+                    result.append(source.peek(1))
+                    source.consume(2)
+                    c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+                } else if (c == '\\') {
+                    escaped = true
+                    source.consume()
+                    c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+                } else if (TurtleToken.Structural[c] == null) {
+                    result.append(c)
+                    source.consume()
+                    c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+                } else {
+                    // non-escaped structural character - leaving
+                    break
+                }
             }
         }
         return result.toString()
@@ -165,6 +258,7 @@ internal value class TokenDecoder(private val source: BufferedString): Iterator<
 
 }
 
-private val ReservedCharacters = setOf('~','.','\\','-','!','\$','&','\'','(',')','*','+',',',';','=','/','?','#','@','%','_')
+private val ReservedCharacters =
+    setOf('~', '.', '\\', '-', '!', '\$', '&', '\'', '(', ')', '*', '+', ',', ';', '=', '/', '?', '#', '@', '%', '_')
 
-private val EscapeSequence = Regex("\\\\([${ReservedCharacters.joinToString("")}])")
+private val DecimalFormat = Regex("[+-]?\\d*(?:\\.\\d*)?(?:[eE][+-]?\\d*)?")

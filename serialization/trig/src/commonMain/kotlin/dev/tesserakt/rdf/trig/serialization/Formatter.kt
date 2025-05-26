@@ -229,7 +229,7 @@ data class PrettyFormatter(
     override fun format(tokens: Iterator<TriGToken>) = iterator {
         // first writing all prefixes
         prefixes.forEach { (base, uri) ->
-            yield(TriGToken.Structural.PrefixAnnotationA.syntax)
+            yield(TriGToken.Keyword.PrefixAnnotationA.syntax)
             yield(" ")
             yield(base)
             yield(":")
@@ -341,7 +341,7 @@ data class PrettyFormatter(
                 buffer.advance()
                 return result
             }
-            TriGToken.Structural.TypePredicate -> {
+            TriGToken.Keyword.TypePredicate -> {
                 val result = buffer.current.syntax
                 buffer.advance()
                 return result

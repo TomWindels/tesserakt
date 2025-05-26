@@ -17,6 +17,8 @@ kotlin {
                 // the script used for interacting with the external testing suite
                 implementation(npm("rdf-test-suite", "1.25.0"))
                 // dependencies used when testing logic directly
+                implementation(project(":serialization:turtle"))
+                implementation(project(":serialization:trig"))
                 implementation(project(":sparql"))
                 implementation(project(":sparql:core")) // required to analyse the compiled query
                 implementation(project(":interop:rdfjs"))
@@ -28,16 +30,42 @@ kotlin {
     }
 }
 
-val rdfSuite = tasks.register("rdf-test-suite-js", Exec::class.java) {
+val sparql11Tests = tasks.register("rdf-test-suite-js-sparql11", Exec::class.java) {
     File("${project.rootDir.absolutePath}/.cache/rdf-test-suite").mkdirs()
     workingDir("${project.rootDir}/build/js/packages/tesserakt-testing-rdf-test-suite-js")
-    commandLine("node", "../../node_modules/rdf-test-suite/bin/Runner.js", "kotlin/tesserakt-testing-rdf-test-suite-js.js", "http://w3c.github.io/rdf-tests/sparql/sparql11/manifest-all.ttl", "-c", "../../../../.cache/rdf-test-suite/", "-s", "http://www.w3.org/TR/sparql11-query/")
+    commandLine(
+        "node",
+        "../../node_modules/rdf-test-suite/bin/Runner.js",
+        "kotlin/tesserakt-testing-rdf-test-suite-js.js",
+        "http://w3c.github.io/rdf-tests/sparql/sparql11/manifest-all.ttl",
+        "-c",
+        "../../../../.cache/rdf-test-suite/",
+        "-s",
+        "http://www.w3.org/TR/sparql11-query/",
+    )
 }
 
-rdfSuite.dependsOn("jsRun")
+sparql11Tests.dependsOn("jsRun")
+
+val turtleTests = tasks.register("rdf-test-suite-js-turtle", Exec::class.java) {
+    File("${project.rootDir.absolutePath}/.cache/rdf-test-suite").mkdirs()
+    workingDir("${project.rootDir}/build/js/packages/tesserakt-testing-rdf-test-suite-js")
+    commandLine(
+        "node",
+        "../../node_modules/rdf-test-suite/bin/Runner.js",
+        "kotlin/tesserakt-testing-rdf-test-suite-js.js",
+        "https://w3c.github.io/rdf-tests/rdf/rdf11/rdf-turtle/manifest.ttl",
+        "-c",
+        "../../../../.cache/rdf-test-suite/",
+    )
+}
+
+turtleTests.dependsOn("jsRun")
 
 // required for `jsRun` to behave; does cause constant recompiles, but worth the test correctness
 tasks.named("jsNodeDevelopmentRun").dependsOn("jsProductionExecutableCompileSync")
 tasks.named("jsNodeDevelopmentRun").dependsOn("jsDevelopmentExecutableCompileSync")
 tasks.named("jsNodeProductionRun").dependsOn("jsProductionExecutableCompileSync")
 tasks.named("jsNodeProductionRun").dependsOn("jsDevelopmentExecutableCompileSync")
+tasks.named("jsNodeRun").dependsOn("jsProductionExecutableCompileSync")
+tasks.named("jsNodeRun").dependsOn("jsDevelopmentExecutableCompileSync")

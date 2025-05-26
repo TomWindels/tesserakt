@@ -3,6 +3,9 @@
 @file:JsQualifier("DataFactory")
 package dev.tesserakt.interop.rdfjs.n3
 
+@JsName("blankNode")
+internal external fun createN3BlankNode(value: String): N3BlankNode
+
 @JsName("namedNode")
 internal external fun createN3NamedNode(value: String): N3NamedNode
 

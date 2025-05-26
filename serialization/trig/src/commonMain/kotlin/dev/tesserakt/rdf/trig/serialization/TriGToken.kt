@@ -6,6 +6,9 @@ internal sealed interface TriGToken {
 
     val syntax: String
 
+    /**
+     * A structural token: the token does not have to be followed by whitespace
+     */
     enum class Structural(override val syntax: String): TriGToken {
         StatementTermination("."),
         PredicateTermination(";"),
@@ -14,6 +17,12 @@ internal sealed interface TriGToken {
         GraphStatementEnd("}"),
         BlankStart("["),
         BlankEnd("]"),
+    }
+
+    /**
+     * A keyword token: the token has to be followed by a whitespace (or EOF)
+     */
+    enum class Keyword(override val syntax: String): TriGToken {
         BaseAnnotationA("@base"),
         BaseAnnotationB("BASE"),
         PrefixAnnotationA("@prefix"),
