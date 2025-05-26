@@ -26,7 +26,7 @@ actual class ExternalQueryExecution actual constructor(
         QueryExecutionFactory.create(query, store).use { execution ->
             val solutions = execution.execSelect()
             while (solutions.hasNext()) {
-                val current = mutableMapOf<String, Quad.Term>()
+                val current = mutableMapOf<String, Quad.Element>()
                 val solution = solutions.nextSolution()
                 solution.varNames().forEach { name ->
                     solution[name]?.asNode()?.toTerm()?.let { current[name] = it }

@@ -3,15 +3,20 @@ package dev.tesserakt.stream.ldes
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.MutableStore
+import dev.tesserakt.rdf.types.impl.AbstractStore
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
+import dev.tesserakt.util.mapTo
+import dev.tesserakt.util.single
+import dev.tesserakt.util.singleOrNull
 
 class VersionedLinkedDataEventStream<StreamElement>(
     val identifier: Quad.NamedTerm,
-    private val store: Store,
+    data: Store,
     private val comparator: Comparator<Quad.Literal> = DateComparator,
     private val transform: StreamTransform<StreamElement>,
-): Set<Quad> by store {
+): AbstractStore() {
 
     data class Member(
         /**
@@ -28,10 +33,12 @@ class VersionedLinkedDataEventStream<StreamElement>(
         val timestampValue: Quad.Literal
     )
 
-    private val timestampPath = store.singleOrNull { it.s == identifier && it.p == LDES.timestampPath }?.o
+    private val store = MutableStore(data)
+
+    private val timestampPath = store.iter(s = identifier, p = LDES.timestampPath).singleOrNull()?.o
         as? Quad.NamedTerm ?: streamFormatError("Expected exactly one `timestampPath`!")
 
-    private val versionOfPath = store.singleOrNull { it.s == identifier && it.p == LDES.versionOfPath }?.o
+    private val versionOfPath = store.iter(s = identifier, p = LDES.versionOfPath).singleOrNull()?.o
         as? Quad.NamedTerm ?: streamFormatError("Expected exactly one `versionOfPath`!")
 
     private val _members = materializeVersionedMembers(store)
@@ -57,12 +64,18 @@ class VersionedLinkedDataEventStream<StreamElement>(
             .sortedWith(comparator)
 
     init {
-        if (store.none { it.s == identifier && it.p == RDF.type && it.o == LDES.EventStream }) {
-            streamFormatError("Stream $identifier has no ")
+        if (!store.iter(s = identifier, p = RDF.type, o = LDES.EventStream).hasNext()) {
+            streamFormatError("Stream $identifier does not have the event stream type set!")
         }
     }
 
     /* public api */
+
+    override val size: Int get() = store.size
+
+    override fun isEmpty(): Boolean = store.isEmpty()
+
+    override fun iterator(): Iterator<Quad> = store.iterator()
 
     fun read(until: Quad.Literal): Store = transform.decode(
         source = store,
@@ -125,7 +138,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
             identifier = identifier,
             transform = transform,
             comparator = comparator,
-            store = Store()
+            data = MutableStore()
                 .apply {
                     // minimum set of triples required for a valid versioned LDES with the provided arguments
                     add(Quad(identifier, RDF.type, LDES.EventStream))
@@ -138,11 +151,11 @@ class VersionedLinkedDataEventStream<StreamElement>(
             store: Store,
             transform: StreamTransform<StreamUnit>,
             identifier: Quad.NamedTerm =
-                store.single { it.p == RDF.type && it.o == LDES.EventStream }.s as Quad.NamedTerm,
+                store.iter(p = RDF.type, o = LDES.EventStream).single().s as Quad.NamedTerm,
             comparator: Comparator<Quad.Literal> = DateComparator
         ): VersionedLinkedDataEventStream<StreamUnit> = VersionedLinkedDataEventStream(
             identifier = identifier,
-            store = store,
+            data = store,
             comparator = comparator,
             transform = transform,
         )
@@ -153,7 +166,7 @@ class VersionedLinkedDataEventStream<StreamElement>(
 
     private fun materializeVersionedMembers(store: Store): MutableList<Member> =
         store
-            .filter { it.s == identifier && it.p == LDES.member }
+            .iter(s = identifier, p = LDES.member)
             .mapTo(mutableListOf()) {
                 val identifier = it.o as? Quad.NamedTerm
                     ?: streamFormatError("Member $identifier is not an IRI")
@@ -166,9 +179,9 @@ class VersionedLinkedDataEventStream<StreamElement>(
     ): Member {
         return Member(
             identifier = identifier,
-            base = store.singleOrNull { it.s == identifier && it.p == versionOfPath }?.o as? Quad.NamedTerm
+            base = store.iter(s = identifier, p = versionOfPath).singleOrNull()?.o as? Quad.NamedTerm
                 ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $versionOfPath associated, or is not an IRI"),
-            timestampValue = store.singleOrNull { it.s == identifier && it.p == timestampPath }?.o as? Quad.Literal
+            timestampValue = store.iter(s = identifier, p = timestampPath).singleOrNull()?.o as? Quad.Literal
                 ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $timestampPath associated, or is not a literal term"),
         )
     }

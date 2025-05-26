@@ -15,12 +15,12 @@ class BitsetMapping private constructor(
     private val terms: IntArray,
 ) : Mapping {
 
-    constructor(context: QueryContext, source: Map<String, Quad.Term>): this(
+    constructor(context: QueryContext, source: Map<String, Quad.Element>): this(
         bindings = source.asIterable().fold(initial = 0) { acc, entry -> acc or (1 shl context.resolveBinding(entry.key)) },
         terms = source.asIterable().sortedBy { context.resolveBinding(it.key) }.map { context.resolveTerm(it.value) }.toIntArray(),
     )
 
-    constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Term>>): this(
+    constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Element>>): this(
         bindings = source.asIterable().fold(initial = 0) { acc, entry -> acc or (1 shl context.resolveBinding(entry.first)) },
         terms = source.asIterable().sortedBy { context.resolveBinding(it.first) }.map { context.resolveTerm(it.second) }.toIntArray(),
     )
@@ -162,15 +162,15 @@ class BitsetMapping private constructor(
         }
     }
 
-    override fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Term>> {
-        override fun iterator() = object: Iterator<Pair<String, Quad.Term>> {
+    override fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Element>> {
+        override fun iterator() = object: Iterator<Pair<String, Quad.Element>> {
             private val iterator = this@BitsetMapping.asIterable().iterator()
 
             override fun hasNext(): Boolean {
                 return iterator.hasNext()
             }
 
-            override fun next(): Pair<String, Quad.Term> {
+            override fun next(): Pair<String, Quad.Element> {
                 val (bId, tId) = iterator.next()
                 return context.resolveBinding(bId.id) to context.resolveTerm(tId.id)
             }
@@ -194,11 +194,11 @@ class BitsetMapping private constructor(
         }
     }
 
-    override fun toMap(context: QueryContext): Map<String, Quad.Term> {
+    override fun toMap(context: QueryContext): Map<String, Quad.Element> {
         return asIterable(context).toMap()
     }
 
-    override fun get(context: QueryContext, binding: String): Quad.Term? {
+    override fun get(context: QueryContext, binding: String): Quad.Element? {
         val index = bindingIndex(context.resolveBinding(binding))
         return if (index == -1) {
             null

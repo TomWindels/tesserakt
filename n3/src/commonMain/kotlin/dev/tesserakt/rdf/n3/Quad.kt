@@ -10,7 +10,7 @@ data class Quad(
 ) {
 
     sealed interface Term {
-        @JvmInline value class RdfTerm(val term: dev.tesserakt.rdf.types.Quad.Term): Term {
+        @JvmInline value class RdfTerm(val term: dev.tesserakt.rdf.types.Quad.Element): Term {
             override fun toString() = term.toString()
         }
 

@@ -11,10 +11,10 @@ class BitsetQueryContext(ast: QueryStructure): QueryContext {
     private val bindings = ast.body.extractAllBindings().mapTo(mutableListOf()) { it.name }
     private val bindingsLut = bindings.withIndex().associateTo(mutableMapOf()) { (i, value) -> value to i }
 
-    private val terms = mutableMapOf<Quad.Term, Int>()
+    private val terms = mutableMapOf<Quad.Element, Int>()
     // as terms are never removed from an active context, we can keep it as a regular list without risking IDs
     // shifting over
-    private val termsLut = mutableListOf<Quad.Term>()
+    private val termsLut = mutableListOf<Quad.Element>()
 
     override fun resolveBinding(value: String): Int {
         return bindingsLut.getOrPut(value) {
@@ -26,7 +26,7 @@ class BitsetQueryContext(ast: QueryStructure): QueryContext {
         }
     }
 
-    override fun resolveTerm(value: Quad.Term): Int {
+    override fun resolveTerm(value: Quad.Element): Int {
         return terms.getOrPut(value) {
             val i = terms.size
             termsLut.add(value)
@@ -38,11 +38,11 @@ class BitsetQueryContext(ast: QueryStructure): QueryContext {
         return bindings[id]
     }
 
-    override fun resolveTerm(id: Int): Quad.Term {
+    override fun resolveTerm(id: Int): Quad.Element {
         return termsLut[id]
     }
 
-    override fun create(terms: Iterable<Pair<String, Quad.Term>>): BitsetMapping {
+    override fun create(terms: Iterable<Pair<String, Quad.Element>>): BitsetMapping {
         return BitsetMapping(this, terms)
     }
 

@@ -2,12 +2,12 @@
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.trig.serialization.withPrefixes
 import dev.tesserakt.rdf.trig.serialization.trig
 import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.trig.serialization.withPrefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
+import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 import dev.tesserakt.stream.ldes.ontology.TREE
@@ -16,7 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertFails
 import kotlin.test.fail
 
-class SnapshotStoreTest {
+class SnapshotStoreImplTest {
 
     @Test
     fun insertion() {
@@ -56,7 +56,7 @@ class SnapshotStoreTest {
         }
     }
 
-    private fun assertStoreContentEqual(expected: Set<Quad>, actual: Set<Quad>) {
+    private fun assertStoreContentEqual(expected: Store, actual: Store) {
         val missing = expected - actual
         val superfluous = actual - expected
         if (missing.isNotEmpty() || superfluous.isNotEmpty()) {

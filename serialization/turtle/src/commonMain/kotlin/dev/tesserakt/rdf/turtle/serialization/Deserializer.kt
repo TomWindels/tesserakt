@@ -21,9 +21,9 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
     private val prefixes = mutableMapOf<String /* prefix */, String /* uri */>()
     private val blanks = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
     private var base = ""
-    private var s: Quad.Term? = null
-    private var p: Quad.NamedTerm? = null
-    private var o: Quad.Term? = null
+    private var s: Quad.Subject? = null
+    private var p: Quad.Predicate? = null
+    private var o: Quad.Object? = null
 
     /* iterator/output logic */
 
@@ -58,7 +58,7 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
                     check(token is TurtleToken.TermToken) {
                         "$token is not a valid subject / graph term"
                     }
-                    val resolved = resolve(token)
+                    val resolved = resolve(token) as Quad.Subject
                     s = resolved
                     position = Position.Predicate
                     token = nextOrBail()
@@ -86,7 +86,7 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
                     // FIXME: blank objects
                     o = when (token) {
                         is TurtleToken.TermToken -> {
-                            resolve(token)
+                            resolve(token) as Quad.Object
                         }
 
                         TurtleToken.Structural.TrueLiteral -> {
@@ -201,7 +201,7 @@ internal class Deserializer(private val source: Iterator<TurtleToken>) : Iterato
         prefixes[prefix.prefix] = uri.value
     }
 
-    private fun resolve(term: TurtleToken.TermToken): Quad.Term {
+    private fun resolve(term: TurtleToken.TermToken): Quad.Element {
         return when (term) {
             is TurtleToken.LiteralTerm -> {
                 val type = resolve(term.type) as? Quad.NamedTerm

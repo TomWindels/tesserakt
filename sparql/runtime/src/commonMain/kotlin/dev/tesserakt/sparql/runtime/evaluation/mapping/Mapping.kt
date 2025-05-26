@@ -12,13 +12,13 @@ interface Mapping {
 
     fun keys(context: QueryContext): Iterable<String>
 
-    fun asIterable(context: QueryContext): Iterable<Pair<String, Quad.Term>>
+    fun asIterable(context: QueryContext): Iterable<Pair<String, Quad.Element>>
 
     fun asIterable(): Iterable<Pair<BindingIdentifier, TermIdentifier>>
 
-    fun toMap(context: QueryContext): Map<String, Quad.Term>
+    fun toMap(context: QueryContext): Map<String, Quad.Element>
 
-    fun get(context: QueryContext, binding: String): Quad.Term?
+    fun get(context: QueryContext, binding: String): Quad.Element?
 
     fun get(binding: BindingIdentifier): TermIdentifier?
 

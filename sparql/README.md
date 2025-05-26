@@ -23,7 +23,7 @@ val query = Query.Select("SELECT ?s { ?s ?p ?o }")
 val bindings = store.query(query) // bindings = [{s = <http://example.org/tesserakt>}]
 ```
 ### Ongoing query execution
-The incremental evaluation supports mutating the data whilst maintaining up-to-date query results. The most straightforward way of achieving this is by using a `MutableStore` instance.
+The incremental evaluation supports mutating the data whilst maintaining up-to-date query results. The most straightforward way of achieving this is by using an `ObservableStore` instance.
 ```kt
 // generating data
 // ... or any other `Iterable<Quad>` source
@@ -32,7 +32,7 @@ val quad = Quad(
     // ...,
     // ...
 )
-val store = MutableStore()
+val store = ObservableStore()
 store.add(quad)
 
 // creating the query object

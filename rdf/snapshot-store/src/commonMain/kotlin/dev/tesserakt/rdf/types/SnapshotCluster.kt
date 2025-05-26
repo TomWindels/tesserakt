@@ -4,6 +4,6 @@ interface SnapshotCluster {
 
     val identifier: Quad.NamedTerm
 
-    fun extractClusterContent(source: Set<Quad>): Set<Quad>
+    fun extractClusterContent(source: Store): Store
 
 }

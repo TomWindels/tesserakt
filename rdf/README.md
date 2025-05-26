@@ -17,19 +17,25 @@ Common ontology definitions are also included. This can be used to create quads 
 Basic quads can be created manually.
 ```kt
 val myQuad = Quad(
-    s = /* any `Quad.Term` any */,
-    p = /* any `Quad.NamedTerm` instance */,
-    o = /* any `Quad.Term` instance */,
+    s = /* any `Quad.Subject` instance */,
+    p = /* any `Quad.Predicate` instance */,
+    o = /* any `Quad.Object` instance */,
     g = /* optional graph parameter, defaults to the default graph */,
 )
 ```
 A `Store` can be used as a collection of quads.
 ```kt
-val myStore = Store()
-myStore.add(myQuad)
+val myStore = Store(myQuad)
+myStore.size // 1
 ```
-Alternatively, a `MutableStore` instance can be used, allowing listeners to subscribe to store changes.
+Alternatively, a `MutableStore` instance can be used, allowing data to be altered after creation.
 ```kt
 val myMutableStore = MutableStore()
 myMutableStore.add(myQuad)
+```
+Finally, an `ObservableStore` instance can be used, allowing data changes to be observed by various listeners, e.g. when using SPARQL queries.
+```kt
+val myObservableStore = ObservableStore()
+myObservableStore.addListener(/* a listener implementation */)
+myObservableStore.add(myQuad) // notifies the listener added above
 ```

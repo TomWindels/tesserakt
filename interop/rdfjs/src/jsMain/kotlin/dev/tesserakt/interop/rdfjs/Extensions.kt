@@ -3,6 +3,7 @@ package dev.tesserakt.interop.rdfjs
 import dev.tesserakt.interop.rdfjs.n3.*
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.MutableStore
 
 fun Collection<Quad>.toN3Store(): N3Store {
     val result = N3Store()
@@ -17,10 +18,11 @@ fun Quad.toN3Triple() = N3Quad(
     graph = g.toN3GraphTerm(),
 )
 
-fun Quad.Term.toN3Term() = when (this) {
+fun Quad.Element.toN3Term() = when (this) {
     is Quad.NamedTerm -> createN3NamedNode(value)
     is Quad.Literal -> createN3Literal(value, createN3NamedNode(type.value))
     is Quad.BlankTerm -> createN3NamedNode("_:b_$id")
+    Quad.DefaultGraph -> DefaultN3Graph
 }
 
 private val DefaultN3Graph = object: N3Term {
@@ -35,7 +37,7 @@ fun Quad.Graph.toN3GraphTerm() = when (this) {
 }
 
 fun N3Store.toStore(): Store {
-    val result = Store()
+    val result = MutableStore()
     forEach(callback = { quad ->
         result.add(quad.toQuad())
     })
@@ -43,13 +45,17 @@ fun N3Store.toStore(): Store {
 }
 
 fun N3Quad.toQuad() = Quad(
-    s = subject.toTerm(),
-    p = predicate.toTerm() as Quad.NamedTerm,
-    o = `object`.toTerm(),
+    s = subject.toTerm().jsCastOrBail(),
+    p = predicate.toTerm().jsCastOrBail(),
+    o = `object`.toTerm().jsCastOrBail(),
     g = graph.toGraphTerm()
 )
 
-fun N3Term.toTerm(): Quad.Term = when (termType) {
+private inline fun <reified T> Any.jsCastOrBail(): T {
+    return this as? T ?: throw Error("Invalid type: ${this::class.simpleName}\nExpected ${T::class.simpleName}")
+}
+
+fun N3Term.toTerm(): Quad.Element = when (termType) {
     "NamedNode" -> unsafeCast<N3NamedNode>().toTerm()
 
     "Literal" -> unsafeCast<N3Literal>().toTerm()

@@ -12,7 +12,7 @@ import kotlin.test.assertEquals
 private const val SIZE = 1000
 private const val VARIANCE = 50
 
-private typealias MapMapping = Map<String, Quad.Term>
+private typealias MapMapping = Map<String, Quad.Element>
 
 class MappingTest {
 

@@ -13,6 +13,8 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.Store
+import dev.tesserakt.rdf.types.factory.emptyStore
 import dev.tesserakt.stream.ldes.StreamTransform
 import dev.tesserakt.stream.ldes.VersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.ontology.DC
@@ -45,7 +47,7 @@ class VersionedLDESTest {
             VersionedLinkedDataEventStream(
                 identifier = "myLDES".asNamedTerm(),
                 transform = StreamTransform.GraphBased,
-                store = Store()
+                data = Store()
             )
         }
     }
@@ -129,7 +131,7 @@ class VersionedLDESTest {
             timestamp = (now - 10.seconds).asLiteral(),
             data = data
         )
-        assertStoreContentEqual(emptySet(), ldes.read((now - 20.seconds).asLiteral()))
+        assertStoreContentEqual(emptyStore(), ldes.read((now - 20.seconds).asLiteral()))
         assertStoreContentEqual(data, ldes.read((now - 5.seconds).asLiteral()))
     }
 
@@ -178,13 +180,13 @@ class VersionedLDESTest {
             }
         }
         println(serializer.serialize(data = ldes))
-        assertStoreContentEqual(emptySet(), ldes.read(pre_t1))
+        assertStoreContentEqual(emptyStore(), ldes.read(pre_t1))
         assertStoreContentEqual(data1, ldes.read(pre_t2))
-        assertStoreContentEqual(data1 + data2, ldes.read(pre_t3))
-        assertStoreContentEqual(data1v2 + data2, ldes.read(pre_t4))
+        assertStoreContentEqual(Store(data1 + data2), ldes.read(pre_t3))
+        assertStoreContentEqual(Store(data1v2 + data2), ldes.read(pre_t4))
     }
 
-    private fun assertStoreContentEqual(expected: Set<Quad>, actual: Set<Quad>) {
+    private fun assertStoreContentEqual(expected: Store, actual: Store) {
         val missing = expected - actual
         val superfluous = actual - expected
         if (missing.isNotEmpty() || superfluous.isNotEmpty()) {

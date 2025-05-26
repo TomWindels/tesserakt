@@ -9,7 +9,7 @@ class BindingsImpl(private val context: QueryContext, private val mapping: Mappi
 
     private val iterable = mapping.asIterable(context)
 
-    override fun iterator(): Iterator<Pair<String, Quad.Term>> = iterable.iterator()
+    override fun iterator(): Iterator<Pair<String, Quad.Element>> = iterable.iterator()
 
     fun retain(names: Set<String>) = BindingsImpl(context, mapping = mapping.retain(BindingIdentifierSet(context, names)))
 
