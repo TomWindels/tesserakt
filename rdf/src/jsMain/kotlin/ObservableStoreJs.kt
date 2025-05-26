@@ -1,18 +1,20 @@
-import dev.tesserakt.rdf.types.MutableStore
+
+import dev.tesserakt.rdf.types.factory.ObservableStore
+import dev.tesserakt.rdf.types.impl.ObservableStoreImpl
 import dev.tesserakt.util.jsExpect
 
 /**
- * A thin wrapper for the [MutableStore] type. This is not a data class, as the copy method cannot be exposed
+ * A thin wrapper for the [ObservableStoreImpl] type. This is not a data class, as the copy method cannot be exposed
  */
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-@JsName("MutableStore")
-class MutableStoreJs(quads: Array<QuadJs>? = undefined) {
+@JsName("ObservableStore")
+class ObservableStoreJs(quads: Array<QuadJs>? = undefined) {
 
-    internal val store = MutableStore(quads?.map { it.unwrap() } ?: emptyList())
+    internal val store = ObservableStore(quads?.map { it.unwrap() } ?: emptyList())
 
     override fun equals(other: Any?): Boolean {
-        if (other !is MutableStoreJs) {
+        if (other !is ObservableStoreJs) {
             return false
         }
         return store == other.store

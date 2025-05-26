@@ -37,7 +37,7 @@ object SPARQLJs {
 
     fun query(
         query: SelectQueryJs? = undefined,
-        store: MutableStoreJs? = undefined
+        store: ObservableStoreJs? = undefined
     ): SelectQueryEvaluationJs {
         return SelectQueryEvaluationJs(store.jsExpect().unwrap().query(query.jsExpect().query))
     }

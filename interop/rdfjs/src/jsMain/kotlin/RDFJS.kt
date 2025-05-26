@@ -7,7 +7,7 @@ import kotlin.js.collections.toSet
 @JsExport
 object RDFJS {
 
-    fun fromStore(store: MutableStoreJs): N3Store {
+    fun fromStore(store: ObservableStoreJs): N3Store {
         return store.unwrap().toN3Store()
     }
 

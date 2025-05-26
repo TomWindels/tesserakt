@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql
 
-import dev.tesserakt.rdf.types.MutableStore
+import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.BindingsImpl
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
@@ -16,7 +16,7 @@ class OngoingQueryEvaluationDebug<RT>(private val query: QueryState<RT, *>): Ong
 
     private val processor = query.Processor()
 
-    private val listener = object: MutableStore.Listener {
+    private val listener = object: ObservableStore.Listener {
         override fun onQuadAdded(quad: Quad) {
             add(quad)
         }
@@ -33,14 +33,14 @@ class OngoingQueryEvaluationDebug<RT>(private val query: QueryState<RT, *>): Ong
         }
     }
 
-    override fun subscribe(store: MutableStore) {
+    override fun subscribe(store: ObservableStore) {
         store.forEach { quad ->
             processor.process(DataAddition(quad)).forEach { process(it) }
         }
         store.addListener(listener)
     }
 
-    override fun unsubscribe(store: MutableStore) {
+    override fun unsubscribe(store: ObservableStore) {
         store.removeListener(listener)
     }
 

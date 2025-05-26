@@ -3,6 +3,7 @@ package dev.tesserakt.interop.rdfjs
 import dev.tesserakt.interop.rdfjs.n3.*
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.MutableStore
 
 fun Collection<Quad>.toN3Store(): N3Store {
     val result = N3Store()
@@ -36,7 +37,7 @@ fun Quad.Graph.toN3GraphTerm() = when (this) {
 }
 
 fun N3Store.toStore(): Store {
-    val result = Store()
+    val result = MutableStore()
     forEach(callback = { quad ->
         result.add(quad.toQuad())
     })

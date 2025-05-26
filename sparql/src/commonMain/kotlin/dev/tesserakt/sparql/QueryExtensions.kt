@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql
 
-import dev.tesserakt.rdf.types.MutableStore
+import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
@@ -58,14 +58,14 @@ internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> = bui
     RuntimeStatistics.append(processor.debugInformation())
 }
 
-fun <RT> MutableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
+fun <RT> ObservableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
 }
 
-fun <RT> MutableStore.queryDebug(query: Query<RT>): OngoingQueryEvaluation<RT> {
+fun <RT> ObservableStore.queryDebug(query: Query<RT>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationDebug(query.createState()).also { it.subscribe(this) }
 }
 
-internal fun <RT> MutableStore.query(query: QueryState<RT, *>): OngoingQueryEvaluation<RT> {
+internal fun <RT> ObservableStore.query(query: QueryState<RT, *>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationRelease(query).also { it.subscribe(this) }
 }

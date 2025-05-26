@@ -2,10 +2,10 @@
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.trig.serialization.withPrefixes
-import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
+import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.trig.serialization.trig
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
+import dev.tesserakt.rdf.trig.serialization.withPrefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
@@ -29,7 +29,7 @@ class ReplayBenchmarkTest {
                 withPrefixes(XSD, TREE, LDES, DC, RDF, RBO)
             }
         }
-        println(serializer.serialize(data = benchmark.toStore()))
+        println(serializer.serialize(data = benchmark.toStore()).collect())
         var i = 0
         benchmark.eval { current: Store, diff: SnapshotStore.Diff ->
             println(current)
@@ -82,7 +82,7 @@ class ReplayBenchmarkTest {
         return ReplayBenchmark(identifier = "benchmark".asNamedTerm(), snapshotStore, listOf("SELECT * WHERE { ?s ?p ?o }"))
     }
 
-    private fun assertStoreContentEqual(expected: Set<Quad>, actual: Set<Quad>) {
+    private fun assertStoreContentEqual(expected: Store, actual: Store) {
         val missing = expected - actual
         val superfluous = actual - expected
         if (missing.isNotEmpty() || superfluous.isNotEmpty()) {

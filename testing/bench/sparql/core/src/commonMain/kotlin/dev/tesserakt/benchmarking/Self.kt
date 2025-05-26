@@ -1,8 +1,8 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.SnapshotStore
+import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.query
@@ -12,7 +12,7 @@ class Self(query: Query<Bindings>): Evaluator() {
 
     constructor(query: String): this(Query.Select(query))
 
-    private val store = MutableStore()
+    private val store = ObservableStore()
     private val eval = store.query(query)
     private lateinit var diff: SnapshotStore.Diff
     private var previous = emptyList<Bindings>()

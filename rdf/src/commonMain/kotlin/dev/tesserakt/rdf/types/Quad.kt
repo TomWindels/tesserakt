@@ -12,7 +12,7 @@ data class Quad(
     val g: Graph = DefaultGraph
 ) {
 
-    override fun toString() = "$s $p $o"
+    override fun toString() = "$s $p $o $g"
 
     sealed interface Element {
         val value: String

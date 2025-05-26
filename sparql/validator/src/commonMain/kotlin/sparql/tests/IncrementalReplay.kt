@@ -6,6 +6,7 @@ import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
@@ -76,7 +77,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
     }
     awaitBenchmarkStart()
     benchmark.queries.forEachIndexed { i, query ->
-        val store = MutableStore()
+        val store = ObservableStore()
         val evaluation = store.query(Query.Select(query))
         println("Beginning new evaluation for query ${i + 1}")
         var snapshotIndex = 0
