@@ -101,6 +101,23 @@ object EscapeSequenceHelper {
         return result.toString()
     }
 
+    /**
+     * Encodes mapped character escapes into their target representation in the resulting string.
+     */
+    fun encodeMappedCharacterEscapes(
+        input: String,
+        mapping: Map<Char, Char> = ReversedDefaultReservedCharacterEscapes
+    ): String {
+        val result = StringBuilder()
+        input.forEach { c ->
+            if (c in mapping) {
+                result.append('\\')
+            }
+            result.append(c)
+        }
+        return result.toString()
+    }
+
     val DefaultReservedCharacterEscapes = mapOf(
         't' to  Char(0x09),
         'b' to  Char(0x08),
@@ -111,6 +128,9 @@ object EscapeSequenceHelper {
         '\'' to Char(0x27),
         '\\' to Char(0x5C),
     )
+
+    val ReversedDefaultReservedCharacterEscapes =
+        DefaultReservedCharacterEscapes.asIterable().associate { it.value to it.key }
 
 }
 

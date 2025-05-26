@@ -1,5 +1,6 @@
 package dev.tesserakt.rdf.turtle.serialization
 
+import dev.tesserakt.rdf.serialization.util.EscapeSequenceHelper
 import kotlin.jvm.JvmInline
 
 internal sealed interface TurtleToken {
@@ -85,10 +86,18 @@ internal sealed interface TurtleToken {
 
     /** any literal **/
     data class LiteralTerm(
+        /**
+         * The raw value, as should be used in-memory; it is not escaped
+         */
         val value: String,
         val type: NonLiteralTerm,
     ): TurtleToken, TermToken {
-        override val syntax get() = "\"$value\"^^${type.syntax}"
+        /**
+         * The raw value, but escaped, as would be seen in turtle documents
+         */
+        val escaped = EscapeSequenceHelper.encodeMappedCharacterEscapes(value)
+
+        override val syntax get() = "\"$escaped\"^^${type.syntax}"
         override fun toString(): String = "literal `$syntax`"
     }
 
