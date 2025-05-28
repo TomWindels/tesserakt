@@ -1,9 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
-import dev.tesserakt.sparql.runtime.evaluation.DataDelta
-import dev.tesserakt.sparql.runtime.evaluation.MappingAddition
-import dev.tesserakt.sparql.runtime.evaluation.MappingDeletion
-import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.TriplePatternState
@@ -48,6 +45,10 @@ value class StatelessJoinTree<J: MutableJoinState>(private val states: List<J>):
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {
         return join(completed = Bitmask.wrap(0, length = states.size), delta).toStream()
+    }
+
+    override fun rehash(bindings: BindingIdentifierSet) {
+        // nothing to do - no final states are cached
     }
 
     override fun debugInformation() = buildString {

@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
-import dev.tesserakt.sparql.runtime.collection.MappingArray
+import dev.tesserakt.sparql.runtime.collection.RehashableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
@@ -46,6 +46,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
         fun join(deltas: OptimisedStream<MappingDelta>): Stream<MappingDelta> =
             deltas.transform(maxCardinality = this.cardinality) { delta -> join(delta) }
 
+        fun rehash(bindings: BindingIdentifierSet)
+
         fun debugInformation(): String
 
         @JvmInline
@@ -69,6 +71,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 return state.join(delta)
             }
 
+            override fun rehash(bindings: BindingIdentifierSet) {
+                state.rehash(bindings)
+            }
+
             override fun debugInformation(): String {
                 return "leaf\n$state"
             }
@@ -83,7 +89,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
             override val bindings = left.bindings + right.bindings
 
-            private val buf = MappingArray(
+            private val buf = RehashableMappingArray(
                 context = context,
                 bindings = indexes
             )
@@ -115,6 +121,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
                 return delta.mapToStream { buf.join(it) }
+            }
+
+            override fun rehash(bindings: BindingIdentifierSet) {
+                buf.rehash(bindings)
             }
 
             override fun debugInformation() = buildString {
@@ -203,6 +213,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 }
             }
 
+            override fun rehash(bindings: BindingIdentifierSet) {
+                // nothing to do
+            }
+
             override fun debugInformation() = buildString {
                 var lines = left.debugInformation().lines()
                 if (lines.size > 2) {
@@ -273,6 +287,23 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {
         return root.join(delta)
+    }
+
+    override fun rehash(bindings: BindingIdentifierSet) {
+        // this only affects the root node, as that's the one that is joined with directly
+        when (val root = root) {
+            is Node.Connected<*, *, *> -> {
+                root.rehash(bindings)
+                // TODO: consider transforming this into a disconnected node if the requested bindings
+                //  is empty and both child nodes have no overlap
+            }
+            is Node.Disconnected<*, *, *> -> {
+                // nothing to do, as joins are not hashed anyway
+                // TODO: consider transforming this into a connected node if the requested bindings
+                //  is not empty
+            }
+            is Node.Leaf<*> -> root.rehash(bindings)
+        }
     }
 
     override fun debugInformation() = buildString {

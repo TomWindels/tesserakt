@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
@@ -30,6 +31,10 @@ data object EmptyJoinTree: JoinTree {
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {
         return streamOf(delta)
+    }
+
+    override fun rehash(bindings: BindingIdentifierSet) {
+        // nothing to do
     }
 
     override fun toString(): String = "Empty join tree"

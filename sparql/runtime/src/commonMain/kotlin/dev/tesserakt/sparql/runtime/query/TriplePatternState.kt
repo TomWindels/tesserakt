@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
-import dev.tesserakt.sparql.runtime.collection.MappingArray
+import dev.tesserakt.sparql.runtime.collection.RehashableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
@@ -28,7 +28,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         obj: TriplePattern.Object
     ) : TriplePatternState<P>(context, subj, pred, obj) {
 
-        private val data = MappingArray(context, bindingNamesOf(subj, pred, obj))
+        private val data = RehashableMappingArray(context, bindingNamesOf(subj, pred, obj))
 
         override val cardinality get() = data.cardinality
 
@@ -60,6 +60,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             } else {
                 delta.mapToStream { data.join(delta.value) }
             }
+        }
+
+        final override fun rehash(bindings: BindingIdentifierSet) {
+            data.rehash(bindings)
         }
 
         // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
@@ -175,6 +179,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             }
         }
 
+        override fun rehash(bindings: BindingIdentifierSet) {
+            // TODO
+        }
+
     }
 
     class AltPatternState(
@@ -208,6 +216,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
         }
 
+        override fun rehash(bindings: BindingIdentifierSet) {
+            states.forEach { it.rehash(bindings) }
+        }
+
     }
 
     class SimpleAltPatternState(
@@ -239,6 +251,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
         }
 
+        override fun rehash(bindings: BindingIdentifierSet) {
+            states.forEach { it.rehash(bindings) }
+        }
+
     }
 
     class SequencePatternState(
@@ -266,6 +282,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return tree.join(delta)
         }
 
+        override fun rehash(bindings: BindingIdentifierSet) {
+            tree.rehash(bindings)
+        }
+
     }
 
     class UnboundedSequencePatternState(
@@ -291,6 +311,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
         override fun join(delta: MappingDelta): Stream<MappingDelta> {
             return tree.join(delta)
+        }
+
+        override fun rehash(bindings: BindingIdentifierSet) {
+            tree.rehash(bindings)
         }
 
     }

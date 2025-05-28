@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
@@ -21,6 +22,13 @@ interface MutableJoinState {
     val cardinality: Cardinality
 
     fun join(delta: MappingDelta): Stream<MappingDelta>
+
+    /**
+     * Passes a hint down the underlying memory structure to optimise subsequent [join] executions. Depending
+     *  on the underlying type, this hint may be ignored. Requesting a rehash on bindings not found in the [bindings]
+     *  collection for this state is not useful.
+     */
+    fun rehash(bindings: BindingIdentifierSet)
 
     /**
      * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in this state, without

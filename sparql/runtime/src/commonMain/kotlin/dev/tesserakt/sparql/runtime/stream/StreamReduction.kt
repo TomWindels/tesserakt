@@ -8,7 +8,8 @@ class StreamReduction<E: Any>(
     removed: Iterable<E>
 ): Stream<E> {
 
-    private class Iter<E>(
+    // necessary type lower bound for the Counter type
+    private class Iter<E : Any>(
         private val source: Iterator<E>,
         private val remove: Counter<E>
     ): Iterator<E> {

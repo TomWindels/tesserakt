@@ -14,11 +14,16 @@ import dev.tesserakt.sparql.util.Cardinality
  *  algorithm. Hash tables are created for every binding name passed in the constructor.
  */
 class SingleHashMappingArray(
-    context: QueryContext,
-    binding: String
+    private val key: BindingIdentifier
 ): MappingArray {
 
-    private val key = BindingIdentifier(context, binding)
+    constructor(
+        context: QueryContext,
+        binding: String,
+    ): this(
+        key = BindingIdentifier(context, binding)
+    )
+
     private val backing = mutableMapOf<TermIdentifier, SimpleMappingArray>()
 
     override var cardinality = Cardinality(0)
@@ -35,23 +40,23 @@ class SingleHashMappingArray(
         return if (target != null) {
             backing[target]?.iter() ?: emptyStream()
         } else {
-            // a series of chains are required for all available mappings as there's no index that can
-            //  be used
-            val iter = backing.values.iterator()
-            if (!iter.hasNext()) {
-                emptyStream()
-            } else {
-                var result: OptimisedStream<Mapping> = iter.next().iter()
-                while (iter.hasNext()) {
-                    result = result.chain(iter.next().iter())
-                }
-                result
-            }
+            iter()
         }
     }
 
     override fun iter(mappings: List<Mapping>): List<OptimisedStream<Mapping>> {
         return mappings.map { iter(it) }
+    }
+
+    override fun iter(): OptimisedStream<Mapping> {
+        // a series of chains are required for all available mappings as there's no index that can
+        //  be used
+        var result: OptimisedStream<Mapping> = emptyStream()
+        val iter = backing.values.iterator()
+        while (iter.hasNext()) {
+            result = result.chain(iter.next().iter())
+        }
+        return result
     }
 
     /**

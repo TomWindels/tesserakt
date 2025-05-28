@@ -1,9 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.runtime.evaluation.DataDelta
-import dev.tesserakt.sparql.runtime.evaluation.MappingAddition
-import dev.tesserakt.sparql.runtime.evaluation.MappingDeletion
-import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.jointree.JoinTree
 import dev.tesserakt.sparql.runtime.query.jointree.from
@@ -21,6 +18,12 @@ class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions
         get() = patterns.cardinality * unions.cardinality
 
     override val bindings = this.patterns.bindings + this.unions.bindings
+
+    init {
+        val common = BindingIdentifierSet(context, this.unions.bindings.intersect(this.patterns.bindings))
+        this.patterns.rehash(common)
+        this.unions.rehash(common)
+    }
 
     override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
         val first = patterns.peek(delta)
@@ -48,6 +51,11 @@ class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions
         // this is guaranteed behaviour for a set of triple patterns / unions
         @Suppress("UNCHECKED_CAST")
         return unions.join(patterns.join(delta).optimisedForSingleUse()) as Stream<MappingDeletion>
+    }
+
+    override fun rehash(bindings: BindingIdentifierSet) {
+        patterns.rehash(bindings)
+        unions.rehash(bindings)
     }
 
     fun debugInformation() = buildString {

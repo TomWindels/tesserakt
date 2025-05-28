@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree.Node
@@ -82,7 +83,12 @@ internal object DynamicJoinTreeBuilder {
             ) = TreeSegment(
                 node = Node.Connected(context, first.node, second.node, bindings),
                 length = first.length + second.length,
-            )
+            ).also {
+                // requesting the child nodes to rehash themselves based on common bindings
+                val common = BindingIdentifierSet(context, first.node.bindings.intersect(second.node.bindings))
+                first.node.rehash(common)
+                second.node.rehash(common)
+            }
 
             fun <J: MutableJoinState> disconnected(
                 context: QueryContext,
@@ -91,7 +97,12 @@ internal object DynamicJoinTreeBuilder {
             ) = TreeSegment(
                 node = Node.Disconnected(context, first.node, second.node),
                 length = first.length + second.length,
-            )
+            ).also {
+                // requesting the child nodes to rehash themselves based on common bindings
+                val common = BindingIdentifierSet(context, first.node.bindings.intersect(second.node.bindings))
+                first.node.rehash(common)
+                second.node.rehash(common)
+            }
 
             /* helpers */
 

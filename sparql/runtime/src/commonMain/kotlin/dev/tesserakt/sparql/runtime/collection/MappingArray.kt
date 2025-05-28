@@ -9,6 +9,11 @@ interface MappingArray {
     val cardinality: Cardinality
 
     /**
+     * Returns an [OptimisedStream] of [Mapping]s that are present inside this structure
+     */
+    fun iter(): OptimisedStream<Mapping>
+
+    /**
      * Returns an [OptimisedStream] of [Mapping]s that are likely (but not guaranteed to be!) compatible with
      *  the provided [mapping], which can be used to create joined mappings.
      */

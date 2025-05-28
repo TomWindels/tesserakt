@@ -17,14 +17,17 @@ value class SimpleMappingArray(
         get() = Cardinality(mappings.size)
 
     override fun iter(mappings: List<Mapping>): List<CollectedStream<Mapping>> {
-        return List(mappings.size) { CollectedStream(this.mappings) }
+        // the parameter is unused as we're not indexed
+        val stream = iter()
+        return List(mappings.size) { stream }
     }
 
     override fun iter(mapping: Mapping): CollectedStream<Mapping> {
-        return CollectedStream(mappings)
+        // the parameter is unused as we're not indexed
+        return iter()
     }
 
-    fun iter(): CollectedStream<Mapping> = CollectedStream(mappings)
+    override fun iter(): CollectedStream<Mapping> = CollectedStream(mappings)
 
     override fun add(mapping: Mapping) {
         this.mappings.add(mapping)
@@ -54,6 +57,6 @@ value class SimpleMappingArray(
         mappings.forEach(::remove)
     }
 
-    override fun toString() = "SimpleJoinArray (cardinality ${mappings.size})"
+    override fun toString() = "SimpleMappingArray (cardinality ${cardinality})"
 
 }
