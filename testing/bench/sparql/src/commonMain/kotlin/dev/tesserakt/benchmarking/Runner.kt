@@ -1,56 +1,66 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.rdf.serialization.common.FileDataSource
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
-import dev.tesserakt.rdf.types.consume
-import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
+import dev.tesserakt.benchmarking.report.RunReporter
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
 class Runner(
-    private val config: RunnerConfig
+    private val evaluation: RunnerEvaluation,
+    private val reporter: RunReporter,
+    private val warmupRounds: Int = 1,
+    private val executionRounds: Int = 10,
 ) {
 
-    private val source = ReplayBenchmark.from(TriGSerializer.deserialize(FileDataSource(config.inputFilePath)).consume()).single()
-    private val output = OutputWriter(config)
-
     suspend fun run() {
+        exec().fold(
+            onSuccess = {
+                reporter.onStageChanged(EvaluationStage.FINISHED)
+            },
+            onFailure = {
+                reporter.onStageFailed(it)
+            }
+        )
+    }
+
+    private suspend fun exec() = runCatching {
+        val output = OutputWriter(evaluation)
         // putting the store's diffs in memory
-        val deltas = source.store.diffs.toList()
         // actually executing it
         output.create()
         output.use {
             // warmup
+            reporter.onStageChanged(EvaluationStage.WARMUP)
             output.markStart("warmup")
-            source.queries.forEach { query ->
-                config.createEvaluator(query).use { evaluator ->
+            repeat(warmupRounds) {
+                EvaluatorFactory.createEvaluator(evaluation).use { evaluator ->
                     output.reset()
-                    deltas.forEach { delta ->
+                    evaluation.diffs.forEach { delta ->
                         evaluator.prepare(delta)
                         evaluator.eval()
                         evaluator.finish()
                     }
                 }
+                reporter.onStageProgressed(it.toFloat() / warmupRounds)
             }
             output.markEnd("warmup")
+            reporter.onStageChanged(EvaluationStage.EVALUATION)
             coroutineContext.ensureActive()
             // actual execution
-            repeat(10) { runIndex ->
-                source.queries.forEachIndexed { qi, query ->
-                    config.createEvaluator(query).use { evaluator ->
-                        output.reset()
-                        deltas.forEachIndexed { di, delta ->
-                            val id = RunId(queryIndex = qi, deltaIndex = di, runIndex = runIndex)
-                            evaluator.prepare(delta)
-                            output.markStart(id.id())
-                            evaluator.eval()
-                            output.markEnd(id.id())
-                            val outputs = evaluator.finish()
-                            output.markOutputs(id.id(), outputs)
-                            coroutineContext.ensureActive()
-                        }
+            repeat(executionRounds) { runIndex ->
+                EvaluatorFactory.createEvaluator(evaluation).use { evaluator ->
+                    output.reset()
+                    evaluation.diffs.forEachIndexed { di, delta ->
+                        val id = RunId(deltaIndex = di, runIndex = runIndex)
+                        evaluator.prepare(delta)
+                        output.markStart(id.id())
+                        evaluator.eval()
+                        output.markEnd(id.id())
+                        val outputs = evaluator.finish()
+                        output.markOutputs(id.id(), outputs)
+                        coroutineContext.ensureActive()
                     }
                 }
+                reporter.onStageProgressed(runIndex.toFloat() / executionRounds)
             }
         }
     }

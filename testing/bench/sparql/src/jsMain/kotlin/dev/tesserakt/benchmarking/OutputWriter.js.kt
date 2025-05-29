@@ -3,13 +3,13 @@ package dev.tesserakt.benchmarking
 private val fs = js("require('fs')")
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(config: RunnerConfig) : AutoCloseable {
+actual class OutputWriter actual constructor(evaluation: RunnerEvaluation) : AutoCloseable {
 
     private val timeObserver: TimeObserver
     private val outputObserver: OutputObserver
 
     init {
-        val directory = config.outputDirPath
+        val directory = evaluation.outputDirPath
         check(directory.endsWith('/'))
         if (!directory.isFolder()) {
             val opts: dynamic = Any()
@@ -23,7 +23,20 @@ actual class OutputWriter actual constructor(config: RunnerConfig) : AutoCloseab
         outputObserver = OutputObserver(directory + "outputs.csv")
         fs.writeFileSync(
             directory + "metadata",
-            "input: ${config.inputFilePath}\nevaluator: ${config.evaluatorName}"
+            buildString {
+                append("input: ")
+                append(evaluation.inputFilePath)
+                append("\nevaluator: ")
+                append(evaluation.evaluatorName)
+                append("\nquery: ")
+                append(evaluation.query)
+                append("\ndiff count: ")
+                append(evaluation.diffs.size)
+                append("\ntotal insertions: ")
+                append(evaluation.diffs.sumOf { it.insertions.size })
+                append("\ntotal deletions: ")
+                append(evaluation.diffs.sumOf { it.deletions.size })
+            }
         )
     }
 

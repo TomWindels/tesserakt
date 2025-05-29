@@ -140,14 +140,14 @@ fun setupGraphingTasks() {
 
     val graphingJvm = tasks.register("createBenchmarkGraphsJvm", Exec::class.java) {
         group = "benchmarking"
-        val targets = build.dir("benchmark_output").get().asFile.path + "/jvm/*"
+        val targets = build.dir("benchmark_output").get().asFile.path + "/jvm/*/*"
         workingDir = graphingTarget.get().asFile
         commandLine("./bin/python", "single_graph.py", targets)
     }
 
     val graphingJs = tasks.register("createBenchmarkGraphsJs", Exec::class.java) {
         group = "benchmarking"
-        val targets = build.dir("benchmark_output").get().asFile.path + "/js/*"
+        val targets = build.dir("benchmark_output").get().asFile.path + "/js/*/*"
         workingDir = graphingTarget.get().asFile
         commandLine("./bin/python", "single_graph.py", targets)
     }
@@ -159,7 +159,7 @@ fun setupGraphingTasks() {
             .get()
             .asFile
             .path
-            .let { base -> arrayOf("$base/js/*", "$base/jvm/*") }
+            .let { base -> arrayOf("$base/js/*/*", "$base/jvm/*/*") }
         workingDir = graphingTarget.get().asFile
         commandLine("./bin/python", "multi_graph.py", *targets)
     }
@@ -170,8 +170,16 @@ fun setupGraphingTasks() {
     graphConfiguration.get().dependsOn(graphPreparation)
 
     // the execution tasks should also be created, so we can find them by name
-    tasks.named("runBenchmarkJvm").get().finalizedBy(graphingJvm)
-    tasks.named("runBenchmarkJs").get().finalizedBy(graphingJs)
+    tasks.named("runBenchmarkJvm").get()
+        .apply {
+            finalizedBy(graphingJvm)
+            finalizedBy(combinedGraphing)
+        }
+    tasks.named("runBenchmarkJs").get()
+        .apply {
+            finalizedBy(graphingJvm)
+            finalizedBy(combinedGraphing)
+        }
     tasks.named("runBenchmark").get().finalizedBy(combinedGraphing)
 }
 

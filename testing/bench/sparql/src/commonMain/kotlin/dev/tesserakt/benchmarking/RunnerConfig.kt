@@ -1,20 +1,12 @@
 package dev.tesserakt.benchmarking
 
+import dev.tesserakt.benchmarking.EvaluatorFactory.implementations
+
 data class RunnerConfig(
     val inputFilePath: String,
     val outputDirPath: String,
     val evaluatorName: String,
 ) {
-
-    private val factory = when (evaluatorName) {
-        SELF_IMPL -> { query: String -> Self(query) }
-        in references -> { query: String -> references[evaluatorName]!!.invoke(query) }
-        else -> throw IllegalArgumentException("Unknown evaluator: `${evaluatorName}`\nValid evaluators: ${implementations.joinToString { "\"$it\"" }}")
-    }
-
-    fun createRunner() = Runner(config = this)
-
-    fun createEvaluator(query: String) = factory(query)
 
     override fun toString() =
         "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorName"
@@ -106,7 +98,7 @@ data class RunnerConfig(
                                 val filename = name.substringAfterLast('/').substringBefore('.')
                                 RunnerConfig(
                                     inputFilePath = name,
-                                    outputDirPath = if (output != null) "${output}$filename-$implementation/" else name.createOutputFilepath(
+                                    outputDirPath = if (output != null) "${output}$implementation/$filename/" else name.createOutputFilepath(
                                         implementation
                                     ),
                                     evaluatorName = implementation
@@ -119,7 +111,7 @@ data class RunnerConfig(
                                 val filename = name.substringAfterLast('/').substringBefore('.')
                                 RunnerConfig(
                                     inputFilePath = name,
-                                    outputDirPath = if (output != null) "${output}$filename-$implementation/" else name.createOutputFilepath(
+                                    outputDirPath = if (output != null) "${output}$implementation/$filename/" else name.createOutputFilepath(
                                         implementation
                                     ),
                                     evaluatorName = implementation
@@ -131,7 +123,7 @@ data class RunnerConfig(
                             val filename = name.substringAfterLast('/').substringBefore('.')
                             RunnerConfig(
                                 inputFilePath = name,
-                                outputDirPath = if (output != null) "${output}$filename-self/" else name.createOutputFilepath(
+                                outputDirPath = if (output != null) "${output}$SELF_IMPL/$filename/" else name.createOutputFilepath(
                                     SELF_IMPL
                                 ),
                                 evaluatorName = SELF_IMPL
@@ -149,7 +141,7 @@ data class RunnerConfig(
                         implementations.map { implementation ->
                             RunnerConfig(
                                 inputFilePath = input,
-                                outputDirPath = if (output != null) "${output}$filename-$implementation/" else input.createOutputFilepath(
+                                outputDirPath = if (output != null) "${output}$implementation/$filename/" else input.createOutputFilepath(
                                     implementation
                                 ),
                                 evaluatorName = implementation
@@ -159,7 +151,7 @@ data class RunnerConfig(
                         references.map { implementation ->
                             RunnerConfig(
                                 inputFilePath = input,
-                                outputDirPath = if (output != null) "${output}$filename-$implementation" else input.createOutputFilepath(
+                                outputDirPath = if (output != null) "${output}$implementation/$filename" else input.createOutputFilepath(
                                     implementation
                                 ),
                                 evaluatorName = implementation
@@ -169,7 +161,7 @@ data class RunnerConfig(
                         listOf(
                             RunnerConfig(
                                 inputFilePath = input,
-                                outputDirPath = if (output != null) "${output}$filename-$SELF_IMPL" else input.createOutputFilepath(
+                                outputDirPath = if (output != null) "${output}$SELF_IMPL/$filename" else input.createOutputFilepath(
                                     SELF_IMPL
                                 ),
                                 evaluatorName = SELF_IMPL
@@ -192,8 +184,6 @@ data class RunnerConfig(
 
         private fun String.createOutputFilepath(implementation: String) =
             this.dropLast(4) + "_${implementation}_${currentEpochMs()}/"
-
-        private val implementations = listOf(SELF_IMPL) + references.keys
 
     }
 
