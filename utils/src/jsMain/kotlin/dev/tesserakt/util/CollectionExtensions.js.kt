@@ -1,7 +1,12 @@
 package dev.tesserakt.util
 
-actual inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V) {
-    this[key] = transform(this[key])
+actual inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V?) {
+    val mapped = transform(this[key])
+    if (mapped == null) {
+        remove(key)
+    } else {
+        this[key] = mapped
+    }
 }
 
 /**

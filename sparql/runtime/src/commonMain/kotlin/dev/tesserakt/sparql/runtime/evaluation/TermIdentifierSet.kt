@@ -1,12 +1,18 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 
+// a copy of binding identifier set
 // not a value class as we have a custom equals check based on the contents of the `IntArray`, instead of reference equality
-class BindingIdentifierSet(private val ids: IntArray) {
+class TermIdentifierSet(private val ids: IntArray) {
 
-    constructor(context: QueryContext, names: Iterable<String>) :
-            this(ids = names.distinct().map { context.resolveBinding(it) }.sorted().toIntArray())
+    companion object {
+        val Empty = TermIdentifierSet(ids = intArrayOf())
+    }
+
+    constructor(context: QueryContext, values: Iterable<Quad.Element>) :
+            this(ids = values.map { context.resolveTerm(it) }.sorted().toIntArray())
 
     val size: Int
         get() = ids.size
@@ -17,11 +23,12 @@ class BindingIdentifierSet(private val ids: IntArray) {
         }
     }
 
-    operator fun get(index: Int): BindingIdentifier {
-        return BindingIdentifier(id = ids[index])
+    operator fun get(index: Int): TermIdentifier {
+        return TermIdentifier(id = ids[index])
     }
 
-    operator fun contains(element: Int): Boolean {
+    operator fun contains(element: TermIdentifier): Boolean {
+        val target = element.id
         // we can bin search, elements are sorted
         var min = 0
         var max = size - 1
@@ -29,16 +36,16 @@ class BindingIdentifierSet(private val ids: IntArray) {
             val mid = min + (max - min) / 2
             val current = ids[mid]
             when {
-                element == current -> return true
-                element < current -> max = mid - 1
-                current < element -> min = mid + 1
+                target == current -> return true
+                target < current -> max = mid - 1
+                current < target -> min = mid + 1
             }
         }
         return false
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other !is BindingIdentifierSet) {
+        if (other !is TermIdentifierSet) {
             return false
         }
         if (this.size != other.size) {

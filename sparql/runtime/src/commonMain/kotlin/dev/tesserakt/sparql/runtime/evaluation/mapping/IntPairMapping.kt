@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.util.isNullOr
 import kotlin.jvm.JvmInline
@@ -18,6 +19,9 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
     init {
         require(data.isNullOr { it.count > 0 })
     }
+
+    override val count: Int
+        get() = data?.count ?: 0
 
     override fun keys(context: QueryContext) = object: Iterable<String> {
         override fun iterator(): Iterator<String> = object: Iterator<String> {
@@ -73,6 +77,11 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
 
     }
 
+    override fun values(): TermIdentifierSet {
+        val data = data ?: return TermIdentifierSet.Empty
+        return TermIdentifierSet(IntArray(count) { data.value(it) })
+    }
+
     override fun join(other: Mapping): IntPairMapping? {
         require(other is IntPairMapping)
         return when (val count = count(data, other.data)) {
@@ -87,6 +96,17 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
     override fun compatibleWith(other: Mapping): Boolean {
         require(other is IntPairMapping)
         return count(this.data, other.data) != -1
+    }
+
+    override fun compatibleWith(bindings: BindingIdentifierSet, values: TermIdentifierSet): Boolean {
+        val data = data ?: return false
+        bindings.asIntIterable().forEachIndexed { index, bindingId ->
+            val i = data.search(keyValue = bindingId)
+            if (values[index].id != data.value(i)) {
+                return false
+            }
+        }
+        return true
     }
 
     override fun retain(bindings: BindingIdentifierSet): IntPairMapping {

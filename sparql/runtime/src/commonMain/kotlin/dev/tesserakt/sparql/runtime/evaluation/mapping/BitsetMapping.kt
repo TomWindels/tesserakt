@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.util.bitIterator
 import dev.tesserakt.util.cloneTo
@@ -26,6 +27,9 @@ class BitsetMapping private constructor(
     )
 
     private val hashCode = bindings + terms.contentHashCode()
+
+    override val count: Int
+        get() = bindings.countOneBits()
 
     override fun get(binding: BindingIdentifier): TermIdentifier? {
         // getting the binding index associated with `binding`
@@ -50,6 +54,16 @@ class BitsetMapping private constructor(
     override fun compatibleWith(other: Mapping): Boolean {
         require(other is BitsetMapping)
         return count(other) != -1
+    }
+
+    override fun compatibleWith(bindings: BindingIdentifierSet, values: TermIdentifierSet): Boolean {
+        bindings.asIntIterable().forEachIndexed { index, bindingId ->
+            val selfIndex = bindingIndex(bindingId)
+            if (selfIndex != -1 && values[index].id != terms[selfIndex]) {
+                return false
+            }
+        }
+        return true
     }
 
     override fun isEmpty(): Boolean {
@@ -192,6 +206,10 @@ class BitsetMapping private constructor(
                 return BindingIdentifier(binding) to TermIdentifier(terms[term])
             }
         }
+    }
+
+    override fun values(): TermIdentifierSet {
+        return TermIdentifierSet(terms)
     }
 
     override fun toMap(context: QueryContext): Map<String, Quad.Element> {

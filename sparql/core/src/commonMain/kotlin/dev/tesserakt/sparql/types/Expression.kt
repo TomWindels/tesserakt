@@ -144,6 +144,11 @@ sealed interface Expression : QueryAtom {
     }
 
     @JvmInline
+    value class BooleanLiteralValue(val value: Boolean) : Expression {
+        override fun toString() = value.toString()
+    }
+
+    @JvmInline
     value class StringLiteralValue(val value: String) : Expression {
         override fun toString() = value
     }

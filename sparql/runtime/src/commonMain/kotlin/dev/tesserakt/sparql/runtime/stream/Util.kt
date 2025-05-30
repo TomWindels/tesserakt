@@ -19,17 +19,12 @@ inline fun <E: Any> streamOf(element1: E, element2: E, vararg others: E) =
 
 inline fun <E: Any> Iterable<E>.toStream(cardinality: Number) = toStream(Cardinality(cardinality))
 
-inline fun <E: Any> Iterable<E>.toStream(cardinality: Cardinality) = object: Stream<E> {
+inline fun <E: Any> Iterable<E>.toStream(cardinality: Cardinality) = object: OptimisedStream<E> {
 
     override val description: String
         get() = "Iterable from ${this@toStream}"
 
     override val cardinality = cardinality
-
-    override fun supportsEfficientIteration(): Boolean {
-        // should be valid
-        return true
-    }
 
     override fun iterator(): Iterator<E> {
         return this@toStream.iterator()
@@ -45,7 +40,7 @@ inline fun <E: Any> Collection<E>.toStream(): OptimisedStream<E> = when {
     isEmpty() -> emptyStream()
     size == 1 -> SingleStream(single())
     this is List<E> -> CollectedStream(this)
-    else -> CollectedStream(toList())
+    else -> toStream(cardinality = size)
 }
 
 inline fun <E: Any> List<E>.toStream(): CollectedStream<E> = CollectedStream(this)

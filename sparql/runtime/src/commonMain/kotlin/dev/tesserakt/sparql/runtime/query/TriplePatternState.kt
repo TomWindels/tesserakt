@@ -2,11 +2,13 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
-import dev.tesserakt.sparql.runtime.collection.MappingArray
+import dev.tesserakt.sparql.runtime.collection.RehashableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
+import dev.tesserakt.sparql.runtime.query.jointree.JoinTree
+import dev.tesserakt.sparql.runtime.query.jointree.from
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.matches
@@ -26,7 +28,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         obj: TriplePattern.Object
     ) : TriplePatternState<P>(context, subj, pred, obj) {
 
-        private val data = MappingArray(context, bindingNamesOf(subj, pred, obj))
+        private val data = RehashableMappingArray(context, bindingNamesOf(subj, pred, obj))
 
         override val cardinality get() = data.cardinality
 
@@ -58,6 +60,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             } else {
                 delta.mapToStream { data.join(delta.value) }
             }
+        }
+
+        final override fun rehash(bindings: BindingIdentifierSet) {
+            data.rehash(bindings)
         }
 
         // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
@@ -173,6 +179,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             }
         }
 
+        override fun rehash(bindings: BindingIdentifierSet) {
+            // TODO
+        }
+
     }
 
     class AltPatternState(
@@ -206,6 +216,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
         }
 
+        override fun rehash(bindings: BindingIdentifierSet) {
+            states.forEach { it.rehash(bindings) }
+        }
+
     }
 
     class SimpleAltPatternState(
@@ -237,6 +251,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
         }
 
+        override fun rehash(bindings: BindingIdentifierSet) {
+            states.forEach { it.rehash(bindings) }
+        }
+
     }
 
     class SequencePatternState(
@@ -246,7 +264,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         o: TriplePattern.Object
     ) : TriplePatternState<TriplePattern.Sequence>(context, s, p, o) {
 
-        private val tree = JoinTree(context, p.unfold(start = s, end = o))
+        private val tree = JoinTree.from(context, p.unfold(start = s, end = o))
         override val cardinality: Cardinality
             get() = tree.cardinality
 
@@ -262,6 +280,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
         override fun join(delta: MappingDelta): Stream<MappingDelta> {
             return tree.join(delta)
+        }
+
+        override fun rehash(bindings: BindingIdentifierSet) {
+            tree.rehash(bindings)
         }
 
     }
@@ -273,7 +295,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         obj: TriplePattern.Object
     ) : TriplePatternState<TriplePattern.UnboundSequence>(context, subj, pred, obj) {
 
-        private val tree = JoinTree(context, pred.unfold(start = subj, end = obj))
+        private val tree = JoinTree.from(context, pred.unfold(start = subj, end = obj))
         override val cardinality: Cardinality
             get() = tree.cardinality
 
@@ -289,6 +311,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
         override fun join(delta: MappingDelta): Stream<MappingDelta> {
             return tree.join(delta)
+        }
+
+        override fun rehash(bindings: BindingIdentifierSet) {
+            tree.rehash(bindings)
         }
 
     }

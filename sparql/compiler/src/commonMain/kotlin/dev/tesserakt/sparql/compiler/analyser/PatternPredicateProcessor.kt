@@ -26,6 +26,7 @@ class PatternPredicateProcessor: Analyser<TriplePattern.Predicate?>() {
                 is Token.Binding,
                 is Token.NumericLiteral,
                 is Token.StringLiteral,
+                is Token.Keyword,
                 Token.Symbol.BlankStart -> {
                     // object, so not setting anything and returning instead
                     return predicate
