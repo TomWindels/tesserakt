@@ -3,14 +3,16 @@ package dev.tesserakt.rdf.types
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.factory.MutableStore
 import dev.tesserakt.rdf.types.factory.storeOf
+import dev.tesserakt.stream.ldes.IndexedVersionedLinkedDataEventStream
+import dev.tesserakt.stream.ldes.MutableVersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.StreamTransform
-import dev.tesserakt.stream.ldes.VersionedLinkedDataEventStream
+import dev.tesserakt.stream.ldes.toReadOnlyIndexedStream
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.minutes
 
 class SnapshotStore private constructor(
-    private val stream: VersionedLinkedDataEventStream<Store>
+    private val stream: IndexedVersionedLinkedDataEventStream<Store>
 ) {
 
     data class Diff(
@@ -69,7 +71,7 @@ class SnapshotStore private constructor(
 
         fun build(identifier: Quad.NamedTerm): SnapshotStore {
             // constructing the base LDES, with no base data inserted
-            val stream = VersionedLinkedDataEventStream.initialise(
+            val stream = MutableVersionedLinkedDataEventStream.initialise(
                 identifier = identifier,
                 transform = StreamTransform.GraphBased
             )
@@ -99,12 +101,12 @@ class SnapshotStore private constructor(
                 }
                 previous = current
             }
-            return SnapshotStore(stream = stream)
+            return SnapshotStore(stream = stream.toReadOnlyIndexedStream())
         }
 
     }
 
-    constructor(store: Store): this(VersionedLinkedDataEventStream.from(store, transform = StreamTransform.GraphBased))
+    constructor(store: Store): this(IndexedVersionedLinkedDataEventStream.from(store, transform = StreamTransform.GraphBased))
 
     val identifier: Quad.NamedTerm get() = stream.identifier
 

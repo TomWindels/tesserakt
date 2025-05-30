@@ -2,7 +2,7 @@ package dev.tesserakt.benchmarking
 
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-expect class OutputWriter(config: RunnerConfig): AutoCloseable {
+expect class OutputWriter(evaluation: RunnerEvaluation): AutoCloseable {
 
     /**
      * Called when the benchmark has been started, just before the very first call to [markStart]

@@ -24,7 +24,7 @@ internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), Index
     }
 
     override fun iter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<Quad> {
-        if (s == null && p == null && o == null) {
+        if (s == null && p == null && o == null && g == null) {
             return backing.iterator()
         }
         val indices = mutableListOf<List<Int>>()
