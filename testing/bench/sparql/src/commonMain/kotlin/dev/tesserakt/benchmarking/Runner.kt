@@ -51,7 +51,10 @@ class Runner(
                     output.reset()
                     evaluation.diffs.forEachIndexed { di, delta ->
                         val id = RunId(deltaIndex = di, runIndex = runIndex)
+                        val prep = "${id.id()}-prep"
+                        output.markStart(prep)
                         evaluator.prepare(delta)
+                        output.markEnd(prep)
                         output.markStart(id.id())
                         evaluator.eval()
                         output.markEnd(id.id())
