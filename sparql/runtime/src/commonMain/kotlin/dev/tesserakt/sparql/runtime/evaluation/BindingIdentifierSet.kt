@@ -17,6 +17,20 @@ class BindingIdentifierSet(private val ids: IntArray) {
         }
     }
 
+    fun asIterable() = object: Iterable<BindingIdentifier> {
+        override fun iterator() = object: Iterator<BindingIdentifier> {
+            private val iter = ids.iterator()
+
+            override fun hasNext(): Boolean {
+                return iter.hasNext()
+            }
+
+            override fun next(): BindingIdentifier {
+                return BindingIdentifier(id = iter.next())
+            }
+        }
+    }
+
     operator fun get(index: Int): BindingIdentifier {
         return BindingIdentifier(id = ids[index])
     }
@@ -50,5 +64,7 @@ class BindingIdentifierSet(private val ids: IntArray) {
     override fun hashCode(): Int {
         return ids.contentHashCode()
     }
+
+    override fun toString(): String = ids.joinToString()
 
 }

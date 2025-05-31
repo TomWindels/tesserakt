@@ -74,6 +74,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
         abstract fun peek(quad: Quad): Stream<Mapping>
 
+        final override fun toString() = "$s $p $o - $data"
+
     }
 
     class ExactPatternState(
@@ -370,7 +372,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         }.optimisedForReuse() // peek()s are already optimised, and mapping doesn't change that, so this is guaranteed to be a type wrapping
     }
 
-    final override fun toString() = "$s $p $o - cardinality $cardinality"
+    override fun toString() = "$s $p $o - cardinality $cardinality"
 
     companion object {
 

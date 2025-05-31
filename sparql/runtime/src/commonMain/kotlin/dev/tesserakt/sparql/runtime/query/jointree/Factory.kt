@@ -11,6 +11,7 @@ fun JoinTree.Companion.from(context: QueryContext, patterns: List<TriplePattern>
     // TODO(perf) specialised empty case
     // TODO(perf) also based on binding overlap
     patterns.size >= 2 -> DynamicJoinTree(context, patterns)
+//    patterns.size >= 2 -> AdaptiveJoinTree(context, patterns)
     patterns.isEmpty() -> EmptyJoinTree
     else -> StatelessJoinTree(context, patterns)
 }
@@ -20,6 +21,7 @@ fun JoinTree.Companion.from(context: QueryContext, unions: List<Union>) = when {
     // TODO(perf) specialised empty case
     // TODO(perf) also based on binding overlap
     unions.size >= 2 -> DynamicJoinTree(context, unions)
+//    unions.size >= 2 -> AdaptiveJoinTree(context, unions)
     unions.isEmpty() -> EmptyJoinTree
     else -> StatelessJoinTree(context, unions)
 }

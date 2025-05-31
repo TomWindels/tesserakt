@@ -40,6 +40,11 @@ class Bitmask private constructor(
         length = length
     )
 
+    fun remove(element: Int) = Bitmask(
+        bits = bits and (1 shl element).inv(),
+        length = length
+    )
+
     companion object {
 
         fun from(booleans: Collection<Boolean>): Bitmask {

@@ -21,9 +21,9 @@ fun MappingArray(context: QueryContext, vararg bindings: String?): MappingArray 
 }
 
 fun RehashableMappingArray(context: QueryContext, bindings: Collection<String>): RehashableMappingArray {
-    return RehashableMappingArray(active = MappingArray(context, bindings))
+    return RehashableMappingArray(BindingIdentifierSet(context, bindings))
 }
 
 fun RehashableMappingArray(bindings: BindingIdentifierSet): RehashableMappingArray {
-    return RehashableMappingArray(active = MappingArray(bindings))
+    return RehashableMappingArray(indexes = bindings, active = MappingArray(bindings))
 }

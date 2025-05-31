@@ -7,6 +7,7 @@ import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.util.Cardinality
 
 class RehashableMappingArray(
+    private var indexes: BindingIdentifierSet,
     private var active: MappingArray
 ) : MappingArray {
 
@@ -46,9 +47,13 @@ class RehashableMappingArray(
     }
 
     fun rehash(bindings: BindingIdentifierSet) {
+        if (indexes == bindings) {
+            return
+        }
         val new = MappingArray(bindings)
         active.iter().forEach { new.add(it) }
         active = new
+        indexes = bindings
     }
 
     override fun toString(): String {

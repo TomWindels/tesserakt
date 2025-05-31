@@ -4,9 +4,7 @@ import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
-import dev.tesserakt.sparql.runtime.stream.OptimisedStream
-import dev.tesserakt.sparql.runtime.stream.chain
-import dev.tesserakt.sparql.runtime.stream.emptyStream
+import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.util.Cardinality
 
 /**
@@ -51,12 +49,11 @@ class SingleHashMappingArray(
     override fun iter(): OptimisedStream<Mapping> {
         // a series of chains are required for all available mappings as there's no index that can
         //  be used
-        var result: OptimisedStream<Mapping> = emptyStream()
-        val iter = backing.values.iterator()
-        while (iter.hasNext()) {
-            result = result.chain(iter.next().iter())
+        return if (backing.isEmpty()) {
+            emptyStream()
+        } else {
+            OptimisedStreamView(backing.values.toStream().transform(cardinality.value / backing.values.size) { it.iter() })
         }
-        return result
     }
 
     /**
