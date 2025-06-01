@@ -4,6 +4,8 @@ import dev.tesserakt.interop.rdfjs.toN3Triple
 import dev.tesserakt.interop.rdfjs.toQuad
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.trig.serialization.setBase
+import dev.tesserakt.rdf.trig.serialization.trig
 import dev.tesserakt.rdf.turtle.serialization.setBase
 import dev.tesserakt.rdf.turtle.serialization.turtle
 import dev.tesserakt.rdf.types.consume
@@ -33,6 +35,17 @@ fun parse(data: String, options: Any): Promise<dynamic> {
                 "rdf-turtle" in options -> {
                     val serializer = turtle {
                         setBase(options)
+                    }
+                    serializer
+                        .deserialize(data)
+                        .consume()
+                        .map { it.toN3Triple() }
+                        .toTypedArray()
+                }
+
+                "rdf-trig" in options -> {
+                    val serializer = trig {
+                         setBase(options)
                     }
                     serializer
                         .deserialize(data)

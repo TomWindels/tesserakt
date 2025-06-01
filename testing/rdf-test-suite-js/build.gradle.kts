@@ -60,7 +60,22 @@ val turtleTests = tasks.register("rdf-test-suite-js-turtle", Exec::class.java) {
     )
 }
 
+val trigTests = tasks.register("rdf-test-suite-js-trig", Exec::class.java) {
+    File("${project.rootDir.absolutePath}/.cache/rdf-test-suite").mkdirs()
+    workingDir("${project.rootDir}/build/js/packages/tesserakt-testing-rdf-test-suite-js")
+    commandLine(
+        "node",
+        "../../node_modules/rdf-test-suite/bin/Runner.js",
+        "kotlin/tesserakt-testing-rdf-test-suite-js.js",
+        "https://w3c.github.io/rdf-tests/rdf/rdf11/rdf-trig/manifest.ttl",
+        "-c",
+        "../../../../.cache/rdf-test-suite/",
+    )
+}
+
 turtleTests.dependsOn("jsRun")
+
+trigTests.dependsOn("jsRun")
 
 // required for `jsRun` to behave; does cause constant recompiles, but worth the test correctness
 tasks.named("jsNodeDevelopmentRun").dependsOn("jsProductionExecutableCompileSync")
