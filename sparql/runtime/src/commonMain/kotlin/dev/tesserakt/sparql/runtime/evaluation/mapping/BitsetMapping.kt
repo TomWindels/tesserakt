@@ -26,6 +26,11 @@ class BitsetMapping private constructor(
         terms = source.asIterable().sortedBy { context.resolveBinding(it.first) }.map { context.resolveTerm(it.second) }.toIntArray(),
     )
 
+    constructor(source: Iterable<Pair<BindingIdentifier, TermIdentifier>>): this(
+        bindings = source.asIterable().fold(initial = 0) { acc, entry -> acc or (1 shl entry.first.id) },
+        terms = source.asIterable().sortedBy { it.first.id }.map { it.second.id }.toIntArray(),
+    )
+
     private val hashCode = bindings + terms.contentHashCode()
 
     override val count: Int

@@ -16,6 +16,19 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
 
     constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Element>>): this(data = convert(context, source))
 
+    constructor(source: Iterable<Pair<BindingIdentifier, TermIdentifier>>): this(
+        data = source
+            .sortedBy { it.first.id }
+            .let {
+                val result = IntArray(it.size * 2)
+                it.forEachIndexed { index, pair ->
+                    result[index * 2] = pair.first.id
+                    result[index * 2 + 1] = pair.second.id
+                }
+                result
+            }.into()
+    )
+
     init {
         require(data.isNullOr { it.count > 0 })
     }

@@ -43,14 +43,14 @@ class MappingTest {
     @Test
     fun mappingConversion1() {
         val data = List(100) { createMapping(it) }
-        val converted = data.map { GlobalQueryContext.create(it.map { it.toPair() }) }
+        val converted = data.map { GlobalQueryContext.createFromIdentifiers(it.map { it.toPair() }) }
         assertContentEquals(data, converted.map { it.toMap(GlobalQueryContext) })
     }
 
     @Test
     fun mappingConversion2() {
         val data = List(100) { createMapping(it) }
-        val converted = data.map { GlobalQueryContext.create(it.map { it.toPair() }) }
+        val converted = data.map { GlobalQueryContext.createFromIdentifiers(it.map { it.toPair() }) }
         repeat(data.size) { index ->
             val map = data[index]
             map.forEach { (key, value) ->
@@ -62,7 +62,7 @@ class MappingTest {
     @Test
     fun mappingConversion3() {
         val data = List(100) { createMapping(it) }
-        val converted = data.map { GlobalQueryContext.create(it.map { it.toPair() }) }
+        val converted = data.map { GlobalQueryContext.createFromIdentifiers(it.map { it.toPair() }) }
         repeat(data.size) { index ->
             assertContentEquals(
                 expected = data[index].map { it.toPair() }.sortedBy { it.first },
@@ -73,7 +73,7 @@ class MappingTest {
     @Test
     fun mappingConversion4() {
         val data = List(100) { createMapping(it) }
-        val converted = data.map { GlobalQueryContext.create(it.map { it.toPair() }) }
+        val converted = data.map { GlobalQueryContext.createFromIdentifiers(it.map { it.toPair() }) }
         val rng = Random(1)
         val subset = data.map { it.toMutableMap().apply { keys.retainAll { rng.nextBoolean() } } }
         repeat(data.size) { index ->
@@ -96,8 +96,8 @@ class MappingTest {
                 right.add(new)
             }
         }
-        val l = left.map { GlobalQueryContext.create(it.map { it.toPair() }) }
-        val r = right.map { GlobalQueryContext.create(it.map { it.toPair() }) }
+        val l = left.map { GlobalQueryContext.createFromIdentifiers(it.map { it.toPair() }) }
+        val r = right.map { GlobalQueryContext.createFromIdentifiers(it.map { it.toPair() }) }
         val original = left.flatMap { l -> right.mapNotNull { r -> join(l, r) } }
         val new = l.flatMap { l -> r.mapNotNull { r -> l.join(r) } }
             .map { it.toMap(GlobalQueryContext) }

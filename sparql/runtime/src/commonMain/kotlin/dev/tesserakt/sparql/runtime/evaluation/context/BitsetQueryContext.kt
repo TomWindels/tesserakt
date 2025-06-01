@@ -1,7 +1,10 @@
 package dev.tesserakt.sparql.runtime.evaluation.context
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.types.QueryStructure
 import dev.tesserakt.sparql.types.extractAllBindings
 
@@ -44,6 +47,10 @@ class BitsetQueryContext(ast: QueryStructure): QueryContext {
 
     override fun create(terms: Iterable<Pair<String, Quad.Element>>): BitsetMapping {
         return BitsetMapping(this, terms)
+    }
+
+    override fun createFromIdentifiers(terms: Iterable<Pair<BindingIdentifier, TermIdentifier>>): Mapping {
+        return BitsetMapping(terms)
     }
 
     override fun emptyMapping(): BitsetMapping {

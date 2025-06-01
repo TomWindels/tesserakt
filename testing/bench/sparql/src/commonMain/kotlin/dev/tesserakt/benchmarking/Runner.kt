@@ -8,7 +8,7 @@ class Runner(
     private val evaluation: RunnerEvaluation,
     private val reporter: RunReporter,
     private val warmupRounds: Int = 1,
-    private val executionRounds: Int = 10,
+    private val executionRounds: Int = 1000,
 ) {
 
     suspend fun run() {

@@ -14,18 +14,18 @@ import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.matches
 import dev.tesserakt.sparql.util.Cardinality
 
-sealed class TriplePatternState<P : TriplePattern.Predicate>(
+sealed class TriplePatternState<P : TriplePatternElement.Predicate>(
     val context: QueryContext,
-    val s: TriplePattern.Subject,
+    val s: TriplePatternElement.Subject,
     val p: P,
-    val o: TriplePattern.Object
+    val o: TriplePatternElement.Object
 ) : MutableJoinState {
 
-    sealed class ArrayBackedPatternState<P : TriplePattern.Predicate>(
+    sealed class ArrayBackedPatternState<P : TriplePatternElement.Predicate>(
         context: QueryContext,
-        subj: TriplePattern.Subject,
+        subj: TriplePatternElement.Subject,
         pred: P,
-        obj: TriplePattern.Object
+        obj: TriplePatternElement.Object
     ) : TriplePatternState<P>(context, subj, pred, obj) {
 
         private val data = RehashableMappingArray(context, bindingNamesOf(subj, pred, obj))
@@ -78,10 +78,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class ExactPatternState(
         context: QueryContext,
-        subj: TriplePattern.Subject,
-        val pred: TriplePattern.Exact,
-        obj: TriplePattern.Object
-    ) : ArrayBackedPatternState<TriplePattern.Exact>(context, subj, pred, obj) {
+        subj: TriplePatternElement.Subject,
+        val pred: TriplePatternElement.Exact,
+        obj: TriplePatternElement.Object
+    ) : ArrayBackedPatternState<TriplePatternElement.Exact>(context, subj, pred, obj) {
 
         override fun peek(quad: Quad): Stream<Mapping> {
             if (pred.term != quad.p) {
@@ -97,10 +97,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class BindingPatternState(
         context: QueryContext,
-        subj: TriplePattern.Subject,
-        pred: TriplePattern.Binding,
-        obj: TriplePattern.Object
-    ) : ArrayBackedPatternState<TriplePattern.Binding>(context, subj, pred, obj) {
+        subj: TriplePatternElement.Subject,
+        pred: TriplePatternElement.Binding,
+        obj: TriplePatternElement.Object
+    ) : ArrayBackedPatternState<TriplePatternElement.Binding>(context, subj, pred, obj) {
 
         override fun peek(quad: Quad): Stream<Mapping> {
             val s = subjectMappingOrNull(quad) ?: return emptyStream()
@@ -114,10 +114,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class NegatedPatternState(
         context: QueryContext,
-        subj: TriplePattern.Subject,
-        val pred: TriplePattern.Negated,
-        obj: TriplePattern.Object
-    ) : ArrayBackedPatternState<TriplePattern.Negated>(context, subj, pred, obj) {
+        subj: TriplePatternElement.Subject,
+        val pred: TriplePatternElement.Negated,
+        obj: TriplePatternElement.Object
+    ) : ArrayBackedPatternState<TriplePatternElement.Negated>(context, subj, pred, obj) {
 
         override fun peek(quad: Quad): Stream<Mapping> {
             if (!pred.matches(quad.p)) {
@@ -133,20 +133,20 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class RepeatingPatternState(
         context: QueryContext,
-        subj: TriplePattern.Subject,
-        pred: TriplePattern.RepeatingPredicate,
-        obj: TriplePattern.Object
-    ) : TriplePatternState<TriplePattern.RepeatingPredicate>(context, subj, pred, obj) {
+        subj: TriplePatternElement.Subject,
+        pred: TriplePatternElement.RepeatingPredicate,
+        obj: TriplePatternElement.Object
+    ) : TriplePatternState<TriplePatternElement.RepeatingPredicate>(context, subj, pred, obj) {
 
         private val state = when (pred) {
-            is TriplePattern.ZeroOrMore -> RepeatingPathState.zeroOrMore(
+            is TriplePatternElement.ZeroOrMore -> RepeatingPathState.zeroOrMore(
                 context = context,
                 start = subj,
                 predicate = pred,
                 end = obj
             )
 
-            is TriplePattern.OneOrMore -> RepeatingPathState.oneOrMore(
+            is TriplePatternElement.OneOrMore -> RepeatingPathState.oneOrMore(
                 context = context,
                 start = subj,
                 predicate = pred,
@@ -187,10 +187,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class AltPatternState(
         context: QueryContext,
-        s: TriplePattern.Subject,
-        p: TriplePattern.Alts,
-        o: TriplePattern.Object
-    ) : TriplePatternState<TriplePattern.Alts>(context, s, p, o) {
+        s: TriplePatternElement.Subject,
+        p: TriplePatternElement.Alts,
+        o: TriplePatternElement.Object
+    ) : TriplePatternState<TriplePatternElement.Alts>(context, s, p, o) {
 
         private val states = p.allowed.map { p -> from(context, s, p, o) }
 
@@ -224,10 +224,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class SimpleAltPatternState(
         context: QueryContext,
-        s: TriplePattern.Subject,
-        p: TriplePattern.SimpleAlts,
-        o: TriplePattern.Object
-    ) : TriplePatternState<TriplePattern.SimpleAlts>(context, s, p, o) {
+        s: TriplePatternElement.Subject,
+        p: TriplePatternElement.SimpleAlts,
+        o: TriplePatternElement.Object
+    ) : TriplePatternState<TriplePatternElement.SimpleAlts>(context, s, p, o) {
 
         private val states = p.allowed.map { p -> from(context, s, p, o) }
 
@@ -259,10 +259,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class SequencePatternState(
         context: QueryContext,
-        s: TriplePattern.Subject,
-        p: TriplePattern.Sequence,
-        o: TriplePattern.Object
-    ) : TriplePatternState<TriplePattern.Sequence>(context, s, p, o) {
+        s: TriplePatternElement.Subject,
+        p: TriplePatternElement.Sequence,
+        o: TriplePatternElement.Object
+    ) : TriplePatternState<TriplePatternElement.Sequence>(context, s, p, o) {
 
         private val tree = JoinTree.from(context, p.unfold(start = s, end = o))
         override val cardinality: Cardinality
@@ -290,10 +290,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     class UnboundedSequencePatternState(
         context: QueryContext,
-        subj: TriplePattern.Subject,
-        pred: TriplePattern.UnboundSequence,
-        obj: TriplePattern.Object
-    ) : TriplePatternState<TriplePattern.UnboundSequence>(context, subj, pred, obj) {
+        subj: TriplePatternElement.Subject,
+        pred: TriplePatternElement.UnboundSequence,
+        obj: TriplePatternElement.Object
+    ) : TriplePatternState<TriplePatternElement.UnboundSequence>(context, subj, pred, obj) {
 
         private val tree = JoinTree.from(context, pred.unfold(start = subj, end = obj))
         override val cardinality: Cardinality
@@ -323,8 +323,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
     /**
      * Yields a new mapping on (subject-based) match:
-     *  * when [s] is a [TriplePattern.Binding], the [quad]'s [Quad.s] term is returned in a new [Mapping]
-     *  * when [s] is a [TriplePattern.Exact], an empty [Mapping] is returned instead, but only if the term value
+     *  * when [s] is a [TriplePatternElement.Binding], the [quad]'s [Quad.s] term is returned in a new [Mapping]
+     *  * when [s] is a [TriplePatternElement.Exact], an empty [Mapping] is returned instead, but only if the term value
      *   matches (as this acts as a constraint)
      *
      * IMPORTANT: this method does not take the [p] (<-> [Quad.p]) or [o] (<-> [Quad.o]) values into account. The
@@ -332,15 +332,15 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
      */
     protected fun subjectMappingOrNull(quad: Quad): Mapping? {
         return when (s) {
-            is TriplePattern.Binding -> mappingOf(context, s.name to quad.s)
-            is TriplePattern.Exact -> if (s.term == quad.s) context.emptyMapping() else null
+            is TriplePatternElement.Binding -> mappingOf(context, s.name to quad.s)
+            is TriplePatternElement.Exact -> if (s.term == quad.s) context.emptyMapping() else null
         }
     }
 
     /**
      * Yields a new mapping on (subject-based) match:
-     *  * when [o] is a [TriplePattern.Binding], the [quad]'s [Quad.o] term is returned in a new [Mapping]
-     *  * when [o] is a [TriplePattern.Exact], an empty [Mapping] is returned instead, but only if the term value
+     *  * when [o] is a [TriplePatternElement.Binding], the [quad]'s [Quad.o] term is returned in a new [Mapping]
+     *  * when [o] is a [TriplePatternElement.Exact], an empty [Mapping] is returned instead, but only if the term value
      *   matches (as this acts as a constraint)
      *
      * IMPORTANT: this method does not take the [s] (<-> [Quad.s]) or [p] (<-> [Quad.p]) values into account. The
@@ -348,8 +348,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
      */
     protected fun objectMappingOrNull(quad: Quad): Mapping? {
         return when (o) {
-            is TriplePattern.Binding -> mappingOf(context, o.name to quad.o)
-            is TriplePattern.Exact -> if (o.term == quad.o) context.emptyMapping() else null
+            is TriplePatternElement.Binding -> mappingOf(context, o.name to quad.o)
+            is TriplePatternElement.Exact -> if (o.term == quad.o) context.emptyMapping() else null
         }
     }
 
@@ -379,18 +379,18 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
         fun from(
             context: QueryContext,
-            s: TriplePattern.Subject,
-            p: TriplePattern.Predicate,
-            o: TriplePattern.Object
+            s: TriplePatternElement.Subject,
+            p: TriplePatternElement.Predicate,
+            o: TriplePatternElement.Object
         ): TriplePatternState<*> = when (p) {
-            is TriplePattern.Exact -> ExactPatternState(context, s, p, o)
-            is TriplePattern.Negated -> NegatedPatternState(context, s, p, o)
-            is TriplePattern.Alts -> AltPatternState(context, s, p, o)
-            is TriplePattern.SimpleAlts -> SimpleAltPatternState(context, s, p, o)
-            is TriplePattern.Sequence -> SequencePatternState(context, s, p, o)
-            is TriplePattern.RepeatingPredicate -> RepeatingPatternState(context, s, p, o)
-            is TriplePattern.UnboundSequence -> UnboundedSequencePatternState(context, s, p, o)
-            is TriplePattern.Binding -> BindingPatternState(context, s, p, o)
+            is TriplePatternElement.Exact -> ExactPatternState(context, s, p, o)
+            is TriplePatternElement.Negated -> NegatedPatternState(context, s, p, o)
+            is TriplePatternElement.Alts -> AltPatternState(context, s, p, o)
+            is TriplePatternElement.SimpleAlts -> SimpleAltPatternState(context, s, p, o)
+            is TriplePatternElement.Sequence -> SequencePatternState(context, s, p, o)
+            is TriplePatternElement.RepeatingPredicate -> RepeatingPatternState(context, s, p, o)
+            is TriplePatternElement.UnboundSequence -> UnboundedSequencePatternState(context, s, p, o)
+            is TriplePatternElement.Binding -> BindingPatternState(context, s, p, o)
         }
 
     }
