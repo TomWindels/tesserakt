@@ -36,9 +36,12 @@ internal sealed interface TriGToken {
 
             operator fun get(char: Char): Structural? {
                 val i = char.code - min
-                return if (i < backing.size) backing[i] else null
+                return if (0 <= i && i < backing.size) backing[i] else null
             }
-        }    }
+
+        }
+
+    }
 
     /**
      * A keyword token: the token has to be followed by a whitespace (or EOF)
@@ -59,7 +62,9 @@ internal sealed interface TriGToken {
                 BaseAnnotationB,
                 PrefixAnnotationB,
             )
-            val CaseSensitive = entries - CaseInsensitive
+            val CaseSensitive = entries
+                .minus(CaseInsensitive)
+                .minus(TypePredicate) // special case, as it can also be used as a prefix
         }
     }
 

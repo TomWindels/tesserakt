@@ -416,7 +416,7 @@ internal class Deserializer(
 
                 token == TriGToken.Keyword.GraphAnnotation -> {
                     source.consume()
-                    g = source.consume().into()
+                    g = resolve(source.consume().into()).into()
                     check(source.consume() == TriGToken.Structural.GraphStatementStart)
                     inGraphBlock = true
                 }
@@ -426,12 +426,16 @@ internal class Deserializer(
                         unexpectedToken(token)
                     }
                     source.consume()
+                    // resetting the rest of the state too
                     g = Quad.DefaultGraph
                     inGraphBlock = false
+                    s = null
+                    p = null
                 }
 
                 s == null -> {
                     if (source.peek().isBaseOrPrefixDeclaration()) {
+                        check(!inGraphBlock)
                         processPrefix()
                         continue
                     }
@@ -474,18 +478,25 @@ internal class Deserializer(
 
     private fun onObjectElement(o: Quad.Object): Quad {
         val result = Quad(s = s!!, p = p!!, o = o, g = g)
-        when (val terminator = source.consume()) {
+        when (val terminator = source.peek()) {
             TriGToken.Structural.StatementTermination -> {
                 s = null
                 p = null
+                source.consume()
             }
 
             TriGToken.Structural.PredicateTermination -> {
                 p = null
+                source.consume()
             }
 
-            TriGToken.Structural.ObjectTermination, TriGToken.EOF, TriGToken.Structural.GraphStatementEnd -> {
-                /* nothing to do */
+            TriGToken.Structural.ObjectTermination -> {
+                source.consume()
+            }
+
+            TriGToken.EOF, TriGToken.Structural.GraphStatementEnd -> {
+                /* nothing else to do */
+                return result
             }
 
             else -> unexpectedToken(terminator)
