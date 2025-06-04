@@ -1,6 +1,7 @@
 plugins {
     // not distributed as a package, build targets are manually defined
     id("base-config")
+    id("io.ktor.plugin") version "3.1.3"
     kotlin("plugin.serialization") version libs.versions.kotlin
 }
 
@@ -25,6 +26,13 @@ kotlin {
                 implementation("io.ktor:ktor-server-content-negotiation:3.1.3")
                 // proper CLI support
                 implementation("com.github.ajalt.clikt:clikt:5.0.1")
+            }
+        }
+
+        val jvmTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation("io.ktor:ktor-server-test-host:3.1.3")
             }
         }
     }

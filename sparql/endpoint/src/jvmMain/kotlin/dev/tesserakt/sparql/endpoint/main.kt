@@ -4,5 +4,5 @@ import com.github.ajalt.clikt.core.main
 
 fun main(args: Array<String>) =
     CliEntryPoint(
-        run = { config -> Endpoint(config).run() }
+        run = { config -> Server(config).run() }
     ).main(args)
