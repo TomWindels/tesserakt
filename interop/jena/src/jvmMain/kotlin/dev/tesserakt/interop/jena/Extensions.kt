@@ -64,10 +64,16 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
 
 fun Node.toTerm() : Quad.Element = when (this) {
     is Node_URI -> Quad.NamedTerm(value = uri)
-    is Node_Literal -> Quad.Literal(
-        value = literalValue.toString(),
-        type = literalDatatype.uri.asNamedTerm()
-    )
+    is Node_Literal -> when {
+        literalLanguage.isNotBlank() -> Quad.LangString(
+            value = literalValue.toString(),
+            language = literalLanguage
+        )
+        else -> Quad.Literal(
+            value = literalValue.toString(),
+            type = literalDatatype.uri.asNamedTerm()
+        )
+    }
     is Node_Blank -> Quad.BlankTerm(id = blankNodeLabel.takeLastWhile { it.isDigit() }.toInt())
     else -> throw IllegalArgumentException("Unknown node type `${this::class.simpleName}`")
 }
