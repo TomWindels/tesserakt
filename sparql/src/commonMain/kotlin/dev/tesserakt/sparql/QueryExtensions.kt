@@ -2,6 +2,7 @@ package dev.tesserakt.sparql
 
 import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.evaluation.*
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.query.QueryState
@@ -60,6 +61,10 @@ internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> = bui
 
 fun <RT> ObservableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
+}
+
+fun <RT> ObservableStore.queryDeferred(query: Query<RT>): DeferredOngoingQueryEvaluation<RT> {
+    return DeferredOngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
 }
 
 fun <RT> ObservableStore.queryDebug(query: Query<RT>): OngoingQueryEvaluation<RT> {
