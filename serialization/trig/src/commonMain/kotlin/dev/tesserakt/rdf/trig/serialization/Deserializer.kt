@@ -569,8 +569,7 @@ internal class Deserializer(
             }
 
             is TriGToken.LocalizedLiteralTerm -> {
-                // FIXME
-                Quad.Literal(value = term.value, type = RDF.langString)
+                Quad.LangString(value = term.value, language = term.language)
             }
 
             is TriGToken.PrefixedTerm -> {

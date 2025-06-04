@@ -10,4 +10,4 @@ internal external fun createN3BlankNode(value: String): N3BlankNode
 internal external fun createN3NamedNode(value: String): N3NamedNode
 
 @JsName("literal")
-internal external fun createN3Literal(value: Any, type: N3NamedNode = definedExternally): N3Literal
+internal external fun createN3Literal(value: Any, type: Any = definedExternally): N3Literal
