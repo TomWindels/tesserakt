@@ -40,7 +40,7 @@ private val DefaultN3Graph = object: N3Term {
 
 fun Quad.Graph.toN3GraphTerm() = when (this) {
     is Quad.NamedTerm -> createN3NamedNode(value)
-    is Quad.BlankTerm -> createN3NamedNode("_:b_$id")
+    is Quad.BlankTerm -> createN3BlankNode("_:b_$id")
     Quad.DefaultGraph -> DefaultN3Graph
 }
 

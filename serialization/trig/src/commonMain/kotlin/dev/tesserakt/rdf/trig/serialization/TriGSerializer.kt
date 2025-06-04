@@ -18,7 +18,10 @@ class TriGSerializer(private val config: TRiGConfig): Serializer() {
 
     @OptIn(InternalSerializationApi::class)
     override fun deserialize(input: DataSource): Iterator<Quad> {
-        return Deserializer(TokenDecoder(BufferedString(input.open())))
+        return Deserializer(
+            base = config.base,
+            source = TokenDecoder(BufferedString(input.open()))
+        )
     }
 
     companion object: Serializer() {

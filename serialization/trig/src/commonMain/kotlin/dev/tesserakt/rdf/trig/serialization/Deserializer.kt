@@ -3,34 +3,344 @@ package dev.tesserakt.rdf.trig.serialization
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
+import kotlin.jvm.JvmInline
 
 // TODO: blank node syntax `[]` support
 // TODO: improved exception handling
-// TODO: exception on incomplete graph block
 
-internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<Quad> {
+internal class Deserializer(
+    source: Iterator<TriGToken>,
+    base: String = DEFAULT_BASE,
+) : Iterator<Quad> {
 
-    enum class Position {
-        Subject,
-        Predicate,
-        Object,
+    data class Base(
+        // scheme + host + path + file part of the path only, e.g. `http://example.org/my/path/my-file.ttl`
+        private val full: String
+    ) {
+
+        // scheme part of the path only, e.g. `http:`
+        private val scheme = full.substring(
+            startIndex = 0,
+            endIndex = full.indexOf(':') + 1
+        )
+
+        // scheme + host part of the path only, e.g. `http://example.org`
+        private val host = run {
+            val delimiterPos = full.indexOf('/', startIndex = scheme.length + 2)
+            when {
+                delimiterPos != -1 -> full.take(delimiterPos)
+                else -> full
+            }
+        }
+
+        // scheme + host + path part of the path only, e.g. `http://example.org/my/path/`
+        private val path = run {
+            val delimiterPos = full.lastIndexOf('/')
+            when {
+                delimiterPos != -1 -> full.take(delimiterPos + 1)
+                else -> "$full/"
+            }
+        }
+
+        fun update(new: TriGToken.TermToken): Base {
+            return when (new) {
+                is TriGToken.RelativeTerm -> {
+                    Base(full = resolve(new).value)
+                }
+
+                is TriGToken.Term -> {
+                    Base(full = new.value)
+                }
+
+                else -> throw IllegalArgumentException("Invalid base declaration: $new")
+            }
+        }
+
+        fun resolve(term: TriGToken.RelativeTerm): Quad.NamedTerm {
+            val value = when {
+                term.value.isEmpty() -> full
+
+                term.value.length > 1 && term.value[0] == '/' && term.value[1] == '/' -> {
+                    scheme + term.value
+                }
+
+                term.value[0] == PathDelimiter -> {
+                    host + term.value
+                }
+
+                term.value[0] in OtherDelimiters -> {
+                    full.substringBeforeLast(term.value[0]) + term.value
+                }
+
+                else -> {
+                    path + term.value
+                }
+            }
+            return Quad.NamedTerm(value)
+        }
+
+        companion object {
+            val PathDelimiter = '/'
+            val OtherDelimiters = charArrayOf('#', '?')
+        }
+
+    }
+
+    /**
+     * An abstraction representing a more complex structure at the subject or object position defined within
+     *  the spec: a blank node `[]`, or a list `()`
+     */
+    private sealed class Structure : Iterator<Quad> {
+
+        /**
+         * The identifying name of the structure, which should be used when referencing this structure in subsequent
+         *  quads. For example, `<term> <term> []` would have to emit `<term> <term> Structure::name`
+         */
+        abstract val name: Quad.Subject // all subjects are valid objects, but not all objects are valid subjects
+
+        class BlankNode(
+            private val parent: Deserializer,
+        ) : Structure() {
+
+            override val name = Quad.BlankTerm(id = parent.blankTermCount++)
+            private var p: Quad.NamedTerm? = null
+            private var child: Structure? = null
+            private var next: Quad? = null
+
+            init {
+                check(parent.source.peek() == TriGToken.Structural.BlankStart) {
+                    "Expected ${TriGToken.Structural.BlankStart}, got ${parent.source.peek()}"
+                }
+                parent.source.consume()
+            }
+
+            override fun hasNext(): Boolean {
+                if (next != null) {
+                    return true
+                }
+                next = prepareNext()
+                return next != null
+            }
+
+            override fun next(): Quad {
+                val next = next ?: prepareNext()
+                this.next = null
+                return next ?: throw NoSuchElementException()
+            }
+
+            private fun prepareNext(): Quad? {
+                while (true) {
+                    val token = parent.source.peek()
+                    val child = this.child
+                    when {
+                        child != null -> {
+                            if (child.hasNext()) {
+                                return child.next()
+                            }
+                            // the inner structure has finished, emitting its name as the next quad
+                            val result = Quad(s = name, p = p!!, o = child.name as Quad.Object, g = parent.g)
+                            // and cleaning up
+                            this.child = null
+                            // with the object position terminated, we have to check the next token
+                            if (parent.source.peek() == TriGToken.Structural.ObjectTermination) {
+                                parent.source.consume()
+                            } else if (parent.source.peek() == TriGToken.Structural.PredicateTermination) {
+                                p = null
+                                parent.source.consume()
+                            }
+                            return result
+                        }
+
+                        token == TriGToken.EOF -> unexpectedToken(TriGToken.EOF)
+
+                        token == TriGToken.Structural.BlankEnd -> {
+                            parent.source.consume()
+                            return null
+                        }
+
+                        p == null -> {
+                            p = when (token) {
+                                is TriGToken.TermToken -> {
+                                    parent.resolve(token).into()
+                                }
+
+                                TriGToken.Keyword.TypePredicate -> {
+                                    RDF.type
+                                }
+
+                                else -> unexpectedToken(token)
+                            }
+                            parent.source.consume()
+                        }
+
+                        token == TriGToken.Structural.BlankStart -> {
+                            this.child = BlankNode(parent)
+                        }
+
+                        token == TriGToken.Structural.ListStart -> {
+                            this.child = List(parent)
+                        }
+
+                        token is TriGToken.TermToken -> {
+                            val o = parent.resolve(token) as Quad.Object
+                            val result = Quad(s = name, p = p!!, o = o, g = parent.g)
+                            // consuming token `o`
+                            parent.source.consume()
+                            when (parent.source.peek()) {
+                                TriGToken.Structural.BlankEnd -> {
+                                    // not consuming this token, next iteration will yield null
+                                }
+
+                                TriGToken.Structural.ObjectTermination -> {
+                                    parent.source.consume()
+                                }
+
+                                TriGToken.Structural.PredicateTermination -> {
+                                    parent.source.consume()
+                                    p = null
+                                }
+
+                                else -> unexpectedToken(parent.source.peek())
+                            }
+                            return result
+                        }
+
+                        else -> unexpectedToken(token)
+                    }
+                }
+            }
+
+        }
+
+        class RegularList(private val parent: Deserializer) : Structure() {
+
+            sealed interface ListItem {
+                @JvmInline
+                value class StructureItem(val structure: Structure) : ListItem
+
+                @JvmInline
+                value class SimpleItem(val item: Quad.Object) : ListItem
+            }
+
+            override val name = Quad.BlankTerm(id = parent.blankTermCount++)
+
+            // the currently consumed value, made nullable to indicate when it's finished
+            private var currentValue: ListItem? = nextItemValue()
+
+            private var currentNode: Quad.BlankTerm? = name
+
+            override fun hasNext(): Boolean {
+                return currentNode != null
+            }
+
+            override fun next(): Quad {
+                val currentNode = currentNode ?: throw NoSuchElementException()
+                // first ensuring, if a structural child, the child is complete
+                (currentValue as? ListItem.StructureItem)?.let {
+                    if (it.structure.hasNext()) {
+                        return it.structure.next()
+                    }
+                }
+                // then ensuring there's a link between the child's value and its associated list node
+                when (val current = currentValue.also { currentValue = null }) {
+                    is ListItem.SimpleItem -> {
+                        return Quad(currentNode, RDF.first, current.item, g = parent.g)
+                    }
+
+                    is ListItem.StructureItem -> {
+                        return Quad(currentNode, RDF.first, current.structure.name as Quad.Object, g = parent.g)
+                    }
+
+                    null -> {
+                        // value is already emitted, continuing to the next block
+                    }
+                }
+                // then ensuring we emitted the link to the next node
+                if (parent.source.peek() == TriGToken.Structural.ListEnd) {
+                    parent.source.consume()
+                    // indicating we're finished here
+                    this.currentNode = null
+                    return Quad(currentNode, RDF.rest, RDF.nil, g = parent.g)
+                }
+                val nextNode = Quad.BlankTerm(id = parent.blankTermCount++)
+                // already updating the local value, which will be consumed in subsequent iterations
+                this.currentValue = nextItemValue()
+                this.currentNode = nextNode
+                return Quad(currentNode, RDF.rest, nextNode, g = parent.g)
+            }
+
+            private fun nextItemValue(): ListItem {
+                return when (val current = parent.source.peek()) {
+                    TriGToken.Structural.ListStart -> {
+                        ListItem.StructureItem(List(parent))
+                    }
+
+                    TriGToken.Structural.BlankStart -> {
+                        ListItem.StructureItem(BlankNode(parent))
+                    }
+
+                    is TriGToken.TermToken -> {
+                        ListItem.SimpleItem(item = parent.resolve(current) as Quad.Object).also { parent.source.consume() }
+                    }
+
+                    else -> unexpectedToken(current)
+                }
+            }
+
+        }
+
+        data object EmptyList : Structure() {
+
+            override val name: Quad.Subject // all subjects are valid objects, but not all objects are valid subjects
+                get() = RDF.nil
+
+            override fun hasNext(): Boolean = false
+
+            override fun next(): Quad {
+                throw NoSuchElementException()
+            }
+
+        }
+
+        companion object {
+
+            fun List(parent: Deserializer): Structure {
+                check(parent.source.peek() == TriGToken.Structural.ListStart) {
+                    "Expected ${TriGToken.Structural.ListStart}, got ${parent.source.peek()}"
+                }
+                parent.source.consume()
+                return if (parent.source.peek() == TriGToken.Structural.ListEnd) {
+                    parent.source.consume()
+                    EmptyList
+                } else {
+                    RegularList(parent)
+                }
+            }
+
+        }
+
     }
 
     /* state/input logic */
 
-    private var position = Position.Subject
+    private val source = TokenBuffer(source)
+
     private val prefixes = mutableMapOf<String /* prefix */, String /* uri */>()
-    private val blanks = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
-    private var base = ""
+    private val namedBlankNodes = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
+    private var blankTermCount = 0
+    private var base = Base(base)
+    private var child: Structure? = null
     private var s: Quad.Subject? = null
     private var p: Quad.Predicate? = null
-    private var o: Quad.Object? = null
-    private var g: Quad.Graph = Quad.DefaultGraph
+    internal var g: Quad.Graph = Quad.DefaultGraph
+        private set
+    // specifically keeping track of whether we're in a graph block, as the current graph being the default graph
+    //  can also be done syntactically (e.g. `{ <s> <p> <o> }`)
     private var inGraphBlock = false
 
     /* iterator/output logic */
 
-    private var next: Quad? = prepareNext()
+    private var next: Quad? = null
 
     override fun hasNext(): Boolean {
         if (next != null) {
@@ -42,92 +352,110 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
 
     override fun next(): Quad {
         val result = next ?: prepareNext() ?: throw NoSuchElementException("No quads available!")
-        next = prepareNext()
+        next = null
         return result
     }
 
     private fun prepareNext(): Quad? {
-        if (!source.hasNext()) {
-            return null
-        }
-        // consuming tokens until we reach something we can work with
-        // from hereon out, we can assure it's a valid position-specific token
-        var token = consumeUntilInsideStatement()
         while (true) {
+            val child = child
+            val token = source.peek()
             when {
-                token == null -> return null
-
-                inGraphBlock && token == TriGToken.Structural.GraphStatementEnd -> {
-                    inGraphBlock = false
-                    g = Quad.DefaultGraph
-                    token = nextOrNull()
-                }
-
-                position == Position.Subject -> {
-                    check(token is TriGToken.TermToken) {
-                        "$token is not a valid subject / graph term"
+                child != null -> {
+                    if (child.hasNext()) {
+                        return child.next()
                     }
-                    val resolved = resolve(token)
-                    if (inGraphBlock) {
-                        // we're already in a graph block, the only valid next term is also a term token, which we won't
-                        //  explicitly test for now
-                        s = resolved as Quad.Subject
-                        position = Position.Predicate
-                        token = nextOrBail()
-                    } else {
-                        // it's possible that the next token will now result in a `{`, meaning we're dealing with
-                        //  a graph term
-                        when (val next = nextOrBail()) {
-                            TriGToken.Structural.GraphStatementStart -> {
-                                g = resolved as? Quad.Graph
-                                    ?: throw IllegalStateException("$resolved is not a valid graph term!")
-                                position = Position.Subject
-                                inGraphBlock = true
-                            }
-
-                            is TriGToken.TermToken -> {
-                                s = resolved as Quad.Subject
-                                val predicate = resolve(next)
-                                p = predicate as? Quad.NamedTerm
-                                    ?: throw IllegalStateException("$predicate is not a valid predicate term!")
-                                position = Position.Object
-                            }
-
-                            TriGToken.Keyword.TypePredicate -> {
-                                s = resolved as Quad.Subject
-                                p = RDF.type
-                                position = Position.Object
-                            }
-
-                            else -> unexpectedToken(next)
+                    // clearing out the child as it's finished
+                    this.child = null
+                    // using the child from this iteration one last time - to reference its name in the appropriate
+                    //  quad
+                    when {
+                        !inGraphBlock && source.peek() == TriGToken.Structural.GraphStatementStart -> {
+                            source.consume()
+                            g = child.name.into()
+                            inGraphBlock = true
                         }
-                        token = nextOrBail()
+
+                        s == null -> {
+                            val next = source.peek()
+                            if (next == TriGToken.Structural.StatementTermination || next == TriGToken.EOF) {
+                                // state was already cleared
+                                source.consume()
+                            } else {
+                                // subsequent terms use this blank node as a subject
+                                s = child.name
+                            }
+                        }
+
+                        else -> {
+                            return onObjectElement(o = child.name as Quad.Object)
+                        }
                     }
                 }
 
-                position == Position.Predicate && token is TriGToken.TermToken -> {
-                    val predicate = resolve(token)
-                    p = predicate as? Quad.NamedTerm
-                        ?: throw IllegalStateException("$predicate is not a valid predicate term!")
-                    position = Position.Object
-                    token = nextOrBail()
+                token == TriGToken.EOF -> return null
+
+                token == TriGToken.Structural.BlankStart -> {
+                    this.child = Structure.BlankNode(parent = this)
                 }
 
-                position == Position.Predicate && token == TriGToken.Keyword.TypePredicate -> {
-                    p = RDF.type
-                    position = Position.Object
-                    token = nextOrBail()
+                token == TriGToken.Structural.ListStart -> {
+                    this.child = Structure.List(parent = this)
                 }
 
-                position == Position.Predicate -> {
-                    unexpectedToken(token)
+                token == TriGToken.Structural.GraphStatementStart -> {
+                    if (inGraphBlock) {
+                        unexpectedToken(token)
+                    }
+                    source.consume()
+                    inGraphBlock = true
+                    // the active subject, if any, becomes the graph
+                    g = s?.into() ?: Quad.DefaultGraph
+                    s = null
                 }
 
-                position == Position.Object -> {
-                    // FIXME: blank objects
-                    o = when (token) {
+                token == TriGToken.Keyword.GraphAnnotation -> {
+                    source.consume()
+                    g = resolve(source.consume().into()).into()
+                    check(source.consume() == TriGToken.Structural.GraphStatementStart)
+                    inGraphBlock = true
+                }
+
+                token == TriGToken.Structural.GraphStatementEnd -> {
+                    if (!inGraphBlock) {
+                        unexpectedToken(token)
+                    }
+                    source.consume()
+                    // resetting the rest of the state too
+                    g = Quad.DefaultGraph
+                    inGraphBlock = false
+                    s = null
+                    p = null
+                }
+
+                s == null -> {
+                    if (source.peek().isBaseOrPrefixDeclaration()) {
+                        check(!inGraphBlock)
+                        processPrefix()
+                        continue
+                    }
+
+                    s = resolve(source.consume().into()) as Quad.Subject
+                }
+
+                p == null -> {
+                    p = if (source.peek() == TriGToken.Keyword.TypePredicate) {
+                        RDF.type
+                    } else {
+                        resolve(source.peek().into()).into()
+                    }
+                    source.consume()
+                }
+
+                else -> {
+                    val o = when (token) {
                         is TriGToken.TermToken -> {
-                            resolve(token) as Quad.Object
+                            resolve(token)
                         }
 
                         TriGToken.Keyword.TrueLiteral -> {
@@ -139,111 +467,97 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                         }
 
                         else -> unexpectedToken(token)
-                    }
-                    val result = Quad(
-                        s = s!!,
-                        p = p!!,
-                        o = o!!,
-                        g = g
-                    )
-                    // depending on what this next token is, we either adjust the position and yield, update the graph
-                    //  value and yield
-                    while (true) {
-                        when (val next: TriGToken? = nextOrNull()) {
-                            null -> {
-                                break
-                            }
-
-                            TriGToken.Structural.StatementTermination -> {
-                                position = Position.Subject
-                                break
-                            }
-
-                            TriGToken.Structural.PredicateTermination -> {
-                                position = Position.Predicate
-                                break
-                            }
-
-                            TriGToken.Structural.ObjectTermination -> {
-                                position = Position.Object
-                                break
-                            }
-
-                            TriGToken.Structural.GraphStatementEnd -> {
-                                check(inGraphBlock)
-                                inGraphBlock = false
-                                g = Quad.DefaultGraph
-                            }
-
-                            else -> unexpectedToken(next)
-                        }
-                    }
-                    return result
+                    } as Quad.Object
+                    // the object's token
+                    source.consume()
+                    return onObjectElement(o)
                 }
             }
         }
     }
 
-    /**
-     * Consumes tokens, processing prefixes in the process, until reaching the start of the next statement, returning
-     *  said start, or `null` if no statement follows. If already inside a statement according to the [position] state,
-     *  this method will immediately return.
-     */
-    private fun consumeUntilInsideStatement(): TriGToken? {
-        if (!source.hasNext()) {
-            return null
-        }
-        if (inGraphBlock || position != Position.Subject) {
-            // we are inside a statement or graph block, meaning we shouldn't encounter any prefixes now and can
-            //  bail early
-            return nextOrBail()
-        }
-        var token = nextOrNull()
-        do {
-            when (token) {
-                null -> return null
-
-                TriGToken.Keyword.BaseAnnotationA,
-                TriGToken.Keyword.BaseAnnotationB -> {
-                    val uri = nextOrBail()
-                    check(uri is TriGToken.Term) { "Invalid base value `${uri}`" }
-                    base = uri.value
-                    token = nextOrNull()
-                    if (token == TriGToken.Structural.StatementTermination) {
-                        token = nextOrNull()
-                    }
-                }
-
-                TriGToken.Keyword.PrefixAnnotationA,
-                TriGToken.Keyword.PrefixAnnotationB -> {
-                    processPrefix()
-                    token = nextOrNull()
-                    if (token == TriGToken.Structural.StatementTermination) {
-                        token = nextOrNull()
-                    }
-                }
-
-                is TriGToken.TermToken -> {
-                    // found ourselves a statement, we can continue
-                    break
-                }
-
-                else -> unexpectedToken(token)
+    private fun onObjectElement(o: Quad.Object): Quad {
+        val result = Quad(s = s!!, p = p!!, o = o, g = g)
+        when (val terminator = source.peek()) {
+            TriGToken.Structural.StatementTermination -> {
+                s = null
+                p = null
+                source.consume()
             }
-        } while (source.hasNext())
-        // if we bailed because we reached the end, we should return null
-        if (!source.hasNext()) {
-            return null
+
+            TriGToken.Structural.PredicateTermination -> {
+                p = null
+                source.consume()
+            }
+
+            TriGToken.Structural.ObjectTermination -> {
+                source.consume()
+            }
+
+            TriGToken.EOF, TriGToken.Structural.GraphStatementEnd -> {
+                /* nothing else to do */
+                return result
+            }
+
+            else -> unexpectedToken(terminator)
         }
-        return token
+        // it's possible for other termination characters to occur now, so repeating in case this happens
+        while (true) {
+            when (source.peek()) {
+                TriGToken.Structural.StatementTermination -> {
+                    source.consume()
+                    s = null
+                    p = null
+                }
+
+                TriGToken.Structural.PredicateTermination -> {
+                    source.consume()
+                    p = null
+                }
+
+                TriGToken.Structural.ObjectTermination -> {
+                    source.consume()
+                }
+
+                // finished
+                else -> return result
+            }
+        }
     }
+
+    private fun TriGToken.isBaseOrPrefixDeclaration(): Boolean =
+        this == TriGToken.Keyword.BaseAnnotationA || this == TriGToken.Keyword.BaseAnnotationB ||
+                this == TriGToken.Keyword.PrefixAnnotationA || this == TriGToken.Keyword.PrefixAnnotationB
 
     private fun processPrefix() {
-        val prefix = nextOrBail()
-        check(prefix is TriGToken.PrefixedTerm && prefix.value.isEmpty())
-        val uri = nextOrBail()
-        check(uri is TriGToken.Term)
-        prefixes[prefix.prefix] = uri.value
+        when (val token = source.consume()) {
+            TriGToken.Keyword.BaseAnnotationA,
+            TriGToken.Keyword.BaseAnnotationB -> {
+                val uri = source.consume().into<TriGToken.TermToken>()
+                base = base.update(uri)
+                if (source.peek() == TriGToken.Structural.StatementTermination) {
+                    source.consume()
+                }
+            }
+
+            TriGToken.Keyword.PrefixAnnotationA,
+            TriGToken.Keyword.PrefixAnnotationB -> {
+                val prefix = source.consume()
+                check(prefix is TriGToken.PrefixedTerm && prefix.value.isEmpty())
+                prefixes[prefix.prefix] = when (val uri = source.consume()) {
+                    is TriGToken.Term -> uri.value
+
+                    is TriGToken.RelativeTerm -> base.resolve(uri).value
+
+                    else -> unexpectedToken(uri)
+                }
+                if (source.peek() == TriGToken.Structural.StatementTermination) {
+                    source.consume()
+                }
+            }
+
+            else -> unexpectedToken(token)
+        }
     }
 
     private fun resolve(term: TriGToken.TermToken): Quad.Element {
@@ -254,9 +568,14 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                 Quad.Literal(value = term.value, type = type)
             }
 
+            is TriGToken.LocalizedLiteralTerm -> {
+                // FIXME
+                Quad.Literal(value = term.value, type = RDF.langString)
+            }
+
             is TriGToken.PrefixedTerm -> {
                 if (term.prefix == "_") {
-                    blanks.getOrPut(term.value) { Quad.BlankTerm(id = blanks.size) }
+                    namedBlankNodes.getOrPut(term.value) { Quad.BlankTerm(id = blankTermCount++) }
                 } else {
                     val uri = prefixes[term.prefix]
                         ?: throw IllegalStateException("Unknown prefix `${term.prefix}` in token $term")
@@ -264,30 +583,27 @@ internal class Deserializer(private val source: Iterator<TriGToken>) : Iterator<
                 }
             }
 
-            is TriGToken.RelativeTerm -> Quad.NamedTerm(value = "$base${term.value}")
+            is TriGToken.RelativeTerm -> base.resolve(term)
             is TriGToken.Term -> Quad.NamedTerm(value = term.value)
         }
     }
 
-    private fun nextOrNull(): TriGToken? {
-        if (!source.hasNext()) {
-            return null
-        }
-        return source.next()
-    }
+    internal companion object {
 
-    private fun nextOrBail(): TriGToken {
-        if (!source.hasNext()) {
-            throw NoSuchElementException("Reached end of token stream unexpectedly!")
+        fun unexpectedToken(token: TriGToken?): Nothing {
+            if (token == null) {
+                throw IllegalStateException("Unexpected end of input")
+            }
+            throw IllegalStateException("Unexpected token $token")
         }
-        return source.next()
-    }
 
-    private fun unexpectedToken(token: TriGToken?): Nothing {
-        if (token == null) {
-            throw IllegalStateException("Unexpected end of input")
+        inline fun <reified T> Any.into(): T {
+            if (this !is T) {
+                throw IllegalStateException("Unexpected token $this, expected ${T::class.simpleName}")
+            }
+            return this
         }
-        throw IllegalStateException("Unexpected token $token")
+
     }
 
 }

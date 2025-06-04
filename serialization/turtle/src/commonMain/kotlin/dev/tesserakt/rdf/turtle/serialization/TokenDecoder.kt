@@ -43,6 +43,8 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
             next == '\'' -> consumeLiteralTerm('\'')
             next.isDigit() || next == '+' || next == '-' || (next == '.'  && source.peek(1).isDigit()) ->
                 consumeLiteralValue()
+            next == 'a' && source.peek(1).let { it == null || it.isWhitespace() || it == '<' } ->
+                TurtleToken.Keyword.TypePredicate.also { source.consume() }
             else -> TurtleToken.Structural[next]?.also { source.consume() } ?: consumePrefixedTermOrBail()
         }
     }
@@ -146,7 +148,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
             throw IllegalStateException("Invalid term: $prefix")
         }
         source.consume() // ':'
-        val value = consumePrefixLocalName()
+        val value = if (prefix == "_") consumeBlankName() else consumePrefixLocalName()
         return TurtleToken.PrefixedTerm(prefix, value)
     }
 
@@ -180,7 +182,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
             }
             ++i
         }
-        return source.peek(i).isNullOr { it.isWhitespace() }
+        return source.peek(i).isNullOr { it.isWhitespace() || it == '<' || it == ':' }
     }
 
     /**
@@ -194,7 +196,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
             }
             ++i
         }
-        return source.peek(i).isNullOr { it.isWhitespace() }
+        return source.peek(i).isNullOr { it.isWhitespace() || it == '<' || it == ':' }
     }
 
     private inline fun consumeWhile(predicate: (Char) -> Boolean): String {
@@ -214,7 +216,14 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
     private fun consumePrefixLocalName(): String {
         var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
 
-        fun Char.isTerminatingCharacter(): Boolean = this.isWhitespace() || this == ',' || this == ';' || this == '#'
+        fun Char.isTerminatingCharacter(): Boolean =
+            this.isWhitespace() ||
+            this == ',' ||
+            this == ';' ||
+            this == '#' ||
+            this == '<' ||
+            this == '"' ||
+            this == '\''
 
         val result = StringBuilder()
         var escaped = false
@@ -235,6 +244,65 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
                     source.consume(3)
                     c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
                 } else if (c == '.' && !source.peek(1).isWhitespace()) {
+                    result.append('.')
+                    result.append(source.peek(1))
+                    source.consume(2)
+                    c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+                } else if (c == '\\') {
+                    escaped = true
+                    source.consume()
+                    c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+                } else if (TurtleToken.Structural[c] == null) {
+                    result.append(c)
+                    source.consume()
+                    c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+                } else {
+                    // non-escaped structural character - leaving
+                    break
+                }
+            }
+        }
+        return result.toString()
+    }
+
+    /**
+     * Consumes, and returns, the blank name value, respecting escaping rules.
+     * Examples:
+     *  * `_:my\,triple` returns "my,triple"
+     */
+    private fun consumeBlankName(): String {
+        var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
+
+        fun Char.isTerminatingCharacter(): Boolean =
+            this.isWhitespace() ||
+                    this == ',' ||
+                    this == ';' ||
+                    // `:` is NOT allowed in blank names!
+                    this == ':' ||
+                    this == '#' ||
+                    this == '<' ||
+                    this == '"' ||
+                    this == '\''
+
+        val result = StringBuilder()
+        var escaped = false
+
+        while (escaped || !c.isTerminatingCharacter()) {
+            val isReserved = c in ReservedCharacters
+            if (escaped) {
+                check(isReserved) { "Invalid character `$c` encountered - unexpected escape!" }
+                result.append(c)
+                escaped = false
+                source.consume()
+                c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+            } else /* !escaped */ {
+                if (c == '%' && source.peek(1).isHexDecimal() && source.peek(2).isHexDecimal()) {
+                    result.append(source.peek())
+                    result.append(source.peek(1))
+                    result.append(source.peek(2))
+                    source.consume(3)
+                    c = source.peek() ?: throw NoSuchElementException("Unexpected EOF reached!")
+                } else if (c == '.' && !source.peek(1).let { it.isWhitespace() || it == '{' || it == '}' }) {
                     result.append('.')
                     result.append(source.peek(1))
                     source.consume(2)
