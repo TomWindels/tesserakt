@@ -18,15 +18,16 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
 class Endpoint(
-    private val config: EndpointConfig,
+    config: EndpointConfig,
     private val store: ObservableStore = ObservableStore()
 ) {
 
     private val server = embeddedServer(Netty, port = config.port) {
-
         install(ContentNegotiation) {
             json()
         }
@@ -51,6 +52,19 @@ class Endpoint(
         server.start(wait = true)
     }
 
+    /**
+     * The lock guarding the [queryCache] field. When interacting with the map itself, or with any evaluation found
+     *  inside the map, the lock should be held by the interacting coroutine.
+     */
+    private val queryCacheLock = Mutex()
+
+    /**
+     * The lock guarding the [store] field. When interacting with the store directly, the lock should be held by the
+     *  interacting coroutine.
+     */
+    // could be a RW lock, but doesn't seem to exist in coroutines (yet)
+    private val storeLock = Mutex()
+
     private val queryCache = mutableMapOf<Query<Bindings>, DeferredOngoingQueryEvaluation<Bindings>>()
 
     private suspend fun RoutingContext.processSelectQuery() {
@@ -64,10 +78,20 @@ class Endpoint(
             )
             return
         }
-        val evaluation = queryCache.getOrPut(query) { store.queryDeferred(query) }
-        val data = SelectResponse(query, evaluation)
+        // the entire query evaluation logic has to be put behind the lock, as it's possible for two concurrent
+        //  requests targeting the same cached query to update the deferred results otherwise
+        val response = queryCacheLock.withLock {
+            val evaluation = queryCache.getOrPut(query) {
+                // as we're creating a new query state from scratch, we're required to lock the underlying store,
+                //  as the data is being added to the queue
+                storeLock.withLock {
+                    store.queryDeferred(query)
+                }
+            }
+            SelectResponse(query, evaluation)
+        }
         // we have to encode it ourselves so we can provide the custom response type
-        call.respondText(Json.encodeToString(data), ResponseMimeType)
+        call.respondText(Json.encodeToString(response), ResponseMimeType)
     }
 
     private suspend fun RoutingContext.processUpdateQuery() {
@@ -84,13 +108,17 @@ class Endpoint(
             call.respond(HttpStatusCode.NoContent)
             return
         }
-        store.addAll(request.additions)
-        store.removeAll(request.deletions)
-        // small optimisation: if the UPDATE causes all data to be removed, it's much faster to clear
-        //  any existing, outdated, queries and re-evaluate them from scratch than it is to
-        //  first process all deletions from the outdated state
-        if (store.isEmpty()) {
-            queryCache.clear()
+        storeLock.withLock {
+            store.addAll(request.additions)
+            store.removeAll(request.deletions)
+            // small optimisation: if the UPDATE causes all data to be removed, it's much faster to clear
+            //  any existing, outdated, queries and re-evaluate them from scratch than it is to
+            //  first process all deletions from the outdated state
+            if (store.isEmpty()) {
+                queryCacheLock.withLock {
+                    queryCache.clear()
+                }
+            }
         }
         call.respond(HttpStatusCode.OK)
     }
