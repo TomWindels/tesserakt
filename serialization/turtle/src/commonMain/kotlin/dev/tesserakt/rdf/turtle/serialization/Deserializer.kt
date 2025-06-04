@@ -521,8 +521,7 @@ internal class Deserializer(
             }
 
             is TurtleToken.LocalizedLiteralTerm -> {
-                // FIXME
-                Quad.Literal(value = term.value, type = RDF.langString)
+                Quad.LangString(value = term.value, language = term.language)
             }
 
             is TurtleToken.PrefixedTerm -> {
