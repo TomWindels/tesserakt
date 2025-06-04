@@ -61,6 +61,10 @@ object N3Serializer {
             is dev.tesserakt.rdf.types.Quad.Literal ->
                 N3Token.LiteralTerm(value = value, type = type.tokenized() as N3Token.NonLiteralTerm)
 
+            is dev.tesserakt.rdf.types.Quad.LangString ->
+                // FIXME
+                N3Token.LiteralTerm(value = value, type = type.tokenized() as N3Token.NonLiteralTerm)
+
             is dev.tesserakt.rdf.types.Quad.NamedTerm ->
                 N3Token.Term(value = value)
 

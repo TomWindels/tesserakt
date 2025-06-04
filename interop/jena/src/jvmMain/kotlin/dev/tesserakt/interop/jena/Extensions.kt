@@ -44,6 +44,7 @@ fun Quad.Predicate.toJenaTerm() = when (this) {
 fun Quad.Object.toJenaTerm() = when (this) {
     is Quad.NamedTerm -> NodeFactory.createURI(value)
     is Quad.Literal -> NodeFactory.createLiteral(value, type.asRDFDataType())
+    is Quad.LangString -> NodeFactory.createLiteralLang(value, language)
     is Quad.BlankTerm -> NodeFactory.createBlankNode(value)
 }
 

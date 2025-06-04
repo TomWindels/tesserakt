@@ -1,5 +1,6 @@
 package dev.tesserakt.rdf.types
 
+import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmStatic
@@ -44,6 +45,17 @@ data class Quad(
     ): Object {
         override fun toString(): String {
             return "\"$value\"^^${type.value}"
+        }
+    }
+
+    data class LangString(
+        override val value: String,
+        val language: String,
+    ): Object {
+        val type: NamedTerm
+            get() = RDF.langString
+        override fun toString(): String {
+            return "\"$value\"@$language"
         }
     }
 

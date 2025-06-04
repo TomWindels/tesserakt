@@ -199,6 +199,7 @@ internal class TokenEncoder(
         is Quad.NamedTerm -> TriGToken.Term(value = value)
         is Quad.BlankTerm -> TriGToken.PrefixedTerm(prefix = "_", value = "b$id")
         is Quad.Literal -> TriGToken.LiteralTerm(value = value, type = TriGToken.Term(value = type.value))
+        is Quad.LangString -> TriGToken.LocalizedLiteralTerm(value = value, language = language)
     }
 
     private fun Quad.Graph.toGraphToken(): TriGToken = when (this) {

@@ -24,6 +24,12 @@ inline fun Quad.Element.toStylisedString(): StylisedString = when (this) {
         add("\"^^")
         add(type.value, Color.WHITE)
     }
+    is Quad.LangString -> buildStylisedString {
+        add('"')
+        add(value, Color.BRIGHT_GREEN)
+        add("\"@")
+        add(language, Color.WHITE)
+    }
     is Quad.NamedTerm -> value.stylise(Color.BRIGHT_BLUE)
     Quad.DefaultGraph -> StylisedString()
 }
