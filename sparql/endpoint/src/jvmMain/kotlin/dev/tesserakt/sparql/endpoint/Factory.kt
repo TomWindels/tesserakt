@@ -15,7 +15,8 @@ fun SparqlEndpoint(store: ObservableStore = ObservableStore()): SparqlEndpoint =
 
 fun Application.sparqlEndpoint(
     slug: String = "sparql",
-    store: ObservableStore = ObservableStore()
+    store: ObservableStore = ObservableStore(),
+    json: Json = Json,
 ) {
     val endpoint = SparqlEndpoint(store)
     routing {
@@ -43,8 +44,9 @@ fun Application.sparqlEndpoint(
             )
         }
         post(slug) {
-            when (call.request.contentType()) {
-                SparqlSelectQueryPostUrlEncodedBodyType -> {
+            val type = call.request.contentType()
+            when {
+                type.match(SparqlSelectQueryPostFormType) -> {
                     val params = call.receiveParameters()
                     val query = params["query"] ?: run {
                         call.respond(
@@ -58,7 +60,7 @@ fun Application.sparqlEndpoint(
                     ).fold(
                         onSuccess = { response ->
                             // we have to encode it ourselves so we can provide the custom response type
-                            call.respondText(Json.encodeToString(response), SparqlBindingsType)
+                            call.respondText(json.encodeToString(response), SparqlBindingsType)
                         },
                         onFailure = { cause ->
                             call.respond(
@@ -68,13 +70,13 @@ fun Application.sparqlEndpoint(
                         }
                     )
                 }
-                SparqlSelectQueryPostBodyType -> {
+                type.match(SparqlSelectQueryPostBodyType) -> {
                     endpoint.onSelectQueryRequest(
                         query = call.receiveText()
                     ).fold(
                         onSuccess = { response ->
                             // we have to encode it ourselves so we can provide the custom response type
-                            call.respondText(Json.encodeToString(response), SparqlBindingsType)
+                            call.respondText(json.encodeToString(response), SparqlBindingsType)
                         },
                         onFailure = { cause ->
                             call.respond(
@@ -84,7 +86,7 @@ fun Application.sparqlEndpoint(
                         }
                     )
                 }
-                SparqlUpdateQueryType -> {
+                type.match(SparqlUpdateQueryType) -> {
                     endpoint.onUpdateQueryRequest(
                         query = call.receiveText()
                     ).fold(

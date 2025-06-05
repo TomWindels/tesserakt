@@ -12,6 +12,7 @@ import dev.tesserakt.sparql.endpoint.data.SelectResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.http.content.*
@@ -32,13 +33,36 @@ fun ClientContentNegotiationConfig.sparql() {
     register(SparqlBindingsType, SparqlBindingsContentConverter)
 }
 
-suspend fun HttpClient.sparqlQuery(query: String, path: String = "sparql"): HttpResponse {
-    return get(path) {
-        parameter("query", query)
-    }
+suspend fun HttpClient.sparqlQuery(
+    query: String,
+    path: String = "sparql",
+    mode: QueryOperationMode = QueryOperationMode.POST_BODY
+): HttpResponse {
+    return mode.exec(this, query, path)
 }
 
-suspend inline fun HttpClient.sparqlUpdate(path: String = "sparql", block: SparqlUpdateRequestBuilder.() -> Unit): HttpResponse {
+enum class QueryOperationMode(internal val exec: suspend (client: HttpClient, query: String, path: String) -> HttpResponse) {
+    GET(exec = { client, query, path -> client.get(path) { parameter("query", query) } }),
+    POST_FORM(exec = { client, query, path ->
+        client.submitForm(
+            path,
+            formParameters = parametersOf("query" to listOf(query))
+        ) {
+            contentType(SparqlSelectQueryPostFormType)
+        }
+    }),
+    POST_BODY(exec = { client, query, path ->
+        client.post(path) {
+            contentType(SparqlSelectQueryPostBodyType)
+            setBody(query)
+        }
+    }),
+}
+
+suspend inline fun HttpClient.sparqlUpdate(
+    path: String = "sparql",
+    block: SparqlUpdateRequestBuilder.() -> Unit
+): HttpResponse {
     val content = SparqlUpdateRequestBuilder().apply(block).optimise()
     return post(path) {
         contentType(SparqlUpdateQueryType)
@@ -105,7 +129,7 @@ suspend fun HttpResponse.bodyAsBindings(): List<Bindings> {
     return body<List<Bindings>>()
 }
 
-object SparqlBindingsContentConverter: ContentConverter {
+object SparqlBindingsContentConverter : ContentConverter {
 
     override suspend fun serialize(
         contentType: ContentType,
