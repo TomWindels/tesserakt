@@ -6,8 +6,6 @@ import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.rdf.types.factory.mutableStoreOf
-import io.ktor.server.request.*
-import io.ktor.server.routing.*
 
 data class UpdateRequest(
     val additions: Store,
@@ -15,11 +13,6 @@ data class UpdateRequest(
 ) {
 
     companion object {
-
-        suspend fun RoutingCall.receiveUpdateQuery(): UpdateRequest {
-            val query = receiveText()
-            return invoke(query = query)
-        }
 
         @OptIn(DelicateSerializationApi::class)
         operator fun invoke(query: String): UpdateRequest {
