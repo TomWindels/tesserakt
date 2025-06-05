@@ -19,15 +19,46 @@ fun Application.sparqlEndpoint(
 ) {
     val endpoint = SparqlEndpoint(store)
     routing {
+        get(slug) {
+            val query = call.parameters["query"] ?: run {
+                call.respond(
+                    status = HttpStatusCode.BadRequest,
+                    message = "No query provided!"
+                )
+                return@get
+            }
+            endpoint.onSelectQueryRequest(
+                query = query
+            ).fold(
+                onSuccess = { response ->
+                    // we have to encode it ourselves so we can provide the custom response type
+                    call.respondText(Json.encodeToString(response), SparqlBindingsType)
+                },
+                onFailure = { cause ->
+                    call.respond(
+                        status = HttpStatusCode.BadRequest,
+                        message = "Invalid query! Caught the following exception.\n${cause.message}"
+                    )
+                }
+            )
+        }
         post(slug) {
             when (call.request.contentType()) {
-                SelectQueryType -> {
+                SparqlSelectQueryPostUrlEncodedBodyType -> {
+                    val params = call.receiveParameters()
+                    val query = params["query"] ?: run {
+                        call.respond(
+                            status = HttpStatusCode.BadRequest,
+                            message = "No query provided!"
+                        )
+                        return@post
+                    }
                     endpoint.onSelectQueryRequest(
-                        query = call.receiveText()
+                        query = query
                     ).fold(
                         onSuccess = { response ->
                             // we have to encode it ourselves so we can provide the custom response type
-                            call.respondText(Json.encodeToString(response), ResponseMimeType)
+                            call.respondText(Json.encodeToString(response), SparqlBindingsType)
                         },
                         onFailure = { cause ->
                             call.respond(
@@ -37,7 +68,23 @@ fun Application.sparqlEndpoint(
                         }
                     )
                 }
-                UpdateQueryType -> {
+                SparqlSelectQueryPostBodyType -> {
+                    endpoint.onSelectQueryRequest(
+                        query = call.receiveText()
+                    ).fold(
+                        onSuccess = { response ->
+                            // we have to encode it ourselves so we can provide the custom response type
+                            call.respondText(Json.encodeToString(response), SparqlBindingsType)
+                        },
+                        onFailure = { cause ->
+                            call.respond(
+                                status = HttpStatusCode.BadRequest,
+                                message = "Invalid query! Caught the following exception.\n${cause.message}"
+                            )
+                        }
+                    )
+                }
+                SparqlUpdateQueryType -> {
                     endpoint.onUpdateQueryRequest(
                         query = call.receiveText()
                     ).fold(

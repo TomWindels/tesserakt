@@ -19,11 +19,16 @@ kotlin {
                 implementation(project(":serialization:trig"))
                 // to evaluate select queries
                 implementation(project(":sparql"))
+                // dsl support for update queries - should maybe become an optional dependency?
+                api(project(":rdf:dsl"))
                 // providing the actual endpoint
                 implementation("io.ktor:ktor-server-core:3.1.3")
                 implementation("io.ktor:ktor-server-netty:3.1.3")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.3")
                 implementation("io.ktor:ktor-server-content-negotiation:3.1.3")
+                // providing custom content negotiation support
+                // as an `implementation` instead of `api` so it's not exposing all there is to ktor
+                implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
                 // proper CLI support
                 implementation("com.github.ajalt.clikt:clikt:5.0.1")
             }
@@ -33,6 +38,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation("io.ktor:ktor-server-test-host:3.1.3")
+                implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
             }
         }
     }
