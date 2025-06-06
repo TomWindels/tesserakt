@@ -5,6 +5,9 @@ import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.factory.mutableStoreOf
 
 
+/**
+ * Intermediate builder type, used to construct SPARQL UPDATE queries.
+ */
 class SparqlUpdateRequestBuilder(
     internal val additions: MutableStore = mutableStoreOf(),
     internal val deletions: MutableStore = mutableStoreOf(),
