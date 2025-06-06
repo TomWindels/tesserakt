@@ -10,7 +10,7 @@ fun SparqlUpdateRequestBuilder.insert(builder: RDF.() -> Unit) {
     additions.addAll(buildStore(block = builder))
 }
 
-fun SparqlUpdateRequestBuilder.remove(builder: RDF.() -> Unit) {
+fun SparqlUpdateRequestBuilder.delete(builder: RDF.() -> Unit) {
     deletions.addAll(buildStore(block = builder))
 }
 
@@ -22,10 +22,10 @@ fun SparqlUpdateRequestBuilder.add(data: Store) {
     additions.addAll(data)
 }
 
-fun SparqlUpdateRequestBuilder.delete(quad: Quad) {
+fun SparqlUpdateRequestBuilder.remove(quad: Quad) {
     deletions.add(quad)
 }
 
-fun SparqlUpdateRequestBuilder.delete(data: Store) {
+fun SparqlUpdateRequestBuilder.remove(data: Store) {
     deletions.addAll(data)
 }

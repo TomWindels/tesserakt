@@ -5,6 +5,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
+import io.ktor.server.routing.*
 
 class Server(config: EndpointConfig) {
 
@@ -14,7 +15,9 @@ class Server(config: EndpointConfig) {
                 log(call, cause)
             }
         }
-        sparqlEndpoint(config.slug)
+        routing {
+            sparqlEndpoint(config.slug)
+        }
     }
 
     fun run() {

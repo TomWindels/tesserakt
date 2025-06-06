@@ -10,6 +10,7 @@ import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.client.utils.*
 import io.ktor.http.*
+import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -103,7 +104,7 @@ class SparqlEndpointTest {
         )
 
         val deletion = client.sparqlUpdate {
-            remove {
+            delete {
                 "user".asNamedTerm() has "name".asNamedTerm() being "Test".asLiteralTerm()
             }
         }
@@ -116,11 +117,13 @@ class SparqlEndpointTest {
 
     private inline fun test(crossinline block: suspend (HttpClient) -> Unit) = testApplication {
         application {
-            sparqlEndpoint(
-                json = Json {
-                    prettyPrint = true
-                }
-            )
+            routing {
+                sparqlEndpoint(
+                    json = Json {
+                        prettyPrint = true
+                    }
+                )
+            }
         }
         val client = createClient {
             install(ContentNegotiation) {
