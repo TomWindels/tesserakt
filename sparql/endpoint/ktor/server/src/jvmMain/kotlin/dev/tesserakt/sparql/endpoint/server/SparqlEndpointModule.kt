@@ -36,8 +36,15 @@ fun Application.sparqlEndpoint(
             call.respond(result, serializer = json)
         }
         post(slug) {
-            val type = call.request.contentType()
+            // if the content-type is ill-formed, this method can throw
+            val type = runCatching { call.request.contentType() }.getOrNull()
             when {
+                type == null -> {
+                    call.respond(
+                        status = HttpStatusCode.BadRequest,
+                        message = "Invalid Content-Type headers"
+                    )
+                }
                 type.match(SparqlContentType.SelectPostForm) -> {
                     val params = call.receiveParameters()
                     val query = params["query"] ?: run {
