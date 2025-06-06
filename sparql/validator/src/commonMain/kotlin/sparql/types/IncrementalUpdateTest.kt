@@ -3,7 +3,7 @@ package sparql.types
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.OngoingQueryEvaluation
+import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.queryDebug
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest

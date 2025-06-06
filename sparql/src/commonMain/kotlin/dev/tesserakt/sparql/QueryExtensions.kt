@@ -2,9 +2,11 @@ package dev.tesserakt.sparql
 
 import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.evaluation.*
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.query.QueryState
+import dev.tesserakt.sparql.types.SelectQueryStructure
 
 
 fun <RT> Iterable<Quad>.query(
@@ -62,6 +64,10 @@ fun <RT> ObservableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
 }
 
+fun <RT> ObservableStore.queryDeferred(query: Query<RT>): DeferredOngoingQueryEvaluation<RT> {
+    return DeferredOngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
+}
+
 fun <RT> ObservableStore.queryDebug(query: Query<RT>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationDebug(query.createState()).also { it.subscribe(this) }
 }
@@ -69,3 +75,8 @@ fun <RT> ObservableStore.queryDebug(query: Query<RT>): OngoingQueryEvaluation<RT
 internal fun <RT> ObservableStore.query(query: QueryState<RT, *>): OngoingQueryEvaluation<RT> {
     return OngoingQueryEvaluationRelease(query).also { it.subscribe(this) }
 }
+
+/* helper properties */
+
+val Query<Bindings>.variables: Set<String>
+    get() = (compiled as SelectQueryStructure).bindings

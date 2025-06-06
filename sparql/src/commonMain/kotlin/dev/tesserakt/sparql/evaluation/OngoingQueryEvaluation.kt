@@ -1,7 +1,6 @@
-package dev.tesserakt.sparql
+package dev.tesserakt.sparql.evaluation
 
 import dev.tesserakt.rdf.types.ObservableStore
-import dev.tesserakt.rdf.types.Quad
 
 interface OngoingQueryEvaluation<RT> {
 
@@ -10,10 +9,6 @@ interface OngoingQueryEvaluation<RT> {
     fun subscribe(store: ObservableStore)
 
     fun unsubscribe(store: ObservableStore)
-
-    fun add(quad: Quad)
-
-    fun remove(quad: Quad)
 
     fun debugInformation(): String
 

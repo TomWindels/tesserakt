@@ -1,7 +1,7 @@
 
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Compiler
-import dev.tesserakt.sparql.OngoingQueryEvaluation
+import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.createState
 import dev.tesserakt.sparql.runtime.evaluation.BindingsImpl

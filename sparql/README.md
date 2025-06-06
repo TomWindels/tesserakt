@@ -62,3 +62,6 @@ Houses the compiler logic. The compiler is responsible for converting raw query 
 
 ### The `runtime` module
 Houses the incremental query evaluation logic. The incremental evaluation calculates the impact of an incoming data change (insertion or deletion), propagates these changes to the entire query state, and updates the results.
+
+### The `endpoint` modules
+Houses several submodules to interact and create SPARQL endpoints. See the individual endpoint modules for more information.

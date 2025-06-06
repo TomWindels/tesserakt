@@ -72,6 +72,9 @@ internal class Deserializer(
                     full.substringBeforeLast(term.value[0]) + term.value
                 }
 
+                // preventing `<term>` w/o a base to be converted into `</term>`
+                path == "/" -> term.value
+
                 else -> {
                     path + term.value
                 }

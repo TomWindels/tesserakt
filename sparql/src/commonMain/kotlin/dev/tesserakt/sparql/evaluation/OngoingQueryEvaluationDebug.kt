@@ -1,4 +1,4 @@
-package dev.tesserakt.sparql
+package dev.tesserakt.sparql.evaluation
 
 import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
@@ -44,18 +44,18 @@ class OngoingQueryEvaluationDebug<RT>(private val query: QueryState<RT, *>): Ong
         store.removeListener(listener)
     }
 
-    override fun add(quad: Quad) {
+    override fun debugInformation(): String {
+        return processor.debugInformation()
+    }
+
+    private fun add(quad: Quad) {
         processor.process(DataAddition(quad)).forEach { process(it) }
         ensureValidState()
     }
 
-    override fun remove(quad: Quad) {
+    private fun remove(quad: Quad) {
         processor.process(DataDeletion(quad)).forEach { process(it) }
         ensureValidState()
-    }
-
-    override fun debugInformation(): String {
-        return processor.debugInformation()
     }
 
     private fun process(change: QueryState.ResultChange<BindingsImpl>) {
