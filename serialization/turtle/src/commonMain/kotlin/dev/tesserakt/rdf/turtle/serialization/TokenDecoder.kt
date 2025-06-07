@@ -153,8 +153,19 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
     }
 
     private inline fun consumeLanguageTag(): String {
-        // it's invalid to have a dtype present in a language tag
-        return consumeWhile { check(!matches("^^")); !it.isWhitespace() }
+        // structure: '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
+        // keeping track of whether a `-` has been discovered, and we're in the second half
+        var secondHalf = false
+        return consumeWhile { current ->
+            if (current == '-' && !secondHalf) {
+                // at least one character has to be available after this one
+                check(source.peek(1).let { it != null && it.isLetterOrDigit() })
+                secondHalf = true
+                true
+            } else {
+                current.isLetter() || secondHalf && current.isLetterOrDigit()
+            }
+        }
     }
 
     /**
