@@ -19,5 +19,5 @@ routing {
 ### Endpoint configuration
 Various configuration options are available to fine-tune the created SPARQL endpoint.
 * `path` (String) - the path name under which the endpoint is registered
-* `store` (ObservableStore) - the store instance that should be used to evaluate SELECT and UPDATE queries. This method does **NOT** create a copy!
+* `endpoint` (SparqlEndpoint) - the endpoint instance that should be used to evaluate SELECT and UPDATE queries. A caching variant is available, which reuses query results as much as possible.
 * `json` (Json) - the serializer used to create the serialized representation of binding results

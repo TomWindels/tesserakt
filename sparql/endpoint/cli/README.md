@@ -17,7 +17,8 @@ With the JAR file ready, the server can be started through the commandline. The 
 Usage: java -jar sparql-endpoint.jar [<options>]
 
 Options:
-  --slug=<text>  The name of the endpoint
-  --port=<int>   The port number
-  -h, --help     Show this message and exit
+  --path=<text>    The name of the endpoint
+  --port=<int>     The port number
+  --disable-cache  Disables the use of in-memory query caches
+  -h, --help       Show this message and exit
 ```
