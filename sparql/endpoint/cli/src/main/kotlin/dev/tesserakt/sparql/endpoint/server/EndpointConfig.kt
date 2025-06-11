@@ -1,6 +1,11 @@
 package dev.tesserakt.sparql.endpoint.server
 
-interface EndpointConfig {
-    val port: Int
-    val slug: String
+data class EndpointConfig(
+    val port: Int,
+    val path: String,
+    val useCaching: Boolean
+) {
+
+    override fun toString() = "port=$port, path=$path, cache=${if (useCaching) "enabled" else "disabled"}"
+
 }

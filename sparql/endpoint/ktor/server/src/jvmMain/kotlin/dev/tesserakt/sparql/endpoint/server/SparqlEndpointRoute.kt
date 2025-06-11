@@ -1,10 +1,8 @@
 package dev.tesserakt.sparql.endpoint.server
 
-import dev.tesserakt.rdf.types.ObservableStore
-import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.endpoint.core.SparqlContentType
 import dev.tesserakt.sparql.endpoint.core.data.SelectResponse
-import dev.tesserakt.sparql.endpoint.server.impl.SparqlEndpoint
+import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpoint
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -21,15 +19,13 @@ import kotlinx.serialization.json.encodeToStream
  *  using the [json] parameter.
  */
 fun Route.sparqlEndpoint(
-    /** The path name used to make this endpoint available. **/
+    /** The path name used to make this endpoint available **/
     path: String = "sparql",
-    /** The to-be-observed store, used to evaluate SELECT and UPDATE queries. **/
-    store: ObservableStore = ObservableStore(),
-    /** The used [Json] instance to serialize binding results with. **/
+    /** The actual [SparqlEndpoint] instance, responsible for processing the requests **/
+    endpoint: SparqlEndpoint = CachingSparqlEndpoint(),
+    /** The used [Json] instance to serialize binding results with **/
     json: Json = Json,
 ) {
-    val endpoint = SparqlEndpoint(store)
-
     get(path) {
         val query = call.parameters["query"] ?: run {
             call.respond(

@@ -1,5 +1,9 @@
 package dev.tesserakt.sparql.endpoint.server
 
+import dev.tesserakt.rdf.types.factory.MutableStore
+import dev.tesserakt.rdf.types.factory.ObservableStore
+import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpoint
+import dev.tesserakt.sparql.endpoint.server.impl.SparqlEndpoint
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -10,17 +14,22 @@ import io.ktor.server.routing.*
 class Server(config: EndpointConfig) {
 
     private val server = embeddedServer(Netty, port = config.port) {
+        println("Initialising server with configuration $config")
         install(StatusPages) {
             exception<Throwable> { call: ApplicationCall, cause: Throwable ->
                 log(call, cause)
             }
         }
         routing {
-            sparqlEndpoint(config.slug)
+            sparqlEndpoint(
+                path = config.path,
+                endpoint = if (config.useCaching) CachingSparqlEndpoint(ObservableStore()) else SparqlEndpoint(MutableStore())
+            )
         }
     }
 
     fun run() {
+        println("Starting server...")
         server.start(wait = true)
     }
 
