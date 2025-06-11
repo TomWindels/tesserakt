@@ -6,7 +6,23 @@ import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.endpoint.server.SparqlEndpoint
 import kotlinx.coroutines.sync.Mutex
 
-fun SparqlEndpoint(store: ObservableStore = ObservableStore()): SparqlEndpoint = CachingSparqlEndpointImpl(store)
+/**
+ * Creates a [SparqlEndpoint] instance backed by an [ObservableStore]. As the instance allows for observations, caches
+ *  are created for requested queries, with cache updates deferred until getting new requests for the same query.
+ *
+ * @param store The store that contains the quads. Updates received by this endpoint are reflected in this instance.
+ *  This store instance is observable. This property is used to keep query caches up-to-date, allowing changes to
+ *  propagate to these caches upon query re-execution.
+ * @param lock The lock guarding the [store] field. When interacting with the store directly, the lock should be held
+ *  by the interacting coroutine. If the [store] is expected to be mutated outside of this endpoint, a shared lock
+ *  should be passed as an argument, ensuring the endpoint and the external logic does not mutate the store at the same
+ *  time.
+ */
+fun SparqlEndpoint(
+    store: ObservableStore = ObservableStore(),
+    lock: Mutex = Mutex(),
+): SparqlEndpoint =
+    CachingSparqlEndpointImpl(store = store, storeLock = lock)
 
 /**
  * Creates a [SparqlEndpoint] instance backed by a [MutableStore]. As the instance does not allow for observations, any
@@ -17,4 +33,5 @@ fun SparqlEndpoint(store: ObservableStore = ObservableStore()): SparqlEndpoint =
  *  the interacting coroutine. If the [store] is expected to be mutated outside of this endpoint, a shared lock should
  *  be passed as an argument, ensuring the endpoint and the external logic does not mutate the store at the same time.
  */
-fun SparqlEndpoint(store: MutableStore, lock: Mutex = Mutex()): SparqlEndpoint = SparqlEndpointImpl(store = store, storeLock = lock)
+fun SparqlEndpoint(store: MutableStore, lock: Mutex = Mutex()): SparqlEndpoint =
+    SparqlEndpointImpl(store = store, storeLock = lock)
