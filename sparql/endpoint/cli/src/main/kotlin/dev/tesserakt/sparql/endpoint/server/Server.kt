@@ -14,6 +14,7 @@ import io.ktor.server.routing.*
 class Server(config: EndpointConfig) {
 
     private val server = embeddedServer(Netty, port = config.port) {
+        println("Initialising server with configuration $config")
         install(StatusPages) {
             exception<Throwable> { call: ApplicationCall, cause: Throwable ->
                 log(call, cause)
@@ -28,6 +29,7 @@ class Server(config: EndpointConfig) {
     }
 
     fun run() {
+        println("Starting server...")
         server.start(wait = true)
     }
 
