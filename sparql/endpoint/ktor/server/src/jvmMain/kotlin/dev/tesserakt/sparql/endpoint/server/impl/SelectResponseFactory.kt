@@ -17,3 +17,14 @@ fun SelectResponse(query: Query<Bindings>, evaluation: DeferredOngoingQueryEvalu
         )
     )
 }
+
+fun SelectResponse(query: Query<Bindings>, results: Collection<Bindings>): SelectResponse {
+    return SelectResponse(
+        head = SelectResponse.Head(
+            variables = query.variables
+        ),
+        results = SelectResponse.Results(
+            bindings = results.map { it.associate { it.first to it.second.encoded() } }
+        )
+    )
+}
