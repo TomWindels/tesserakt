@@ -1,5 +1,9 @@
 package dev.tesserakt.sparql.endpoint.server
 
+import dev.tesserakt.rdf.types.factory.MutableStore
+import dev.tesserakt.rdf.types.factory.ObservableStore
+import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpoint
+import dev.tesserakt.sparql.endpoint.server.impl.SparqlEndpoint
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -16,7 +20,10 @@ class Server(config: EndpointConfig) {
             }
         }
         routing {
-            sparqlEndpoint(config.slug)
+            sparqlEndpoint(
+                path = config.path,
+                endpoint = if (config.useCaching) CachingSparqlEndpoint(ObservableStore()) else SparqlEndpoint(MutableStore())
+            )
         }
     }
 

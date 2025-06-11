@@ -18,7 +18,7 @@ import kotlinx.coroutines.sync.Mutex
  *  should be passed as an argument, ensuring the endpoint and the external logic does not mutate the store at the same
  *  time.
  */
-fun SparqlEndpoint(
+fun CachingSparqlEndpoint(
     store: ObservableStore = ObservableStore(),
     lock: Mutex = Mutex(),
 ): SparqlEndpoint =
