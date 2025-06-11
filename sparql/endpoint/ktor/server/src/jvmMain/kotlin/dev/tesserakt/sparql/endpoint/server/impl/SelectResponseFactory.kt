@@ -7,7 +7,7 @@ import dev.tesserakt.sparql.endpoint.core.data.SelectResponse.Results.Companion.
 import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluation
 import dev.tesserakt.sparql.variables
 
-fun SelectResponse(query: Query<Bindings>, evaluation: DeferredOngoingQueryEvaluation<Bindings>): SelectResponse {
+internal fun SelectResponse(query: Query<Bindings>, evaluation: DeferredOngoingQueryEvaluation<Bindings>): SelectResponse {
     return SelectResponse(
         head = SelectResponse.Head(
             variables = query.variables
@@ -18,7 +18,7 @@ fun SelectResponse(query: Query<Bindings>, evaluation: DeferredOngoingQueryEvalu
     )
 }
 
-fun SelectResponse(query: Query<Bindings>, results: Collection<Bindings>): SelectResponse {
+internal fun SelectResponse(query: Query<Bindings>, results: Collection<Bindings>): SelectResponse {
     return SelectResponse(
         head = SelectResponse.Head(
             variables = query.variables
