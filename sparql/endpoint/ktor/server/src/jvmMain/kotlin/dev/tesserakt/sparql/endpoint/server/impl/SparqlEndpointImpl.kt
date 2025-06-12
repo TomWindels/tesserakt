@@ -34,8 +34,7 @@ internal class SparqlEndpointImpl(
         SelectResponse(compiled, results)
     }
 
-    override suspend fun onUpdateQueryRequest(query: String): Result<Unit> = runCatching {
-        val request = UpdateRequest.parse(query)
+    override suspend fun onUpdateQueryRequest(request: UpdateRequest): Result<Unit> = runCatching {
         if (request.additions.isEmpty() && request.deletions.isEmpty()) {
             // early bailout - no locks required
             return@runCatching
