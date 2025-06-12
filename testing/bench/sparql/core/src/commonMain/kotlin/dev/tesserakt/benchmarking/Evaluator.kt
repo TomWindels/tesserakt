@@ -3,7 +3,7 @@ package dev.tesserakt.benchmarking
 import dev.tesserakt.rdf.types.SnapshotStore
 
 
-sealed class Evaluator : AutoCloseable {
+sealed class Evaluator {
 
     /**
      * An evaluation result, representing the number of [added] and [removed] bindings compared to the previous state,
@@ -18,7 +18,7 @@ sealed class Evaluator : AutoCloseable {
     /**
      * Prepares a diff to be evaluated, w/o actually evaluating it
      */
-    abstract fun prepare(diff: SnapshotStore.Diff)
+    abstract suspend fun prepare(diff: SnapshotStore.Diff)
 
     /**
      * Evaluates the diff; this is the method which execution time matters!
@@ -30,7 +30,16 @@ sealed class Evaluator : AutoCloseable {
      */
     abstract fun finish(): Output
 
-    override fun close() {
+    open suspend fun close() {
         /* nothing to do */
     }
+
+    suspend inline fun use(block: (Evaluator) -> Unit) {
+        try {
+            block(this)
+        } finally {
+            close()
+        }
+    }
+
 }

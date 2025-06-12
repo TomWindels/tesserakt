@@ -27,6 +27,10 @@ class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() 
         .flag(default = false, defaultForHelp = "cache enabled")
         .help("Disables the use of in-memory query caches")
 
+    private val verbose by option()
+        .flag(default = false)
+        .help("Enable additional logging")
+
     override fun run() {
         run(toConfig())
     }
@@ -35,6 +39,7 @@ class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() 
         port = port,
         path = path,
         useCaching = !disableCache,
+        verbose = verbose,
     )
 
 }

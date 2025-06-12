@@ -9,8 +9,9 @@ kotlin {
     sourceSets {
         val jvmMain by getting {
             dependencies {
-                // shared types to interact with sparql endpoints through ktor
-                implementation(project(":sparql:endpoint:ktor:core"))
+                // shared types to interact with sparql endpoints through ktor - the `SparqlEndpoint` type has these as
+                //  an API
+                api(project(":sparql:endpoint:ktor:core"))
                 // extension functions registering endpoints
                 implementation("io.ktor:ktor-server-core:3.1.3")
                 // the actual querying logic

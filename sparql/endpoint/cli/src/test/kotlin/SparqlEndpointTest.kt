@@ -21,7 +21,7 @@ class SparqlEndpointTest {
 
     @Test
     fun getSelectAll() = test { client ->
-        val response = client.sparqlQuery("select * { ?s ?p ?o }")
+        val response = client.sparqlQuery("sparql", "select * { ?s ?p ?o }")
         assertEquals(HttpStatusCode.OK, response.status)
         val data = response.bodyAsBindings()
         assert(data.isEmpty())
@@ -41,7 +41,7 @@ class SparqlEndpointTest {
     fun insertAndQueryTest() = test { client ->
         val selectAll = "select * { ?s ?p ?o }"
 
-        val select1 = client.sparqlQuery(selectAll)
+        val select1 = client.sparqlQuery("sparql", selectAll)
         assertEquals(select1.status, HttpStatusCode.OK)
         assert(select1.bodyAsBindings().isEmpty())
 
@@ -52,7 +52,7 @@ class SparqlEndpointTest {
         }
         assertEquals(HttpStatusCode.OK, insertion.status)
 
-        val select2 = client.sparqlQuery(selectAll)
+        val select2 = client.sparqlQuery("sparql", selectAll)
         assertEquals(HttpStatusCode.OK, select2.status)
         assertContentEquals(
             expected = listOf(mapOf("s" to "user", "p" to "name", "o" to "Test")),
@@ -85,7 +85,7 @@ class SparqlEndpointTest {
     private fun insertAndDeletionTest(mode: QueryOperationMode) = test { client ->
         val selectAll = "select * { ?s ?p ?o }"
 
-        val select1 = client.sparqlQuery(selectAll, mode = mode)
+        val select1 = client.sparqlQuery("sparql", selectAll, mode = mode)
         assertEquals(HttpStatusCode.OK, select1.status)
         assert(select1.bodyAsBindings().isEmpty())
 
@@ -96,7 +96,7 @@ class SparqlEndpointTest {
         }
         assertEquals(HttpStatusCode.OK, insertion.status)
 
-        val select2 = client.sparqlQuery(selectAll, mode = mode)
+        val select2 = client.sparqlQuery("sparql", selectAll, mode = mode)
         assertEquals(HttpStatusCode.OK, select2.status)
         assertContentEquals(
             expected = listOf(mapOf("s" to "user", "p" to "name", "o" to "Test")),
@@ -110,7 +110,7 @@ class SparqlEndpointTest {
         }
         assertEquals(HttpStatusCode.OK, deletion.status)
 
-        val select3 = client.sparqlQuery(selectAll, mode = mode)
+        val select3 = client.sparqlQuery("sparql", selectAll, mode = mode)
         assertEquals(HttpStatusCode.OK, select3.status)
         assert(select3.bodyAsBindings().isEmpty())
     }

@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 
 plugins {
+    application
     // not distributed as a package, build targets are manually defined
     id("base-config")
 }
@@ -8,7 +9,11 @@ plugins {
 group = "sparql.bench"
 
 kotlin {
-    jvm()
+    jvm {
+        // required to have a functional `application` plugin; otherwise, a very empty
+        //  single jar file is being built
+        withJava()
+    }
     js {
         nodejs {
             @OptIn(ExperimentalMainFunctionArgumentsDsl::class)
@@ -25,8 +30,11 @@ kotlin {
                 implementation(project(":serialization:trig"))
                 // being able to actually execute the queries
                 implementation(project(":testing:bench:sparql:core"))
+                implementation(project(":testing:bench:sparql:endpoint"))
                 // necessary to properly launch the coroutines associated with the execution
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+                // CLI implementation
+                implementation("com.github.ajalt.clikt:clikt:5.0.1")
             }
         }
         val jvmMain by getting {
@@ -83,6 +91,18 @@ if (benchmarkingEnabled) {
     println("w: No benchmark input configured! Please add `benchmarking.input=<path/to/dataset>` to file://${project.rootProject.rootDir.path}/local.properties so benchmarking Gradle tasks can be generated!")
 }
 
+rootProject.tasks.register("benchJvm", JavaExec::class) {
+    // src: https://slack-chats.kotlinlang.org/t/486856/anyone-knows-how-to-create-gradle-javaexec-configuration-for#20242df1-da93-4272-8f2e-168a8891a398
+    val jvmJar by tasks.existing
+    val jvmRuntimeClasspath by configurations.existing
+
+    description = "Execute the benchmark runner using args provided by the `args` property (`-Pargs=\"...\") (JVM)"
+    group = "benchmarking"
+    mainClass.set("Main_jvmKt")
+    classpath(jvmJar, jvmRuntimeClasspath)
+    args(*((project.properties["args"] as? String)?.split(' ')?.toTypedArray() ?: emptyArray()))
+}
+
 fun setupBenchmarkTasks() {
     // src: https://slack-chats.kotlinlang.org/t/486856/anyone-knows-how-to-create-gradle-javaexec-configuration-for#20242df1-da93-4272-8f2e-168a8891a398
     val jvmJar by tasks.existing
@@ -92,7 +112,7 @@ fun setupBenchmarkTasks() {
         group = "benchmarking"
         mainClass.set("Main_jvmKt")
         classpath(jvmJar, jvmRuntimeClasspath)
-        args("-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/jvm/", "--compare-implementations")
+        args("-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/jvm/", "-e", "all")
     }
 
     val runnerJs = tasks.register("runBenchmarkJs", Exec::class) {
@@ -101,7 +121,7 @@ fun setupBenchmarkTasks() {
         // retrieved & configured through the "kotlinNodejsSetup" task
         val node = "${File("${gradle.gradleUserHomeDir}/nodejs").listFiles().single { file -> file.isDirectory }}/bin/node"
         val file = "build/js/packages/tesserakt-benchmarking-runner/kotlin/tesserakt-benchmarking-runner.js"
-        commandLine(node, file, "-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/js/", "--compare-implementations")
+        commandLine(node, file, "-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/js/", "-e", "all")
     }
 
     runnerJs.get().dependsOn(tasks.named("kotlinNodeJsSetup"))
@@ -184,3 +204,27 @@ fun setupGraphingTasks() {
 }
 
 tasks.named("clean").get().finalizedBy(cleanGraphTool)
+
+application {
+    mainClass.set("Main_jvmKt")
+    applicationName = "sparql-bench"
+}
+
+// the same fix found in `jvm-target` convention plugin - manually applied
+// we cannot use that plugin here, as we need to specify `withJava()` to the `jvm` target,
+//  and applying `withJava()` everywhere causes other errors
+
+tasks.withType(Jar::class.java) {
+    archiveBaseName.set(getBaseName())
+}
+
+fun getBaseName(): String {
+    var name = project.name.replace("-", "_")
+    var parent = project.parent?.takeIf { it != project.rootProject }
+    while (parent != null) {
+        val current = parent.name.replace("-", "_")
+        name = "$current-$name"
+        parent = parent.parent?.takeIf { it != project.rootProject }
+    }
+    return name
+}

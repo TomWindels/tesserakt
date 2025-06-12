@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.endpoint.server
 
 import dev.tesserakt.sparql.endpoint.core.SparqlContentType
 import dev.tesserakt.sparql.endpoint.core.data.SelectResponse
+import dev.tesserakt.sparql.endpoint.core.data.UpdateRequest
 import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpoint
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -64,7 +65,7 @@ fun Route.sparqlEndpoint(
                 call.respond(result, serializer = json)
             }
             type.match(SparqlContentType.UpdateQuery) -> {
-                val result = endpoint.onUpdateQueryRequest(query = call.receiveText())
+                val result = endpoint.onUpdateQueryRequest(request = UpdateRequest.parse(call.receiveText()))
                 call.respond(result) { cause -> "Invalid query! Caught the following exception.\n${cause.message}" }
             }
             else -> {

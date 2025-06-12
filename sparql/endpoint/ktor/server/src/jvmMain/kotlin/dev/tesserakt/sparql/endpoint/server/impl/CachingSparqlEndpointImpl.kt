@@ -51,12 +51,11 @@ internal class CachingSparqlEndpointImpl(
                     store.queryDeferred(compiled)
                 }
             }
-            SelectResponse(compiled, evaluation)
+            SelectResponse(compiled, evaluation.results)
         }
     }
 
-    override suspend fun onUpdateQueryRequest(query: String): Result<Unit> = runCatching {
-        val request = UpdateRequest.parse(query)
+    override suspend fun onUpdateQueryRequest(request: UpdateRequest): Result<Unit> = runCatching {
         if (request.additions.isEmpty() && request.deletions.isEmpty()) {
             // early bailout - no locks required
             return@runCatching
@@ -69,6 +68,10 @@ internal class CachingSparqlEndpointImpl(
             //  first process all deletions from the outdated state
             if (store.isEmpty()) {
                 queryCacheLock.withLock {
+                    // ensuring we don't leak these states through the ongoing store instance
+                    queryCache.forEach {
+                        it.value.unsubscribe(store)
+                    }
                     queryCache.clear()
                 }
             }

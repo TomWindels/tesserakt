@@ -8,11 +8,14 @@ import kotlin.reflect.jvm.jvmErasure
 
 actual val references: Map<String, (String) -> Reference> = run {
     val classes = findImplementations()
-    classes.associate { clazz ->
-        val ctor = clazz.constructors
-            .find { it.parameters.size == 1 && it.parameters.single().type.jvmErasure == String::class }
-            ?: throw IllegalStateException("Did not find an appropriate constructor for `${clazz.simpleName}` (`${clazz.qualifiedName}`)")
-        clazz.referenceName to { query -> ctor.call(query) as Reference }
+    buildMap {
+        classes.forEach { clazz ->
+            val ctor = clazz.constructors
+                .find { it.parameters.size == 1 && it.parameters.single().type.jvmErasure == String::class }
+                // unsupported evaluator - skipping it
+                ?: return@forEach
+            put(clazz.referenceName) { query: String -> ctor.call(query) as Reference }
+        }
     }
 }
 

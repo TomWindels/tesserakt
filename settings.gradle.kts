@@ -9,10 +9,10 @@ plugins {
 /* helpers (see below) */
 
 fun Settings.local(name: String): String? =
-    runCatching {
+    extra.properties[name]?.toString()?.takeIf { it.isNotBlank() } ?: runCatching {
         val properties = Properties()
         properties.load(File(rootDir.absolutePath + "/local.properties").inputStream())
-        return properties.getProperty(name, null)
+        properties.getProperty(name, null)
     }.getOrNull()
 
 fun Settings.hasEnabled(name: String): Boolean {
@@ -66,6 +66,7 @@ include("testing:bench:microbench")
 
 include("testing:bench:sparql")
 include("testing:bench:sparql:core")
+include("testing:bench:sparql:endpoint")
 
 if (hasEnabled("bench.sparql.blazegraph")) {
     include("testing:bench:sparql:ref:blazegraph")

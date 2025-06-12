@@ -1,189 +1,83 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.benchmarking.EvaluatorFactory.implementations
+import dev.tesserakt.rdf.serialization.common.FileDataSource
+import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 
 data class RunnerConfig(
     val inputFilePath: String,
     val outputDirPath: String,
     val evaluatorName: String,
+    val warmups: Int,
+    val runs: Int,
 ) {
 
     override fun toString() =
         "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorName"
 
+    val name: String
+        get() = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
+
+    fun toRunnerEvaluations(): List<RunnerEvaluation> {
+        var i = 0
+        return ReplayBenchmark
+            .from(TriGSerializer.deserialize(FileDataSource(inputFilePath)).consume())
+            .flatMap { benchmark ->
+                val diffs = benchmark.store.diffs.toList()
+                val nameBase = name
+                benchmark.queries.map { query ->
+                    val name = "$nameBase-${++i}"
+                    RunnerEvaluation(
+                        name = name,
+                        inputFilePath = inputFilePath,
+                        outputDirPath = outputDirPath.replace(nameBase, name),
+                        evaluatorName = evaluatorName,
+                        diffs = diffs,
+                        query = query,
+                        warmupRounds = warmups,
+                        executionRounds = runs,
+                    )
+                }
+            }
+    }
+
     companion object {
 
         /**
-         * Creating a Runner instantiated from the command line, formatted as
-         * ```
-         * runner [-i/--input] path/to/benchmark.ttl [-o/--output] [path/to/output_dir] [--use-reference-implementation]
-         * ```
-         * or
-         * ```
-         * runner -o/--output path/to/output_dir path/to/benchmark.ttl
-         * ```
-         * etc.
+         * Create all possible runner configuration variants based on the various parameters
+         *
+         * @param inputPaths The input filepath to use; can be a file or folder (in which case all valid files are used)
+         * @param outputFolder The output filepath to use; has to be a folder!
+         * @param evaluators All evaluator (names) to use
+         * @param warmups The number of runs that contribute to the warmup
+         * @param runs The number of runs to measure, executed after the warmups
          */
-        fun fromCommandLine(args: Array<String>): List<RunnerConfig> {
-            var input: String? = null
-            var output: String? = null
-            var i = 0
-            var references: List<String>? = null
-            var createComparison = false
-            while (i < args.size) {
-                when {
-                    args[i].isInputFlag() -> {
-                        ++i
-                        if (i >= args.size) {
-                            throw IllegalArgumentException("No input filepath provided!")
-                        } else {
-                            input = args[i]
-                        }
-                    }
-
-                    args[i].isOutputFlag() -> {
-                        ++i
-                        if (i >= args.size) {
-                            throw IllegalArgumentException("No output filepath provided!")
-                        } else {
-                            output = args[i]
-                        }
-                    }
-
-                    args[i].isSpecificImplementationFlag() -> {
-                        ++i
-                        if (i >= args.size) {
-                            throw IllegalArgumentException("Reference name is missing!")
-                        }
-                        references = args[i].split(',')
-                    }
-
-                    args[i].isComparisonFlag() -> {
-                        createComparison = true
-                    }
-
-                    args[i].isListImplementationsFlag() -> {
-                        println("Available implementations: ${implementations.joinToString { "\"$it\"" }}")
-                        // short-circuiting, not doing anything else with the arguments
-                        return emptyList()
-                    }
-
-                    input == null -> {
-                        input = args[i]
-                    }
-
-                    output == null -> {
-                        output = args[i]
-                    }
-
-                    else -> {
-                        throw IllegalArgumentException("Invalid command line structure!")
-                    }
-                }
-                ++i
-            }
-            if (input == null) {
-                throw IllegalArgumentException("No input filepath provided!")
-            }
-            if (output != null && output.last() != '/') {
-                throw IllegalArgumentException("Invalid output path! Directory expected!")
-            }
-            return when {
-                input.isFolder() -> {
-                    input = input.dropLastWhile { it == '/' }
-                    val files = input.listFiles().filter { it.endsWith(".ttl") }
-                    if (createComparison) {
-                        implementations.flatMap { implementation ->
-                            files.map { name ->
-                                val filename = name.substringAfterLast('/').substringBefore('.')
-                                RunnerConfig(
-                                    inputFilePath = name,
-                                    outputDirPath = if (output != null) "${output}$implementation/$filename/" else name.createOutputFilepath(
-                                        implementation
-                                    ),
-                                    evaluatorName = implementation
-                                )
-                            }
-                        }
-                    } else if (references != null) {
-                        references.flatMap { implementation ->
-                            files.map { name ->
-                                val filename = name.substringAfterLast('/').substringBefore('.')
-                                RunnerConfig(
-                                    inputFilePath = name,
-                                    outputDirPath = if (output != null) "${output}$implementation/$filename/" else name.createOutputFilepath(
-                                        implementation
-                                    ),
-                                    evaluatorName = implementation
-                                )
-                            }
-                        }
-                    } else {
-                        files.map { name ->
-                            val filename = name.substringAfterLast('/').substringBefore('.')
-                            RunnerConfig(
-                                inputFilePath = name,
-                                outputDirPath = if (output != null) "${output}$SELF_IMPL/$filename/" else name.createOutputFilepath(
-                                    SELF_IMPL
-                                ),
-                                evaluatorName = SELF_IMPL
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    if (!input.endsWith(".ttl")) {
-                        throw IllegalArgumentException("Invalid input filepath! `.ttl` file expected!")
-                    }
-                    val filename = input.substringAfterLast('/').substringBefore('.')
-                    if (createComparison) {
-                        implementations.map { implementation ->
-                            RunnerConfig(
-                                inputFilePath = input,
-                                outputDirPath = if (output != null) "${output}$implementation/$filename/" else input.createOutputFilepath(
-                                    implementation
-                                ),
-                                evaluatorName = implementation
-                            )
-                        }
-                    } else if (references != null) {
-                        references.map { implementation ->
-                            RunnerConfig(
-                                inputFilePath = input,
-                                outputDirPath = if (output != null) "${output}$implementation/$filename" else input.createOutputFilepath(
-                                    implementation
-                                ),
-                                evaluatorName = implementation
-                            )
-                        }
-                    } else {
-                        listOf(
-                            RunnerConfig(
-                                inputFilePath = input,
-                                outputDirPath = if (output != null) "${output}$SELF_IMPL/$filename" else input.createOutputFilepath(
-                                    SELF_IMPL
-                                ),
-                                evaluatorName = SELF_IMPL
-                            )
-                        )
-                    }
+        fun createVariants(
+            inputPaths: Collection<String>,
+            outputFolder: String,
+            evaluators: Collection<String>,
+            warmups: Int,
+            runs: Int,
+        ): List<RunnerConfig> {
+            val inputs = inputPaths
+                // flattening any and all folders (ONCE!)
+                .flatMap { if (it.isFolder()) it.listFiles() else listOf(it) }
+                // ensuring the remaining files are turtle files
+                .filter { it.endsWith(".ttl") }
+            return inputs.flatMap { input ->
+                val filename = input.substringAfterLast('/').substringBefore('.')
+                evaluators.map { evaluator ->
+                    RunnerConfig(
+                        inputFilePath = input,
+                        outputDirPath = "${outputFolder}$evaluator/$filename/",
+                        evaluatorName = evaluator,
+                        warmups = warmups,
+                        runs = runs
+                    )
                 }
             }
         }
-
-        private fun String.isInputFlag() = this == "-i" || this == "--input"
-
-        private fun String.isOutputFlag() = this == "-o" || this == "--output"
-
-        private fun String.isSpecificImplementationFlag() = this == "-u" || this == "--use"
-
-        private fun String.isComparisonFlag() = this == "--compare-implementations"
-
-        private fun String.isListImplementationsFlag() = this == "-l" || this == "--list-implementations"
-
-        private fun String.createOutputFilepath(implementation: String) =
-            this.dropLast(4) + "_${implementation}_${currentEpochMs()}/"
 
     }
 
