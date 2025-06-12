@@ -4,13 +4,38 @@ This is a benchmarking tool, utilising the replay benchmark format to evaluate d
 Depending on the version and build configuration, different implementations are available, alongside support for SPARQL
 endpoints.
 
-## Getting started
+## Installation
 An executable JVM implementation can be built from source. The build task can be executed from the root of this
 repository, using the `installDist` task of this module.
 ```
 user@path/to/tesserakt$ ./gradlew testing:bench:sparql:installDist
 ```
 After the build has finished, the resulting installation can be located in `build/install/sparql-bench`.
+
+### Configuration
+Without further configuration, only tesserakt and endpoint evaluation is available. Other implementations can be added
+through build configuration.
+
+The following implementations, and their identifiers, are as follows:
+
+| Engine (JVM) | ID |
+|---|---|
+| Jena |`bench.sparql.jena` |
+| Blazegraph | `bench.sparql.blazegraph` |
+| RDFox | `bench.sparql.rdfox` |
+
+| Engine (JS) | ID |
+|---|---|
+| Comunica | `bench.sparql.comunica` |
+
+These IDs have to be added during the build process, with their values set to `enabled`.
+This configuration can be added through multiple build parameters `-P<key>=<value>` or as key-value
+pairs in `local.properties` (which has to be created at the root of the repository).
+
+For example, to include Jena support, the following command can be executed:
+```
+user@path/to/tesserakt$ ./gradlew testing:bench:sparql:installDist -Pbench.sparql.jena=enabled
+```
 
 ## CLI
 The benchmarking tool can be interfaced with through its CLI. The `-h` flag exposes all available options:
