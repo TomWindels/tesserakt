@@ -39,6 +39,7 @@ class Runner(
                     }
                 }
                 reporter.onStageProgressed(it.toFloat() / evaluation.warmupRounds)
+                RunContext.onIterationFinished()
             }
             output.markEnd("warmup")
             reporter.onStageChanged(EvaluationStage.EVALUATION)
@@ -62,6 +63,7 @@ class Runner(
                     }
                 }
                 reporter.onStageProgressed(runIndex.toFloat() / evaluation.executionRounds)
+                RunContext.onIterationFinished()
             }
         }
     }
