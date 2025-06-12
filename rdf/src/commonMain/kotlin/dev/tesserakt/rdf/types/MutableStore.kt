@@ -4,13 +4,13 @@ interface MutableStore: Store, MutableCollection<Quad> {
 
     override fun addAll(elements: Collection<Quad>): Boolean {
         var result = false
-        elements.forEach { result = result || add(it) }
+        elements.forEach { result = add(it) || result }
         return result
     }
 
     override fun removeAll(elements: Collection<Quad>): Boolean {
         var result = false
-        elements.forEach { result = result || remove(it) }
+        elements.forEach { result = remove(it) || result }
         return result
     }
 
