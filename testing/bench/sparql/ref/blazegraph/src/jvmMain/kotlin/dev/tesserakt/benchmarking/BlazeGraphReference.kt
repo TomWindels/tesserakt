@@ -117,20 +117,26 @@ private fun Quad.toStatement(): StatementImpl {
 private fun Quad.Element.toStatementSubject(): Resource = when (this) {
     is Quad.BlankTerm -> toBNode()
     is Quad.Literal -> throw IllegalArgumentException("`${this}` is not a valid subject!")
+    is Quad.LangString -> throw IllegalArgumentException("`${this}` is not a valid subject!")
     is Quad.NamedTerm -> toURI()
+    Quad.DefaultGraph -> throw IllegalArgumentException("`${this}` is not a valid subject!")
 }
 
 private fun Quad.Element.toStatementPredicate(): URIImpl = when (this) {
     is Quad.NamedTerm -> toURI()
 
+    Quad.DefaultGraph,
     is Quad.Literal,
+    is Quad.LangString,
     is Quad.BlankTerm -> throw IllegalArgumentException("`${this}` is not a valid predicate!")
 }
 
 private fun Quad.Element.toStatementObject(): Value = when (this) {
     is Quad.BlankTerm -> toBNode()
     is Quad.Literal -> LiteralImpl(value, type.toURI())
+    is Quad.LangString -> LiteralImpl(value, language)
     is Quad.NamedTerm -> toURI()
+    Quad.DefaultGraph -> throw IllegalArgumentException("`${this}` is not a valid object!")
 }
 
 private fun Quad.NamedTerm.toURI(): URIImpl = URIImpl(value)
