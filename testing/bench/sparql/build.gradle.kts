@@ -207,6 +207,7 @@ tasks.named("clean").get().finalizedBy(cleanGraphTool)
 
 application {
     mainClass.set("Main_jvmKt")
+    applicationName = "sparql-bench"
 }
 
 // the same fix found in `jvm-target` convention plugin - manually applied
