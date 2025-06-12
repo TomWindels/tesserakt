@@ -43,11 +43,13 @@ The benchmarking tool can be interfaced with through its CLI. The `-h` flag expo
 Usage: sparql-bench [<options>]
 
 Options:
-  -i, --input=<text>                     Select the input filepath to use (can be a replay format)
-  -o, --output=<text>                    The output filepath to use
-  -e, --use-engine=(jena|tesserakt|all)  Select an engine implementation to use (multiple supported)
-  -u, --url=<text>                       Provide a SPARQL endpoint URL to use (multiple supported)
-  -h, --help                             Show this message and exit
+  -i, --input=<text>                                Select the input filepath to use (can be a replay format)
+  -o, --output=<text>                               The output filepath to use
+  -e, --use-engine=(tesserakt|all)                  Select an engine implementation to use (multiple supported)
+  -u, --url=<text>                                  Provide a SPARQL endpoint URL to use (multiple supported)
+  --warmups=<int>                                   The number of (complete) runs before measuring performance
+  --runs=<int>                                      The number of runs for every benchmark
+  -h, --help                                        Show this message and exit
 ```
 The `input` and `output` parameters are required. The `input` path can also point to (multiple) directories, in which
 case files with the `ttl` extension will be chosen (this operation is **NOT** recursive).

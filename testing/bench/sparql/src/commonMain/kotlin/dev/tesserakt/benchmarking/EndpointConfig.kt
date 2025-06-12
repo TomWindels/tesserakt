@@ -9,6 +9,8 @@ data class EndpointConfig(
     val inputFilePath: String,
     val outputDirPath: String,
     val endpoint: String,
+    val warmups: Int,
+    val runs: Int,
 ) {
 
     init {
@@ -31,6 +33,8 @@ data class EndpointConfig(
                         evaluatorName = endpointUrlToEvaluatorName(endpoint = endpoint),
                         diffs = diffs,
                         query = query,
+                        warmupRounds = warmups,
+                        executionRounds = runs
                     )
                 }
             }
@@ -44,11 +48,16 @@ data class EndpointConfig(
          * @param inputPaths The input filepath to use; can be a file or folder (in which case all valid files are used)
          * @param outputFolder The output filepath to use; has to be a folder!
          * @param endpoints All evaluator endpoints (URLs) to use
+         * @param warmups The number of runs that contribute to the warmup
+         * @param runs The number of runs to measure, executed after the warmups
+         *
          */
         fun createVariants(
             inputPaths: Collection<String>,
             outputFolder: String,
             endpoints: Collection<String>,
+            warmups: Int,
+            runs: Int,
         ): List<EndpointConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -62,6 +71,8 @@ data class EndpointConfig(
                         inputFilePath = input,
                         outputDirPath = "${outputFolder}${endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/",
                         endpoint = endpoint,
+                        warmups = warmups,
+                        runs = runs
                     )
                 }
             }

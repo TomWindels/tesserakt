@@ -7,8 +7,6 @@ import kotlin.coroutines.coroutineContext
 class Runner(
     private val evaluation: RunnerEvaluation,
     private val reporter: RunReporter,
-    private val warmupRounds: Int = 1,
-    private val executionRounds: Int = 10,
 ) {
 
     suspend fun run() {
@@ -31,7 +29,7 @@ class Runner(
             // warmup
             reporter.onStageChanged(EvaluationStage.WARMUP)
             output.markStart("warmup")
-            repeat(warmupRounds) {
+            repeat(evaluation.warmupRounds) {
                 EvaluatorFactory.createEvaluator(evaluation).use { evaluator ->
                     output.reset()
                     evaluation.diffs.forEach { delta ->
@@ -40,13 +38,13 @@ class Runner(
                         evaluator.finish()
                     }
                 }
-                reporter.onStageProgressed(it.toFloat() / warmupRounds)
+                reporter.onStageProgressed(it.toFloat() / evaluation.warmupRounds)
             }
             output.markEnd("warmup")
             reporter.onStageChanged(EvaluationStage.EVALUATION)
             coroutineContext.ensureActive()
             // actual execution
-            repeat(executionRounds) { runIndex ->
+            repeat(evaluation.executionRounds) { runIndex ->
                 EvaluatorFactory.createEvaluator(evaluation).use { evaluator ->
                     output.reset()
                     evaluation.diffs.forEachIndexed { di, delta ->
@@ -63,7 +61,7 @@ class Runner(
                         coroutineContext.ensureActive()
                     }
                 }
-                reporter.onStageProgressed(runIndex.toFloat() / executionRounds)
+                reporter.onStageProgressed(runIndex.toFloat() / evaluation.executionRounds)
             }
         }
     }

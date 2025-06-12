@@ -10,6 +10,8 @@ data class RunnerEvaluation(
     val evaluatorName: String,
     val diffs: List<SnapshotStore.Diff>,
     val query: String,
+    val warmupRounds: Int,
+    val executionRounds: Int,
 ) {
 
     fun createRunner() = Runner(evaluation = this, reporter = CliRunReporter(this))

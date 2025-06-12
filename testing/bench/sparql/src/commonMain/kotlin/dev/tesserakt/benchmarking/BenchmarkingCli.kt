@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.completion.CompletionCandidates
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.int
 
 class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
 
@@ -45,6 +46,20 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
         .unique()
         .check(lazyMessage = { "Invalid URL encountered!" }) { it.all { entry -> entry.matches(URL) } }
 
+    private val warmups: Int by option(
+            "--warmups",
+            help = "The number of (complete) runs before measuring performance",
+        )
+        .int()
+        .default(1)
+
+    private val runs: Int by option(
+            "--runs",
+            help = "The number of runs for every benchmark",
+        )
+        .int()
+        .default(10)
+
     override suspend fun run() {
         val mapped = if ("all" in implementations) references.keys + SELF_IMPL else implementations.map { if (it == "tesserakt") SELF_IMPL else it }
         require(mapped.isNotEmpty() || endpoints.isNotEmpty()) { "No executions requested - see `-h` for options" }
@@ -53,11 +68,15 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
             inputPaths = input,
             outputFolder = output,
             evaluators = mapped,
+            warmups = warmups,
+            runs = runs
         )
         val endpointConfigs = EndpointConfig.createVariants(
             inputPaths = input,
             outputFolder = output,
-            endpoints = endpoints
+            endpoints = endpoints,
+            warmups = warmups,
+            runs = runs
         )
         // then mapping these to the various evaluations we can actually evaluate
         localConfigs.forEach { config ->
