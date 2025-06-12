@@ -1,9 +1,11 @@
-<h3 align="center">
+<h1 align="center">
+    tesserakt
+</h1>
+<h5 align="center">
 
-![Static Badge](https://img.shields.io/badge/platform-kmp-mediumorchid) ![Static Badge](https://img.shields.io/badge/platform-android-brightgreen) ![Static Badge](https://img.shields.io/badge/platform-jvm-darkorange) ![Static Badge](https://img.shields.io/badge/platform-js-yellow)
+![GitHub Release](https://img.shields.io/github/v/release/tomwindels/tesserakt?label=stable&color=%23208a48) [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ![Static Badge](https://img.shields.io/badge/platform-kmp-mediumorchid) ![Static Badge](https://img.shields.io/badge/platform-android-brightgreen) ![Static Badge](https://img.shields.io/badge/platform-jvm-darkorange) ![Static Badge](https://img.shields.io/badge/platform-js-yellow)
+</h5>
 
-![GitHub Release](https://img.shields.io/github/v/release/tomwindels/tesserakt?label=stable&color=%23208a48) [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-</h3>
 Tesserakt offers a set of RDF and SPARQL tools, for a wide range of platforms, powered by [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html). The main goal of the library is offering a comprehensive, modular suite of RDF tooling, bringing the power of RDF to the Kotlin (Multiplatform), Java and JavaScript/TypeScript (Node.js) platforms.
 
 The module layout is further described in detail below. More module specific information, such as their APIs (with examples), can be found in separate READMEs located at the root of these modules.
