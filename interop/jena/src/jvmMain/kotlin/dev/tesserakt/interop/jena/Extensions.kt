@@ -52,6 +52,7 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
     XSD.string -> XSDDatatype.XSDstring
     XSD.boolean -> XSDDatatype.XSDboolean
     XSD.int -> XSDDatatype.XSDint
+    XSD.integer -> XSDDatatype.XSDinteger
     XSD.long -> XSDDatatype.XSDlong
     XSD.float -> XSDDatatype.XSDfloat
     XSD.double -> XSDDatatype.XSDdouble
