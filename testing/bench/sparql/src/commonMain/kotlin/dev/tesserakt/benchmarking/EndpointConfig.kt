@@ -5,17 +5,15 @@ import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 
-data class RunnerConfig(
+data class EndpointConfig(
     val inputFilePath: String,
     val outputDirPath: String,
-    val evaluatorName: String,
+    val endpoint: String,
 ) {
 
-    override fun toString() =
-        "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorName"
-
-    val name: String
-        get() = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
+    init {
+        require(endpoint.startsWith("http://localhost:"))
+    }
 
     fun toRunnerEvaluations(): List<RunnerEvaluation> {
         var i = 0
@@ -23,14 +21,14 @@ data class RunnerConfig(
             .from(TriGSerializer.deserialize(FileDataSource(inputFilePath)).consume())
             .flatMap { benchmark ->
                 val diffs = benchmark.store.diffs.toList()
-                val nameBase = name
+                val nameBase = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
                 benchmark.queries.map { query ->
                     val name = "$nameBase-${++i}"
                     RunnerEvaluation(
                         name = name,
                         inputFilePath = inputFilePath,
                         outputDirPath = outputDirPath.replace(nameBase, name),
-                        evaluatorName = evaluatorName,
+                        evaluatorName = endpointUrlToEvaluatorName(endpoint = endpoint),
                         diffs = diffs,
                         query = query,
                     )
@@ -45,13 +43,13 @@ data class RunnerConfig(
          *
          * @param inputPaths The input filepath to use; can be a file or folder (in which case all valid files are used)
          * @param outputFolder The output filepath to use; has to be a folder!
-         * @param evaluators All evaluator (names) to use
+         * @param endpoints All evaluator endpoints (URLs) to use
          */
         fun createVariants(
             inputPaths: Collection<String>,
             outputFolder: String,
-            evaluators: Collection<String>,
-        ): List<RunnerConfig> {
+            endpoints: Collection<String>,
+        ): List<EndpointConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
                 .flatMap { if (it.isFolder()) it.listFiles() else listOf(it) }
@@ -59,18 +57,24 @@ data class RunnerConfig(
                 .filter { it.endsWith(".ttl") }
             return inputs.flatMap { input ->
                 val filename = input.substringAfterLast('/').substringBefore('.')
-                evaluators.map { evaluator ->
-                    RunnerConfig(
+                endpoints.map { endpoint ->
+                    EndpointConfig(
                         inputFilePath = input,
-                        outputDirPath = "${outputFolder}$evaluator/$filename/",
-                        evaluatorName = evaluator,
+                        outputDirPath = "${outputFolder}${endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/",
+                        endpoint = endpoint,
                     )
                 }
             }
         }
 
+        fun endpointUrlToEvaluatorName(endpoint: String): String {
+            return "endpoint_${endpoint.removePrefix("http://localhost:").replace("/", "%2F")}"
+        }
+
+        fun evaluatorNameToEndpointUrl(name: String): String {
+            return "http://localhost:${name.removePrefix("endpoint_").replace("%2F", "/")}"
+        }
+
     }
 
 }
-
-expect val SELF_IMPL: String

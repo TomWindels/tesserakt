@@ -18,7 +18,7 @@ class ComunicaReference(private val query: String) : Reference() {
     private var current = emptyArray<ComunicaBinding>()
     private var checksum = 0
 
-    override fun prepare(diff: SnapshotStore.Diff) {
+    override suspend fun prepare(diff: SnapshotStore.Diff) {
         diff.deletions.forEach {
             store.delete(it.toN3Triple())
         }
@@ -51,7 +51,9 @@ class ComunicaReference(private val query: String) : Reference() {
 
 private val N3Term.checksumValue: Int
     get() = when (termType) {
-        "NamedNode", "Literal", "BlankNode" -> value.length
+        "BlankNode" -> 1
+
+        "NamedNode", "Literal" -> value.length
 
         "Variable" -> throw IllegalArgumentException("Term `$this` is not supported as a quad term!")
 

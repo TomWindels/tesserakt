@@ -19,14 +19,14 @@ class Self(query: Query<Bindings>): Evaluator() {
     private var current = emptyList<Bindings>()
     private var checksum = 0
 
-    override fun prepare(diff: SnapshotStore.Diff) {
+    override suspend fun prepare(diff: SnapshotStore.Diff) {
         this.diff = diff
     }
 
     override suspend fun eval() {
         store.apply {
-            diff.deletions.forEach { remove(it) }
             diff.insertions.forEach { add(it) }
+            diff.deletions.forEach { remove(it) }
         }
         current = eval.results.toList()
         checksum = current.sumOf { it.sumOf { it.second.checksumLength } }
@@ -42,7 +42,7 @@ class Self(query: Query<Bindings>): Evaluator() {
 
 private val Quad.Element.checksumLength: Int
     get() = when (this) {
-        is Quad.BlankTerm -> id.toString().length
+        is Quad.BlankTerm -> 1
         is Quad.Literal -> value.length
         is Quad.LangString -> value.length
         is Quad.NamedTerm -> value.length

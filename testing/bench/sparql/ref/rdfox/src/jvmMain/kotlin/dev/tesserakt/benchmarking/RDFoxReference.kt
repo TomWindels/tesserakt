@@ -16,7 +16,7 @@ class RDFoxReference(private val query: String) : Reference() {
 
     private var checksum = 0
 
-    override fun prepare(diff: SnapshotStore.Diff) {
+    override suspend fun prepare(diff: SnapshotStore.Diff) {
         connection.newDataStoreConnection("data").use { conn ->
             conn.importData(UpdateType.ADDITION, TriGSerializer.serialize(diff.insertions, SimpleFormatter).toInputStream())
             conn.importData(UpdateType.DELETION, TriGSerializer.serialize(diff.deletions, SimpleFormatter).toInputStream())
@@ -53,7 +53,7 @@ class RDFoxReference(private val query: String) : Reference() {
         return result
     }
 
-    override fun close() {
+    override suspend fun close() {
         connection.newDataStoreConnection("data").use { conn ->
             conn.clear(DataStorePart.FACTS)
         }
@@ -77,7 +77,7 @@ private val ResourceValue.checksumValue: Int
         }
 
         is BlankNode -> {
-            r.id.length
+            1
         }
 
         is Literal -> {

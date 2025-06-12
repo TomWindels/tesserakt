@@ -66,6 +66,7 @@ include("testing:bench:microbench")
 
 include("testing:bench:sparql")
 include("testing:bench:sparql:core")
+include("testing:bench:sparql:endpoint")
 
 if (hasEnabled("bench.sparql.blazegraph")) {
     include("testing:bench:sparql:ref:blazegraph")

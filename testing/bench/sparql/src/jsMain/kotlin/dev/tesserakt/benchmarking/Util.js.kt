@@ -12,6 +12,16 @@ actual fun String.isFolder(): Boolean {
     return fs.existsSync(this) as Boolean && fs.statSync(this).isDirectory() as Boolean
 }
 
+/**
+ * Similar to [isFolder], but also tries to make the folder if necessary
+ */
+actual fun String.tryMakeFolder(): Boolean {
+    val option: dynamic = Any()
+    option.recursive = true
+    fs.mkdirSync(this, option)
+    return isFolder()
+}
+
 actual fun String.listFiles(): List<String> {
     val contents = fs.readdirSync(this).unsafeCast<Array<String>>().toList()
     return contents.mapNotNull { filename ->

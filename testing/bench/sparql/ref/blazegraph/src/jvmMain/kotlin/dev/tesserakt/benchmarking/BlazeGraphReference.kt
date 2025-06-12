@@ -21,7 +21,7 @@ class BlazeGraphReference(private val query: String) : Reference() {
 
     private var checksum = 0
 
-    override fun prepare(diff: SnapshotStore.Diff) {
+    override suspend fun prepare(diff: SnapshotStore.Diff) {
         val conn = repo.connection
         conn.begin()
         try {
@@ -67,7 +67,7 @@ class BlazeGraphReference(private val query: String) : Reference() {
         return result
     }
 
-    override fun close() {
+    override suspend fun close() {
         val conn = repo.connection
         conn.begin()
         conn.clear()
@@ -141,7 +141,7 @@ private fun Quad.BlankTerm.toBNode(): BNodeImpl {
 
 private val Value.checksumValue: Int
     get() = when (this) {
-        is BNode -> id.count { it.isDigit() }
+        is BNode -> 1
         is URI -> stringValue().length
         is Literal -> stringValue().length
         else -> throw IllegalArgumentException("Unknown value type ${this::class.simpleName}")
