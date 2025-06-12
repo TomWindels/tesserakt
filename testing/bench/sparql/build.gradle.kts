@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 
 plugins {
+    application
     // not distributed as a package, build targets are manually defined
     id("base-config")
 }
@@ -8,7 +9,11 @@ plugins {
 group = "sparql.bench"
 
 kotlin {
-    jvm()
+    jvm {
+        // required to have a functional `application` plugin; otherwise, a very empty
+        //  single jar file is being built
+        withJava()
+    }
     js {
         nodejs {
             @OptIn(ExperimentalMainFunctionArgumentsDsl::class)
@@ -199,3 +204,26 @@ fun setupGraphingTasks() {
 }
 
 tasks.named("clean").get().finalizedBy(cleanGraphTool)
+
+application {
+    mainClass.set("Main_jvmKt")
+}
+
+// the same fix found in `jvm-target` convention plugin - manually applied
+// we cannot use that plugin here, as we need to specify `withJava()` to the `jvm` target,
+//  and applying `withJava()` everywhere causes other errors
+
+tasks.withType(Jar::class.java) {
+    archiveBaseName.set(getBaseName())
+}
+
+fun getBaseName(): String {
+    var name = project.name.replace("-", "_")
+    var parent = project.parent?.takeIf { it != project.rootProject }
+    while (parent != null) {
+        val current = parent.name.replace("-", "_")
+        name = "$current-$name"
+        parent = parent.parent?.takeIf { it != project.rootProject }
+    }
+    return name
+}
