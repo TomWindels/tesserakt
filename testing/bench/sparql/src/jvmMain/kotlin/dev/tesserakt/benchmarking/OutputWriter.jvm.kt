@@ -1,5 +1,6 @@
 package dev.tesserakt.benchmarking
 
+import dev.tesserakt.benchmarking.execution.Evaluation
 import java.io.File
 
 private val version by lazy {
@@ -7,7 +8,7 @@ private val version by lazy {
 }
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(evaluation: RunnerEvaluation) : AutoCloseable {
+actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoCloseable {
 
     private val memoryObserver: MemoryObserver
     private val timeObserver: TimeObserver
@@ -29,18 +30,8 @@ actual class OutputWriter actual constructor(evaluation: RunnerEvaluation) : Aut
         File(directory + "metadata").writeText(buildString {
             append("version: ")
             append(version)
-            append("\ninput: ")
-            append(evaluation.inputFilePath)
-            append("\nevaluator: ")
-            append(evaluation.evaluatorName)
-            append("\nquery: ")
-            append(evaluation.query)
-            append("\ndiff count: ")
-            append(evaluation.diffs.size)
-            append("\ntotal insertions: ")
-            append(evaluation.diffs.sumOf { it.insertions.size })
-            append("\ntotal deletions: ")
-            append(evaluation.diffs.sumOf { it.deletions.size })
+            append("\n")
+            append(evaluation.metadata())
         })
     }
 

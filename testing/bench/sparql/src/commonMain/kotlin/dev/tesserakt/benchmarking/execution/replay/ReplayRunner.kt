@@ -1,11 +1,12 @@
-package dev.tesserakt.benchmarking
+package dev.tesserakt.benchmarking.execution.replay
 
+import dev.tesserakt.benchmarking.*
 import dev.tesserakt.benchmarking.report.RunReporter
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
-class Runner(
-    private val evaluation: RunnerEvaluation,
+class ReplayRunner(
+    private val evaluation: ReplayRunnerEvaluation,
     private val reporter: RunReporter,
 ) {
 
@@ -30,7 +31,7 @@ class Runner(
             reporter.onStageChanged(EvaluationStage.WARMUP)
             output.markStart("warmup")
             repeat(evaluation.warmupRounds) {
-                EvaluatorFactory.createEvaluator(evaluation).use { evaluator ->
+                EvaluatorFactory.createEvaluatorPreferIncremental(evaluation).use { evaluator ->
                     output.reset()
                     evaluation.diffs.forEach { delta ->
                         evaluator.prepare(delta)
@@ -46,7 +47,7 @@ class Runner(
             coroutineContext.ensureActive()
             // actual execution
             repeat(evaluation.executionRounds) { runIndex ->
-                EvaluatorFactory.createEvaluator(evaluation).use { evaluator ->
+                EvaluatorFactory.createEvaluatorPreferIncremental(evaluation).use { evaluator ->
                     output.reset()
                     evaluation.diffs.forEachIndexed { di, delta ->
                         val id = RunId(deltaIndex = di, runIndex = runIndex)

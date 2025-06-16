@@ -1,9 +1,11 @@
 package dev.tesserakt.benchmarking
 
+import dev.tesserakt.benchmarking.execution.Evaluation
+
 private val fs = js("require('fs')")
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(evaluation: RunnerEvaluation) : AutoCloseable {
+actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoCloseable {
 
     private val timeObserver: TimeObserver
     private val outputObserver: OutputObserver
@@ -21,23 +23,7 @@ actual class OutputWriter actual constructor(evaluation: RunnerEvaluation) : Aut
         }
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-        fs.writeFileSync(
-            directory + "metadata",
-            buildString {
-                append("input: ")
-                append(evaluation.inputFilePath)
-                append("\nevaluator: ")
-                append(evaluation.evaluatorName)
-                append("\nquery: ")
-                append(evaluation.query)
-                append("\ndiff count: ")
-                append(evaluation.diffs.size)
-                append("\ntotal insertions: ")
-                append(evaluation.diffs.sumOf { it.insertions.size })
-                append("\ntotal deletions: ")
-                append(evaluation.diffs.sumOf { it.deletions.size })
-            }
-        )
+        fs.writeFileSync(directory + "metadata", evaluation.metadata())
     }
 
     /**

@@ -11,6 +11,10 @@ import com.github.ajalt.clikt.parameters.groups.provideDelegate
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
+import dev.tesserakt.benchmarking.execution.regular.RegularEndpointConfig
+import dev.tesserakt.benchmarking.execution.regular.RegularRunnerConfig
+import dev.tesserakt.benchmarking.execution.replay.ReplayEndpointConfig
+import dev.tesserakt.benchmarking.execution.replay.ReplayRunnerConfig
 
 class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
 
@@ -33,6 +37,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 help = "The output filepath to use",
                 completionCandidates = CompletionCandidates.Path,
             )
+            .convert { if (!it.endsWith('/')) "$it/" else it }
             .required()
             .check(
                 lazyMessage = { "Output filepath `$it` is not a folder, or is not empty!" },
@@ -96,6 +101,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 "--query", "-q",
                 help = "Query to evaluate",
             )
+            .convert { if (it.startsWith('@')) it.substring(1).readFile() else it }
             .multiple(required = true)
             .unique()
 
@@ -111,7 +117,34 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 common.implementations.map { if (it == "tesserakt") SELF_IMPL else it }
             }
             // creating all configs up-front
-            TODO()
+            val localConfigs = RegularRunnerConfig.createVariants(
+                query = query,
+                inputPaths = input,
+                outputFolder = common.output,
+                evaluators = mapped,
+                warmups = common.warmups,
+                runs = common.runs,
+            )
+            val endpointConfigs = RegularEndpointConfig.createVariants(
+                query = query,
+                inputPaths = input,
+                outputFolder = common.output,
+                endpoints = common.endpoints,
+                warmups = common.warmups,
+                runs = common.runs,
+            )
+            println("Executing ${localConfigs.size + endpointConfigs.size} evaluation(s)!")
+            // then mapping these to the various evaluations we can actually evaluate
+            localConfigs.forEach { config ->
+                val evaluation = config.toRunnerEvaluation()
+                val runner = evaluation.createRunner()
+                runner.run()
+            }
+            endpointConfigs.forEach { config ->
+                val evaluation = config.toRunnerEvaluation()
+                val runner = evaluation.createRunner()
+                runner.run()
+            }
         }
 
     }
@@ -140,14 +173,14 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 common.implementations.map { if (it == "tesserakt") SELF_IMPL else it }
             }
             // creating all configs up-front
-            val localConfigs = RunnerConfig.createVariants(
+            val localConfigs = ReplayRunnerConfig.createVariants(
                 inputPaths = input,
                 outputFolder = common.output,
                 evaluators = mapped,
                 warmups = common.warmups,
                 runs = common.runs,
             )
-            val endpointConfigs = EndpointConfig.createVariants(
+            val endpointConfigs = ReplayEndpointConfig.createVariants(
                 inputPaths = input,
                 outputFolder = common.output,
                 endpoints = common.endpoints,
