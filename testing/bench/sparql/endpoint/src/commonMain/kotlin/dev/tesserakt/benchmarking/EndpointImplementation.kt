@@ -9,6 +9,8 @@ import dev.tesserakt.sparql.endpoint.client.*
 import io.ktor.client.*
 import io.ktor.client.engine.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
 
 class EndpointImplementation(
     private val endpoint: String,
@@ -28,6 +30,15 @@ class EndpointImplementation(
     }
 
     override suspend fun prepare(diff: SnapshotStore.Diff) {
+        // ensuring that, if we don't expect any data, the endpoint is also empty
+        if (mirror.isEmpty()) {
+            // TODO when supported in tesserakt, a simple `COUNT` or `ASK` should suffice & limit overhead
+            val bindings = client
+                .sparqlQuery(endpoint, "SELECT * WHERE { ?s ?p ?o }")
+                .also { checkSuccess(response = it) }
+                .bodyAsBindings()
+            check(bindings.isEmpty()) { "Expected an empty state, but received ${bindings.size} binding(s) instead:\n${"\n"}" }
+        }
         mirror.apply {
             addAll(diff.insertions)
             removeAll(diff.deletions)
@@ -35,11 +46,13 @@ class EndpointImplementation(
         client.sparqlUpdate(endpoint = endpoint) {
             add(diff.insertions.toStore())
             remove(diff.deletions.toStore())
-        }
+        }.also { checkSuccess(response = it) }
     }
 
     override suspend fun eval() {
-        current = client.sparqlQuery(endpoint = endpoint, query = query).bodyAsBindings()
+        current = client.sparqlQuery(endpoint = endpoint, query = query)
+            .also { checkSuccess(response = it) }
+            .bodyAsBindings()
         checksum = current.sumOf { it.sumOf { it.second.checksumLength } }
     }
 
@@ -53,6 +66,10 @@ class EndpointImplementation(
         client.sparqlUpdate(endpoint = endpoint) {
             remove(mirror)
         }
+    }
+
+    private suspend fun checkSuccess(response: HttpResponse) {
+        check(response.status.isSuccess()) { "The endpoint reported an error: ${response.status}\n${response.bodyAsText()}" }
     }
 
 }
