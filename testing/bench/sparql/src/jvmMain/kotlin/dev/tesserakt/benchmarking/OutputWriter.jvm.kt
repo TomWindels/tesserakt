@@ -4,7 +4,11 @@ import dev.tesserakt.benchmarking.execution.Evaluation
 import java.io.File
 
 private val version by lazy {
-    CommandExecutor.run("git rev-parse HEAD")
+    try {
+        CommandExecutor.run("git rev-parse HEAD")
+    } catch (_: Throwable) {
+        "version information unavailable"
+    }
 }
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
