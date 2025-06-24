@@ -91,10 +91,10 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
 
         private val input: Set<String> by option(
                 "--input", "-i",
-                help = "Select the input filepath to use (has to be a valid Turtle/TriG file)",
+                help = "Select the input filepath(s) to use (has to be a valid Turtle/TriG file); not providing any results in a single data test per evaluation, without manipulating the data itself",
                 completionCandidates = CompletionCandidates.Path,
             )
-            .multiple(required = true)
+            .multiple(required = false)
             .unique()
 
         private val query: Set<String> by option(

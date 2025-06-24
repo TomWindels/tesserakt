@@ -16,7 +16,7 @@ import dev.tesserakt.sparql.endpoint.server.impl.SparqlEndpoint
 /**
  * A [SparqlEndpoint] decorator, similar to [Endpoint], with the addition of making the various operations more verbose
  */
-class VerboseEndpoint(config: EndpointConfig): SparqlEndpoint {
+class VerboseEndpoint(config: EndpointConfig) : SparqlEndpoint {
 
     // whilst we don't use the store for anything here, it's useful for logging
     private val store = run {
@@ -40,7 +40,7 @@ class VerboseEndpoint(config: EndpointConfig): SparqlEndpoint {
     private var added = 0
     private var deleted = 0
 
-    private val listener = object: ObservableStore.Listener {
+    private val listener = object : ObservableStore.Listener {
         override fun onQuadAdded(quad: Quad) {
             ++added
         }
@@ -72,25 +72,25 @@ class VerboseEndpoint(config: EndpointConfig): SparqlEndpoint {
     }
 
     private fun Iterator<Quad>.consumeVerbose(): Store {
-        val i_Limit = 10_000
-        val j_Limit = 10
+        val iLimit = 10_000
+        val jLimit = 10
 
         var i = 0
         var j = 0
 
         val result = MutableStore()
         forEach {
-            if (j >= j_Limit) {
+            if (j >= jLimit) {
                 println(" ${result.size}")
                 j = 0
             }
             ++i
-            if (i >= i_Limit) {
+            if (i >= iLimit) {
                 i = 0
                 ++j
                 print('.')
             }
-             result.add(it)
+            result.add(it)
         }
         return result
     }

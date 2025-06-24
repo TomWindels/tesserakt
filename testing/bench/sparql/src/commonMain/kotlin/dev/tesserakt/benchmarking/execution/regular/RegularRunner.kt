@@ -25,15 +25,22 @@ class RegularRunner(
 
     private suspend fun exec() = runCatching {
         val output = OutputWriter(evaluation)
-        // putting the store's diffs in memory
+        // ensuring the endpoint behaviour is correct:
+        // * if we have a data store we want to evaluate (!= null), we require the initial state of (external)
+        //  stores (= endpoints) to be empty
+        // * otherwise, we might be testing against data already present inside the endpoint, and thus should not
+        //  expect empty responses upon executing any query (so the validation should be skipped)
+        EndpointImplementation.REQUIRE_EMPTY_INITIAL_STATE = evaluation.store != null
         // actually executing it
         output.create()
         output.use {
             // warmup
             EvaluatorFactory.createEvaluatorPreferRegular(evaluation).use { evaluator ->
-                output.markStart("initialisation")
-                evaluator.prepare(SnapshotStore.Diff(insertions = evaluation.store, deletions = emptyStore()))
-                output.markEnd("initialisation")
+                if (evaluation.store != null) {
+                    output.markStart("initialisation")
+                    evaluator.prepare(SnapshotStore.Diff(insertions = evaluation.store, deletions = emptyStore()))
+                    output.markEnd("initialisation")
+                }
                 reporter.onStageChanged(EvaluationStage.WARMUP)
                 output.markStart("warmup")
                 repeat(evaluation.warmupRounds) {

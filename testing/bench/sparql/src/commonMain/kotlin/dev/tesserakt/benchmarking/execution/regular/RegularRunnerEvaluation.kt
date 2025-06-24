@@ -6,10 +6,10 @@ import dev.tesserakt.rdf.types.Store
 
 data class RegularRunnerEvaluation(
     override val name: String,
-    val inputFilePath: String,
+    val inputFilePath: String?,
     override val outputDirPath: String,
     override val evaluatorName: String,
-    val store: Store,
+    val store: Store?,
     override val query: String,
     val warmupRounds: Int,
     val executionRounds: Int,
@@ -22,6 +22,7 @@ data class RegularRunnerEvaluation(
         append(evaluatorName)
         append("\nquery: ")
         append(query)
+        store ?: return@buildString
         append("\nstore size: ")
         append(store.size)
     }

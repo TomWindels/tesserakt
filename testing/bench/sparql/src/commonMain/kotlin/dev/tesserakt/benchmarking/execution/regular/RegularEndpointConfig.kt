@@ -9,7 +9,7 @@ import dev.tesserakt.rdf.types.consume
 
 data class RegularEndpointConfig(
     val query: String,
-    val inputFilePath: String,
+    val inputFilePath: String?,
     val outputDirPath: String,
     val endpoint: String,
     val warmups: Int,
@@ -21,9 +21,13 @@ data class RegularEndpointConfig(
     }
 
     fun toRunnerEvaluation(): RegularRunnerEvaluation {
-        val data = TriGSerializer.deserialize(FileDataSource(inputFilePath)).consume()
+        val name = inputFilePath
+            ?.substringAfterLast('/')
+            ?.substringBeforeLast('.')
+            ?: "external-data"
+        val data = inputFilePath?.let { TriGSerializer.deserialize(FileDataSource(it)).consume() }
         return RegularRunnerEvaluation(
-            name = inputFilePath.substringAfterLast('/').substringBeforeLast('.'),
+            name = name,
             inputFilePath = inputFilePath,
             outputDirPath = outputDirPath,
             evaluatorName = EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint),
@@ -60,7 +64,20 @@ data class RegularEndpointConfig(
                 .flatMap { if (it.isFolder()) it.listFiles() else listOf(it) }
                 // ensuring the remaining files are turtle files
                 .filter { it.endsWith(".ttl") }
-            return inputs.flatMap { input ->
+            return if (inputs.isEmpty()) {
+                query.flatMap { query ->
+                    endpoints.map { endpoint ->
+                        RegularEndpointConfig(
+                            query = query,
+                            inputFilePath = null,
+                            outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/",
+                            endpoint = endpoint,
+                            warmups = warmups,
+                            runs = runs
+                        )
+                    }
+                }
+            } else inputs.flatMap { input ->
                 val filename = input.substringAfterLast('/').substringBefore('.')
                 query.flatMap { query ->
                     endpoints.map { endpoint ->

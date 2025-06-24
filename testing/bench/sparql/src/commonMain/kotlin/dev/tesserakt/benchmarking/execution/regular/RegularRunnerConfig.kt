@@ -19,10 +19,10 @@ data class RegularRunnerConfig(
     override fun toString() =
         "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorName"
 
-    val name: String
-        get() = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
-
     fun toRunnerEvaluation(): RegularRunnerEvaluation {
+        val name = inputFilePath
+            .substringAfterLast('/')
+            .substringBeforeLast('.')
         val data = TriGSerializer.deserialize(FileDataSource(inputFilePath)).consume()
         return RegularRunnerEvaluation(
             name = name,

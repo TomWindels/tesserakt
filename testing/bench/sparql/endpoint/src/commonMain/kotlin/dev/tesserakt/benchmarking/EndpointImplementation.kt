@@ -31,7 +31,7 @@ class EndpointImplementation(
 
     override suspend fun prepare(diff: SnapshotStore.Diff) {
         // ensuring that, if we don't expect any data, the endpoint is also empty
-        if (mirror.isEmpty()) {
+        if (REQUIRE_EMPTY_INITIAL_STATE && mirror.isEmpty()) {
             // TODO when supported in tesserakt, a simple `COUNT` or `ASK` should suffice & limit overhead
             val bindings = client
                 .sparqlQuery(endpoint, "SELECT * WHERE { ?s ?p ?o }")
@@ -63,13 +63,21 @@ class EndpointImplementation(
     }
 
     override suspend fun close() {
-        client.sparqlUpdate(endpoint = endpoint) {
-            remove(mirror)
+        if (mirror.isNotEmpty()) {
+            client.sparqlUpdate(endpoint = endpoint) {
+                remove(mirror)
+            }
         }
     }
 
     private suspend fun checkSuccess(response: HttpResponse) {
         check(response.status.isSuccess()) { "The endpoint reported an error: ${response.status}\n${response.bodyAsText()}" }
+    }
+
+    companion object {
+
+        var REQUIRE_EMPTY_INITIAL_STATE: Boolean = true
+
     }
 
 }

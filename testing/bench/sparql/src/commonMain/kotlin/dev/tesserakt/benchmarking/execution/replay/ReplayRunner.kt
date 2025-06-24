@@ -23,6 +23,10 @@ class ReplayRunner(
 
     private suspend fun exec() = runCatching {
         val output = OutputWriter(evaluation)
+        // ensuring the endpoint behaviour is correct:
+        // as we require full control of the endpoint's state over time, we need to be sure it's initial value
+        //  is empty too
+        EndpointImplementation.REQUIRE_EMPTY_INITIAL_STATE = true
         // putting the store's diffs in memory
         // actually executing it
         output.create()
