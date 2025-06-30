@@ -1,4 +1,4 @@
-package dev.tesserakt.benchmarking
+package dev.tesserakt.benchmarking.cli
 
 import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.command.main
@@ -11,6 +11,7 @@ import com.github.ajalt.clikt.parameters.groups.provideDelegate
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
+import dev.tesserakt.benchmarking.*
 import dev.tesserakt.benchmarking.execution.regular.RegularEndpointConfig
 import dev.tesserakt.benchmarking.execution.regular.RegularRunnerConfig
 import dev.tesserakt.benchmarking.execution.replay.ReplayEndpointConfig
@@ -88,6 +89,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
     class Query: SuspendingCliktCommand("query") {
 
         private val common by CommonSettings()
+        private val platformOptions by PlatformOptions()
 
         private val input: Set<String> by option(
                 "--input", "-i",
@@ -111,6 +113,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
 
         override suspend fun run() {
             common.validate()
+            platformOptions.apply()
             val mapped  = if ("all" in common.implementations) {
                 references.keys + SELF_IMPL
             } else {
@@ -152,6 +155,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
     class Replay: SuspendingCliktCommand("replay") {
 
         private val common by CommonSettings()
+        private val platformOptions by PlatformOptions()
 
         private val input: Set<String> by option(
                 "--input", "-i",
@@ -167,6 +171,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
 
         override suspend fun run() {
             common.validate()
+            platformOptions.apply()
             val mapped  = if ("all" in common.implementations) {
                 references.keys + SELF_IMPL
             } else {
