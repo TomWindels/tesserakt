@@ -1,18 +1,13 @@
 package dev.tesserakt.benchmarking.execution.regular
 
 import dev.tesserakt.benchmarking.execution.Evaluation
-import dev.tesserakt.benchmarking.report.CliRunReporter
-import dev.tesserakt.rdf.types.Store
 
 data class RegularRunnerEvaluation(
     override val name: String,
     val inputFilePath: String?,
     override val outputDirPath: String,
     override val evaluatorName: String,
-    val store: Store?,
     override val query: String,
-    val warmupRounds: Int,
-    val executionRounds: Int,
 ) : Evaluation() {
 
     override fun metadata() = buildString {
@@ -22,11 +17,13 @@ data class RegularRunnerEvaluation(
         append(evaluatorName)
         append("\nquery: ")
         append(query)
-        store ?: return@buildString
-        append("\nstore size: ")
-        append(store.size)
     }
 
-    fun createRunner() = RegularRunner(evaluation = this, reporter = CliRunReporter(this))
+    override fun withIndex(index: Int): RegularRunnerEvaluation {
+        return copy(
+            name = "$name-${index}",
+            outputDirPath = outputDirPath.replace(name, "$name/${index}")
+        )
+    }
 
 }

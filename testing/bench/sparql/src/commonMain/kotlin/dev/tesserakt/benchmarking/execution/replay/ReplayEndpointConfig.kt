@@ -12,8 +12,6 @@ data class ReplayEndpointConfig(
     val inputFilePath: String,
     val outputDirPath: String,
     val endpoint: String,
-    val warmups: Int,
-    val runs: Int,
 ) {
 
     init {
@@ -25,7 +23,6 @@ data class ReplayEndpointConfig(
         return ReplayBenchmark
             .from(TriGSerializer.deserialize(FileDataSource(inputFilePath)).consume())
             .flatMap { benchmark ->
-                val diffs = benchmark.store.diffs.toList()
                 val nameBase = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
                 benchmark.queries.map { query ->
                     val name = "$nameBase-${++i}"
@@ -34,10 +31,7 @@ data class ReplayEndpointConfig(
                         inputFilePath = inputFilePath,
                         outputDirPath = outputDirPath.replace(nameBase, name),
                         evaluatorName = EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint),
-                        diffs = diffs,
                         query = query,
-                        warmupRounds = warmups,
-                        executionRounds = runs
                     )
                 }
             }
@@ -51,16 +45,11 @@ data class ReplayEndpointConfig(
          * @param inputPaths The input filepath to use; can be a file or folder (in which case all valid files are used)
          * @param outputFolder The output filepath to use; has to be a folder!
          * @param endpoints All evaluator endpoints (URLs) to use
-         * @param warmups The number of runs that contribute to the warmup
-         * @param runs The number of runs to measure, executed after the warmups
-         *
          */
         fun createVariants(
             inputPaths: Collection<String>,
             outputFolder: String,
             endpoints: Collection<String>,
-            warmups: Int,
-            runs: Int,
         ): List<ReplayEndpointConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -74,8 +63,6 @@ data class ReplayEndpointConfig(
                         inputFilePath = input,
                         outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/",
                         endpoint = endpoint,
-                        warmups = warmups,
-                        runs = runs
                     )
                 }
             }

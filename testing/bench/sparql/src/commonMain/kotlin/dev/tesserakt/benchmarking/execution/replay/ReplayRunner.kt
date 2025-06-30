@@ -1,16 +1,19 @@
 package dev.tesserakt.benchmarking.execution.replay
 
 import dev.tesserakt.benchmarking.*
-import dev.tesserakt.benchmarking.report.RunReporter
+import dev.tesserakt.benchmarking.execution.BenchmarkRunnerHost
+import dev.tesserakt.rdf.serialization.common.FileDataSource
+import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
 class ReplayRunner(
     private val evaluation: ReplayRunnerEvaluation,
-    private val reporter: RunReporter,
-) {
+): BenchmarkRunnerHost.Runner() {
 
-    suspend fun run() {
+    override suspend fun run() {
         exec().fold(
             onSuccess = {
                 reporter.onStageChanged(EvaluationStage.FINISHED)
@@ -22,55 +25,38 @@ class ReplayRunner(
     }
 
     private suspend fun exec() = runCatching {
-        val output = OutputWriter(evaluation)
+        val benchmark = ReplayBenchmark
+            .from(TriGSerializer.deserialize(FileDataSource(evaluation.inputFilePath)).consume())
+            // currently only expecting a single benchmark to be present inside the file; whilst it could have multiple
+            //  queries in its definition, we only care about the one in the evaluation we have available
+            .single()
         // ensuring the endpoint behaviour is correct:
         // as we require full control of the endpoint's state over time, we need to be sure it's initial value
         //  is empty too
         EndpointImplementation.REQUIRE_EMPTY_INITIAL_STATE = true
         // putting the store's diffs in memory
         // actually executing it
-        output.create()
-        output.use {
-            // warmup
-            reporter.onStageChanged(EvaluationStage.WARMUP)
-            output.markStart("warmup")
-            repeat(evaluation.warmupRounds) {
-                EvaluatorFactory.createEvaluatorPreferIncremental(evaluation).use { evaluator ->
-                    output.reset()
-                    evaluation.diffs.forEach { delta ->
-                        evaluator.prepare(delta)
-                        evaluator.eval()
-                        evaluator.finish()
-                    }
-                }
-                reporter.onStageProgressed(it.toFloat() / evaluation.warmupRounds)
-                RunContext.onIterationFinished()
-            }
-            output.markEnd("warmup")
-            reporter.onStageChanged(EvaluationStage.EVALUATION)
-            coroutineContext.ensureActive()
-            // actual execution
-            repeat(evaluation.executionRounds) { runIndex ->
-                EvaluatorFactory.createEvaluatorPreferIncremental(evaluation).use { evaluator ->
-                    output.reset()
-                    evaluation.diffs.forEachIndexed { di, delta ->
-                        val id = RunId(deltaIndex = di, runIndex = runIndex)
-                        val prep = "${id.id()}-prep"
-                        output.markStart(prep)
-                        evaluator.prepare(delta)
-                        output.markEnd(prep)
-                        output.markStart(id.id())
-                        evaluator.eval()
-                        output.markEnd(id.id())
-                        val outputs = evaluator.finish()
-                        output.markOutputs(id.id(), outputs)
-                        coroutineContext.ensureActive()
-                    }
-                }
-                reporter.onStageProgressed(runIndex.toFloat() / evaluation.executionRounds)
-                RunContext.onIterationFinished()
+        reporter.onStageChanged(EvaluationStage.EVALUATION)
+        coroutineContext.ensureActive()
+        // actual execution
+        EvaluatorFactory.createEvaluatorPreferIncremental(evaluation).use { evaluator ->
+            output.reset()
+            val diffs = benchmark.store.diffs.toList()
+            diffs.forEachIndexed { di, delta ->
+                val id = RunId(deltaIndex = di)
+                val prep = "${id.id()}-prep"
+                output.markStart(prep)
+                evaluator.prepare(delta)
+                output.markEnd(prep)
+                output.markStart(id.id())
+                evaluator.eval()
+                output.markEnd(id.id())
+                val outputs = evaluator.finish()
+                output.markOutputs(id.id(), outputs)
+                coroutineContext.ensureActive()
             }
         }
+        RunContext.onIterationFinished()
     }
 
 }

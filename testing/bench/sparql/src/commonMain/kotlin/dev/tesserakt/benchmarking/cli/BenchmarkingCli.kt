@@ -12,6 +12,7 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import dev.tesserakt.benchmarking.*
+import dev.tesserakt.benchmarking.execution.BenchmarkRunnerHost
 import dev.tesserakt.benchmarking.execution.regular.RegularEndpointConfig
 import dev.tesserakt.benchmarking.execution.regular.RegularRunnerConfig
 import dev.tesserakt.benchmarking.execution.replay.ReplayEndpointConfig
@@ -63,13 +64,6 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
             .multiple()
             .unique()
             .check(lazyMessage = { "Invalid URL encountered!" }) { it.all { entry -> entry.matches(URL) } }
-
-        val warmups: Int by option(
-                "--warmups",
-                help = "The number of (complete) runs before measuring performance",
-            )
-            .int()
-            .default(1)
 
         val runs: Int by option(
                 "--runs",
@@ -125,29 +119,19 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 inputPaths = input,
                 outputFolder = common.output,
                 evaluators = mapped,
-                warmups = common.warmups,
-                runs = common.runs,
             )
             val endpointConfigs = RegularEndpointConfig.createVariants(
                 query = query,
                 inputPaths = input,
                 outputFolder = common.output,
                 endpoints = common.endpoints,
-                warmups = common.warmups,
-                runs = common.runs,
             )
-            println("Executing ${localConfigs.size + endpointConfigs.size} evaluation(s)!")
-            // then mapping these to the various evaluations we can actually evaluate
-            localConfigs.forEach { config ->
-                val evaluation = config.toRunnerEvaluation()
-                val runner = evaluation.createRunner()
-                runner.run()
-            }
-            endpointConfigs.forEach { config ->
-                val evaluation = config.toRunnerEvaluation()
-                val runner = evaluation.createRunner()
-                runner.run()
-            }
+            val host = BenchmarkRunnerHost(
+                executions = common.runs,
+                evaluations = localConfigs.map { it.toRunnerEvaluation() } + endpointConfigs.map { it.toRunnerEvaluation() },
+            )
+            println("Executing ${host.evaluations.size} evaluation(s) [x${host.executions}]")
+            host.run()
         }
 
     }
@@ -182,31 +166,19 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 inputPaths = input,
                 outputFolder = common.output,
                 evaluators = mapped,
-                warmups = common.warmups,
-                runs = common.runs,
             )
             val endpointConfigs = ReplayEndpointConfig.createVariants(
                 inputPaths = input,
                 outputFolder = common.output,
                 endpoints = common.endpoints,
-                warmups = common.warmups,
-                runs = common.runs,
             )
             // then mapping these to the various evaluations we can actually evaluate
-            localConfigs.forEach { config ->
-                val evaluations = config.toRunnerEvaluations()
-                evaluations.forEach {
-                    val runner = it.createRunner()
-                    runner.run()
-                }
-            }
-            endpointConfigs.forEach { config ->
-                val evaluations = config.toRunnerEvaluations()
-                evaluations.forEach {
-                    val runner = it.createRunner()
-                    runner.run()
-                }
-            }
+            val host = BenchmarkRunnerHost(
+                executions = common.runs,
+                evaluations = localConfigs.flatMap { it.toRunnerEvaluations() } + endpointConfigs.flatMap { it.toRunnerEvaluations() },
+            )
+            println("Executing ${host.evaluations.size} evaluation(s) [x${host.executions}]")
+            host.run()
         }
 
     }

@@ -11,8 +11,6 @@ data class ReplayRunnerConfig(
     val inputFilePath: String,
     val outputDirPath: String,
     val evaluatorName: String,
-    val warmups: Int,
-    val runs: Int,
 ) {
 
     override fun toString() =
@@ -26,7 +24,6 @@ data class ReplayRunnerConfig(
         return ReplayBenchmark
             .from(TriGSerializer.deserialize(FileDataSource(inputFilePath)).consume())
             .flatMap { benchmark ->
-                val diffs = benchmark.store.diffs.toList()
                 val nameBase = name
                 benchmark.queries.map { query ->
                     val name = "$nameBase-${++i}"
@@ -35,10 +32,7 @@ data class ReplayRunnerConfig(
                         inputFilePath = inputFilePath,
                         outputDirPath = outputDirPath.replace(nameBase, name),
                         evaluatorName = evaluatorName,
-                        diffs = diffs,
                         query = query,
-                        warmupRounds = warmups,
-                        executionRounds = runs,
                     )
                 }
             }
@@ -52,15 +46,11 @@ data class ReplayRunnerConfig(
          * @param inputPaths The input filepath to use; can be a file or folder (in which case all valid files are used)
          * @param outputFolder The output filepath to use; has to be a folder!
          * @param evaluators All evaluator (names) to use
-         * @param warmups The number of runs that contribute to the warmup
-         * @param runs The number of runs to measure, executed after the warmups
          */
         fun createVariants(
             inputPaths: Collection<String>,
             outputFolder: String,
             evaluators: Collection<String>,
-            warmups: Int,
-            runs: Int,
         ): List<ReplayRunnerConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -74,8 +64,6 @@ data class ReplayRunnerConfig(
                         inputFilePath = input,
                         outputDirPath = "${outputFolder}$evaluator/$filename/",
                         evaluatorName = evaluator,
-                        warmups = warmups,
-                        runs = runs
                     )
                 }
             }
