@@ -21,7 +21,7 @@ data class RegularRunnerEvaluation(
 
     override fun withIndex(index: Int): RegularRunnerEvaluation {
         return copy(
-            name = "$name-${index}",
+            name = "$name #${index}",
             outputDirPath = outputDirPath.replace(name, "$name/${index}")
         )
     }

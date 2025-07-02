@@ -44,6 +44,7 @@ class CliRunReporter(private val run: Evaluation): RunReporter {
 
     private val EvaluationStage.displayName: String
         get() = when (this) {
+            EvaluationStage.PREPARATION -> "preparation"
             EvaluationStage.EVALUATION -> "evaluation"
             EvaluationStage.FINISHED -> ""
         }

@@ -36,7 +36,6 @@ class ReplayRunner(
         EndpointImplementation.REQUIRE_EMPTY_INITIAL_STATE = true
         // putting the store's diffs in memory
         // actually executing it
-        reporter.onStageChanged(EvaluationStage.EVALUATION)
         coroutineContext.ensureActive()
         // actual execution
         EvaluatorFactory.createEvaluatorPreferIncremental(evaluation).use { evaluator ->
@@ -45,9 +44,11 @@ class ReplayRunner(
             diffs.forEachIndexed { di, delta ->
                 val id = RunId(deltaIndex = di)
                 val prep = "${id.id()}-prep"
+                reporter.onStageChanged(EvaluationStage.PREPARATION)
                 output.markStart(prep)
                 evaluator.prepare(delta)
                 output.markEnd(prep)
+                reporter.onStageChanged(EvaluationStage.EVALUATION)
                 output.markStart(id.id())
                 evaluator.eval()
                 output.markEnd(id.id())

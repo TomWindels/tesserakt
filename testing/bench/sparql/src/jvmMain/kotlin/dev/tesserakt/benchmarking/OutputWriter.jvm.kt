@@ -3,14 +3,6 @@ package dev.tesserakt.benchmarking
 import dev.tesserakt.benchmarking.execution.Evaluation
 import java.io.File
 
-private val version by lazy {
-    try {
-        CommandExecutor.run("git rev-parse HEAD")
-    } catch (_: Throwable) {
-        "version information unavailable"
-    }
-}
-
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoCloseable {
 
@@ -31,12 +23,6 @@ actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoClose
         memoryObserver = MemoryObserver(directory + "memory.csv")
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-        File(directory + "metadata").writeText(buildString {
-            append("version: ")
-            append(version)
-            append("\n")
-            append(evaluation.metadata())
-        })
     }
 
     /**

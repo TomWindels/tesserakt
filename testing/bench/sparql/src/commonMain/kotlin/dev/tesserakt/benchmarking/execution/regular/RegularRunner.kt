@@ -40,9 +40,10 @@ class RegularRunner(
         // actually executing it
         EvaluatorFactory.createEvaluatorPreferRegular(evaluation).use { evaluator ->
             if (store.isNotEmpty()) {
-                output.markStart("initialisation")
+                reporter.onStageChanged(EvaluationStage.PREPARATION)
+                output.markStart("preparation")
                 evaluator.prepare(SnapshotStore.Diff(insertions = store, deletions = emptyStore()))
-                output.markEnd("initialisation")
+                output.markEnd("preparation")
             }
             reporter.onStageChanged(EvaluationStage.EVALUATION)
             coroutineContext.ensureActive()

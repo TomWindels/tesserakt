@@ -23,7 +23,6 @@ actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoClose
         }
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-        fs.writeFileSync(directory + "metadata", evaluation.metadata())
     }
 
     /**
