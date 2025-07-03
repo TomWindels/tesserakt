@@ -50,12 +50,12 @@ data class RegularRunnerConfig(
                 .filter { it.isFile() }
             return inputs.flatMap { input ->
                 val filename = input.substringAfterLast('/').substringBefore('.')
-                query.flatMap { query ->
+                query.flatMapIndexed { i, query ->
                     evaluators.map { evaluator ->
                         RegularRunnerConfig(
                             query = query,
                             inputFilePath = input,
-                            outputDirPath = "${outputFolder}$evaluator/$filename/",
+                            outputDirPath = "${outputFolder}$evaluator/$filename/query_${i}/",
                             evaluatorName = evaluator,
                         )
                     }

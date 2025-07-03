@@ -51,24 +51,24 @@ data class RegularEndpointConfig(
                 // ensuring the remaining files are turtle files
                 .filter { it.endsWith(".ttl") }
             return if (inputs.isEmpty()) {
-                query.flatMap { query ->
+                query.flatMapIndexed { i, query ->
                     endpoints.map { endpoint ->
                         RegularEndpointConfig(
                             query = query,
                             inputFilePath = null,
-                            outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/",
+                            outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/query_${i}/",
                             endpoint = endpoint,
                         )
                     }
                 }
             } else inputs.flatMap { input ->
                 val filename = input.substringAfterLast('/').substringBefore('.')
-                query.flatMap { query ->
+                query.flatMapIndexed { i, query ->
                     endpoints.map { endpoint ->
                         RegularEndpointConfig(
                             query = query,
                             inputFilePath = input,
-                            outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/",
+                            outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/query_${i}/",
                             endpoint = endpoint,
                         )
                     }

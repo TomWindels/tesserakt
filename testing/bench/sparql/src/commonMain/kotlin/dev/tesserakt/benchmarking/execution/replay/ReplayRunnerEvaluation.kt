@@ -22,7 +22,7 @@ data class ReplayRunnerEvaluation(
     override fun withIndex(index: Int): ReplayRunnerEvaluation {
         return copy(
             name = "$name #${index}",
-            outputDirPath = outputDirPath.replace(name, "$name/${index}")
+            outputDirPath = if (name in outputDirPath) outputDirPath.replace(name, "$name/${index}") else "$outputDirPath$index/"
         )
     }
 

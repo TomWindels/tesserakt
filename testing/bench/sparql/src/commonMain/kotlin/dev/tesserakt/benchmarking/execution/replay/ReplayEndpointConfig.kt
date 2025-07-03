@@ -56,12 +56,12 @@ data class ReplayEndpointConfig(
                 .flatMap { if (it.isFolder()) it.listFiles() else listOf(it) }
                 // ensuring the remaining files are turtle files
                 .filter { it.endsWith(".ttl") }
-            return inputs.flatMap { input ->
+            return inputs.flatMapIndexed { i, input ->
                 val filename = input.substringAfterLast('/').substringBefore('.')
                 endpoints.map { endpoint ->
                     ReplayEndpointConfig(
                         inputFilePath = input,
-                        outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/",
+                        outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/input_${i}/",
                         endpoint = endpoint,
                     )
                 }

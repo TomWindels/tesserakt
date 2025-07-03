@@ -57,12 +57,12 @@ data class ReplayRunnerConfig(
                 .flatMap { if (it.isFolder()) it.listFiles() else listOf(it) }
                 // ensuring the remaining files are turtle files
                 .filter { it.endsWith(".ttl") }
-            return inputs.flatMap { input ->
+            return inputs.flatMapIndexed { i, input ->
                 val filename = input.substringAfterLast('/').substringBefore('.')
                 evaluators.map { evaluator ->
                     ReplayRunnerConfig(
                         inputFilePath = input,
-                        outputDirPath = "${outputFolder}$evaluator/$filename/",
+                        outputDirPath = "${outputFolder}$evaluator/$filename/input_${i}/",
                         evaluatorName = evaluator,
                     )
                 }
