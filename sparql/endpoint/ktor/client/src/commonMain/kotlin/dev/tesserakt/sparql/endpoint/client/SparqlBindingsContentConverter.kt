@@ -15,6 +15,10 @@ import kotlinx.serialization.json.io.decodeFromSource
 
 internal object SparqlBindingsContentConverter : ContentConverter {
 
+    private val json = Json {
+        ignoreUnknownKeys = true
+    }
+
     override suspend fun serialize(
         contentType: ContentType,
         charset: Charset,
@@ -26,7 +30,7 @@ internal object SparqlBindingsContentConverter : ContentConverter {
         }
         value as SelectResponse
         return TextContent(
-            text = Json.encodeToString(value),
+            text = json.encodeToString(value),
             contentType = SparqlContentType.JsonBindings.withCharset(charset),
             status = HttpStatusCode.OK
         )
@@ -43,10 +47,10 @@ internal object SparqlBindingsContentConverter : ContentConverter {
         val response: SelectResponse = if (charset != Charsets.UTF_8) {
             @OptIn(InternalAPI::class)
             val text = charset.newDecoder().decode(input = content.readBuffer)
-            Json.decodeFromString(text)
+            json.decodeFromString(text)
         } else {
             @OptIn(ExperimentalSerializationApi::class, InternalAPI::class)
-            Json.decodeFromSource(content.readBuffer)
+            json.decodeFromSource(content.readBuffer)
         }
         return if (typeInfo.type == SelectResponse::class) {
             response
