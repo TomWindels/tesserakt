@@ -292,6 +292,13 @@ class CompilerTest {
         """ satisfies {
             true
         }
+        """
+            SELECT * {
+                FILTER ( ?p2> 413 )
+            }
+        """ satisfies {
+            true
+        }
     }
 
 }
