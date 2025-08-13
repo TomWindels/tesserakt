@@ -11,5 +11,6 @@ object SparqlContentType {
     val UpdateQuery = ContentType(contentType = "application", contentSubtype = "sparql-update")
 
     val JsonBindings = ContentType(contentType = "application", contentSubtype = "sparql-results+json")
+    val XmlBindings = ContentType(contentType = "application", contentSubtype = "sparql-results+xml")
 
 }
