@@ -120,19 +120,35 @@ class StringLexer(private val input: String): Lexer() {
             ?.second
 
     private inline fun extractPatternElementOrBinding(): Token? {
+        val term = extractTerm(input = input, start = start)
+        if (term == null) {
+            if (input[start] == '<') {
+                // only emitting the `<` (or `<=`) sign, the rest will have to be parsed separately
+                return if (input.getOrNull(start + 1) == '=') {
+                    Token.Symbol.LTEQ
+                } else {
+                    Token.Symbol.AngularBracketStart
+                }
+            }
+            return null
+        }
+        return term
+    }
+
+    /**
+     * Extracts a [Token.Term] from the given string [input], starting at index [start], or `null` if unsuccessful
+     */
+    private fun extractTerm(input: String, start: Int): Token.Term? {
         // the `<...>` & `?...` structures cannot be split apart using whitespace, so looking for these
         // `(...)` & `...|...` can be split apart using whitespace, and are hence part of the token syntax looked
         //  up before
         return if (input[start] == '<') {
             val terminator = input.indexOf('>', startIndex = start, endIndex = end)
             if (terminator == -1) {
-                // only emitting the `<` (or `<=`) sign, the rest will have to be parsed separately
-                return if (input[start + 1] == '=') Token.Symbol.LTEQ else Token.Symbol.AngularBracketStart
+                return null
             }
-            // summing two extra to the start, same logic as `?...` bindings
-            start += 2
             // temporarily minus 1 for the substring
-            Token.Term(input.substring(start - 1, terminator))
+            Token.Uri(input.substring(start + 1, terminator))
         } else if (input[start] == ':' || input[start].isLetterOrDigit() && input.has(':')) {
             val colon = input.indexOf(':', startIndex = start, endIndex = end)
             // two types of pattern elements possible: `prefix:` declarations and `prefix:name` pattern elements
@@ -164,22 +180,38 @@ class StringLexer(private val input: String): Lexer() {
             // remainder of the string should be valid, as only spaces or < ends a binding name
             // omitting the `?` in the front, so start + 1
             val terminator = input.endOfBindingOrPrefixedTerm()
-            // manually advancing start, as we additionally consumed the `?`, but don't have this in the syntax length
-            //  used to move `start` along
-            ++start
             // the use of start below doesn't include the `?` anymore, but adding the binding's length to start
             //  will create the appropriate shifting behaviour
             if (terminator == -1) {
-                Token.Binding(input.substring(start, end))
+                Token.Binding(input.substring(start + 1, end))
             } else {
-                Token.Binding(input.substring(start, terminator))
+                Token.Binding(input.substring(start + 1, terminator))
             }
         } else if (input[start] == '"') {
             val terminator = input.indexOf('"', startIndex = start + 1, endIndex = end)
             if (terminator == -1) {
                 bail("""Expected `"` at the end: `${input.substring(start, end)}`""")
             }
-            Token.StringLiteral(input.substring(start + 1, terminator))
+            if (input.getOrNull(terminator + 1) == '^') {
+                if (input.getOrNull(terminator + 2) != '^') {
+                    bail("Invalid structure! Expected `^^<datatype>`")
+                }
+                val datatype = when (
+                    val datatype = extractTerm(input, start = terminator + 3)
+                ) {
+                    is Token.PrefixedTerm -> {
+                        datatype
+                    }
+                    is Token.Uri -> {
+                        datatype
+                    }
+                    null -> bail("Invalid structure! Expected `^^<datatype>`")
+                    else -> bail("Unknown datatype term: $datatype")
+                }
+                Token.TypedLiteral(input.substring(start + 1, terminator), datatype)
+            } else {
+                Token.StringLiteral(input.substring(start + 1, terminator))
+            }
         } else if (input[start] == '\'') {
             val terminator = input.indexOf('\'', startIndex = start + 1, endIndex = end)
             if (terminator == -1) {

@@ -21,7 +21,7 @@ class PatternPredicateProcessor: Analyser<TriplePattern.Predicate?>() {
                 Token.Symbol.ForwardSlash -> {
                     predicate = processPatternPredicateSequence(predicate)
                 }
-                is Token.Term,
+                is Token.Uri,
                 is Token.PrefixedTerm,
                 is Token.Binding,
                 is Token.NumericLiteral,
@@ -74,7 +74,7 @@ class PatternPredicateProcessor: Analyser<TriplePattern.Predicate?>() {
 
     /** Processes [(]<predicate>[/|<predicate>][)][*|+] **/
     private fun processPatternPredicateContent() = when (token) {
-        is Token.Term, is Token.PrefixedTerm, is Token.Binding, Token.Keyword.RdfTypePredicate -> token.asPatternElement()
+        is Token.Uri, is Token.PrefixedTerm, is Token.Binding, Token.Keyword.RdfTypePredicate -> token.asPatternElement()
         Token.Symbol.RoundBracketStart -> {
             consume()
             var result = processPatternPredicateNext() ?: bail("Unexpected end of `(...)` statement")
@@ -157,7 +157,7 @@ class PatternPredicateProcessor: Analyser<TriplePattern.Predicate?>() {
 
     private fun Token.asPatternElement(): TriplePattern.Element = when (this) {
         is Token.Binding -> TriplePattern.NamedBinding(this.name)
-        is Token.Term -> TriplePattern.Exact(Quad.NamedTerm(value = value))
+        is Token.Uri -> TriplePattern.Exact(Quad.NamedTerm(value = value))
         is Token.PrefixedTerm -> TriplePattern.Exact(resolve())
         Token.Keyword.RdfTypePredicate -> TriplePattern.Exact(RDF.type)
         else -> expectedPatternElementOrBindingOrToken(Token.Keyword.RdfTypePredicate)

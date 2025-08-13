@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
@@ -58,7 +59,7 @@ class ExpressionProcessor: Analyser<Expression>() {
             Expression.BindingValues(token.bindingName)
                 .also { consume() }
         }
-        is Token.Term -> {
+        is Token.Uri -> {
             Expression.UriValue(Quad.NamedTerm(token.value))
                 .also { consume() }
         }
@@ -90,6 +91,33 @@ class ExpressionProcessor: Analyser<Expression>() {
             Expression.StringLiteralValue(token.literalTextValue)
                 .also { consume() }
         }
+        is Token.TypedLiteral -> {
+            val datatype = when (token.datatype) {
+                is Token.Uri -> Quad.NamedTerm(token.datatype.value)
+                is Token.PrefixedTerm -> token.datatype.resolve()
+
+                is Token.Binding,
+                is Token.BlankTerm,
+                is Token.StringLiteral,
+                is Token.NumericLiteral,
+                is Token.TypedLiteral -> bail("Invalid datatype: ${token.datatype}")
+            }
+            when (datatype) {
+                XSD.dateTime, XSD.date -> {
+                    Expression.DateLiteralValue(
+                        Quad.Literal(
+                            value = token.value,
+                            type = datatype,
+                        )
+                    )
+                }
+                else -> {
+                    throw IllegalArgumentException("Unknown literal type in expression: `${token.datatype}`")
+                }
+            }.also {
+                consume()
+            }
+        }
         Token.Keyword.True -> {
             Expression.BooleanLiteralValue(true)
                 .also { consume() }
@@ -102,15 +130,17 @@ class ExpressionProcessor: Analyser<Expression>() {
         Token.Keyword.Concat -> {
             processFuncCall()
         }
-        else -> expectedBindingOrLiteralOrToken(
-            Token.Keyword.StringLength,
-            Token.Keyword.Concat,
-            Token.Keyword.AggCount,
-            Token.Keyword.AggMin,
-            Token.Keyword.AggMax,
-            Token.Keyword.AggAvg,
-            Token.Symbol.RoundBracketStart
-        )
+        else -> {
+            expectedBindingOrLiteralOrToken(
+                Token.Keyword.StringLength,
+                Token.Keyword.Concat,
+                Token.Keyword.AggCount,
+                Token.Keyword.AggMin,
+                Token.Keyword.AggMax,
+                Token.Keyword.AggAvg,
+                Token.Symbol.RoundBracketStart
+            )
+        }
     }
 
     private val Token.operator: Expression.Calculation.Operator?

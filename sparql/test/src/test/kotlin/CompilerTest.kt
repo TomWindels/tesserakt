@@ -105,6 +105,15 @@ class CompilerTest {
         }
         """
             SELECT * WHERE {
+                ?s <has> ?date .
+                # see: https://jena.apache.org/tutorials/sparql_filters.html
+                FILTER(?date > "2000-01-01T00:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>)
+            }
+        """ satisfies {
+            true
+        }
+        """
+            SELECT * WHERE {
                 ?s a <type>
                 # see: https://jena.apache.org/tutorials/sparql_optionals.html
                 OPTIONAL { ?s <has> ?value . FILTER(?value > 5) }

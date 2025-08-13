@@ -84,6 +84,7 @@ object InnerFilterScopeCompat {
             is Expression.Calculation -> extractExpressionVariables(expression.lhs) + extractExpressionVariables(expression.rhs)
             is Expression.Negative -> extractExpressionVariables(expression.value)
             is Expression.NumericLiteralValue -> emptySet()
+            is Expression.DateLiteralValue -> emptySet()
             is Expression.BooleanLiteralValue -> emptySet()
             is Expression.StringLiteralValue -> emptySet()
             is Expression.UriValue -> emptySet()

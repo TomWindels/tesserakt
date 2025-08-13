@@ -81,6 +81,12 @@ class ASTWriter(private val indentStyle: String = "  ") {
                 writeLine("value: ${symbol.value} [${symbol.value::class.simpleName}]")
             }
         }
+        is Expression.DateLiteralValue -> {
+            writeLine("date literal")
+            indented {
+                writeLine("value: ${symbol.timestamp}")
+            }
+        }
 
         is Expression.BooleanLiteralValue -> {
             writeLine("numeric literal")

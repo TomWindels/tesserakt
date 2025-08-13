@@ -81,53 +81,64 @@ sealed interface Token {
 
     }
 
+    sealed interface Term : Token
+
     data class PrefixedTerm(
         /** The value of the term before the colon **/
         val namespace: String,
         /** The value of the term after the colon **/
         val value: String
-    ): Token {
+    ): Term {
         override fun toString() = "term `$namespace:$value`"
         override val syntax = "$namespace:$value"
     }
 
-    data class Term(
+    data class Uri(
         /** The value of the term from the query, without the `<`, `>` **/
         val value: String
-    ): Token {
+    ): Term {
         override fun toString() = "term `$value`"
-        override val syntax = value
+        override val syntax = "<$value>"
     }
 
     // special type of term, it was prefixed with `_:`
     data class BlankTerm(
         /** The value of the term from the query, without the `<`, `>` **/
         val value: String
-    ): Token {
+    ): Term {
         override fun toString() = "blank term `$value`"
         override val syntax = value
     }
 
+    // whilst it's not a term in the strictest sense, functionally it is positioned as one
     data class Binding(
         /** The value of a binding from the query, minus the `?` **/
         val name: String
-    ): Token {
+    ): Term {
         override fun toString() = "binding `$name`"
-        override val syntax = name
+        override val syntax = "?$name"
     }
 
     data class NumericLiteral(
         val value: Number
-    ): Token {
+    ): Term {
         override fun toString() = "numeric literal `$value`"
         override val syntax = value.toString()
     }
 
     data class StringLiteral(
         val value: String
-    ): Token {
+    ): Term {
         override fun toString() = "string literal $syntax"
         override val syntax = "\"$value\""
+    }
+
+    data class TypedLiteral(
+        val value: String,
+        val datatype: Term,
+    ): Term {
+        override fun toString() = "typed literal $syntax"
+        override val syntax = "\"$value\"^^${datatype.syntax}"
     }
 
     data object EOF: Token {

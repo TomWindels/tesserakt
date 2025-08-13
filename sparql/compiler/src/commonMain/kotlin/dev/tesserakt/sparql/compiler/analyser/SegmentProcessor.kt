@@ -20,7 +20,7 @@ class SegmentProcessor: Analyser<Segment>() {
     private fun processSegment(): Segment {
         val segment = when (token) {
             // all possible element types representing a statement section
-            is Token.Term,
+            is Token.Uri,
             is Token.PrefixedTerm,
             is Token.StringLiteral,
             is Token.Binding,

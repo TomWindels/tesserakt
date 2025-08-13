@@ -99,6 +99,11 @@ sealed interface Expression : QueryAtom {
     }
 
     @JvmInline
+    value class DateLiteralValue(val timestamp: Quad.Literal) : Expression {
+        override fun toString() = timestamp.value
+    }
+
+    @JvmInline
     value class BooleanLiteralValue(val value: Boolean) : Expression {
         override fun toString() = value.toString()
     }

@@ -52,7 +52,8 @@ abstract class QueryWriter<RT> {
             is Token.PrefixedTerm -> "$namespace:$value"
             is Token.BlankTerm -> "_:$value"
             is Token.StringLiteral -> value
-            is Token.Term -> "<$value>"
+            is Token.TypedLiteral -> "\"$value\"^^${datatype.stringified()}"
+            is Token.Uri -> "<$value>"
             is Token.Symbol -> syntax
             is Token.Keyword -> syntax
             Token.EOF -> "" // not expected to happen
@@ -85,7 +86,7 @@ abstract class QueryWriter<RT> {
             is TriplePattern.Exact -> when (element.term) {
                 is Quad.Literal -> add(Token.StringLiteral(element.term.value)) // FIXME - no datatype
                 is Quad.LangString -> add(Token.StringLiteral(element.term.value)) // FIXME - no language tag
-                is Quad.NamedTerm -> add(Token.Term(element.term.value))
+                is Quad.NamedTerm -> add(Token.Uri(element.term.value))
                 is Quad.BlankTerm -> throw UnsupportedOperationException()
                 Quad.DefaultGraph -> throw UnsupportedOperationException()
             }
