@@ -137,18 +137,13 @@ class PatternProcessor: Analyser<TriplePatternSet>() {
     private fun Token.asPatternElement(): TriplePattern.Element? = when (this) {
         is Token.Binding -> TriplePattern.NamedBinding(this.name)
         is Token.Term -> TriplePattern.Exact(Quad.NamedTerm(value = value))
-        is Token.PrefixedTerm -> TriplePattern.Exact(Quad.NamedTerm(value = resolve()))
+        is Token.PrefixedTerm -> TriplePattern.Exact(resolve())
         is Token.StringLiteral -> TriplePattern.Exact(value.asLiteralTerm())
         is Token.NumericLiteral -> TriplePattern.Exact(value.asLiteralTerm())
         Token.Keyword.RdfTypePredicate -> TriplePattern.Exact(RDF.type)
         Token.Keyword.True -> TriplePattern.Exact(true.asLiteralTerm())
         Token.Keyword.False -> TriplePattern.Exact(false.asLiteralTerm())
         else -> null
-    }
-
-    private fun Token.PrefixedTerm.resolve(): String {
-        val uri = prefixes[namespace] ?: bail("Unknown prefix: `$namespace`")
-        return uri + value
     }
 
 }

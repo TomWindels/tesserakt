@@ -87,6 +87,7 @@ object InnerFilterScopeCompat {
             is Expression.NumericLiteralValue -> emptySet()
             is Expression.BooleanLiteralValue -> emptySet()
             is Expression.StringLiteralValue -> emptySet()
+            is Expression.UriValue -> emptySet()
         }
     }
 

@@ -61,6 +61,11 @@ class ASTWriter(private val indentStyle: String = "  ") {
             indented { writeLine("target: ${symbol.name}") }
         }
 
+        is Expression.UriValue -> {
+            writeLine("uri")
+            indented { writeLine("target: ${symbol.uri}") }
+        }
+
         is Expression.Comparison -> {
             writeLine("conditional")
             indented {

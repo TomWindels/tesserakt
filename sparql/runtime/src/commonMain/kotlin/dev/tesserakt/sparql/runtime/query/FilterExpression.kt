@@ -37,6 +37,9 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                     is BindingValues ->
                         ValueLookUpOperation(binding = BindingIdentifier(context, name = expr.name))
 
+                    is UriValue ->
+                        Operation { OperationValue.SingleValue(term = expr.uri) }
+
                     is Comparison -> when (expr.operator) {
                         Comparison.Operator.GREATER_THAN ->
                             ComparisonEval.GT(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))

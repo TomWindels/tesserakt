@@ -299,6 +299,13 @@ class CompilerTest {
         """ satisfies {
             true
         }
+        """
+            SELECT * {
+                FILTER ( <test> = <test> )
+            }
+        """ satisfies {
+            true
+        }
     }
 
 }

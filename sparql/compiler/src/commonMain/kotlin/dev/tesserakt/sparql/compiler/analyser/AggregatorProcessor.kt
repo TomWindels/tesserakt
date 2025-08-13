@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalNumericValue
@@ -39,9 +40,17 @@ class AggregatorProcessor: Analyser<Expression>() {
         return builder.build()
     }
 
-    private fun nextAggregationOrBindingOrLiteral(): Expression = when (token) {
+    private fun nextAggregationOrBindingOrLiteral(): Expression = when (val token = token) {
         is Token.Binding -> {
             Expression.BindingValues(token.bindingName)
+                .also { consume() }
+        }
+        is Token.Term -> {
+            Expression.UriValue(Quad.NamedTerm(token.value))
+                .also { consume() }
+        }
+        is Token.PrefixedTerm -> {
+            Expression.UriValue(token.resolve())
                 .also { consume() }
         }
         Token.Keyword.AggCount,

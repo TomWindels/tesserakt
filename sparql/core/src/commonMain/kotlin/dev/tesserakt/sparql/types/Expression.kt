@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.types
 
+import dev.tesserakt.rdf.types.Quad
 import kotlin.jvm.JvmInline
 
 sealed interface Expression : QueryAtom {
@@ -136,6 +137,11 @@ sealed interface Expression : QueryAtom {
     @JvmInline
     value class BindingValues(val name: String) : Expression {
         override fun toString() = "?$name"
+    }
+
+    @JvmInline
+    value class UriValue(val uri: Quad.NamedTerm) : Expression {
+        override fun toString() = uri.toString()
     }
 
     @JvmInline

@@ -2,6 +2,7 @@
 
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.CompilerException
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.Token
@@ -38,6 +39,11 @@ abstract class Analyser<RT: QueryAtom?> {
     }
 
     protected abstract fun _process(): RT
+
+    protected fun Token.PrefixedTerm.resolve(): Quad.NamedTerm {
+        val uri = prefixes[namespace] ?: bail("Unknown prefix: `$namespace`")
+        return Quad.NamedTerm(uri + value)
+    }
 
     /** Consumes the next token. The next token can be `EOF` if the end has been reached **/
     protected fun consume() {

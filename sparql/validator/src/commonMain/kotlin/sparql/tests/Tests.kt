@@ -1049,4 +1049,13 @@ fun builtinTests() = tests {
         }
     """
 
+    using(aux2) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?a :p1 ?b .
+            ?d :p2 ?c .
+            FILTER (?a = :x)
+        }        
+    """
+
 }
