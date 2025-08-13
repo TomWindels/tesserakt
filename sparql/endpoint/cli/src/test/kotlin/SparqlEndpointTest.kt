@@ -1,8 +1,11 @@
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.endpoint.client.*
+import dev.tesserakt.sparql.endpoint.core.SparqlContentType
+import dev.tesserakt.sparql.endpoint.server.ResultFormatter
 import dev.tesserakt.sparql.endpoint.server.sparqlEndpoint
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.plugins.api.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
@@ -13,9 +16,11 @@ import io.ktor.http.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.Json
+import org.junit.jupiter.api.assertThrows
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.fail
 
 class SparqlEndpointTest {
 
@@ -25,6 +30,18 @@ class SparqlEndpointTest {
         assertEquals(HttpStatusCode.OK, response.status)
         val data = response.bodyAsBindings()
         assert(data.isEmpty())
+    }
+
+    @Test
+    fun getSelectAllXml() = test { client ->
+        val response = client.sparqlQuery("sparql", "select * { ?s ?p ?o }") { accept(SparqlContentType.XmlBindings)}
+        assertEquals(HttpStatusCode.OK, response.status)
+        // ensuring we actually received an XML response based on the content type
+        assert((response.contentType() ?: fail("No explicit content type available in the response")).match(SparqlContentType.XmlBindings))
+        // we don't actually have a decoder (transformer) specified/capable of decoding the XML response
+        assertThrows<NoTransformationFoundException> {
+            response.bodyAsBindings()
+        }
     }
 
     @Test
@@ -119,9 +136,11 @@ class SparqlEndpointTest {
         application {
             routing {
                 sparqlEndpoint(
-                    json = Json {
-                        prettyPrint = true
-                    }
+                    formatter = ResultFormatter(
+                        json = Json {
+                            prettyPrint = true
+                        }
+                    )
                 )
             }
         }

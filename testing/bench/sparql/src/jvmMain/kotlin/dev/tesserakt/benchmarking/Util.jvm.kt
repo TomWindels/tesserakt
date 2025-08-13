@@ -6,6 +6,14 @@ actual fun currentEpochMs(): Long {
     return System.currentTimeMillis()
 }
 
+actual fun String.readFile(): String {
+    return File(this).readText()
+}
+
+actual fun String.isFile(): Boolean {
+    return File(this).isFile
+}
+
 actual fun String.isFolder(): Boolean {
     return File(this).isDirectory
 }
@@ -14,7 +22,9 @@ actual fun String.isFolder(): Boolean {
  * Similar to [isFolder], but also tries to make the folder if necessary
  */
 actual fun String.tryMakeFolder(): Boolean {
-    return File(this).mkdirs()
+    val file = File(this)
+    file.mkdirs()
+    return file.isDirectory
 }
 
 actual fun String.listFiles(): List<String> {

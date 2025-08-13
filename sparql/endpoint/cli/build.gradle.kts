@@ -10,6 +10,8 @@ kotlin {
     dependencies {
         // the endpoint implementation
         implementation(project(":sparql:endpoint:ktor:server"))
+        // used to set an initial file as the in-memory store
+        implementation(project(":serialization:trig"))
         // hosting the actual endpoint
         implementation("io.ktor:ktor-server-core:3.1.3")
         implementation("io.ktor:ktor-server-netty:3.1.3")

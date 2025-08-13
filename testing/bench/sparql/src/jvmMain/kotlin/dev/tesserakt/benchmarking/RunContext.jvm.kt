@@ -1,10 +1,10 @@
 package dev.tesserakt.benchmarking
 
-actual object RunContext {
+object GcContext: RunContext {
 
     private val runtime = Runtime.getRuntime()
 
-    actual fun onIterationFinished() {
+    override fun onIterationFinished() {
         runtime.gc()
     }
 

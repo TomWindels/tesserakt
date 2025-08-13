@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 
 class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() {
@@ -31,6 +32,10 @@ class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() 
         .flag(default = false)
         .help("Enable additional logging")
 
+    private val start by option("--from-file")
+        .file(mustExist = true, mustBeReadable = true, canBeFile = true, canBeSymlink = true)
+        .help("Use a dataset as an initial value for the in-memory store (can be N-Triples, Turtle or TriG)")
+
     override fun run() {
         run(toConfig())
     }
@@ -40,6 +45,7 @@ class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() 
         path = path,
         useCaching = !disableCache,
         verbose = verbose,
+        start = start,
     )
 
 }

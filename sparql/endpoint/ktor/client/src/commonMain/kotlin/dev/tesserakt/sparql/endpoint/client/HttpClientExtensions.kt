@@ -18,9 +18,10 @@ import io.ktor.http.*
 suspend fun HttpClient.sparqlQuery(
     endpoint: String,
     query: String,
-    mode: QueryOperationMode = QueryOperationMode.POST_BODY
+    mode: QueryOperationMode = QueryOperationMode.POST_BODY,
+    block: HttpRequestBuilder.() -> Unit = {},
 ): HttpResponse {
-    return mode.exec(this, query, endpoint)
+    return mode.exec(this, query, endpoint, block)
 }
 
 /**

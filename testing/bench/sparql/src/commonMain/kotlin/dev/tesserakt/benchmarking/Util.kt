@@ -2,6 +2,10 @@ package dev.tesserakt.benchmarking
 
 expect fun currentEpochMs(): Long
 
+expect fun String.readFile(): String
+
+expect fun String.isFile(): Boolean
+
 expect fun String.isFolder(): Boolean
 
 /**

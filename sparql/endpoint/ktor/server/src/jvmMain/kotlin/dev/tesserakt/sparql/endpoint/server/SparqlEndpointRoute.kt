@@ -1,7 +1,6 @@
 package dev.tesserakt.sparql.endpoint.server
 
 import dev.tesserakt.sparql.endpoint.core.SparqlContentType
-import dev.tesserakt.sparql.endpoint.core.data.SelectResponse
 import dev.tesserakt.sparql.endpoint.core.data.UpdateRequest
 import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpoint
 import io.ktor.http.*
@@ -9,23 +8,19 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.utils.io.jvm.javaio.*
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToStream
 
 /**
- * Create a SPARQL endpoint at the given point in the [Route] with a given [path] as name, using the provided [store] as
- *  the to-be-queried and updated store. Additional serialization customisation w.r.t. the JSON format can be done
- *  using the [json] parameter.
+ * Attaches a SPARQL endpoint at the given point in the [Route] with a given [path] as name, using the provided [endpoint] as
+ *  the to-be-queried and updated state. Additional serialization customisation w.r.t. the JSON format can be done
+ *  using the [formatter] parameter.
  */
 fun Route.sparqlEndpoint(
     /** The path name used to make this endpoint available **/
     path: String = "sparql",
     /** The actual [SparqlEndpoint] instance, responsible for processing the requests **/
     endpoint: SparqlEndpoint = CachingSparqlEndpoint(),
-    /** The used [Json] instance to serialize binding results with **/
-    json: Json = Json,
+    /** The used [ResultFormatter] instance to serialize binding results with **/
+    formatter: ResultFormatter = ResultFormatter(),
 ) {
     get(path) {
         val query = call.parameters["query"] ?: run {
@@ -36,17 +31,18 @@ fun Route.sparqlEndpoint(
             return@get
         }
         val result = endpoint.onSelectQueryRequest(query = query)
-        call.respond(result, serializer = json)
+        formatter.respond(call, result)
     }
     post(path) {
         // if the content-type is ill-formed, this method can throw
         val type = runCatching { call.request.contentType() }.getOrNull()
-        when {
+        val result = when {
             type == null -> {
                 call.respond(
                     status = HttpStatusCode.BadRequest,
                     message = "Invalid Content-Type headers"
                 )
+                return@post
             }
             type.match(SparqlContentType.SelectPostForm) -> {
                 val params = call.receiveParameters()
@@ -57,50 +53,29 @@ fun Route.sparqlEndpoint(
                     )
                     return@post
                 }
-                val result = endpoint.onSelectQueryRequest(query = query)
-                call.respond(result, serializer = json)
+                endpoint.onSelectQueryRequest(query = query)
             }
             type.match(SparqlContentType.SelectPostBody) -> {
-                val result = endpoint.onSelectQueryRequest(query = call.receiveText())
-                call.respond(result, serializer = json)
+                endpoint.onSelectQueryRequest(query = call.receiveText())
             }
             type.match(SparqlContentType.UpdateQuery) -> {
                 val result = endpoint.onUpdateQueryRequest(request = UpdateRequest.parse(call.receiveText()))
                 call.respond(result) { cause -> "Invalid query! Caught the following exception.\n${cause.message}" }
+                return@post
             }
             else -> {
                 call.respond(
                     status = HttpStatusCode.BadRequest,
                     message = "Invalid Content-Type headers"
                 )
+                return@post
             }
         }
+        formatter.respond(call, result)
     }
 }
 
 /* helpers */
-
-private suspend fun ApplicationCall.respond(
-    result: Result<SelectResponse>,
-    serializer: Json,
-) {
-    result.fold(
-        onSuccess = { response ->
-            respondBytesWriter(
-                contentType = SparqlContentType.JsonBindings.withCharset(Charsets.UTF_8)
-            ) {
-                @OptIn(ExperimentalSerializationApi::class)
-                serializer.encodeToStream(response, this.toOutputStream())
-            }
-        },
-        onFailure = { cause ->
-            respond(
-                status = HttpStatusCode.BadRequest,
-                message = "Invalid query! Caught the following exception.\n${cause.message}"
-            )
-        }
-    )
-}
 
 private suspend fun ApplicationCall.respond(result: Result<Unit>, onFailure: (Throwable) -> String) {
     result.fold(

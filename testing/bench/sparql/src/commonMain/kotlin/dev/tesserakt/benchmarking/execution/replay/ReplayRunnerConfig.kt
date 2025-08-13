@@ -1,40 +1,38 @@
-package dev.tesserakt.benchmarking
+package dev.tesserakt.benchmarking.execution.replay
 
+import dev.tesserakt.benchmarking.isFolder
+import dev.tesserakt.benchmarking.listFiles
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 
-data class EndpointConfig(
+data class ReplayRunnerConfig(
     val inputFilePath: String,
     val outputDirPath: String,
-    val endpoint: String,
-    val warmups: Int,
-    val runs: Int,
+    val evaluatorName: String,
 ) {
 
-    init {
-        require(endpoint.startsWith("http://localhost:"))
-    }
+    override fun toString() =
+        "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorName"
 
-    fun toRunnerEvaluations(): List<RunnerEvaluation> {
+    val name: String
+        get() = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
+
+    fun toRunnerEvaluations(): List<ReplayRunnerEvaluation> {
         var i = 0
         return ReplayBenchmark
             .from(TriGSerializer.deserialize(FileDataSource(inputFilePath)).consume())
             .flatMap { benchmark ->
-                val diffs = benchmark.store.diffs.toList()
-                val nameBase = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
+                val nameBase = name
                 benchmark.queries.map { query ->
                     val name = "$nameBase-${++i}"
-                    RunnerEvaluation(
+                    ReplayRunnerEvaluation(
                         name = name,
                         inputFilePath = inputFilePath,
                         outputDirPath = outputDirPath.replace(nameBase, name),
-                        evaluatorName = endpointUrlToEvaluatorName(endpoint = endpoint),
-                        diffs = diffs,
+                        evaluatorName = evaluatorName,
                         query = query,
-                        warmupRounds = warmups,
-                        executionRounds = runs
                     )
                 }
             }
@@ -47,43 +45,28 @@ data class EndpointConfig(
          *
          * @param inputPaths The input filepath to use; can be a file or folder (in which case all valid files are used)
          * @param outputFolder The output filepath to use; has to be a folder!
-         * @param endpoints All evaluator endpoints (URLs) to use
-         * @param warmups The number of runs that contribute to the warmup
-         * @param runs The number of runs to measure, executed after the warmups
-         *
+         * @param evaluators All evaluator (names) to use
          */
         fun createVariants(
             inputPaths: Collection<String>,
             outputFolder: String,
-            endpoints: Collection<String>,
-            warmups: Int,
-            runs: Int,
-        ): List<EndpointConfig> {
+            evaluators: Collection<String>,
+        ): List<ReplayRunnerConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
                 .flatMap { if (it.isFolder()) it.listFiles() else listOf(it) }
                 // ensuring the remaining files are turtle files
                 .filter { it.endsWith(".ttl") }
-            return inputs.flatMap { input ->
+            return inputs.flatMapIndexed { i, input ->
                 val filename = input.substringAfterLast('/').substringBefore('.')
-                endpoints.map { endpoint ->
-                    EndpointConfig(
+                evaluators.map { evaluator ->
+                    ReplayRunnerConfig(
                         inputFilePath = input,
-                        outputDirPath = "${outputFolder}${endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/",
-                        endpoint = endpoint,
-                        warmups = warmups,
-                        runs = runs
+                        outputDirPath = "${outputFolder}$evaluator/$filename/input_${i}/",
+                        evaluatorName = evaluator,
                     )
                 }
             }
-        }
-
-        fun endpointUrlToEvaluatorName(endpoint: String): String {
-            return "endpoint_${endpoint.removePrefix("http://localhost:").replace("/", "%2F")}"
-        }
-
-        fun evaluatorNameToEndpointUrl(name: String): String {
-            return "http://localhost:${name.removePrefix("endpoint_").replace("%2F", "/")}"
         }
 
     }

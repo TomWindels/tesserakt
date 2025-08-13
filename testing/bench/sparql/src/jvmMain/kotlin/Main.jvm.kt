@@ -1,6 +1,4 @@
 
-import com.github.ajalt.clikt.command.main
-import dev.tesserakt.benchmarking.BenchmarkingCli
+import dev.tesserakt.benchmarking.cli.runMain
 
-suspend fun main(args: Array<String>) =
-    BenchmarkingCli().main(args)
+suspend fun main(args: Array<String>) = runMain(args)

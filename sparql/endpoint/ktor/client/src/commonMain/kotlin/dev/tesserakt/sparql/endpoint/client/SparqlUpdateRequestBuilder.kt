@@ -29,7 +29,7 @@ class SparqlUpdateRequestBuilder(
             append(" }")
         }
         if (additions.isNotEmpty() && deletions.isNotEmpty()) {
-            append('\n')
+            append(";\n")
         }
         if (deletions.isNotEmpty()) {
             append("DELETE DATA { ")
