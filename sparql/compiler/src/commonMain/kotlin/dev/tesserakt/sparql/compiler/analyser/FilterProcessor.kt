@@ -3,7 +3,6 @@ package dev.tesserakt.sparql.compiler.analyser
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
 import dev.tesserakt.sparql.types.Binding
-import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.Filter
 
 class FilterProcessor: Analyser<Filter>() {
@@ -41,13 +40,12 @@ class FilterProcessor: Analyser<Filter>() {
             }
             Token.Symbol.RoundBracketStart -> {
                 consume()
-                val expr = use(AggregatorProcessor())
+                val expr = use(ExpressionProcessor())
                 expectToken(Token.Symbol.RoundBracketEnd)
                 consume()
                 if (token == Token.Symbol.Period) {
                     consume()
                 }
-                expect(expr is Expression.Comparison)
                 Filter.Predicate(expr)
             }
             Token.Keyword.Exists -> {

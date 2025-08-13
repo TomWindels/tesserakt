@@ -68,7 +68,7 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
                     consume()
                     expectToken(Token.Symbol.RoundBracketStart)
                     consume()
-                    val expression = use(AggregatorProcessor())
+                    val expression = use(ExpressionProcessor())
                     expectToken(Token.Keyword.As)
                     consume()
                     expectBinding()

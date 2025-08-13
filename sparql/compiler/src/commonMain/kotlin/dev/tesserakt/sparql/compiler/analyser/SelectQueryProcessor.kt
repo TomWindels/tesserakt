@@ -1,9 +1,9 @@
 package dev.tesserakt.sparql.compiler.analyser
 
-import dev.tesserakt.sparql.types.SelectQueryStructure
+import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.GraphPattern
-import dev.tesserakt.sparql.compiler.lexer.Token
+import dev.tesserakt.sparql.types.SelectQueryStructure
 
 class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
 
@@ -134,7 +134,7 @@ class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
         consume()
         expectToken(Token.Keyword.By)
         consume()
-        builder.ordering = use(AggregatorProcessor())
+        builder.ordering = use(ExpressionProcessor())
     }
 
     private fun processGrouping() {
@@ -145,13 +145,12 @@ class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
         consume()
         expectToken(Token.Keyword.By)
         consume()
-        builder.grouping = use(AggregatorProcessor())
+        builder.grouping = use(ExpressionProcessor())
         if (token == Token.Keyword.Having) {
             consume()
             expectToken(Token.Symbol.RoundBracketStart)
             consume()
-            builder.groupingFilter = use(AggregatorProcessor()) as? Expression.Comparison
-                ?: bail("Group filter expression expected")
+            builder.groupingFilter = use(ExpressionProcessor())
             expectToken(Token.Symbol.RoundBracketEnd)
             consume()
         }

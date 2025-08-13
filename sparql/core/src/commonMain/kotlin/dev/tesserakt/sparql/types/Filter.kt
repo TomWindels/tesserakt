@@ -5,7 +5,7 @@ import kotlin.jvm.JvmInline
 sealed interface Filter: QueryAtom {
 
     @JvmInline
-    value class Predicate(val expression: Expression.Comparison): Filter
+    value class Predicate(val expression: Expression): Filter
 
     data class Regex(
         val input: Binding,

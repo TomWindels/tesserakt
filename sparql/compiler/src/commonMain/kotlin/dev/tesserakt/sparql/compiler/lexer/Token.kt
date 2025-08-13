@@ -20,6 +20,8 @@ sealed interface Token {
         ForwardSlash("/"),
         Asterisk("*"),
         ExclamationMark("!"),
+        ExprAnd("&&"),
+        ExprOr("||"),
         /* operators */
         OpMinus("-"),
         OpPlus("+"),

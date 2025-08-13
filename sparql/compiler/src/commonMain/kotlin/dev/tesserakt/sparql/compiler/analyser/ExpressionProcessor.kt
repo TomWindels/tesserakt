@@ -10,37 +10,50 @@ import dev.tesserakt.sparql.types.Expression
 /**
  * Processes structures like `MIN(?s)`, `AVG(?s) - MIN(?p)`, `COUNT(DISTINCT ?s)`
  */
-class AggregatorProcessor: Analyser<Expression>() {
+class ExpressionProcessor: Analyser<Expression>() {
 
     override fun _process(): Expression {
-        val expr = processMathStatement()
-        // filters should be top level afaik, so checking it after completing the math expression stuff
-        val filterOperand = token.filterOperator
-        return if (filterOperand != null) {
+        return processStatement()
+    }
+
+    // processes & consumes structures like `max(?s) - avg(?p)`, ends when reaching an
+    //  unexpected token, such as a `)` not part of this statement, or reaching a lower bound threshold for
+    //  the operator precedence
+    private fun processStatement(): Expression {
+        var result: Expression.Calculation = run {
+            val lhs = nextOperand()
+            val operator = token.operator
+            if (operator == null) {
+                return lhs
+            }
+            // continuing with our existing expression
             consume()
-            val rhs = processMathStatement()
-            Expression.Comparison(lhs = expr, rhs = rhs, operator = filterOperand)
-        } else {
-            expr
+            val rhs = nextOperand()
+            Expression.Calculation(lhs = lhs, rhs = rhs, operator = operator)
+        }
+        while (true) {
+            val operator = token.operator ?: return result
+            consume()
+            val previousPrecedence = result.operator.precedence
+            val currentPrecedence = operator.precedence
+            when {
+                previousPrecedence > currentPrecedence -> {
+                    // regular chaining applies
+                    result = Expression.Calculation(lhs = result, rhs = nextOperand(), operator = operator)
+                }
+                previousPrecedence < currentPrecedence -> {
+                    // the last statement has to be replaced, as the new operation is the top one
+                    result = Expression.Calculation(lhs = result.lhs, rhs = Expression.Calculation(lhs = result.rhs, rhs = nextOperand(), operator = operator), operator = result.operator)
+                }
+                else /* existingPrecedence = operator.precedence */ -> {
+                    // regular chaining applies
+                    result = Expression.Calculation(lhs = result, rhs = nextOperand(), operator = operator)
+                }
+            }
         }
     }
 
-    // processes & consumes structures like `max(?s) - avg(?p)`
-    private fun processMathStatement(): Expression {
-        val builder = Expression.MathOp.Builder(nextAggregationOrBindingOrLiteral())
-        var operator = token.operator
-        while (operator != null) {
-            consume()
-            builder.add(
-                operator = operator,
-                operand = nextAggregationOrBindingOrLiteral()
-            )
-            operator = token.operator
-        }
-        return builder.build()
-    }
-
-    private fun nextAggregationOrBindingOrLiteral(): Expression = when (val token = token) {
+    private fun nextOperand(): Expression = when (val token = token) {
         is Token.Binding -> {
             Expression.BindingValues(token.bindingName)
                 .also { consume() }
@@ -67,7 +80,7 @@ class AggregatorProcessor: Analyser<Expression>() {
         }
         Token.Symbol.OpMinus -> {
             consume()
-            Expression.Negative.of(nextAggregationOrBindingOrLiteral())
+            Expression.Negative.of(nextOperand())
         }
         is Token.NumericLiteral -> {
             Expression.NumericLiteralValue(token.literalNumericValue)
@@ -87,7 +100,7 @@ class AggregatorProcessor: Analyser<Expression>() {
         }
         Token.Keyword.StringLength,
         Token.Keyword.Concat -> {
-            processRegularFunction()
+            processFuncCall()
         }
         else -> expectedBindingOrLiteralOrToken(
             Token.Keyword.StringLength,
@@ -100,32 +113,52 @@ class AggregatorProcessor: Analyser<Expression>() {
         )
     }
 
-    private val Token.operator: Expression.MathOp.Operator?
+    private val Token.operator: Expression.Calculation.Operator?
         get() = when (this) {
-            Token.Symbol.OpPlus -> Expression.MathOp.Operator.SUM
-            Token.Symbol.OpMinus -> Expression.MathOp.Operator.SUB
-            Token.Symbol.ForwardSlash -> Expression.MathOp.Operator.DIV
-            Token.Symbol.Asterisk -> Expression.MathOp.Operator.MUL
+            // math symbols
+            Token.Symbol.OpPlus -> Expression.Calculation.Operator.SUM
+            Token.Symbol.OpMinus -> Expression.Calculation.Operator.SUB
+            Token.Symbol.ForwardSlash -> Expression.Calculation.Operator.DIV
+            Token.Symbol.Asterisk -> Expression.Calculation.Operator.MUL
+            // comparison symbols
+            Token.Symbol.AngularBracketStart -> Expression.Calculation.Operator.CMP_LT
+            Token.Symbol.LTEQ -> Expression.Calculation.Operator.CMP_LE
+            Token.Symbol.Equals -> Expression.Calculation.Operator.CMP_EQ
+            Token.Symbol.NotEquals -> Expression.Calculation.Operator.CMP_NEQ
+            Token.Symbol.GTEQ -> Expression.Calculation.Operator.CMP_GE
+            Token.Symbol.AngularBracketEnd -> Expression.Calculation.Operator.CMP_GT
+            // chaining symbols
+            Token.Symbol.ExprAnd -> Expression.Calculation.Operator.AND
+            Token.Symbol.ExprOr -> Expression.Calculation.Operator.OR
             else -> null
         }
 
-    private val Token.filterOperator: Expression.Comparison.Operator?
+    private val Expression.Calculation.Operator.precedence: Int
         get() = when (this) {
-            Token.Symbol.AngularBracketStart -> Expression.Comparison.Operator.LESS_THAN
-            Token.Symbol.AngularBracketEnd -> Expression.Comparison.Operator.GREATER_THAN
-            Token.Symbol.LTEQ -> Expression.Comparison.Operator.LESS_THAN_OR_EQ
-            Token.Symbol.GTEQ -> Expression.Comparison.Operator.GREATER_THAN_OR_EQ
-            Token.Symbol.Equals -> Expression.Comparison.Operator.EQUAL
-            Token.Symbol.NotEquals -> Expression.Comparison.Operator.NOT_EQUAL
-            else -> null
+            Expression.Calculation.Operator.SUM -> 3
+            Expression.Calculation.Operator.SUB -> 3
+
+            Expression.Calculation.Operator.MUL -> 4
+            Expression.Calculation.Operator.DIV -> 4
+
+            Expression.Calculation.Operator.AND -> 1
+            Expression.Calculation.Operator.OR -> 0
+
+            Expression.Calculation.Operator.CMP_LT -> 2
+            Expression.Calculation.Operator.CMP_LE -> 2
+            Expression.Calculation.Operator.CMP_EQ -> 2
+            Expression.Calculation.Operator.CMP_NEQ -> 2
+            Expression.Calculation.Operator.CMP_GE -> 2
+            Expression.Calculation.Operator.CMP_GT -> 2
         }
 
     // processes & consumes structures like `(max(?s) - avg(?p))`
     private fun processAggregationGroup(): Expression {
         // simply calling the `processAggregationStatement` again, level of recursion depth = number of parentheses
         // consuming the '('
+        expectToken(Token.Symbol.RoundBracketStart)
         consume()
-        return processMathStatement().also {
+        return processStatement().also {
             expectToken(Token.Symbol.RoundBracketEnd)
             consume()
         }
@@ -150,7 +183,7 @@ class AggregatorProcessor: Analyser<Expression>() {
     }
 
     // processes & consumes structures like `concat("A", ?s)`
-    private fun processRegularFunction(): Expression.FuncCall {
+    private fun processFuncCall(): Expression.FuncCall {
         val name = token.syntax
         consume()
         expectToken(Token.Symbol.RoundBracketStart)
@@ -160,7 +193,7 @@ class AggregatorProcessor: Analyser<Expression>() {
         }
         val args = mutableListOf<Expression>()
         while (true) {
-            args += nextAggregationOrBindingOrLiteral()
+            args += nextOperand()
             when (token) {
                 Token.Symbol.RoundBracketEnd -> break
                 Token.Symbol.Comma -> consume()

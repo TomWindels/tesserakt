@@ -8,6 +8,7 @@ import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier.Companion.get
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.query.FilterExpression.MathOpEval.*
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.Expression.*
 import kotlin.jvm.JvmInline
@@ -40,31 +41,19 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                     is UriValue ->
                         Operation { OperationValue.SingleValue(term = expr.uri) }
 
-                    is Comparison -> when (expr.operator) {
-                        Comparison.Operator.GREATER_THAN ->
-                            ComparisonEval.GT(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
-
-                        Comparison.Operator.GREATER_THAN_OR_EQ ->
-                            ComparisonEval.GTEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
-
-                        Comparison.Operator.LESS_THAN ->
-                            ComparisonEval.LT(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
-
-                        Comparison.Operator.LESS_THAN_OR_EQ ->
-                            ComparisonEval.LTEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
-
-                        Comparison.Operator.EQUAL ->
-                            ComparisonEval.EQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
-
-                        Comparison.Operator.NOT_EQUAL ->
-                            ComparisonEval.NEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
-                    }
-
-                    is MathOp -> when (expr.operator) {
-                        MathOp.Operator.SUM -> MathOpEval.Sum(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
-                        MathOp.Operator.SUB -> MathOpEval.Sub(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
-                        MathOp.Operator.MUL -> MathOpEval.Mul(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
-                        MathOp.Operator.DIV -> MathOpEval.Div(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
+                    is Calculation -> when (expr.operator) {
+                        Calculation.Operator.SUM -> Sum(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
+                        Calculation.Operator.SUB -> Sub(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
+                        Calculation.Operator.MUL -> Mul(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
+                        Calculation.Operator.DIV -> Div(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
+                        Calculation.Operator.AND -> AndEval(from(context = context, expr = expr.lhs), from(context, expr.rhs))
+                        Calculation.Operator.OR -> OrEval(from(context = context, expr = expr.lhs), from(context, expr.rhs))
+                        Calculation.Operator.CMP_LT -> ComparisonEval.LT(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
+                        Calculation.Operator.CMP_LE -> ComparisonEval.LTEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
+                        Calculation.Operator.CMP_EQ -> ComparisonEval.EQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
+                        Calculation.Operator.CMP_NEQ -> ComparisonEval.NEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
+                        Calculation.Operator.CMP_GE -> ComparisonEval.GTEQ(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
+                        Calculation.Operator.CMP_GT -> ComparisonEval.GT(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
                     }
 
                     is FuncCall -> TODO()
@@ -204,6 +193,18 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
     }
 
+    class AndEval(val lhs: Operation, val rhs: Operation) : Operation {
+        override fun eval(input: OperationValue): OperationValue {
+            return (lhs.eval(input).isTrue() && rhs.eval(input).isTrue()).asLiteralTerm().into()
+        }
+    }
+
+    class OrEval(val lhs: Operation, val rhs: Operation) : Operation {
+        override fun eval(input: OperationValue): OperationValue {
+            return (lhs.eval(input).isTrue() || rhs.eval(input).isTrue()).asLiteralTerm().into()
+        }
+    }
+
     @JvmInline
     private value class ValueLookUpOperation(private val binding: BindingIdentifier) : Operation {
         override fun eval(input: OperationValue): OperationValue {
@@ -283,3 +284,10 @@ private fun Quad.Literal.isNumericalValue(): Boolean {
 
 private val Quad.Literal.numericalValue: Double
     get() = this.value.toDouble()
+
+private fun FilterExpression.OperationValue.isTrue(): Boolean = when (this) {
+    is FilterExpression.OperationValue.SingleMapping -> false
+    is FilterExpression.OperationValue.SingleValue -> term == true.asLiteralTerm()
+    is FilterExpression.OperationValue.SingleValueIdentifier -> false
+    FilterExpression.OperationValue.Unbound -> false
+}

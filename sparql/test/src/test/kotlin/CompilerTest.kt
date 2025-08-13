@@ -3,6 +3,7 @@ import TestEnvironment.Companion.test
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.CompilerException
 import dev.tesserakt.sparql.types.Expression
+import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.types.SelectQueryStructure
 import dev.tesserakt.sparql.types.TriplePattern
 import kotlin.test.Test
@@ -126,22 +127,22 @@ class CompilerTest {
             require(this is SelectQueryStructure)
             val count = output!!.find { it.name == "count" }!!
             (count as SelectQueryStructure.ExpressionOutput).expression ==
-                    Expression.MathOp(
+                    Expression.Calculation(
                         lhs = Expression.BindingAggregate(
                             type = Expression.BindingAggregate.Type.AVG,
                             input = Expression.BindingValues("s"),
                             distinct = false
                         ),
-                        rhs = Expression.MathOp(
+                        rhs = Expression.Calculation(
                             lhs = Expression.BindingAggregate(
                                 type = Expression.BindingAggregate.Type.MIN,
                                 input = Expression.BindingValues("s"),
                                 distinct = false
                             ),
                             rhs = Expression.NumericLiteralValue(3L),
-                            operator = Expression.MathOp.Operator.DIV
+                            operator = Expression.Calculation.Operator.DIV
                         ),
-                        operator = Expression.MathOp.Operator.SUM
+                        operator = Expression.Calculation.Operator.SUM
                     )
         }
         """
@@ -163,7 +164,7 @@ class CompilerTest {
             body.patterns.size == 1 &&
             body.patterns.first() == pattern &&
             ((avg as SelectQueryStructure.ExpressionOutput).expression as Expression.BindingAggregate).type == Expression.BindingAggregate.Type.AVG &&
-            (c as SelectQueryStructure.ExpressionOutput).expression is Expression.MathOp
+            (c as SelectQueryStructure.ExpressionOutput).expression is Expression.Calculation
         }
         """
             SELECT * WHERE {
@@ -305,6 +306,23 @@ class CompilerTest {
             }
         """ satisfies {
             true
+        }
+        """
+            SELECT * {
+                FILTER ( 1 + 2 * 3 + 4 + 5 * 6 / 2 + 3 )
+            }
+        """ satisfies {
+            true
+        }
+        """
+            SELECT * {
+                FILTER ( ?c < 2 || ?c > 5 )
+            }
+        """ satisfies {
+            val filter = this.body.filters.first()
+            check(filter is Filter.Predicate)
+            filter.expression is Expression.Calculation &&
+            (filter.expression as Expression.Calculation).operator == Expression.Calculation.Operator.OR
         }
     }
 

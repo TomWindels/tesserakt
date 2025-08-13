@@ -12,7 +12,7 @@ class AggregationProcessor: Analyser<Aggregation>() {
     override fun _process(): Aggregation {
         // consuming the first `(`
         consume()
-        val aggregation = use(AggregatorProcessor())
+        val aggregation = use(ExpressionProcessor())
         // should now be pointing to `AS`, with as next token a binding for the output
         expectToken(Token.Keyword.As)
         consume()

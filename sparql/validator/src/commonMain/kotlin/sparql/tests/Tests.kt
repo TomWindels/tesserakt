@@ -87,7 +87,6 @@ fun builtinTests() = tests {
         }
     """
 
-
     using(counts) test """
         PREFIX : <http://example/>
 
@@ -114,6 +113,24 @@ fun builtinTests() = tests {
             ?s a :Example ; :count ?c .
             FILTER(?c > 2) .
             FILTER(?c < 5) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 2 && ?c < 5) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c < 3 || ?c > 5) .
         }
     """
 
