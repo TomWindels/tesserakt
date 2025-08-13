@@ -4,7 +4,6 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.statuspages.*
-import io.ktor.server.request.*
 import io.ktor.server.routing.*
 
 class Server(config: EndpointConfig) {
@@ -17,6 +16,9 @@ class Server(config: EndpointConfig) {
             }
         }
         routing {
+            if (config.verbose) {
+                install(VerboseLogging)
+            }
             sparqlEndpoint(
                 path = config.path,
                 endpoint = SparqlEndpoint(config)
@@ -27,26 +29,6 @@ class Server(config: EndpointConfig) {
     fun run() {
         println("Starting server...")
         server.start(wait = true)
-    }
-
-    private fun log(call: ApplicationCall, exception: Throwable) {
-        val request = call.request
-        println("*")
-        println(">  ${request.httpMethod.value} ${request.path()}")
-        val requestHeaders = request.headers.entries().joinToString("\n") { ">  ${it.key}: ${it.value.joinToString()}" }
-        if (requestHeaders.isNotBlank()) {
-            println(requestHeaders)
-        }
-
-        val response = call.response
-        println("<  ${response.status() ?: "no status code"}")
-        val responseHeaders = response.headers.allValues().entries().joinToString("\n") { "<  ${it.key}: ${it.value.joinToString()}" }
-        if (responseHeaders.isNotBlank()) {
-            println(responseHeaders)
-        }
-        println()
-
-        exception.printStackTrace()
     }
 
 }
