@@ -9,6 +9,7 @@ import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier.Companion.get
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.FilterExpression.MathOpEval.*
+import dev.tesserakt.sparql.types.DateTime
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.Expression.*
 import kotlin.jvm.JvmInline
@@ -21,6 +22,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         }
         @JvmInline
         value class SingleValue(val term: Quad.Element) : OperationValue
+        @JvmInline
+        value class DateValue(val value: DateTime) : OperationValue
         @JvmInline
         value class SingleValueIdentifier(val term: TermIdentifier) : OperationValue
         @JvmInline
@@ -73,7 +76,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         class EQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                return (left.eval(input).getTerm(context) == right.eval(input).getTerm(context)).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
+                return (comparison == 0).asLiteralTerm().into()
             }
 
         }
@@ -81,7 +85,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         class NEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                return (left.eval(input).getTerm(context) != right.eval(input).getTerm(context)).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
+                return (comparison != 0).asLiteralTerm().into()
             }
 
         }
@@ -89,9 +94,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         class LT(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                val a = left.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
-                val b = right.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
-                return (compare(a.literal, b.literal) < 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
+                return (comparison < 0).asLiteralTerm().into()
             }
         }
 
@@ -99,18 +103,16 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         class GT(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                val a = left.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
-                val b = right.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
-                return (compare(a.literal, b.literal) > 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
+                return (comparison > 0).asLiteralTerm().into()
             }
         }
 
         class LTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                val a = left.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
-                val b = right.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
-                return (compare(a.literal, b.literal) <= 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
+                return (comparison <= 0).asLiteralTerm().into()
             }
 
         }
@@ -118,14 +120,61 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         class GTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
             override fun eval(input: OperationValue): OperationValue {
-                val a = left.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
-                val b = right.eval(input).getTerm(context) ?: return false.asLiteralTerm().into()
-                return (compare(a.literal, b.literal) >= 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
+                return (comparison >= 0).asLiteralTerm().into()
             }
 
         }
 
         companion object {
+
+            /**
+             * A generic comparison evaluator, capable of interpreting combinations of literals and date time
+             *  representations. Returns the integer value of a `compare` evaluation between [left] and [right]
+             *  (i.e. `left.compareTo(right)`), or `null` if the context did not yield any results or the combination of
+             *  types is invalid
+             */
+            private fun compare(context: QueryContext, left: OperationValue, right: OperationValue): Int? {
+                return when {
+                    // this variant could've been optimised as it's evaluation will always yield the same result
+                    left is OperationValue.DateValue && right is OperationValue.DateValue -> {
+                        left.value.compareTo(right.value)
+                    }
+                    // one of the branches is a constant, the other is data-dependant
+                    left is OperationValue.DateValue -> {
+                        // assuming `right` produces a literal that can be interpreted as a date time
+                        val r = right.getTerm(context) ?: return null
+                        if (r !is Quad.Literal || !r.isDateTimeValue()) {
+                            return null
+                        }
+                        // TODO: check why this one doesn't seem to work
+                        left.value.compareTo(DateTime.parseOrNull(r.value) ?: return null)
+                    }
+                    right is OperationValue.DateValue -> {
+                        // simply reversing the result so we end up in the branch above
+                        compare(context, right, left)?.let { -it }
+                    }
+                    // assuming they're valid terms (now or after mapping)
+                    else -> {
+                        try {
+                            val a = left.getTerm(context) ?: return null
+                            val b = right.getTerm(context) ?: return null
+                            // bailing out early if EQ
+                            if (a == b) {
+                                return 0
+                            }
+                            // we can't compare when one of them is not a literal
+                            if (a !is Quad.Literal || b !is Quad.Literal) {
+                                return 1
+                            }
+                            return compare(a.literal, b.literal)
+                        } catch (_: UnsupportedOperationException) {
+                            // incompatible types
+                            null
+                        }
+                    }
+                }
+            }
 
             /**
              * Compares [left] value with the specified value for order. Returns zero if [left] value is equal to the
@@ -136,6 +185,9 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 return when {
                     left.isNumericalValue() && right.isNumericalValue() ->
                         left.numericalValue.compareTo(right.numericalValue)
+
+                    left.isDateTimeValue() && right.isDateTimeValue() ->
+                        DateTime.parse(left.value).compareTo(DateTime.parse(right.value))
 
                     else ->
                         throw UnsupportedOperationException("Cannot compare literals with types ${left.type} and ${right.type}")
@@ -214,7 +266,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     }
 
     @JvmInline
-    private value class ConstantValueOperation(private val constant: OperationValue.SingleValue) : Operation {
+    private value class ConstantValueOperation<V: OperationValue>(private val constant: V) : Operation {
 
         override fun eval(input: OperationValue): OperationValue {
             return constant
@@ -251,6 +303,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
         private fun Quad.Element.into() = OperationValue.SingleValue(this)
 
+        private fun DateTime.into() = OperationValue.DateValue(this)
+
         private fun Quad.Element?.into() = this?.let { OperationValue.SingleValue(this) } ?: OperationValue.Unbound
 
         private fun TermIdentifier?.into() = this?.let { OperationValue.SingleValueIdentifier(this) } ?: OperationValue.Unbound
@@ -283,6 +337,10 @@ private fun Quad.Literal.isNumericalValue(): Boolean {
     return type in numerals
 }
 
+private fun Quad.Literal.isDateTimeValue(): Boolean {
+    return type == XSD.dateTime
+}
+
 private val Quad.Literal.numericalValue: Double
     get() = this.value.toDouble()
 
@@ -290,5 +348,9 @@ private fun FilterExpression.OperationValue.isTrue(): Boolean = when (this) {
     is FilterExpression.OperationValue.SingleMapping -> false
     is FilterExpression.OperationValue.SingleValue -> term == true.asLiteralTerm()
     is FilterExpression.OperationValue.SingleValueIdentifier -> false
+    is FilterExpression.OperationValue.DateValue -> false
     FilterExpression.OperationValue.Unbound -> false
 }
+
+private fun DateTime.Companion.parseOrNull(str: String): DateTime? =
+    runCatching { DateTime.parse(str) }.getOrNull()

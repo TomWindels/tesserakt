@@ -3,6 +3,8 @@ package sparql.tests
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.ontology.RDF
+import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import sparql.types.tests
@@ -131,6 +133,27 @@ fun builtinTests() = tests {
         SELECT * WHERE {
             ?s a :Example ; :count ?c .
             FILTER(?c < 3 || ?c > 5) .
+        }
+    """
+
+    val timestamps = buildStore {
+        val root = prefix("", "http://example.com/")
+        val user = root("user")
+        val user2 = root("user2")
+        user has type being root("User")
+        user has root("dob") being Quad.Literal("2000-01-01T01:00:00Z", XSD.dateTime)
+        user2 has type being root("User")
+        user2 has root("dob") being Quad.Literal("2020-01-01T01:00:00Z", XSD.dateTime)
+    }
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+            FILTER(?dob > "2010-01-01T00:00:00Z"^^xsd:dateTime) .
         }
     """
 

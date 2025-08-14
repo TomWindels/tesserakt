@@ -6,6 +6,7 @@ import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.bindingName
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalNumericValue
 import dev.tesserakt.sparql.compiler.lexer.Token.Companion.literalTextValue
+import dev.tesserakt.sparql.types.DateTime
 import dev.tesserakt.sparql.types.Expression
 
 /**
@@ -103,12 +104,9 @@ class ExpressionProcessor: Analyser<Expression>() {
                 is Token.TypedLiteral -> bail("Invalid datatype: ${token.datatype}")
             }
             when (datatype) {
-                XSD.dateTime, XSD.date -> {
+                XSD.dateTime -> {
                     Expression.DateLiteralValue(
-                        Quad.Literal(
-                            value = token.value,
-                            type = datatype,
-                        )
+                        timestamp = DateTime.parse(token.value)
                     )
                 }
                 else -> {

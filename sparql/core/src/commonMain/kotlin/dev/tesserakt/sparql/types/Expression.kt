@@ -99,8 +99,8 @@ sealed interface Expression : QueryAtom {
     }
 
     @JvmInline
-    value class DateLiteralValue(val timestamp: Quad.Literal) : Expression {
-        override fun toString() = timestamp.value
+    value class DateLiteralValue(val timestamp: DateTime) : Expression {
+        override fun toString() = timestamp.toString()
     }
 
     @JvmInline
