@@ -1,5 +1,7 @@
 package dev.tesserakt.sparql.compiler.lexer
 
+import kotlin.jvm.JvmInline
+
 sealed interface Token {
 
     val syntax: String
@@ -51,10 +53,7 @@ sealed interface Token {
         As("AS"),
         Ask("ASK"),
         Bind("BIND"),
-        Concat("CONCAT"),
-        StringLength("STRLEN"),
         Filter("FILTER"),
-        Regex("REGEX"),
         Order("ORDER"),
         Group("GROUP"),
         Having("HAVING"),
@@ -139,6 +138,19 @@ sealed interface Token {
     ): Term {
         override fun toString() = "typed literal $syntax"
         override val syntax = "\"$value\"^^${datatype.syntax}"
+    }
+
+    /**
+     * A standalone set of text, typically used as an identifier for RDF functions, e.g. `strlen` and `langMatches`.
+     * The valid set of characters are [a-zA-Z0-9_]
+     */
+    @JvmInline
+    value class Identifier(
+        val value: String,
+    ): Token {
+        override fun toString() = "identifier `$value`"
+        override val syntax: String
+            get() = value
     }
 
     data object EOF: Token {

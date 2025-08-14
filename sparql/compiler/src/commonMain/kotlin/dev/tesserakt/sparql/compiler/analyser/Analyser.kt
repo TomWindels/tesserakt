@@ -160,6 +160,15 @@ abstract class Analyser<RT: QueryAtom?> {
         bail(msg)
     }
 
+    protected fun expectedBindingOrLiteralOrTokenOrIdentifier(vararg tokens: Token): Nothing {
+        val msg = when (tokens.size) {
+            0 -> "Unexpected $token, expected binding, literal or identifier"
+            1 -> "Unexpected $token, expected binding, literal, identifier or ${tokens.first().syntax}"
+            else -> "Unexpected $token, expected binding, literal, identifier or any of ${tokens.joinToString { it.syntax }}"
+        }
+        bail(msg)
+    }
+
     protected fun bail(message: String = "Internal compiler error"): Nothing {
         throw CompilerException(
             message = "Failed during the execution of `${this::class.simpleName!!}`",

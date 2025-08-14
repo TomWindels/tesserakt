@@ -157,6 +157,25 @@ fun builtinTests() = tests {
         }
     """
 
+    val languages = buildStore {
+        val root = prefix("", "http://example.com/")
+        val user = root("user")
+        user has type being root("User")
+        user has root("name") being Quad.LangString("Name", "en")
+        user has root("name") being Quad.LangString("Naam", "nl")
+    }
+
+    using(languages) test """
+        PREFIX : <http://example.com/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :name ?name .
+            FILTER LANGMATCHES(LANG(?name), "en") .
+        }
+    """
+
     val conditional = buildStore {
         val example = prefix("", "http://example.com/")
         val conditional = example("condition")

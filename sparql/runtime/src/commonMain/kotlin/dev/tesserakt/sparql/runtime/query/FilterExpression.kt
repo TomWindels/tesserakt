@@ -59,7 +59,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                         Calculation.Operator.CMP_GT -> ComparisonEval.GT(context = context, left = from(context, expr.lhs), right = from(context, expr.rhs))
                     }
 
-                    is FuncCall -> TODO()
+                    is FuncCall -> BuiltinFunction.from(context, expr)
                     is Negative -> TODO()
                     is NumericLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
                     is DateLiteralValue -> ConstantValueOperation(expr.timestamp.into())
@@ -326,6 +326,72 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         private val Quad.Element.literal
             get() = (this as? Quad.Literal)
                 ?: throw IllegalStateException("Literal term value expected, but received $this instead!")
+
+    }
+
+    object BuiltinFunction {
+
+        fun LANG(context: QueryContext, arg: Operation) = Operation {
+            val term = arg.evalToSingleQuadElementOrNull(context, it)
+            if (term !is Quad.LangString) {
+                return@Operation OperationValue.Unbound
+            }
+            term.language.asLiteralTerm().into()
+        }
+
+        fun LANGMATCHES(context: QueryContext, tag: Operation, range: Operation) = Operation {
+            val tagValue = tag.evalToSingleQuadElementOrNull(context, it)
+            // simple literal expected, as we're doing string matching
+            if (tagValue !is Quad.Literal || tagValue.type != XSD.string) {
+                return@Operation OperationValue.Unbound
+            }
+            val tag = tagValue.value
+            // same goes for the tag range
+            val tagRange = range.evalToSingleQuadElementOrNull(context, it)
+            // simple literal expected, as we're doing string matching
+            if (tagRange !is Quad.Literal || tagRange.type != XSD.string) {
+                return@Operation OperationValue.Unbound
+            }
+            val range = tagRange.value
+            // now regular matching can be applied
+            // special case first, where "*" matches all (non-empty!) language tags
+            return@Operation if (range == "*") {
+                 tag.isNotEmpty().asLiteralTerm().into()
+            } else {
+                val currentLang = tag.substringBefore('-')
+                currentLang.contentEquals(range, ignoreCase = true).asLiteralTerm().into()
+            }
+        }
+
+        fun from(context: QueryContext, call: FuncCall): Operation {
+            fun matches(name: String) = call.name.contentEquals(name, ignoreCase = true)
+            return when {
+                matches("lang") -> {
+                    check(call.args.size == 1)
+                    LANG(context, Operation.from(context, call.args.single()))
+                }
+                matches("langmatches") -> {
+                    check(call.args.size == 2)
+                    LANGMATCHES(context, Operation.from(context, call.args[0]), Operation.from(context, call.args[1]))
+                }
+                else -> throw IllegalArgumentException("Unknown function identifier: `${call.name}`")
+            }
+        }
+
+        private fun Operation.evalToSingleQuadElementOrNull(context: QueryContext, input: OperationValue): Quad.Element? =
+            when (val value = eval(input)) {
+                is OperationValue.SingleValueIdentifier -> {
+                    context.get(value.term)
+                }
+                is OperationValue.SingleValue -> {
+                    value.term
+                }
+
+                // invalid argument types to obtain a quad element, so yielding null
+                is OperationValue.DateValue,
+                is OperationValue.SingleMapping,
+                OperationValue.Unbound -> null
+            }
 
     }
 

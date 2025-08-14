@@ -7,12 +7,6 @@ sealed interface Filter: QueryAtom {
     @JvmInline
     value class Predicate(val expression: Expression): Filter
 
-    data class Regex(
-        val input: Binding,
-        val regex: String,
-        val mode: String
-    ): Filter
-
     @JvmInline
     value class Exists(val pattern: GraphPattern): Filter
 

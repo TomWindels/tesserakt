@@ -314,15 +314,6 @@ class ASTWriter(private val indentStyle: String = "  ") {
             process(symbol.expression)
         }
 
-        is Filter.Regex -> {
-            writeLine("regex")
-            indented {
-                writeLine("input: ${symbol.input}")
-                writeLine("regex: ${symbol.regex}")
-                writeLine("mode: ${symbol.mode}")
-            }
-        }
-
         is Filter.Exists -> {
             writeLine("exists")
             indented {

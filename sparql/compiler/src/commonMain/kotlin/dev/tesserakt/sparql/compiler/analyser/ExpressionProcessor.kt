@@ -124,14 +124,11 @@ class ExpressionProcessor: Analyser<Expression>() {
             Expression.BooleanLiteralValue(false)
                 .also { consume() }
         }
-        Token.Keyword.StringLength,
-        Token.Keyword.Concat -> {
+        is Token.Identifier -> {
             processFuncCall()
         }
         else -> {
-            expectedBindingOrLiteralOrToken(
-                Token.Keyword.StringLength,
-                Token.Keyword.Concat,
+            expectedBindingOrLiteralOrTokenOrIdentifier(
                 Token.Keyword.AggCount,
                 Token.Keyword.AggMin,
                 Token.Keyword.AggMax,
@@ -212,7 +209,7 @@ class ExpressionProcessor: Analyser<Expression>() {
 
     // processes & consumes structures like `concat("A", ?s)`
     private fun processFuncCall(): Expression.FuncCall {
-        val name = token.syntax
+        val name = (token as? Token.Identifier)?.value ?: bail("Invalid identifier: $token")
         consume()
         expectToken(Token.Symbol.RoundBracketStart)
         consume()

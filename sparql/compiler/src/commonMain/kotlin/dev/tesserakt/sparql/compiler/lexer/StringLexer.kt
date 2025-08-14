@@ -111,8 +111,10 @@ class StringLexer(private val input: String): Lexer() {
      */
     // first attempting to find a pattern-like element, then falling back to a syntax type
     private inline fun extractAnyTokenOrBail(): Token =
-         extractPatternElementOrBinding() ?: extractSyntacticToken()
-        ?: bail("Unrecognized token `${input.substring(start, end)}`")
+         extractPatternElementOrBinding()
+         ?: extractSyntacticToken()
+         ?: extractIdentifier()
+         ?: bail("Unrecognized token `${input.substring(start, end)}`")
 
     private inline fun extractSyntacticToken(): Token? =
         lut[input[start].lowercaseChar()]
@@ -133,6 +135,18 @@ class StringLexer(private val input: String): Lexer() {
             return null
         }
         return term
+    }
+
+    private inline fun extractIdentifier(): Token.Identifier? {
+        var end = start
+        while (input.getOrNull(end).isValidTokenChar()) {
+            ++end
+        }
+        return if (start != end) {
+            Token.Identifier(value = input.substring(start, end))
+        } else {
+            null
+        }
     }
 
     /**
@@ -240,6 +254,9 @@ class StringLexer(private val input: String): Lexer() {
         }
         return false
     }
+
+    fun Char?.isValidTokenChar(): Boolean =
+        this != null && this.isLetterOrDigit() || this == '_'
 
     /**
      * Finds the end index (if any) in the currently considered character range terminating the binding / prefixed

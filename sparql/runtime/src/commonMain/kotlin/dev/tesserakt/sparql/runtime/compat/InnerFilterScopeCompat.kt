@@ -49,7 +49,6 @@ object InnerFilterScopeCompat {
                 }
                 // these two aren't problematic on their own
                 is Filter.Predicate -> null
-                is Filter.Regex -> null
             }
         }
         return body.copy(filters = filters)

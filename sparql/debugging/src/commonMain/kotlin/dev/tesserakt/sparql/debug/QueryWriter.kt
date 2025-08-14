@@ -53,6 +53,7 @@ abstract class QueryWriter<RT> {
             is Token.BlankTerm -> "_:$value"
             is Token.StringLiteral -> value
             is Token.TypedLiteral -> "\"$value\"^^${datatype.stringified()}"
+            is Token.Identifier -> value.uppercase()
             is Token.Uri -> "<$value>"
             is Token.Symbol -> syntax
             is Token.Keyword -> syntax
@@ -319,19 +320,6 @@ abstract class QueryWriter<RT> {
                 add(Token.Keyword.Filter)
                 add(Token.Symbol.RoundBracketStart)
                 process(element.expression)
-                add(Token.Symbol.RoundBracketEnd)
-            }
-
-            is Filter.Regex -> {
-                newline()
-                add(Token.Keyword.Filter)
-                add(Token.Keyword.Regex)
-                add(Token.Symbol.RoundBracketStart)
-                add(element.input.toToken())
-                add(Token.Symbol.Comma)
-                add(Token.StringLiteral(element.regex))
-                add(Token.Symbol.Comma)
-                add(Token.StringLiteral(element.mode))
                 add(Token.Symbol.RoundBracketEnd)
             }
 
