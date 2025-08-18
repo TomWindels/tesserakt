@@ -19,15 +19,14 @@ class ExpressionProcessor: Analyser<Expression>() {
     }
 
     // processes & consumes structures like `max(?s) - avg(?p)`, ends when reaching an
-    //  unexpected token, such as a `)` not part of this statement, or reaching a lower bound threshold for
-    //  the operator precedence
+    //  unexpected token, such as a `)` token not part of this statement
     private fun processStatement(): Expression {
         var result: Expression.Calculation = run {
             val lhs = nextOperand()
             val operator = token.operator
-            if (operator == null) {
-                return lhs
-            }
+                // an operator would be required for the statement to continue; as the current token is not recognized
+                //  as one, we can consider this statement to have finished
+                ?: return lhs
             // continuing with our existing expression
             consume()
             val rhs = nextOperand()
@@ -38,18 +37,20 @@ class ExpressionProcessor: Analyser<Expression>() {
             consume()
             val previousPrecedence = result.operator.precedence
             val currentPrecedence = operator.precedence
-            when {
+            result = when {
                 previousPrecedence > currentPrecedence -> {
                     // regular chaining applies
-                    result = Expression.Calculation(lhs = result, rhs = nextOperand(), operator = operator)
+                    Expression.Calculation(lhs = result, rhs = nextOperand(), operator = operator)
                 }
+
                 previousPrecedence < currentPrecedence -> {
                     // the last statement has to be replaced, as the new operation is the top one
-                    result = Expression.Calculation(lhs = result.lhs, rhs = Expression.Calculation(lhs = result.rhs, rhs = nextOperand(), operator = operator), operator = result.operator)
+                    Expression.Calculation(lhs = result.lhs, rhs = Expression.Calculation(lhs = result.rhs, rhs = nextOperand(), operator = operator), operator = result.operator)
                 }
+
                 else /* existingPrecedence = operator.precedence */ -> {
                     // regular chaining applies
-                    result = Expression.Calculation(lhs = result, rhs = nextOperand(), operator = operator)
+                    Expression.Calculation(lhs = result, rhs = nextOperand(), operator = operator)
                 }
             }
         }
