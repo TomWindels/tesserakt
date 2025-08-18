@@ -61,15 +61,9 @@ class ASTWriter(private val indentStyle: String = "  ") {
             indented { writeLine("target: ${symbol.name}") }
         }
 
-        is Expression.Comparison -> {
-            writeLine("conditional")
-            indented {
-                writeLine("operand: ${symbol.operator}")
-                writeLine("lhs: ")
-                process(symbol.lhs)
-                writeLine("rhs: ")
-                process(symbol.rhs)
-            }
+        is Expression.UriValue -> {
+            writeLine("uri")
+            indented { writeLine("target: ${symbol.uri}") }
         }
 
         is Expression.BindingAggregate -> {
@@ -87,6 +81,12 @@ class ASTWriter(private val indentStyle: String = "  ") {
                 writeLine("value: ${symbol.value} [${symbol.value::class.simpleName}]")
             }
         }
+        is Expression.DateLiteralValue -> {
+            writeLine("date literal")
+            indented {
+                writeLine("value: ${symbol.timestamp}")
+            }
+        }
 
         is Expression.BooleanLiteralValue -> {
             writeLine("numeric literal")
@@ -102,7 +102,7 @@ class ASTWriter(private val indentStyle: String = "  ") {
             }
         }
 
-        is Expression.MathOp -> {
+        is Expression.Calculation -> {
             writeLine(symbol.operator.name.lowercase())
             indented {
                 writeLine("lhs")
@@ -312,15 +312,6 @@ class ASTWriter(private val indentStyle: String = "  ") {
         is Filter.Predicate -> {
             append("expression")
             process(symbol.expression)
-        }
-
-        is Filter.Regex -> {
-            writeLine("regex")
-            indented {
-                writeLine("input: ${symbol.input}")
-                writeLine("regex: ${symbol.regex}")
-                writeLine("mode: ${symbol.mode}")
-            }
         }
 
         is Filter.Exists -> {

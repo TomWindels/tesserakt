@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.types
 
+import dev.tesserakt.rdf.types.Quad
 import kotlin.jvm.JvmInline
 
 sealed interface Expression : QueryAtom {
@@ -45,83 +46,32 @@ sealed interface Expression : QueryAtom {
 
     }
 
-    data class MathOp(
+    data class Calculation(
         val lhs: Expression,
         val rhs: Expression,
         val operator: Operator,
     ) : Expression {
 
-        enum class Operator(val sign: Char) {
-            SUM('+'), MUL('⨉'), SUB('-'), DIV('÷')
+        enum class Operator(val sign: String) {
+            SUM("+"),
+            MUL("⨉"),
+            SUB("-"),
+            DIV("÷"),
+            AND("&&"),
+            OR("||"),
+            CMP_LT("<"),
+            CMP_LE("<="),
+            CMP_EQ("="),
+            CMP_NEQ("!="),
+            CMP_GE(">="),
+            CMP_GT(">"),
+            ;
         }
 
         override fun toString(): String {
             return "($lhs ${operator.sign} $rhs)"
         }
 
-        /**
-         * Builder for grouping numerical operators read in LTR and fixes the ordering to respect order of operations
-         */
-        class Builder(
-            // the first term of the statement
-            start: Expression
-        ) {
-
-            // only + & * are stored here, see `add()`
-            private val operators = mutableListOf<Operator>()
-            private val operands = mutableListOf(start)
-
-            fun add(operator: Operator, operand: Expression) {
-                operators.add(operator)
-                operands.add(operand)
-            }
-
-            /**
-             * Builds an aggregated version of the statement. IMPORTANT: this is a destructive operation, leaving the
-             *  `Builder` instance in a not-so-usable state (the result becomes the first operand for the next usage)
-             */
-            fun build(): Expression {
-                // first grouping all multiplication statements
-                if (operands.size == 1) {
-                    return operands.single()
-                }
-                var order = operators.maxOf { it.order }
-                while (order >= 1) {
-                    var i = 0
-                    while (i < operators.size) {
-                        if (operators[i].order == order) {
-                            fuse(i)
-                        } else {
-                            ++i
-                        }
-                    }
-                    --order
-                }
-                return operands.single()
-            }
-
-            private inline fun fuse(index: Int) {
-                val operand1 = operands[index]
-                val operand2 = operands[index + 1]
-                // the operator is being consumed, so only using it to create the expression
-                val new = operators.removeAt(index).create(operand1, operand2)
-                // removing one and setting the swapping the other one
-                operands.removeAt(index)
-                operands[index] = new
-            }
-
-        }
-
-    }
-
-    data class Comparison(
-        val lhs: Expression,
-        val rhs: Expression,
-        val operator: Operator
-    ) : Expression {
-        enum class Operator {
-            GREATER_THAN, GREATER_THAN_OR_EQ, LESS_THAN, LESS_THAN_OR_EQ, EQUAL, NOT_EQUAL
-        }
     }
 
     /**
@@ -139,8 +89,18 @@ sealed interface Expression : QueryAtom {
     }
 
     @JvmInline
+    value class UriValue(val uri: Quad.NamedTerm) : Expression {
+        override fun toString() = uri.toString()
+    }
+
+    @JvmInline
     value class NumericLiteralValue(val value: Number) : Expression {
         override fun toString() = value.toString()
+    }
+
+    @JvmInline
+    value class DateLiteralValue(val timestamp: DateTime) : Expression {
+        override fun toString() = timestamp.toString()
     }
 
     @JvmInline
@@ -154,15 +114,3 @@ sealed interface Expression : QueryAtom {
     }
 
 }
-
-/* helpers */
-
-private val Expression.MathOp.Operator.order: Int get() = when (this) {
-    Expression.MathOp.Operator.SUM -> 1
-    Expression.MathOp.Operator.SUB -> 1
-    Expression.MathOp.Operator.MUL -> 2
-    Expression.MathOp.Operator.DIV -> 2
-}
-
-private fun Expression.MathOp.Operator.create(lhs: Expression, rhs: Expression): Expression.MathOp =
-    Expression.MathOp(lhs, rhs, this)

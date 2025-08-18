@@ -49,7 +49,6 @@ object InnerFilterScopeCompat {
                 }
                 // these two aren't problematic on their own
                 is Filter.Predicate -> null
-                is Filter.Regex -> null
             }
         }
         return body.copy(filters = filters)
@@ -81,12 +80,13 @@ object InnerFilterScopeCompat {
             is Expression.BindingAggregate -> setOf(expression.input.name)
             is Expression.BindingValues -> setOf(expression.name)
             is Expression.FuncCall -> expression.args.flatMapTo(mutableSetOf()) { extractExpressionVariables(it) }
-            is Expression.Comparison -> extractExpressionVariables(expression.lhs) + extractExpressionVariables(expression.rhs)
-            is Expression.MathOp -> extractExpressionVariables(expression.lhs) + extractExpressionVariables(expression.rhs)
+            is Expression.Calculation -> extractExpressionVariables(expression.lhs) + extractExpressionVariables(expression.rhs)
             is Expression.Negative -> extractExpressionVariables(expression.value)
             is Expression.NumericLiteralValue -> emptySet()
+            is Expression.DateLiteralValue -> emptySet()
             is Expression.BooleanLiteralValue -> emptySet()
             is Expression.StringLiteralValue -> emptySet()
+            is Expression.UriValue -> emptySet()
         }
     }
 

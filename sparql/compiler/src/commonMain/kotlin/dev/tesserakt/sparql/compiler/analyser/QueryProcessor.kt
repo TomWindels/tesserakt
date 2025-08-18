@@ -41,7 +41,7 @@ class QueryProcessor: Analyser<QueryStructure>() {
         consume()
         val namespace = (token as Token.PrefixedTerm).namespace
         consume()
-        val value = (token as Token.Term).value
+        val value = (token as Token.Uri).value
         // adding it to the table of prefixes
         prefixes[namespace] = value
         // advancing the rest of the query

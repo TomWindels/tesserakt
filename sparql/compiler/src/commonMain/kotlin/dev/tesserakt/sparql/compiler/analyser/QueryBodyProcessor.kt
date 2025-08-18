@@ -39,7 +39,7 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
         while (token != Token.EOF) {
             when (token) {
                 // binding or term, so the start of a block is happening here
-                is Token.Term,
+                is Token.Uri,
                 is Token.PrefixedTerm,
                 is Token.StringLiteral,
                 is Token.Binding,
@@ -68,7 +68,7 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
                     consume()
                     expectToken(Token.Symbol.RoundBracketStart)
                     consume()
-                    val expression = use(AggregatorProcessor())
+                    val expression = use(ExpressionProcessor())
                     expectToken(Token.Keyword.As)
                     consume()
                     expectBinding()

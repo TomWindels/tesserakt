@@ -2,6 +2,7 @@
 
 package dev.tesserakt.sparql.compiler.analyser
 
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.CompilerException
 import dev.tesserakt.sparql.compiler.lexer.Lexer
 import dev.tesserakt.sparql.compiler.lexer.Token
@@ -38,6 +39,11 @@ abstract class Analyser<RT: QueryAtom?> {
     }
 
     protected abstract fun _process(): RT
+
+    protected fun Token.PrefixedTerm.resolve(): Quad.NamedTerm {
+        val uri = prefixes[namespace] ?: bail("Unknown prefix: `$namespace`")
+        return Quad.NamedTerm(uri + value)
+    }
 
     /** Consumes the next token. The next token can be `EOF` if the end has been reached **/
     protected fun consume() {
@@ -150,6 +156,15 @@ abstract class Analyser<RT: QueryAtom?> {
             0 -> "Unexpected $token, expected binding or literal"
             1 -> "Unexpected $token, expected binding, literal or ${tokens.first().syntax}"
             else -> "Unexpected $token, expected binding, literal or any of ${tokens.joinToString { it.syntax }}"
+        }
+        bail(msg)
+    }
+
+    protected fun expectedBindingOrLiteralOrTokenOrIdentifier(vararg tokens: Token): Nothing {
+        val msg = when (tokens.size) {
+            0 -> "Unexpected $token, expected binding, literal or identifier"
+            1 -> "Unexpected $token, expected binding, literal, identifier or ${tokens.first().syntax}"
+            else -> "Unexpected $token, expected binding, literal, identifier or any of ${tokens.joinToString { it.syntax }}"
         }
         bail(msg)
     }

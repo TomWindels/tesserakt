@@ -216,7 +216,6 @@ data class GraphPatternFilterState(
                     is Filter.Exists -> stateful.add(InclusionFilterState(context, parent, filter))
                     is Filter.NotExists -> stateful.add(ExclusionFilterState(context, parent, filter))
                     is Filter.Predicate -> stateless.add(ExpressionFilter(context, filter.expression))
-                    is Filter.Regex -> TODO()
                 }
             }
             return GraphPatternFilterState(
