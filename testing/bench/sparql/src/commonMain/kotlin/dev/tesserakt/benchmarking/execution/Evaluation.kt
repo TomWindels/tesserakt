@@ -1,10 +1,12 @@
 package dev.tesserakt.benchmarking.execution
 
+import dev.tesserakt.benchmarking.EvaluatorId
+
 abstract class Evaluation {
 
     abstract val name: String
     abstract val query: String
-    abstract val evaluatorName: String
+    abstract val evaluatorId: EvaluatorId
     abstract val outputDirPath: String
 
     abstract fun metadata(): String

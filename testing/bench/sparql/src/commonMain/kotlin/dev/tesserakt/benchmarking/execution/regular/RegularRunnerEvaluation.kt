@@ -1,12 +1,13 @@
 package dev.tesserakt.benchmarking.execution.regular
 
+import dev.tesserakt.benchmarking.EvaluatorId
 import dev.tesserakt.benchmarking.execution.Evaluation
 
 data class RegularRunnerEvaluation(
     override val name: String,
     val inputFilePath: String?,
     override val outputDirPath: String,
-    override val evaluatorName: String,
+    override val evaluatorId: EvaluatorId,
     override val query: String,
 ) : Evaluation() {
 
@@ -14,7 +15,7 @@ data class RegularRunnerEvaluation(
         append("input: ")
         append(inputFilePath)
         append("\nevaluator: ")
-        append(evaluatorName)
+        append(evaluatorId)
         append("\nquery: ")
         append(query)
     }

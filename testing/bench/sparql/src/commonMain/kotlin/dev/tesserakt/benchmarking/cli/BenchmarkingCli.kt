@@ -46,24 +46,41 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 validator = { it.tryMakeFolder() && it.listFiles().isEmpty() }
             )
 
-        val implementations: Set<String> by option(
+        val implementations: Set<EvaluatorId.Named> by option(
                 "--use-engine", "-e",
                 help = "Select an engine implementation to use (multiple supported)",
             )
             .choice(
-                *(references.keys + "tesserakt" + "all").toTypedArray(),
+                *(references.keys.map { it.name } + "tesserakt" + "all").toTypedArray(),
                 ignoreCase = true
             )
+            .convert { EvaluatorId.Named(it) }
             .multiple(default = emptyList())
             .unique()
 
-        val endpoints: Set<String> by option(
+        val endpoints: Set<EvaluatorId.Endpoint> by option(
                 "--url", "-u",
                 help = "Provide a SPARQL endpoint URL to use (multiple supported)",
             )
+            .convert {
+                // assuming the URL(s) don't contain comma's
+                val urls = it.split(',')
+                require(urls.size in 1..2) { "The provided endpoint URL parameter `${it}` is ill-formed!" }
+                val invalid = urls.firstOrNull { url -> !url.matches(URL) }
+                require(invalid == null) { "Entry contains an invalid URL: `$invalid`" }
+                when (urls.size) {
+                    1 -> EvaluatorId.Endpoint.Immutable(
+                        queryUrl = urls[0],
+                    )
+                    2 -> EvaluatorId.Endpoint.Mutable(
+                        queryUrl = urls[0],
+                        updateUrl = urls[1]
+                    )
+                    else -> throw RuntimeException()
+                }
+            }
             .multiple()
             .unique()
-            .check(lazyMessage = { "Invalid URL encountered!" }) { it.all { entry -> entry.matches(URL) } }
 
         val runs: Int by option(
                 "--runs",
@@ -108,10 +125,10 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
         override suspend fun run() {
             common.validate()
             platformOptions.apply()
-            val mapped  = if ("all" in common.implementations) {
+            val mapped  = if (EvaluatorId.Named("all") in common.implementations) {
                 references.keys + SELF_IMPL
             } else {
-                common.implementations.map { if (it == "tesserakt") SELF_IMPL else it }
+                common.implementations.map { if (it.name == "tesserakt") SELF_IMPL else it }
             }
             // creating all configs up-front
             val localConfigs = RegularRunnerConfig.createVariants(
@@ -156,10 +173,10 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
         override suspend fun run() {
             common.validate()
             platformOptions.apply()
-            val mapped  = if ("all" in common.implementations) {
+            val mapped  = if (EvaluatorId.Named("all") in common.implementations) {
                 references.keys + SELF_IMPL
             } else {
-                common.implementations.map { if (it == "tesserakt") SELF_IMPL else it }
+                common.implementations.map { if (it.name == "tesserakt") SELF_IMPL else it }
             }
             // creating all configs up-front
             val localConfigs = ReplayRunnerConfig.createVariants(
@@ -170,7 +187,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
             val endpointConfigs = ReplayEndpointConfig.createVariants(
                 inputPaths = input,
                 outputFolder = common.output,
-                endpoints = common.endpoints,
+                endpoints = common.endpoints.filterIsInstance<EvaluatorId.Endpoint.Mutable>(),
             )
             // then mapping these to the various evaluations we can actually evaluate
             val host = BenchmarkRunnerHost(

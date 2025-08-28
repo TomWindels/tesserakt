@@ -17,7 +17,7 @@ class CliRunReporter(private val run: Evaluation): RunReporter {
         if (state != null) {
             println(" ok, took ${start?.elapsedNow()}")
         } else {
-            print(run.evaluatorName)
+            print(run.evaluatorId)
             print(", ")
             println(run.name)
         }

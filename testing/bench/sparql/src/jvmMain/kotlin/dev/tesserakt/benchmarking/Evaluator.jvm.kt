@@ -6,7 +6,7 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
 
-actual val references: Map<String, (String) -> Reference> = run {
+actual val references: Map<EvaluatorId.Named, (String) -> Reference> = run {
     val classes = findImplementations()
     buildMap {
         classes.forEach { clazz ->
@@ -14,7 +14,7 @@ actual val references: Map<String, (String) -> Reference> = run {
                 .find { it.parameters.size == 1 && it.parameters.single().type.jvmErasure == String::class }
                 // unsupported evaluator - skipping it
                 ?: return@forEach
-            put(clazz.referenceName) { query: String -> ctor.call(query) as Reference }
+            put(EvaluatorId.Named(clazz.referenceName)) { query: String -> ctor.call(query) as Reference }
         }
     }
 }

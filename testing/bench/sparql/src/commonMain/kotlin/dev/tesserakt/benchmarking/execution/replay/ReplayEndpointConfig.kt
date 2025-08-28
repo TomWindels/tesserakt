@@ -1,6 +1,6 @@
 package dev.tesserakt.benchmarking.execution.replay
 
-import dev.tesserakt.benchmarking.execution.EndpointUtil
+import dev.tesserakt.benchmarking.EvaluatorId
 import dev.tesserakt.benchmarking.isFolder
 import dev.tesserakt.benchmarking.listFiles
 import dev.tesserakt.rdf.serialization.common.FileDataSource
@@ -11,12 +11,8 @@ import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 data class ReplayEndpointConfig(
     val inputFilePath: String,
     val outputDirPath: String,
-    val endpoint: String,
+    val endpoint: EvaluatorId.Endpoint.Mutable,
 ) {
-
-    init {
-        require(endpoint.startsWith("http://localhost:"))
-    }
 
     fun toRunnerEvaluations(): List<ReplayRunnerEvaluation> {
         var i = 0
@@ -30,7 +26,7 @@ data class ReplayEndpointConfig(
                         name = name,
                         inputFilePath = inputFilePath,
                         outputDirPath = outputDirPath.replace(nameBase, name),
-                        evaluatorName = EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint),
+                        evaluatorId = endpoint,
                         query = query,
                     )
                 }
@@ -49,7 +45,7 @@ data class ReplayEndpointConfig(
         fun createVariants(
             inputPaths: Collection<String>,
             outputFolder: String,
-            endpoints: Collection<String>,
+            endpoints: Collection<EvaluatorId.Endpoint.Mutable>,
         ): List<ReplayEndpointConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -61,7 +57,7 @@ data class ReplayEndpointConfig(
                 endpoints.map { endpoint ->
                     ReplayEndpointConfig(
                         inputFilePath = input,
-                        outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/input_${i}/",
+                        outputDirPath = "${outputFolder}${endpoint}/$filename/input_${i}/",
                         endpoint = endpoint,
                     )
                 }

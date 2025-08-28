@@ -1,5 +1,6 @@
 package dev.tesserakt.benchmarking.execution.regular
 
+import dev.tesserakt.benchmarking.EvaluatorId
 import dev.tesserakt.benchmarking.isFile
 import dev.tesserakt.benchmarking.isFolder
 import dev.tesserakt.benchmarking.listFiles
@@ -8,11 +9,11 @@ data class RegularRunnerConfig(
     val query: String,
     val inputFilePath: String,
     val outputDirPath: String,
-    val evaluatorName: String,
+    val evaluatorId: EvaluatorId,
 ) {
 
     override fun toString() =
-        "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorName"
+        "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorId"
 
     fun toRunnerEvaluation(): RegularRunnerEvaluation {
         val name = inputFilePath
@@ -22,7 +23,7 @@ data class RegularRunnerConfig(
             name = name,
             inputFilePath = inputFilePath,
             outputDirPath = outputDirPath,
-            evaluatorName = evaluatorName,
+            evaluatorId = evaluatorId,
             query = query,
         )
     }
@@ -41,7 +42,7 @@ data class RegularRunnerConfig(
             query: Iterable<String>,
             inputPaths: Iterable<String>,
             outputFolder: String,
-            evaluators: Iterable<String>,
+            evaluators: Iterable<EvaluatorId>,
         ): List<RegularRunnerConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -56,7 +57,7 @@ data class RegularRunnerConfig(
                             query = query,
                             inputFilePath = input,
                             outputDirPath = "${outputFolder}$evaluator/$filename/query_${i}/",
-                            evaluatorName = evaluator,
+                            evaluatorId = evaluator,
                         )
                     }
                 }

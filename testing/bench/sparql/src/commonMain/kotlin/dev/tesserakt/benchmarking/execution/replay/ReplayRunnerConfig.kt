@@ -1,5 +1,6 @@
 package dev.tesserakt.benchmarking.execution.replay
 
+import dev.tesserakt.benchmarking.EvaluatorId
 import dev.tesserakt.benchmarking.isFolder
 import dev.tesserakt.benchmarking.listFiles
 import dev.tesserakt.rdf.serialization.common.FileDataSource
@@ -10,11 +11,11 @@ import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 data class ReplayRunnerConfig(
     val inputFilePath: String,
     val outputDirPath: String,
-    val evaluatorName: String,
+    val evaluatorId: EvaluatorId,
 ) {
 
     override fun toString() =
-        "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorName"
+        "Benchmark runner\n* Input: $inputFilePath\n* Output: $outputDirPath\n* Implementation: $evaluatorId"
 
     val name: String
         get() = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
@@ -31,7 +32,7 @@ data class ReplayRunnerConfig(
                         name = name,
                         inputFilePath = inputFilePath,
                         outputDirPath = outputDirPath.replace(nameBase, name),
-                        evaluatorName = evaluatorName,
+                        evaluatorId = evaluatorId,
                         query = query,
                     )
                 }
@@ -50,7 +51,7 @@ data class ReplayRunnerConfig(
         fun createVariants(
             inputPaths: Collection<String>,
             outputFolder: String,
-            evaluators: Collection<String>,
+            evaluators: Collection<EvaluatorId>,
         ): List<ReplayRunnerConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -63,7 +64,7 @@ data class ReplayRunnerConfig(
                     ReplayRunnerConfig(
                         inputFilePath = input,
                         outputDirPath = "${outputFolder}$evaluator/$filename/input_${i}/",
-                        evaluatorName = evaluator,
+                        evaluatorId = evaluator,
                     )
                 }
             }

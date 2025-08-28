@@ -1,55 +1,64 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.benchmarking.execution.EndpointUtil
 import dev.tesserakt.benchmarking.execution.Evaluation
 
 object EvaluatorFactory {
 
     val implementations = listOf(SELF_IMPL) + references.keys
 
-    private fun getFactoryPreferIncremental(evaluatorName: String) = when {
-        evaluatorName.startsWith("endpoint") -> { query: String ->
-            EndpointImplementation(endpoint = EndpointUtil.evaluatorNameToEndpointUrl(evaluatorName), query = query)
+    private fun getFactoryPreferIncremental(evaluatorId: EvaluatorId) = when (evaluatorId) {
+        is EvaluatorId.Endpoint -> { query: String ->
+            EndpointImplementation(
+                queryUrl = evaluatorId.queryUrl,
+                updateUrl = if (evaluatorId is EvaluatorId.Endpoint.Mutable) evaluatorId.updateUrl else null,
+                query = query
+            )
         }
 
-        evaluatorName == SELF_IMPL -> { query: String ->
+        SELF_IMPL -> { query: String ->
             SelfIncremental(query)
         }
 
-        evaluatorName in references -> { query: String ->
-            references[evaluatorName]!!.invoke(query)
+        in references -> { query: String ->
+            references[evaluatorId]!!.invoke(query)
         }
 
-        else -> throw IllegalArgumentException("Unknown evaluator: `${evaluatorName}`\nValid evaluators: ${implementations.joinToString { "\"$it\"" }}")
+        else -> throw IllegalArgumentException("Unknown evaluator: `${evaluatorId}`\nValid evaluators: ${implementations.joinToString { "\"$it\"" }}")
     }
 
-    private fun getFactoryPreferRegular(evaluatorName: String) = when {
-        evaluatorName.startsWith("endpoint") -> { query: String ->
-            EndpointImplementation(endpoint = EndpointUtil.evaluatorNameToEndpointUrl(evaluatorName), query = query)
+    private fun getFactoryPreferRegular(evaluatorId: EvaluatorId) = when (evaluatorId) {
+        is EvaluatorId.Endpoint -> { query: String ->
+            EndpointImplementation(
+                queryUrl = evaluatorId.queryUrl,
+                updateUrl = if (evaluatorId is EvaluatorId.Endpoint.Mutable) evaluatorId.updateUrl else null,
+                query = query
+            )
         }
 
-        evaluatorName == SELF_IMPL -> { query: String ->
+        SELF_IMPL -> { query: String ->
             SelfRegular(query)
         }
 
-        evaluatorName in references -> { query: String ->
-            references[evaluatorName]!!.invoke(query)
+        in references -> { query: String ->
+            references[evaluatorId]!!.invoke(query)
         }
 
-        else -> throw IllegalArgumentException("Unknown evaluator: `${evaluatorName}`\nValid evaluators: ${implementations.joinToString { "\"$it\"" }}")
+        else -> throw IllegalArgumentException("Unknown evaluator: `${evaluatorId}`\nValid evaluators: ${implementations.joinToString { "\"$it\"" }}")
     }
 
-    fun createEvaluatorPreferIncremental(evaluatorName: String, query: String) = getFactoryPreferIncremental(evaluatorName)(query)
+    fun createEvaluatorPreferIncremental(evaluatorId: EvaluatorId, query: String) =
+        getFactoryPreferIncremental(evaluatorId)(query)
 
     fun createEvaluatorPreferIncremental(evaluation: Evaluation) = createEvaluatorPreferIncremental(
-        evaluatorName = evaluation.evaluatorName,
+        evaluatorId = evaluation.evaluatorId,
         query = evaluation.query
     )
 
-    fun createEvaluatorPreferRegular(evaluatorName: String, query: String) = getFactoryPreferRegular(evaluatorName)(query)
+    fun createEvaluatorPreferRegular(evaluatorId: EvaluatorId, query: String) =
+        getFactoryPreferRegular(evaluatorId)(query)
 
     fun createEvaluatorPreferRegular(evaluation: Evaluation) = createEvaluatorPreferRegular(
-        evaluatorName = evaluation.evaluatorName,
+        evaluatorId = evaluation.evaluatorId,
         query = evaluation.query
     )
 

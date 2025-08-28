@@ -1,3 +1,3 @@
 package dev.tesserakt.benchmarking
 
-actual const val SELF_IMPL: String = "tesserakt_js"
+actual val SELF_IMPL: EvaluatorId.Named = EvaluatorId.Named("tesserakt_js")

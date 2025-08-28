@@ -1,6 +1,6 @@
 package dev.tesserakt.benchmarking.execution.regular
 
-import dev.tesserakt.benchmarking.execution.EndpointUtil
+import dev.tesserakt.benchmarking.EvaluatorId
 import dev.tesserakt.benchmarking.isFolder
 import dev.tesserakt.benchmarking.listFiles
 
@@ -8,12 +8,8 @@ data class RegularEndpointConfig(
     val query: String,
     val inputFilePath: String?,
     val outputDirPath: String,
-    val endpoint: String,
+    val endpoint: EvaluatorId.Endpoint,
 ) {
-
-    init {
-        require(endpoint.startsWith("http://localhost:"))
-    }
 
     fun toRunnerEvaluation(): RegularRunnerEvaluation {
         val name = inputFilePath
@@ -24,7 +20,7 @@ data class RegularEndpointConfig(
             name = name,
             inputFilePath = inputFilePath,
             outputDirPath = outputDirPath,
-            evaluatorName = EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint),
+            evaluatorId = endpoint,
             query = query,
         )
     }
@@ -43,7 +39,7 @@ data class RegularEndpointConfig(
             query: Iterable<String>,
             inputPaths: Iterable<String>,
             outputFolder: String,
-            endpoints: Iterable<String>,
+            endpoints: Iterable<EvaluatorId.Endpoint>,
         ): List<RegularEndpointConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -56,7 +52,7 @@ data class RegularEndpointConfig(
                         RegularEndpointConfig(
                             query = query,
                             inputFilePath = null,
-                            outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/query_${i}/",
+                            outputDirPath = "${outputFolder}${endpoint}/query_${i}/",
                             endpoint = endpoint,
                         )
                     }
@@ -68,7 +64,7 @@ data class RegularEndpointConfig(
                         RegularEndpointConfig(
                             query = query,
                             inputFilePath = input,
-                            outputDirPath = "${outputFolder}${EndpointUtil.endpointUrlToEvaluatorName(endpoint = endpoint)}/$filename/query_${i}/",
+                            outputDirPath = "${outputFolder}${endpoint}/$filename/query_${i}/",
                             endpoint = endpoint,
                         )
                     }
