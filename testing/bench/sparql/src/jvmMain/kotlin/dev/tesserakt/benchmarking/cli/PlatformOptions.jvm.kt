@@ -14,10 +14,13 @@ actual class PlatformOptions actual constructor() : OptionGroup(
 
     val forceGc by option().flag(default = false).help("Request the garbage collector to execute after every query execution")
 
+    val enableMemoryProfiling by option().flag(default = false).help("Enable memory profiling, writing additional output. Not useful when dealing with endpoints")
+
     actual fun apply() {
         if (forceGc) {
             RunContext.CURRENT = GcContext
         }
+        RunContext.memoryProfiling = enableMemoryProfiling
     }
 
 }

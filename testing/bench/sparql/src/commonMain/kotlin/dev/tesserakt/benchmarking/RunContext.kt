@@ -13,9 +13,14 @@ interface RunContext {
     companion object: RunContext {
 
         var CURRENT: RunContext = Default
+        var memoryProfiling = false
 
         override fun onIterationFinished() {
             CURRENT.onIterationFinished()
+        }
+
+        fun hasMemoryProfilingEnabled(): Boolean {
+            return memoryProfiling
         }
 
     }
