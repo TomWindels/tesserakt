@@ -63,7 +63,8 @@ JVM-specific configuration:
 
   Various properties that are specific to the JVM version of the benchmarking tool
 
-  --force-gc  Request the garbage collector to execute after every query execution
+  --force-gc                 Request the garbage collector to execute after every query execution
+  --enable-memory-profiling  Enable memory profiling, writing additional output. Not useful when dealing with endpoints
 
 Options:
   -o, --output=<value>                   The output filepath to use
@@ -99,7 +100,8 @@ JVM-specific configuration:
 
   Various properties that are specific to the JVM version of the benchmarking tool
 
-  --force-gc  Request the garbage collector to execute after every query execution
+  --force-gc                 Request the garbage collector to execute after every query execution
+  --enable-memory-profiling  Enable memory profiling, writing additional output. Not useful when dealing with endpoints
 
 Options:
   -o, --output=<value>                   The output filepath to use
