@@ -9,7 +9,7 @@ import dev.tesserakt.sparql.endpoint.client.*
 import io.ktor.client.*
 import io.ktor.client.engine.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 
@@ -46,18 +46,41 @@ class EndpointImplementation(
             addAll(diff.insertions)
             removeAll(diff.deletions)
         }
-        client.post(updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!")) {
-            parameter(
-                key = "update",
-                value = SparqlUpdateRequestBuilder().apply {
-                    add(diff.insertions.toStore())
-                    remove(diff.deletions.toStore())
-                }.toQueryString()
-            )
-            if (token != null) {
-                parameter("access-token", token)
-            }
-        }.also { checkSuccess(response = it) }
+        // sending updates in chunks of 1k triples
+        diff.insertions.chunked(1000).forEach { insertionChunk ->
+            client.submitForm(
+                url = updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!"),
+                formParameters = ParametersBuilder()
+                    .apply {
+                        append(
+                            name = "update",
+                            value = SparqlUpdateRequestBuilder().apply {
+                                add(insertionChunk.toStore())
+                            }.toQueryString()
+                        )
+                        if (token != null) {
+                            append("access-token", token)
+                        }
+                    }.build()
+            ).also { checkSuccess(response = it) }
+        }
+        diff.deletions.chunked(1000).forEach { deletionChunk ->
+            client.submitForm(
+                url = updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!"),
+                formParameters = ParametersBuilder()
+                    .apply {
+                        append(
+                            name = "update",
+                            value = SparqlUpdateRequestBuilder().apply {
+                                remove(deletionChunk.toStore())
+                            }.toQueryString()
+                        )
+                        if (token != null) {
+                            append("access-token", token)
+                        }
+                    }.build()
+            ).also { checkSuccess(response = it) }
+        }
     }
 
     override suspend fun eval() {
@@ -75,16 +98,23 @@ class EndpointImplementation(
 
     override suspend fun close() {
         if (mirror.isNotEmpty()) {
-            client.post(updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!")) {
-                parameter(
-                    key = "update",
-                    value = SparqlUpdateRequestBuilder().apply {
-                        remove(mirror)
-                    }.toQueryString()
-                )
-                if (token != null) {
-                    parameter("access-token", token)
-                }
+            // sending updates in chunks of 1k triples
+            mirror.chunked(1000).forEach { deletionChunk ->
+                client.submitForm(
+                    url = updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!"),
+                    formParameters = ParametersBuilder()
+                        .apply {
+                            append(
+                                name = "update",
+                                value = SparqlUpdateRequestBuilder().apply {
+                                    remove(deletionChunk.toStore())
+                                }.toQueryString()
+                            )
+                            if (token != null) {
+                                append("access-token", token)
+                            }
+                        }.build()
+                ).also { checkSuccess(response = it) }
             }
         }
     }
