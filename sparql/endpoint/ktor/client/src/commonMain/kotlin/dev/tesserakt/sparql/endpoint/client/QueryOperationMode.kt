@@ -29,7 +29,7 @@ enum class QueryOperationMode(
             path,
             formParameters = parametersOf("query" to listOf(query))
         ) {
-            contentType(SparqlContentType.SelectPostForm)
+            contentType(SparqlContentType.FormPost)
             block()
         }
     }),

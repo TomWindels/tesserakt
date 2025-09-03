@@ -1,3 +1,4 @@
+import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.sparql.endpoint.client.*
@@ -67,6 +68,38 @@ class SparqlEndpointTest {
                 "user".asNamedTerm() has "name".asNamedTerm() being "Test".asLiteralTerm()
             }
         }
+        assertEquals(HttpStatusCode.OK, insertion.status)
+
+        val select2 = client.sparqlQuery("sparql", selectAll)
+        assertEquals(HttpStatusCode.OK, select2.status)
+        assertContentEquals(
+            expected = listOf(mapOf("s" to "user", "p" to "name", "o" to "Test")),
+            actual = select2.bodyAsBindings().map { it.toMap().mapValues { it.value.value } }
+        )
+    }
+
+    @Test
+    fun insertAndQueryTestAlt() = test { client ->
+        val selectAll = "select * { ?s ?p ?o }"
+
+        val select1 = client.sparqlQuery("sparql", selectAll)
+        assertEquals(select1.status, HttpStatusCode.OK)
+        assert(select1.bodyAsBindings().isEmpty())
+
+        val insertion = client.submitForm(
+            url = "sparql",
+            formParameters = ParametersBuilder()
+                .apply {
+                    append(
+                        name = "update",
+                        value = SparqlUpdateRequestBuilder().apply {
+                            add(buildStore {
+                                "user".asNamedTerm() has "name".asNamedTerm() being "Test".asLiteralTerm()
+                            })
+                        }.toQueryString()
+                    )
+                }.build()
+        )
         assertEquals(HttpStatusCode.OK, insertion.status)
 
         val select2 = client.sparqlQuery("sparql", selectAll)

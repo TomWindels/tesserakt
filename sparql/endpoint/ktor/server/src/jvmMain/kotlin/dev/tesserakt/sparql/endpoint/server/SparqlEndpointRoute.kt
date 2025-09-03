@@ -44,16 +44,22 @@ fun Route.sparqlEndpoint(
                 )
                 return@post
             }
-            type.match(SparqlContentType.SelectPostForm) -> {
+            type.match(SparqlContentType.FormPost) -> {
+                // joining the total list of params together, from form parameters & url parameters
                 val params = call.receiveParameters()
-                val query = params["query"] ?: run {
+                if ("query" in params) {
+                    endpoint.onSelectQueryRequest(query = params["query"]!!)
+                } else if ("update" in params) {
+                    val result = endpoint.onUpdateQueryRequest(request = UpdateRequest.parse(params["update"]!!))
+                    call.respond(result) { cause -> "Invalid query! Caught the following exception.\n${cause.message}" }
+                    return@post
+                } else {
                     call.respond(
                         status = HttpStatusCode.BadRequest,
                         message = "No query provided!"
                     )
                     return@post
                 }
-                endpoint.onSelectQueryRequest(query = query)
             }
             type.match(SparqlContentType.SelectPostBody) -> {
                 endpoint.onSelectQueryRequest(query = call.receiveText())
