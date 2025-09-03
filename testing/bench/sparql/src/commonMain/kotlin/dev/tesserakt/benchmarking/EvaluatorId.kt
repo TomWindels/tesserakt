@@ -31,6 +31,7 @@ sealed interface EvaluatorId {
         data class Mutable(
             override val queryUrl: String,
             val updateUrl: String,
+            val token: String?,
         ) : Endpoint {
 
             init {

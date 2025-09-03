@@ -62,19 +62,30 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 "--url", "-u",
                 help = "Provide a SPARQL endpoint URL to use (multiple supported)",
             )
-            .convert {
+            .convert { base ->
                 // assuming the URL(s) don't contain comma's
-                val urls = it.split(',')
-                require(urls.size in 1..2) { "The provided endpoint URL parameter `${it}` is ill-formed!" }
-                val invalid = urls.firstOrNull { url -> !url.matches(URL) }
-                require(invalid == null) { "Entry contains an invalid URL: `$invalid`" }
-                when (urls.size) {
+                val params = base.split(',')
+                require(params.size in 1..3) { "The provided endpoint URL parameter `${base}` is ill-formed! Expected format `http://x.y.z/query[,http://x.y.z/update[,update-token]]`" }
+                if (!params.first().matches(URL) || params.size >= 2 && !params[1].matches(URL)) {
+                    fail("The start argument(s) should be a valid URL, structure `${base}` is invalid.")
+                }
+                if (params.size == 3 && params.last().matches(URL)) {
+                    // assuming wrong input, as a URL-like access token seems unlikely
+                    fail("Unexpected URL-like parameter, access token required")
+                }
+                when (params.size) {
                     1 -> EvaluatorId.Endpoint.Immutable(
-                        queryUrl = urls[0],
+                        queryUrl = params[0],
                     )
                     2 -> EvaluatorId.Endpoint.Mutable(
-                        queryUrl = urls[0],
-                        updateUrl = urls[1]
+                        queryUrl = params[0],
+                        updateUrl = params[1],
+                        token = null,
+                    )
+                    3 -> EvaluatorId.Endpoint.Mutable(
+                        queryUrl = params[0],
+                        updateUrl = params[1],
+                        token = params[2],
                     )
                     else -> throw RuntimeException()
                 }

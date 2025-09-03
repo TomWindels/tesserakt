@@ -11,6 +11,7 @@ object EvaluatorFactory {
             EndpointImplementation(
                 queryUrl = evaluatorId.queryUrl,
                 updateUrl = if (evaluatorId is EvaluatorId.Endpoint.Mutable) evaluatorId.updateUrl else null,
+                token = if (evaluatorId is EvaluatorId.Endpoint.Mutable) evaluatorId.token else null,
                 query = query
             )
         }
@@ -31,6 +32,7 @@ object EvaluatorFactory {
             EndpointImplementation(
                 queryUrl = evaluatorId.queryUrl,
                 updateUrl = if (evaluatorId is EvaluatorId.Endpoint.Mutable) evaluatorId.updateUrl else null,
+                token = if (evaluatorId is EvaluatorId.Endpoint.Mutable) evaluatorId.token else null,
                 query = query
             )
         }

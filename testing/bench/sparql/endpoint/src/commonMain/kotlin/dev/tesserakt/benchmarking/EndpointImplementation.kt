@@ -9,12 +9,14 @@ import dev.tesserakt.sparql.endpoint.client.*
 import io.ktor.client.*
 import io.ktor.client.engine.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 
 class EndpointImplementation(
     private val queryUrl: String,
     private val updateUrl: String?,
+    private val token: String?,
     private val query: String,
 ): Reference() {
 
@@ -44,9 +46,17 @@ class EndpointImplementation(
             addAll(diff.insertions)
             removeAll(diff.deletions)
         }
-        client.sparqlUpdate(endpoint = updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!")) {
-            add(diff.insertions.toStore())
-            remove(diff.deletions.toStore())
+        client.post(updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!")) {
+            parameter(
+                key = "update",
+                value = SparqlUpdateRequestBuilder().apply {
+                    add(diff.insertions.toStore())
+                    remove(diff.deletions.toStore())
+                }.toQueryString()
+            )
+            if (token != null) {
+                parameter("access-token", token)
+            }
         }.also { checkSuccess(response = it) }
     }
 
@@ -65,8 +75,16 @@ class EndpointImplementation(
 
     override suspend fun close() {
         if (mirror.isNotEmpty()) {
-            client.sparqlUpdate(endpoint = updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!")) {
-                remove(mirror)
+            client.post(updateUrl ?: throw UnsupportedOperationException("No SPARQL Update URL provided!")) {
+                parameter(
+                    key = "update",
+                    value = SparqlUpdateRequestBuilder().apply {
+                        remove(mirror)
+                    }.toQueryString()
+                )
+                if (token != null) {
+                    parameter("access-token", token)
+                }
             }
         }
     }
