@@ -76,6 +76,10 @@ object StylisedWriter: QueryWriter<String>() {
             is Token.Keyword -> {
                 add(syntax, Color.MAGENTA)
             }
+            // often represents a keyword-like identifier, so highlighting it as such
+            is Token.Identifier -> {
+                add(syntax, Color.MAGENTA)
+            }
             Token.EOF -> { /* not expected to happen */ }
         }
     }
