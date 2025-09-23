@@ -25,11 +25,3 @@ kotlin {
         }
     }
 }
-
-// disabling the lint checks, which got here accidentally by the use of `kmp-package` in the parent module, even though
-//  this is not an android library and the lint plugin has not been applied
-tasks.forEach {
-    if (it.name.contains("lint", true)) {
-        it.enabled = false
-    }
-}
