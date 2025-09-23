@@ -236,12 +236,14 @@ class CompilerTest {
             }
         """ causes CompilerException.Type.SyntaxError
         /* expected failure cases */
-        "SELECT TEST WHERE { ?s a TEST . }" causes CompilerException.Type.SyntaxError
+        // `test` represents an identifier, but is not valid in this query
+        "SELECT TEST WHERE { ?s a TEST . }" causes CompilerException.Type.StructuralError
         "SELECT * WHERE { ?s () TEST . }" causes CompilerException.Type.StructuralError
         "SELECT * WHERE { ?s a ?test " causes CompilerException.Type.StructuralError
         "SELECT * WHERE { ?s <predicate2>/(<predicate3> ?o2.}" causes CompilerException.Type.StructuralError
         "SELECT * WHERE { ?s a ?type , }" causes CompilerException.Type.StructuralError
-        "PREFIX ex: <http://example.org> SELECT * WHERE { ?s ex:prop/other ?o }" causes CompilerException.Type.SyntaxError
+        // `other` represents an identifier, but is not valid in this query
+        "PREFIX ex: <http://example.org> SELECT * WHERE { ?s ex:prop/other ?o }" causes CompilerException.Type.StructuralError
         "prefix ex: <http://example.org> select*{?s dc:title ?o}" causes CompilerException.Type.StructuralError
         "select(count(distinct ?s as ?count){?s?p?o}" causes CompilerException.Type.StructuralError
     }

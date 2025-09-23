@@ -329,7 +329,17 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is Expression.FuncCall -> {
-            TODO()
+            writeLine("func call")
+            indented {
+                writeLine("identifier `${symbol.name}`")
+                writeLine("args (${symbol.args.size})")
+                symbol.args.forEachIndexed { i, arg ->
+                    writeLine("arg $i")
+                    indented {
+                        process(arg)
+                    }
+                }
+            }
         }
     }
 

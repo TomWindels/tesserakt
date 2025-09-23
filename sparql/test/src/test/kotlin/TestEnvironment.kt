@@ -75,7 +75,7 @@ class TestEnvironment private constructor() {
 
     data class CompilationFailureTest(
         override val input: String,
-        val type: CompilerException.Type
+        val expected: CompilerException.Type
     ): Test() {
 
         override operator fun invoke() {
@@ -84,7 +84,7 @@ class TestEnvironment private constructor() {
                 throw AssertionError("Compilation succeeded unexpectedly!")
             } catch (c: CompilerException) {
                 // exactly what is expected, so not throwing anything
-                assertEquals(c.type, type, "Compilation failed for a different reason!")
+                assertEquals(expected, c.type, "Compilation failed for a different reason!")
             }
             // all other exceptions are still being thrown
         }
@@ -96,7 +96,7 @@ class TestEnvironment private constructor() {
     }
 
     infix fun String.causes(error: CompilerException.Type) {
-        addTest(CompilationFailureTest(input = this, type = error))
+        addTest(CompilationFailureTest(input = this, expected = error))
     }
 
 }
