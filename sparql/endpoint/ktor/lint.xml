@@ -1,0 +1,6 @@
+<lint>
+    <issue id="InvalidPackage">
+        <!-- Warnings re: ktor can be ignored -->
+        <ignore regexp=".*ktor.*" />
+    </issue>
+</lint>

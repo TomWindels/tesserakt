@@ -20,4 +20,10 @@ kotlin {
             }
         }
     }
+
+    androidLibrary {
+        lint {
+            baseline = file("../lint.xml")
+        }
+    }
 }
