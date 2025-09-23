@@ -1,18 +1,12 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
-import kotlin.jvm.JvmInline
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 
 // not a value class as we have a custom equals check based on the contents of the `IntArray`, instead of reference equality
 class BindingIdentifierSet(private val ids: IntArray) {
 
     constructor(context: QueryContext, names: Iterable<String>) :
             this(ids = names.distinct().map { context.resolveBinding(it) }.sorted().toIntArray())
-
-    @JvmInline
-    value class IdIterator(private val iterator: IntIterator): Iterator<BindingIdentifier> {
-        override fun hasNext() = iterator.hasNext()
-        override fun next() = BindingIdentifier(iterator.next())
-    }
 
     val size: Int
         get() = ids.size
@@ -23,8 +17,8 @@ class BindingIdentifierSet(private val ids: IntArray) {
         }
     }
 
-    fun asIdIterable() = object: Iterable<BindingIdentifier> {
-        override fun iterator() = IdIterator(ids.iterator())
+    operator fun get(index: Int): BindingIdentifier {
+        return BindingIdentifier(id = ids[index])
     }
 
     operator fun contains(element: Int): Boolean {

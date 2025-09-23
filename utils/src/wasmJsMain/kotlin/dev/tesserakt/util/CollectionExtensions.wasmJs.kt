@@ -1,7 +1,12 @@
 package dev.tesserakt.util
 
-actual inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V) {
-    this[key] = transform(this[key])
+actual inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V?) {
+    val mapped = transform(this[key])
+    if (mapped == null) {
+        remove(key)
+    } else {
+        this[key] = mapped
+    }
 }
 
 /**
@@ -18,4 +23,17 @@ actual inline fun <T> MutableList<T>.removeFirstElement(): T {
  */
 actual inline fun <T> MutableList<T>.removeLastElement(): T {
     return removeLast()
+}
+
+actual inline fun IntArray.cloneTo(
+    target: IntArray,
+    thisOffset: Int,
+    targetOffset: Int,
+    length: Int
+) {
+    var i = 0
+    while (i < length) {
+        target[i + targetOffset] = this[i + thisOffset]
+        ++i
+    }
 }

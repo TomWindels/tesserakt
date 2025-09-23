@@ -3,15 +3,15 @@ import dev.tesserakt.util.mapToArray
 
 /* A series of helpers to work with internal types inside of Kotlin codebases, so the JS API does not expose them directly */
 
-fun MutableStoreJs.unwrap() = this.store
+fun ObservableStoreJs.unwrap() = this.store
 
-fun Collection<Quad>.toJsMutableStore() = MutableStoreJs(
+fun Collection<Quad>.toJsMutableStore() = ObservableStoreJs(
     quads = mapToArray { it.toJsQuad() }
 )
 
 fun QuadJs.unwrap() = this.value
 
-fun Quad.Term.toJsTerm() = QuadJs.TermJs(this)
+fun Quad.Element.toJsTerm() = QuadJs.TermJs(this)
 
 fun Quad.Graph.toJsGraph() = QuadJs.GraphJs(this)
 

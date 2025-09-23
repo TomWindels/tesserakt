@@ -1,9 +1,9 @@
 package sparql.types
 
-import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.OngoingQueryEvaluation
+import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.queryDebug
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
@@ -18,7 +18,7 @@ class IncrementalUpdateTest(
 ) : QueryExecutionTest(query, store) {
 
     override suspend fun test() = runTest {
-        val input = MutableStore()
+        val input = ObservableStore()
         val builder = Result.Builder(store)
         suspend fun reference(): Pair<Duration, List<Bindings>> {
             val external = ExternalQueryExecution(queryString, input)

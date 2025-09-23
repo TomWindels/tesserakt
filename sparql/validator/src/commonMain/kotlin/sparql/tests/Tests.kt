@@ -3,6 +3,8 @@ package sparql.tests
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.ontology.RDF
+import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import sparql.types.tests
@@ -87,6 +89,119 @@ fun builtinTests() = tests {
         }
     """
 
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c <= 3)
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 2)
+            FILTER(?c < 5)
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 2) .
+            FILTER(?c < 5) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c > 2 && ?c < 5) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+            FILTER(?c < 3 || ?c > 5) .
+        }
+    """
+
+    val timestamps = buildStore {
+        val root = prefix("", "http://example.com/")
+        val user = root("user")
+        val user2 = root("user2")
+        user has type being root("User")
+        user has root("dob") being Quad.Literal("2000-01-01T01:00:00Z", XSD.dateTime)
+        user2 has type being root("User")
+        user2 has root("dob") being Quad.Literal("2020-01-01T01:00:00Z", XSD.dateTime)
+    }
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+            FILTER(?dob > "2010-01-01T00:00:00Z"^^xsd:dateTime) .
+        }
+    """
+
+    val languages = buildStore {
+        val root = prefix("", "http://example.com/")
+        val user = root("user")
+        user has type being root("User")
+        user has root("name") being Quad.LangString("Name", "en")
+        user has root("name") being Quad.LangString("Naam", "nl")
+    }
+
+    using(languages) test """
+        PREFIX : <http://example.com/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :name ?name .
+            FILTER LANGMATCHES(LANG(?name), "en") .
+        }
+    """
+
+    val conditional = buildStore {
+        val example = prefix("", "http://example.com/")
+        val conditional = example("condition")
+        val a = example("A")
+        val b = example("B")
+        a has conditional being false.asLiteralTerm()
+        b has conditional being true.asLiteralTerm()
+    }
+
+    using(conditional) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?a :condition true
+        }
+    """
+
+    using(conditional) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?a :condition ?condition .
+            FILTER (?condition = true)
+        }
+    """
+
     val numbers = buildStore {
         val example = prefix("", "http://example.com/")
         example("a") has example("p") being 1
@@ -113,10 +228,32 @@ fun builtinTests() = tests {
         PREFIX : <http://example.com/>
         SELECT * WHERE {
             ?x :p ?n
+            FILTER NOT EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            } .
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
             FILTER EXISTS {
                 ?x :q ?m .
                 FILTER(?n = ?m)
             }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            ?x :p ?n
+            FILTER EXISTS {
+                ?x :q ?m .
+                FILTER(?n = ?m)
+            } .
         }
     """
 
@@ -969,6 +1106,15 @@ fun builtinTests() = tests {
             ?d :p2 ?c .
             ?c :p1|:p2 :o
         }
+    """
+
+    using(aux2) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?a :p1 ?b .
+            ?d :p2 ?c .
+            FILTER (?a = :x)
+        }        
     """
 
 }

@@ -1,5 +1,7 @@
 package dev.tesserakt.sparql.compiler.lexer
 
+import kotlin.jvm.JvmInline
+
 sealed interface Token {
 
     val syntax: String
@@ -20,6 +22,8 @@ sealed interface Token {
         ForwardSlash("/"),
         Asterisk("*"),
         ExclamationMark("!"),
+        ExprAnd("&&"),
+        ExprOr("||"),
         /* operators */
         OpMinus("-"),
         OpPlus("+"),
@@ -36,7 +40,11 @@ sealed interface Token {
     }
 
     enum class Keyword(override val syntax: String): Token {
+        /* term keywords */
         RdfTypePredicate("a"),
+        True("TRUE"),
+        False("FALSE"),
+        /* structural keywords */
         Prefix("PREFIX"),
         Select("SELECT"),
         Construct("CONSTRUCT"),
@@ -45,10 +53,7 @@ sealed interface Token {
         As("AS"),
         Ask("ASK"),
         Bind("BIND"),
-        Concat("CONCAT"),
-        StringLength("STRLEN"),
         Filter("FILTER"),
-        Regex("REGEX"),
         Order("ORDER"),
         Group("GROUP"),
         Having("HAVING"),
@@ -75,53 +80,77 @@ sealed interface Token {
 
     }
 
+    sealed interface Term : Token
+
     data class PrefixedTerm(
         /** The value of the term before the colon **/
         val namespace: String,
         /** The value of the term after the colon **/
         val value: String
-    ): Token {
+    ): Term {
         override fun toString() = "term `$namespace:$value`"
         override val syntax = "$namespace:$value"
     }
 
-    data class Term(
+    data class Uri(
         /** The value of the term from the query, without the `<`, `>` **/
         val value: String
-    ): Token {
+    ): Term {
         override fun toString() = "term `$value`"
-        override val syntax = value
+        override val syntax = "<$value>"
     }
 
     // special type of term, it was prefixed with `_:`
     data class BlankTerm(
         /** The value of the term from the query, without the `<`, `>` **/
         val value: String
-    ): Token {
+    ): Term {
         override fun toString() = "blank term `$value`"
         override val syntax = value
     }
 
+    // whilst it's not a term in the strictest sense, functionally it is positioned as one
     data class Binding(
         /** The value of a binding from the query, minus the `?` **/
         val name: String
-    ): Token {
+    ): Term {
         override fun toString() = "binding `$name`"
-        override val syntax = name
+        override val syntax = "?$name"
     }
 
     data class NumericLiteral(
         val value: Number
-    ): Token {
+    ): Term {
         override fun toString() = "numeric literal `$value`"
         override val syntax = value.toString()
     }
 
     data class StringLiteral(
         val value: String
-    ): Token {
+    ): Term {
         override fun toString() = "string literal $syntax"
         override val syntax = "\"$value\""
+    }
+
+    data class TypedLiteral(
+        val value: String,
+        val datatype: Term,
+    ): Term {
+        override fun toString() = "typed literal $syntax"
+        override val syntax = "\"$value\"^^${datatype.syntax}"
+    }
+
+    /**
+     * A standalone set of text, typically used as an identifier for RDF functions, e.g. `strlen` and `langMatches`.
+     * The valid set of characters are [a-zA-Z0-9_]
+     */
+    @JvmInline
+    value class Identifier(
+        val value: String,
+    ): Token {
+        override fun toString() = "identifier `$value`"
+        override val syntax: String
+            get() = value
     }
 
     data object EOF: Token {

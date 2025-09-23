@@ -3,8 +3,9 @@ package dev.tesserakt
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.sparql.runtime.evaluation.GlobalQueryContext
-import dev.tesserakt.sparql.runtime.evaluation.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.IntPairMapping
 import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.Scope
 import kotlinx.benchmark.Setup
@@ -20,7 +21,7 @@ val BINDINGS = listOf(
     "age" to List(VARIANCE) { it.asLiteralTerm() },
 )
 
-typealias MapMapping = Map<String, Quad.Term>
+typealias MapMapping = Map<String, Quad.Element>
 
 private fun createMapping(id: Int): MapMapping {
     val rng = Random(id)
@@ -44,8 +45,10 @@ class MappingBenchmark {
 
     private val left = mutableListOf<MapMapping>()
     private val right = mutableListOf<MapMapping>()
-    private lateinit var l: List<Mapping>
-    private lateinit var r: List<Mapping>
+    private lateinit var mapping1left: List<IntPairMapping>
+    private lateinit var mapping1right: List<IntPairMapping>
+    private lateinit var mapping2left: List<BitsetMapping>
+    private lateinit var mapping2right: List<BitsetMapping>
     private val context = GlobalQueryContext
 
     @Setup
@@ -59,8 +62,10 @@ class MappingBenchmark {
                 right.add(new)
             }
         }
-        l = left.map { Mapping(context, it) }
-        r = right.map { Mapping(context, it) }
+        mapping1left = left.map { IntPairMapping(context, it) }
+        mapping1right = right.map { IntPairMapping(context, it) }
+        mapping2left = left.map { BitsetMapping(context, it) }
+        mapping2right = right.map { BitsetMapping(context, it) }
     }
 
     @Benchmark
@@ -70,9 +75,15 @@ class MappingBenchmark {
     }
 
     @Benchmark
-    fun joinNew(): List<Mapping> {
-        return l.flatMap { l -> r.mapNotNull { r -> l.join(r) } }
-            .also { println("Result size new: ${it.size}") }
+    fun joinNew(): List<IntPairMapping> {
+        return mapping1left.flatMap { l -> mapping1right.mapNotNull { r -> l.join(r) } }
+            .also { println("Result size new 1: ${it.size}") }
+    }
+
+    @Benchmark
+    fun joinNew2(): List<BitsetMapping> {
+        return mapping2left.flatMap { l -> mapping2right.mapNotNull { r -> l.join(r) } }
+            .also { println("Result size new 2: ${it.size}") }
     }
 
 }

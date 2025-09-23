@@ -1,6 +1,8 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.util.Counter
@@ -143,12 +145,12 @@ sealed interface ExclusionFilterState: MutableFilterState {
             // if the count becomes > 0 through this delta, all mappings should be removed;
             if (count == 0 && change != 0) {
                 check(change > 0) { "Invalid internal state!" }
-                return streamOf(MappingDeletion(emptyMapping(), null))
+                return streamOf(MappingDeletion(state.context.emptyMapping(), null))
             }
             // similarly, if the count becomes 0 through this delta, all mappings should be restored
             if (count > 0 && count + change <= 0) {
                 check(count + change == 0) { "Invalid internal state!" }
-                return streamOf(MappingAddition(emptyMapping(), null))
+                return streamOf(MappingAddition(state.context.emptyMapping(), null))
             }
             // nothing changed, so the peek is empty
             return emptyStream()

@@ -13,8 +13,13 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.IndexedStore
+import dev.tesserakt.rdf.types.factory.Store
+import dev.tesserakt.rdf.types.factory.emptyStore
+import dev.tesserakt.rdf.types.factory.indexedStoreOf
+import dev.tesserakt.stream.ldes.IndexedVersionedLinkedDataEventStream
+import dev.tesserakt.stream.ldes.MutableVersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.StreamTransform
-import dev.tesserakt.stream.ldes.VersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 import dev.tesserakt.stream.ldes.ontology.TREE
@@ -30,7 +35,7 @@ class VersionedLDESTest {
 
     @Test
     fun basicVersionedLDES() {
-        val ldes = VersionedLinkedDataEventStream.initialise(
+        val ldes = IndexedVersionedLinkedDataEventStream.initialise(
             identifier = "myLDES".asNamedTerm(),
             timestampPath = DC.modified,
             versionOfPath = DC.isVersionOf,
@@ -42,17 +47,17 @@ class VersionedLDESTest {
     @Test
     fun invalidLDES() {
         assertFails {
-            VersionedLinkedDataEventStream(
+            IndexedVersionedLinkedDataEventStream(
                 identifier = "myLDES".asNamedTerm(),
                 transform = StreamTransform.GraphBased,
-                store = Store()
+                store = indexedStoreOf()
             )
         }
     }
 
     @Test
     fun mutatedVersionedLDES() {
-        val ldes = VersionedLinkedDataEventStream.initialise(
+        val ldes = MutableVersionedLinkedDataEventStream.initialise(
             identifier = "myLDES".asNamedTerm(),
             timestampPath = DC.modified,
             versionOfPath = DC.isVersionOf,
@@ -116,7 +121,7 @@ class VersionedLDESTest {
 
     @Test
     fun consumeLDES() {
-        val ldes = VersionedLinkedDataEventStream.initialise(
+        val ldes = MutableVersionedLinkedDataEventStream.initialise(
             identifier = "myLDES".asNamedTerm(),
             timestampPath = DC.modified,
             versionOfPath = DC.isVersionOf,
@@ -129,13 +134,13 @@ class VersionedLDESTest {
             timestamp = (now - 10.seconds).asLiteral(),
             data = data
         )
-        assertStoreContentEqual(emptySet(), ldes.read((now - 20.seconds).asLiteral()))
+        assertStoreContentEqual(emptyStore(), ldes.read((now - 20.seconds).asLiteral()))
         assertStoreContentEqual(data, ldes.read((now - 5.seconds).asLiteral()))
     }
 
     @Test
     fun consumeVersionedLDES() {
-        val ldes = VersionedLinkedDataEventStream.initialise(
+        val ldes = MutableVersionedLinkedDataEventStream.initialise(
             identifier = "myLDES".asNamedTerm(),
             timestampPath = DC.modified,
             versionOfPath = DC.isVersionOf,
@@ -178,13 +183,25 @@ class VersionedLDESTest {
             }
         }
         println(serializer.serialize(data = ldes))
-        assertStoreContentEqual(emptySet(), ldes.read(pre_t1))
+        assertStoreContentEqual(emptyStore(), ldes.read(pre_t1))
         assertStoreContentEqual(data1, ldes.read(pre_t2))
-        assertStoreContentEqual(data1 + data2, ldes.read(pre_t3))
-        assertStoreContentEqual(data1v2 + data2, ldes.read(pre_t4))
+        assertStoreContentEqual(Store(data1 + data2), ldes.read(pre_t3))
+        assertStoreContentEqual(Store(data1v2 + data2), ldes.read(pre_t4))
+
+        // doing the same tests, but indexed
+        val indexed = IndexedVersionedLinkedDataEventStream(
+            identifier = "myLDES".asNamedTerm(),
+            store = IndexedStore(ldes),
+            transform = StreamTransform.GraphBased
+        )
+
+        assertStoreContentEqual(emptyStore(), indexed.read(pre_t1))
+        assertStoreContentEqual(data1, indexed.read(pre_t2))
+        assertStoreContentEqual(Store(data1 + data2), indexed.read(pre_t3))
+        assertStoreContentEqual(Store(data1v2 + data2), indexed.read(pre_t4))
     }
 
-    private fun assertStoreContentEqual(expected: Set<Quad>, actual: Set<Quad>) {
+    private fun assertStoreContentEqual(expected: Store, actual: Store) {
         val missing = expected - actual
         val superfluous = actual - expected
         if (missing.isNotEmpty() || superfluous.isNotEmpty()) {

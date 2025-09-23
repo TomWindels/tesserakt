@@ -32,9 +32,19 @@ fun Quad.toJenaQuad(): org.apache.jena.sparql.core.Quad {
     )
 }
 
-fun Quad.Term.toJenaTerm() = when (this) {
+fun Quad.Subject.toJenaTerm() = when (this) {
+    is Quad.NamedTerm -> NodeFactory.createURI(value)
+    is Quad.BlankTerm -> NodeFactory.createBlankNode(value)
+}
+
+fun Quad.Predicate.toJenaTerm() = when (this) {
+    is Quad.NamedTerm -> NodeFactory.createURI(value)
+}
+
+fun Quad.Object.toJenaTerm() = when (this) {
     is Quad.NamedTerm -> NodeFactory.createURI(value)
     is Quad.Literal -> NodeFactory.createLiteral(value, type.asRDFDataType())
+    is Quad.LangString -> NodeFactory.createLiteralLang(value, language)
     is Quad.BlankTerm -> NodeFactory.createBlankNode(value)
 }
 
@@ -42,6 +52,7 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
     XSD.string -> XSDDatatype.XSDstring
     XSD.boolean -> XSDDatatype.XSDboolean
     XSD.int -> XSDDatatype.XSDint
+    XSD.integer -> XSDDatatype.XSDinteger
     XSD.long -> XSDDatatype.XSDlong
     XSD.float -> XSDDatatype.XSDfloat
     XSD.double -> XSDDatatype.XSDdouble
@@ -52,18 +63,24 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
     else -> throw IllegalArgumentException("Unknown type: `$value`")
 }
 
-fun Node.toTerm() = when (this) {
+fun Node.toTerm() : Quad.Element = when (this) {
     is Node_URI -> Quad.NamedTerm(value = uri)
-    is Node_Literal -> Quad.Literal(
-        value = literalValue.toString(),
-        type = literalDatatype.uri.asNamedTerm()
-    )
+    is Node_Literal -> when {
+        literalLanguage.isNotBlank() -> Quad.LangString(
+            value = literalValue.toString(),
+            language = literalLanguage
+        )
+        else -> Quad.Literal(
+            value = literalValue.toString(),
+            type = literalDatatype.uri.asNamedTerm()
+        )
+    }
     is Node_Blank -> Quad.BlankTerm(id = blankNodeLabel.takeLastWhile { it.isDigit() }.toInt())
     else -> throw IllegalArgumentException("Unknown node type `${this::class.simpleName}`")
 }
 
 fun Triple.toQuad() = Quad(
-    s = subject.toTerm(),
-    p = predicate.toTerm() as Quad.NamedTerm,
-    o = `object`.toTerm()
+    s = subject.toTerm() as Quad.Subject,
+    p = predicate.toTerm() as Quad.Predicate,
+    o = `object`.toTerm() as Quad.Object,
 )

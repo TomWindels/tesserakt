@@ -27,7 +27,7 @@ class ReplayBenchmarkReplayer private constructor(private val benchmark: ReplayB
 
     val queries: Array<String> = benchmark.queries.toTypedArray()
 
-    fun forEachSnapshot(callback: (MutableStoreJs, DiffJs) -> Unit) {
+    fun forEachSnapshot(callback: (ObservableStoreJs, DiffJs) -> Unit) {
         benchmark.eval { store, diff ->
             callback(store.toJsMutableStore(), DiffJs(diff))
         }

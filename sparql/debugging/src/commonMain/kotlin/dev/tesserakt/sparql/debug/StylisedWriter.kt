@@ -47,7 +47,7 @@ object StylisedWriter: QueryWriter<String>() {
 
     private fun Token.stringified(): StylisedString = buildStylisedString {
         when (this@stringified) {
-            is Token.Term -> {
+            is Token.Uri -> {
                 add("<$value>", Color.CYAN)
             }
             is Token.PrefixedTerm -> {
@@ -65,10 +65,19 @@ object StylisedWriter: QueryWriter<String>() {
             is Token.StringLiteral -> {
                 add(value, Color.GREEN)
             }
+            is Token.TypedLiteral -> {
+                add("\"$value\"", Color.GREEN)
+                add("^^", Color.WHITE)
+                add(datatype.stringified())
+            }
             is Token.Symbol -> {
                 add(syntax, Color.WHITE)
             }
             is Token.Keyword -> {
+                add(syntax, Color.MAGENTA)
+            }
+            // often represents a keyword-like identifier, so highlighting it as such
+            is Token.Identifier -> {
                 add(syntax, Color.MAGENTA)
             }
             Token.EOF -> { /* not expected to happen */ }

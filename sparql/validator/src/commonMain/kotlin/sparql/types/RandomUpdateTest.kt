@@ -1,10 +1,11 @@
 package sparql.types
 
 import dev.tesserakt.rdf.types.MutableStore
-import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.MutableStore
+import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.OngoingQueryEvaluation
+import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.queryDebug
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
@@ -38,7 +39,7 @@ class RandomUpdateTest(
     }
 
     override suspend fun test() = runTest {
-        val input = MutableStore()
+        val input = ObservableStore()
         val builder = Result.Builder(query = query, store = store, deltas = deltas)
         suspend fun reference(): Pair<Duration, List<Bindings>> {
             val external = ExternalQueryExecution(queryString, input)
@@ -194,7 +195,7 @@ class RandomUpdateTest(
 private fun OutputComparisonTest.Result.summary() =
     "${received.size} received, ${expected.size} expected, ${missing.size} missing, ${leftOver.size} superfluous"
 
-private fun getNextDelta(current: Set<Quad>, source: Set<Quad>, random: Random): DataDelta {
+private fun getNextDelta(current: Store, source: Store, random: Random): DataDelta {
     require(source.isNotEmpty()) { "Empty input data is not allowed!" }
     // biasing the type of delta based on the amount of triples currently present compared to the number of triples
     //  possible: if there aren't any triples currently present, then we guarantee an addition happening now, the

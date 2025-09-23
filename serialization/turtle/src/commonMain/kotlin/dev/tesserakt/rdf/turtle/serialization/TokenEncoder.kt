@@ -30,9 +30,9 @@ internal class TokenEncoder(
 
     // last emitted variables, used to track what sequence should be sent
     // set back to null if it's guaranteed that it has to be resent (i.e. during graph block change)
-    private var s: Quad.Term? = null
-    private var p: Quad.NamedTerm? = null
-    private var o: Quad.Term? = null
+    private var s: Quad.Subject? = null
+    private var p: Quad.Predicate? = null
+    private var o: Quad.Object? = null
 
     private var current: Quad? = if (source.hasNext()) source.next() else null
 
@@ -139,23 +139,21 @@ internal class TokenEncoder(
         current = if (source.hasNext()) source.next() else null
     }
 
-    private fun Quad.Graph.toGraphToken(): TurtleToken = when (this) {
-        is Quad.BlankTerm -> toToken()
-        is Quad.NamedTerm -> toToken()
-        Quad.DefaultGraph -> throw IllegalArgumentException("Default graphs are not explicitly encoded using this encoder!")
+    private fun Quad.Subject.toToken() = when (this) {
+        is Quad.NamedTerm -> TurtleToken.Term(value = value)
+        is Quad.BlankTerm -> TurtleToken.PrefixedTerm(prefix = "_", value = "b$id")
     }
 
-    private fun Quad.Term.toToken(): TurtleToken = when (this) {
-        is Quad.BlankTerm ->
-            TurtleToken.PrefixedTerm(prefix = "_", value = "b$id")
+    private fun Quad.Predicate.toToken() = when (this) {
+        RDF.type -> TurtleToken.Keyword.TypePredicate
+        else /* is Quad.NamedTerm */ -> TurtleToken.Term(value = value)
+    }
 
-        is Quad.Literal ->
-            TurtleToken.LiteralTerm(value = value, type = type.toToken() as TurtleToken.NonLiteralTerm)
-
-        RDF.type -> TurtleToken.Structural.TypePredicate
-
-        is Quad.NamedTerm ->
-            TurtleToken.Term(value = value)
+    private fun Quad.Object.toToken() = when (this) {
+        is Quad.NamedTerm -> TurtleToken.Term(value = value)
+        is Quad.BlankTerm -> TurtleToken.PrefixedTerm(prefix = "_", value = "b$id")
+        is Quad.Literal -> TurtleToken.LiteralTerm(value = value, type = TurtleToken.Term(value = type.value))
+        is Quad.LangString -> TurtleToken.LocalizedLiteralTerm(value = value, language = language)
     }
 
 }

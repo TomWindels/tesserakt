@@ -20,24 +20,24 @@ class RDF internal constructor(
 
         /** Regular triple receiver **/
         fun process(
-            subject: Quad.NamedTerm,
-            predicate: Quad.NamedTerm,
-            `object`: Quad.Term,
+            subject: Quad.Subject,
+            predicate: Quad.Predicate,
+            `object`: Quad.Object,
             graph: Quad.Graph = Quad.DefaultGraph,
         )
 
         /** Blank-node triple receiver **/
         fun process(
             subject: Quad.BlankTerm,
-            predicate: Quad.NamedTerm,
-            `object`: Quad.Term,
+            predicate: Quad.Predicate,
+            `object`: Quad.Object,
             graph: Quad.Graph = Quad.DefaultGraph,
         )
 
         /** A method processing incoming RDF lists, returning a term pointing to that list **/
         // default impl creates blank nodes acting like the list, no optimisation in representation (like turtle)
         //  out of the box
-        fun process(context: dev.tesserakt.rdf.dsl.RDF, list: List): Quad.Term = with(context) {
+        fun process(context: dev.tesserakt.rdf.dsl.RDF, list: List): Quad.Object = with(context) {
             return if (list.data.isEmpty()) {
                 RDF.nil
             } else {
@@ -87,7 +87,7 @@ class RDF internal constructor(
 
     infix fun Quad.BlankTerm.has(predicate: Quad.NamedTerm) = BlankStatement(this, predicate)
 
-    inner class Statement(val _s: Quad.NamedTerm, val _p: Quad.NamedTerm) {
+    inner class Statement(val _s: Quad.Subject, val _p: Quad.Predicate) {
 
         inline infix fun being(literal: Int) = consumer.process(_s, _p, literal.asLiteralTerm())
 
@@ -97,7 +97,7 @@ class RDF internal constructor(
 
         inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteralTerm())
 
-        inline infix fun being(value: Quad.Term) = consumer.process(_s, _p, value)
+        inline infix fun being(value: Quad.Object) = consumer.process(_s, _p, value)
 
         inline infix fun being(blank: Blank) = consumer.process(_s, _p, blank._name)
 
@@ -125,11 +125,11 @@ class RDF internal constructor(
 
     private fun graph(name: Quad.Graph, producer: dev.tesserakt.rdf.dsl.RDF.() -> Unit) {
         RDF(environment, consumer = object: Consumer {
-            override fun process(subject: Quad.NamedTerm, predicate: Quad.NamedTerm, `object`: Quad.Term, graph: Quad.Graph) {
+            override fun process(subject: Quad.Subject, predicate: Quad.Predicate, `object`: Quad.Object, graph: Quad.Graph) {
                 consumer.process(subject, predicate, `object`, name)
             }
 
-            override fun process(subject: Quad.BlankTerm, predicate: Quad.NamedTerm, `object`: Quad.Term, graph: Quad.Graph) {
+            override fun process(subject: Quad.BlankTerm, predicate: Quad.Predicate, `object`: Quad.Object, graph: Quad.Graph) {
                 consumer.process(subject, predicate, `object`, name)
             }
         }).apply(producer)
@@ -145,7 +145,7 @@ class RDF internal constructor(
 
         inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteralTerm())
 
-        inline infix fun being(value: Quad.Term) = consumer.process(_s, _p, value)
+        inline infix fun being(value: Quad.Object) = consumer.process(_s, _p, value)
 
         inline infix fun being(blank: Blank) = consumer.process(_s, _p, blank._name)
 
@@ -178,7 +178,7 @@ class RDF internal constructor(
             consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
         }
 
-        inline infix fun Quad.NamedTerm.being(term: Quad.Term) {
+        inline infix fun Quad.NamedTerm.being(term: Quad.Object) {
             consumer.process(subject = _name, predicate = this, `object`= term)
         }
 
@@ -199,10 +199,10 @@ class RDF internal constructor(
     }
 
     @JvmInline
-    value class List internal constructor(val data: Array<out Quad.Term>)
+    value class List internal constructor(val data: Array<out Quad.Object>)
 
     @JvmInline
-    value class Multiple internal constructor(val data: Array<out Quad.Term>)
+    value class Multiple internal constructor(val data: Array<out Quad.Object>)
 
     inline fun blank(block: Blank.() -> Unit): Quad.BlankTerm {
         return Blank(genBlankNodeId()).apply(block)._name
@@ -210,19 +210,18 @@ class RDF internal constructor(
 
     inline fun genBlankNodeId() = Quad.BlankTerm(_blank_index++)
 
-    fun list(data: Collection<Quad.Term>) = List(data = data.toTypedArray())
+    fun list(data: Collection<Quad.Object>) = List(data = data.toTypedArray())
 
-    fun list(vararg data: Quad.Term) = List(data)
+    fun list(vararg data: Quad.Object) = List(data)
 
-    fun multiple(data: Collection<Quad.Term>) = Multiple(data.toTypedArray())
+    fun multiple(data: Collection<Quad.Object>) = Multiple(data.toTypedArray())
 
-    fun multiple(vararg data: Quad.Term) = Multiple(data)
+    fun multiple(vararg data: Quad.Object) = Multiple(data)
 
     operator fun Iterable<Quad>.unaryPlus() = forEach { quad ->
         when (val s = quad.s) {
             is Quad.BlankTerm -> consumer.process(subject = s, predicate = quad.p, `object` = quad.o, graph = quad.g)
             is Quad.NamedTerm -> consumer.process(subject = s, predicate = quad.p, `object` = quad.o, graph = quad.g)
-            is Quad.Literal -> throw IllegalStateException()
         }
     }
 

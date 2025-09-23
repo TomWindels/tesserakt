@@ -3,10 +3,10 @@ package dev.tesserakt.sparql.compiler.analyser
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.sparql.types.TriplePattern
-import dev.tesserakt.sparql.types.TriplePatternSet
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.newAnonymousBinding
+import dev.tesserakt.sparql.types.TriplePattern
+import dev.tesserakt.sparql.types.TriplePatternSet
 
 class PatternProcessor: Analyser<TriplePatternSet>() {
 
@@ -60,7 +60,7 @@ class PatternProcessor: Analyser<TriplePatternSet>() {
                 consume()
                 processStartingFromPatternSubject()
             }
-            is Token.Term,
+            is Token.Uri,
             is Token.PrefixedTerm,
             is Token.NumericLiteral,
             is Token.StringLiteral,
@@ -136,17 +136,14 @@ class PatternProcessor: Analyser<TriplePatternSet>() {
 
     private fun Token.asPatternElement(): TriplePattern.Element? = when (this) {
         is Token.Binding -> TriplePattern.NamedBinding(this.name)
-        is Token.Term -> TriplePattern.Exact(Quad.NamedTerm(value = value))
-        is Token.PrefixedTerm -> TriplePattern.Exact(Quad.NamedTerm(value = resolve()))
+        is Token.Uri -> TriplePattern.Exact(Quad.NamedTerm(value = value))
+        is Token.PrefixedTerm -> TriplePattern.Exact(resolve())
         is Token.StringLiteral -> TriplePattern.Exact(value.asLiteralTerm())
         is Token.NumericLiteral -> TriplePattern.Exact(value.asLiteralTerm())
         Token.Keyword.RdfTypePredicate -> TriplePattern.Exact(RDF.type)
+        Token.Keyword.True -> TriplePattern.Exact(true.asLiteralTerm())
+        Token.Keyword.False -> TriplePattern.Exact(false.asLiteralTerm())
         else -> null
-    }
-
-    private fun Token.PrefixedTerm.resolve(): String {
-        val uri = prefixes[namespace] ?: bail("Unknown prefix: `$namespace`")
-        return uri + value
     }
 
 }

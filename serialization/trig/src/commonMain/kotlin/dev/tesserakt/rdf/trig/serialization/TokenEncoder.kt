@@ -34,9 +34,9 @@ internal class TokenEncoder(
 
     // last emitted variables, used to track what sequence should be sent
     // set back to null if it's guaranteed that it has to be resent (i.e. during graph block change)
-    private var s: Quad.Term? = null
-    private var p: Quad.NamedTerm? = null
-    private var o: Quad.Term? = null
+    private var s: Quad.Subject? = null
+    private var p: Quad.Predicate? = null
+    private var o: Quad.Object? = null
 
     private var current: Quad? = if (source.hasNext()) source.next() else null
 
@@ -185,23 +185,27 @@ internal class TokenEncoder(
         current = if (source.hasNext()) source.next() else null
     }
 
-    private fun Quad.Graph.toGraphToken(): TriGToken = when (this) {
-        is Quad.BlankTerm -> toToken()
-        is Quad.NamedTerm -> toToken()
-        Quad.DefaultGraph -> throw IllegalArgumentException("Default graphs are not explicitly encoded using this encoder!")
+    private fun Quad.Subject.toToken() = when (this) {
+        is Quad.NamedTerm -> TriGToken.Term(value = value)
+        is Quad.BlankTerm -> TriGToken.PrefixedTerm(prefix = "_", value = "b$id")
     }
 
-    private fun Quad.Term.toToken(): TriGToken = when (this) {
-        is Quad.BlankTerm ->
-            TriGToken.PrefixedTerm(prefix = "_", value = "b$id")
+    private fun Quad.Predicate.toToken() = when (this) {
+        RDF.type -> TriGToken.Keyword.TypePredicate
+        else /* is Quad.NamedTerm */ -> TriGToken.Term(value = value)
+    }
 
-        is Quad.Literal ->
-            TriGToken.LiteralTerm(value = value, type = type.toToken() as TriGToken.NonLiteralTerm)
+    private fun Quad.Object.toToken() = when (this) {
+        is Quad.NamedTerm -> TriGToken.Term(value = value)
+        is Quad.BlankTerm -> TriGToken.PrefixedTerm(prefix = "_", value = "b$id")
+        is Quad.Literal -> TriGToken.LiteralTerm(value = value, type = TriGToken.Term(value = type.value))
+        is Quad.LangString -> TriGToken.LocalizedLiteralTerm(value = value, language = language)
+    }
 
-        RDF.type -> TriGToken.Structural.TypePredicate
-
-        is Quad.NamedTerm ->
-            TriGToken.Term(value = value)
+    private fun Quad.Graph.toGraphToken(): TriGToken = when (this) {
+        is Quad.NamedTerm -> TriGToken.Term(value = value)
+        is Quad.BlankTerm -> TriGToken.PrefixedTerm(prefix = "_", value = "b$id")
+        Quad.DefaultGraph -> throw IllegalArgumentException("Default graphs are not explicitly encoded using this encoder!")
     }
 
 }

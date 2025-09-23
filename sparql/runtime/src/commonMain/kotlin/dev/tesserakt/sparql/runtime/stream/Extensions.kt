@@ -1,8 +1,8 @@
 package dev.tesserakt.sparql.runtime.stream
 
 import dev.tesserakt.sparql.runtime.collection.MappingArray
-import dev.tesserakt.sparql.runtime.evaluation.Mapping
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.ZeroCardinality
@@ -249,6 +249,14 @@ inline fun <E : Any> Stream<E>.filtered(noinline predicate: (E) -> Boolean): Str
 
 inline fun <E : Any> Stream<E>.collect(): CollectedStream<E> =
     if (this is CollectedStream) this else CollectedStream(this)
+
+/**
+ * Caches this stream into the target [stream], appending elements
+ */
+inline fun <E : Any> Stream<E>.collectTo(stream: CachedStream<E>): OptimisedStream<E> {
+    stream.insert(this)
+    return stream
+}
 
 fun <E : Any> Stream<E>.optimisedForReuse(): OptimisedStream<E> = when {
     hasZeroCardinality() -> emptyStream()

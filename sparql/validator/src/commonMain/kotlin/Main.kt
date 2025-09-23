@@ -17,6 +17,8 @@ suspend fun run(args: Array<String>) {
                 builtinTests()
                     .test(QueryExecutionTestValues::toIncrementalUpdateTest),
                 builtinTests()
+                    .test(QueryExecutionTestValues::toIncrementalDeferredUpdateTest),
+                builtinTests()
                     .test(QueryExecutionTestValues::toRandomUpdateTest),
             ).map { it.run() }
             results.forEach { it.report() }

@@ -3,10 +3,12 @@ package dev.tesserakt.sparql.benchmark.replay
 import dev.tesserakt.rdf.dsl.insert
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.MutableStore
 
 class ReplayBenchmark(
     private val identifier: Quad.NamedTerm,
@@ -32,7 +34,7 @@ class ReplayBenchmark(
         check(!diffs.hasNext())
     }
 
-    fun toStore(target: Store = Store()): Store = target.insert {
+    fun toStore(target: MutableStore = MutableStore()): MutableStore = target.insert {
         identifier has type being RBO.ReplayBenchmark
         identifier has RBO.usesQuery being multiple(queries.map { it.toCleanedUpQuery().asLiteralTerm() })
         identifier has RBO.usesDataset being store.identifier
@@ -54,11 +56,11 @@ class ReplayBenchmark(
             }
         }
 
-        private fun extractBenchmarkIdentifierOrBail(term: Quad.Term): Quad.NamedTerm {
+        private fun extractBenchmarkIdentifierOrBail(term: Quad.Element): Quad.NamedTerm {
             return term as? Quad.NamedTerm ?: throw IllegalStateException("$term is not a valid benchmark identifier!")
         }
 
-        private fun extractQueryOrBail(term: Quad.Term): String {
+        private fun extractQueryOrBail(term: Quad.Element): String {
             check(term is Quad.Literal && term.type == XSD.string)
             return term.value
         }

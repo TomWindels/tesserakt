@@ -14,16 +14,16 @@ val TriplePattern.Object.bindingName: String?
 val TriplePattern.Predicate.bindingName: String?
     get() = (this as? TriplePattern.Binding)?.name
 
-fun TriplePattern.Subject.matches(term: Quad.Term): Boolean =
+fun TriplePattern.Subject.matches(term: Quad.Element): Boolean =
     (this !is TriplePattern.Exact || this.term == term)
 
-fun TriplePattern.Object.matches(term: Quad.Term): Boolean =
+fun TriplePattern.Object.matches(term: Quad.Element): Boolean =
     (this !is TriplePattern.Exact || this.term == term)
 
-fun TriplePattern.Exact.matches(term: Quad.Term): Boolean =
+fun TriplePattern.Exact.matches(term: Quad.Element): Boolean =
     term == this.term
 
-fun TriplePattern.Predicate.matches(term: Quad.Term): Boolean = when (this) {
+fun TriplePattern.Predicate.matches(term: Quad.Predicate): Boolean = when (this) {
     /* all of these contain a binding, so automatically, it matches any term */
     is TriplePattern.NamedBinding -> true
     is TriplePattern.Alts -> true

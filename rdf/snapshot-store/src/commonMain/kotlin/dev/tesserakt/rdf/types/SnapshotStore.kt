@@ -1,14 +1,18 @@
 package dev.tesserakt.rdf.types
 
 import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.types.factory.MutableStore
+import dev.tesserakt.rdf.types.factory.storeOf
+import dev.tesserakt.stream.ldes.IndexedVersionedLinkedDataEventStream
+import dev.tesserakt.stream.ldes.MutableVersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.StreamTransform
-import dev.tesserakt.stream.ldes.VersionedLinkedDataEventStream
+import dev.tesserakt.stream.ldes.toReadOnlyIndexedStream
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.minutes
 
 class SnapshotStore private constructor(
-    private val stream: VersionedLinkedDataEventStream<Set<Quad>>
+    private val stream: IndexedVersionedLinkedDataEventStream<Store>
 ) {
 
     data class Diff(
@@ -52,7 +56,7 @@ class SnapshotStore private constructor(
     }
 
     class Builder(
-        start: Store = Store(),
+        start: Store = storeOf(),
         private val clustering: SnapshotClustering = NaiveSnapshotClustering
     ) {
 
@@ -67,7 +71,7 @@ class SnapshotStore private constructor(
 
         fun build(identifier: Quad.NamedTerm): SnapshotStore {
             // constructing the base LDES, with no base data inserted
-            val stream = VersionedLinkedDataEventStream.initialise(
+            val stream = MutableVersionedLinkedDataEventStream.initialise(
                 identifier = identifier,
                 transform = StreamTransform.GraphBased
             )
@@ -77,7 +81,7 @@ class SnapshotStore private constructor(
             //  tag (starting from nearest minute)
             val date = Instant.fromEpochSeconds(Clock.System.now().epochSeconds / 60 * 60)
             // keeping track of the previous version; as none are initially encoded, the very first version is empty
-            var previous = emptyMap<SnapshotCluster, Set<Quad>>()
+            var previous = emptyMap<SnapshotCluster, Store>()
             // now encoding all cluster changes
             snapshots.forEachIndexed { i, store ->
                 val timestamp = Quad.Literal(
@@ -97,12 +101,12 @@ class SnapshotStore private constructor(
                 }
                 previous = current
             }
-            return SnapshotStore(stream = stream)
+            return SnapshotStore(stream = stream.toReadOnlyIndexedStream())
         }
 
     }
 
-    constructor(store: Store): this(VersionedLinkedDataEventStream.from(store, transform = StreamTransform.GraphBased))
+    constructor(store: Store): this(IndexedVersionedLinkedDataEventStream.from(store, transform = StreamTransform.GraphBased))
 
     val identifier: Quad.NamedTerm get() = stream.identifier
 
@@ -148,8 +152,8 @@ class SnapshotStore private constructor(
         }
     }
 
-    fun toStore(target: Store = Store()): Store {
-        target.addAll(stream.toStore())
+    fun toStore(target: MutableStore = MutableStore()): MutableStore {
+        target.addAll(stream)
         return target
     }
 

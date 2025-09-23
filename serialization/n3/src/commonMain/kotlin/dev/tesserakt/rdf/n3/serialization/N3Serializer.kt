@@ -54,15 +54,21 @@ object N3Serializer {
                 }
         }
 
-        private fun dev.tesserakt.rdf.types.Quad.Term.tokenized(): N3Token = when (this) {
+        private fun dev.tesserakt.rdf.types.Quad.Element.tokenized(): N3Token = when (this) {
             is dev.tesserakt.rdf.types.Quad.BlankTerm ->
                 N3Token.PrefixedTerm(prefix = "_", value = "b$id")
 
             is dev.tesserakt.rdf.types.Quad.Literal ->
                 N3Token.LiteralTerm(value = value, type = type.tokenized() as N3Token.NonLiteralTerm)
 
+            is dev.tesserakt.rdf.types.Quad.LangString ->
+                // FIXME
+                N3Token.LiteralTerm(value = value, type = type.tokenized() as N3Token.NonLiteralTerm)
+
             is dev.tesserakt.rdf.types.Quad.NamedTerm ->
                 N3Token.Term(value = value)
+
+            dev.tesserakt.rdf.types.Quad.DefaultGraph -> TODO()
         }
 
     }

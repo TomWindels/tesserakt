@@ -54,7 +54,7 @@ data class TriplePattern(
     }
 
     @JvmInline
-    value class Exact(val term: Quad.Term) : Subject, UnboundPredicate, StatelessPredicate, Object {
+    value class Exact(val term: Quad.Element) : Subject, UnboundPredicate, StatelessPredicate, Object {
         override fun toString() = term.toString()
     }
 

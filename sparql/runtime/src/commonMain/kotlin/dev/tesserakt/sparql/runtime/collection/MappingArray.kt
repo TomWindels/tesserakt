@@ -1,14 +1,17 @@
 package dev.tesserakt.sparql.runtime.collection
 
-import dev.tesserakt.sparql.runtime.evaluation.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.util.Cardinality
 
 interface MappingArray {
 
-    val mappings: List<Mapping>
-
     val cardinality: Cardinality
+
+    /**
+     * Returns an [OptimisedStream] of [Mapping]s that are present inside this structure
+     */
+    fun iter(): OptimisedStream<Mapping>
 
     /**
      * Returns an [OptimisedStream] of [Mapping]s that are likely (but not guaranteed to be!) compatible with

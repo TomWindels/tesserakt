@@ -3,12 +3,21 @@ package dev.tesserakt.rdf.trig.serialization
 import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.trig.serialization.TRiGConfig.PrettyFormatterConf
+import dev.tesserakt.rdf.types.Quad
 
 
 @TrigSerializerDsl
 fun trig(builder: TRiGConfig.() -> Unit): TriGSerializer {
     val config = TRiGConfig().apply(builder)
     return TriGSerializer(config = config)
+}
+
+inline fun TRiGConfig.setBase(iri: String) {
+    base = iri
+}
+
+inline fun TRiGConfig.setBase(term: Quad.NamedTerm) {
+    setBase(iri = term.value)
 }
 
 inline fun TRiGConfig.usePrettyFormatting(block: PrettyFormatterConf.() -> Unit = {}) {

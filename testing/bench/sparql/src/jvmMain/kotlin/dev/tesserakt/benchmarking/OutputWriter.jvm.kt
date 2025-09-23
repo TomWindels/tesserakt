@@ -1,20 +1,17 @@
 package dev.tesserakt.benchmarking
 
+import dev.tesserakt.benchmarking.execution.Evaluation
 import java.io.File
 
-private val version by lazy {
-    CommandExecutor.run("git rev-parse HEAD")
-}
-
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(config: RunnerConfig): AutoCloseable {
+actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoCloseable {
 
     private val memoryObserver: MemoryObserver
     private val timeObserver: TimeObserver
     private val outputObserver: OutputObserver
 
     init {
-        val directory = config.outputDirPath
+        val directory = evaluation.outputDirPath
         check(directory.endsWith('/'))
         val root = File(directory)
         root.mkdirs()
@@ -26,7 +23,6 @@ actual class OutputWriter actual constructor(config: RunnerConfig): AutoCloseabl
         memoryObserver = MemoryObserver(directory + "memory.csv")
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-        File(directory + "metadata").writeText("version: $version\ninput: ${config.inputFilePath}\nevaluator: ${config.evaluatorName}")
     }
 
     /**

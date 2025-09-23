@@ -36,3 +36,18 @@ tasks.withType(KotlinJvmCompile::class.java).configureEach {
     // src: https://jakewharton.com/kotlins-jdk-release-compatibility-flag/
     compilerOptions.freeCompilerArgs.add("-Xjdk-release=1.8")
 }
+
+tasks.withType(Jar::class.java) {
+    archiveBaseName.set(getBaseName())
+}
+
+fun getBaseName(): String {
+    var name = project.name.replace("-", "_")
+    var parent = project.parent?.takeIf { it != project.rootProject }
+    while (parent != null) {
+        val current = parent.name.replace("-", "_")
+        name = "$current-$name"
+        parent = parent.parent?.takeIf { it != project.rootProject }
+    }
+    return name
+}

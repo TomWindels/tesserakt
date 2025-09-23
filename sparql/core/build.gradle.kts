@@ -12,5 +12,10 @@ kotlin {
                 api(project(":sparql:common"))
             }
         }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
     }
 }

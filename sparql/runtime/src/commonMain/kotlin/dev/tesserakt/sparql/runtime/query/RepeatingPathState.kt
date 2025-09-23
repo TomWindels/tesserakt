@@ -3,7 +3,12 @@ package dev.tesserakt.sparql.runtime.query
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.newAnonymousBinding
 import dev.tesserakt.sparql.runtime.collection.MappingArray
-import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.evaluation.DataAddition
+import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
+import dev.tesserakt.sparql.runtime.evaluation.DataDelta
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.matches
@@ -19,7 +24,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         // all terms that have been discovered (count of "zero-length" segments)
-        private val terms = Counter<Quad.Term>()
+        private val terms = Counter<Quad.Element>()
         private val segments = SegmentsList()
         private val arr = MappingArray(context, start.name, end.name)
 
@@ -111,7 +116,7 @@ sealed class RepeatingPathState {
 
         private val segments = SegmentsList()
         // all terms that have been discovered (count of "zero-length" segments)
-        private val terms = Counter<Quad.Term>()
+        private val terms = Counter<Quad.Element>()
         private val arr = MappingArray(context, start.name, end.name)
         private val inner = TriplePatternState.from(context, start, inner, end)
 
@@ -610,7 +615,7 @@ sealed class RepeatingPathState {
                 val new = segments.newPathsOnAdding(segment)
                 // checking if any valid path has been reached
                 if (new.any { it.start == start.term && it.end == end.term }) {
-                    return streamOf(emptyMapping())
+                    return streamOf(context.emptyMapping())
                 }
             }
             return emptyStream()
@@ -632,7 +637,7 @@ sealed class RepeatingPathState {
                 val remaining = segments.remainingPathsOnRemoving(segment)
                 // checking if any valid path remains
                 if (remaining.none { it.start == start.term && it.end == end.term }) {
-                    return streamOf(emptyMapping())
+                    return streamOf(context.emptyMapping())
                 }
             }
             return emptyStream()
@@ -728,7 +733,7 @@ sealed class RepeatingPathState {
                     )
                 }
             if (segments.newPathsOnAdding(added).any { it.start == start.term && it.end == end.term }) {
-                return streamOf(emptyMapping())
+                return streamOf(context.emptyMapping())
             }
             return emptyStream()
         }
@@ -754,7 +759,7 @@ sealed class RepeatingPathState {
                     .remainingPathsOnRemoving(removed)
                     .none { it.start == start.term && it.end == end.term }
             ) {
-                return streamOf(emptyMapping())
+                return streamOf(context.emptyMapping())
             }
             return emptyStream()
         }
@@ -963,7 +968,7 @@ sealed class RepeatingPathState {
         // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
         //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
         //  (inner repeating paths may return too many results due to the bridge binding)
-        private val reached = mutableSetOf<Quad.Term>()
+        private val reached = mutableSetOf<Quad.Element>()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -993,11 +998,11 @@ sealed class RepeatingPathState {
             TODO("Not yet implemented")
         }
 
-        private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
+        private fun peekNewlyReachable(quad: Quad): Set<Quad.Element> {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Quad.Term>()
+            val result = mutableSetOf<Quad.Element>()
             segments.newPathsOnAdding(new)
                 .forEach {
                     if (it.end != end.term) {
@@ -1104,7 +1109,7 @@ sealed class RepeatingPathState {
         // all terms that were reached thus far (= new paths where end == exact end), kept track of separately as the
         //  use of the bridge binding makes the path state of the segment list unreliable w/o extra checking
         //  (inner repeating paths may return too many results due to the bridge binding)
-        private val reached = mutableSetOf<Quad.Term>()
+        private val reached = mutableSetOf<Quad.Element>()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -1134,11 +1139,11 @@ sealed class RepeatingPathState {
             TODO("Not yet implemented")
         }
 
-        private fun peekNewlyReachable(quad: Quad): Set<Quad.Term> {
+        private fun peekNewlyReachable(quad: Quad): Set<Quad.Element> {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Quad.Term>()
+            val result = mutableSetOf<Quad.Element>()
             segments.newPathsOnAdding(new)
                 .forEach {
                     if (it.start != start.term) {
@@ -1197,7 +1202,7 @@ sealed class RepeatingPathState {
         override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             return if (!satisfied && inner.matches(quad.p)) {
-                streamOf(emptyMapping())
+                streamOf(context.emptyMapping())
             } else {
                 emptyStream()
             }
@@ -1275,7 +1280,7 @@ sealed class RepeatingPathState {
                         )
                     }
                 if (segments.newPathsOnAdding(new).any { it.start == start.term && it.end == end.term }) {
-                    return streamOf(emptyMapping())
+                    return streamOf(context.emptyMapping())
                 }
             }
             return emptyStream()

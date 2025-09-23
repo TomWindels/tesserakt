@@ -18,13 +18,15 @@ class JenaReference(private val query: String) : Reference() {
 
     private var checksum = 0
 
-    override fun prepare(diff: SnapshotStore.Diff) {
+    override suspend fun prepare(diff: SnapshotStore.Diff) {
         store.begin(ReadWrite.WRITE)
         try {
             val graph = store.asDatasetGraph()
-            diff.deletions.forEach { graph.delete(it.toJenaQuad()) }
             diff.insertions.forEach { graph.add(it.toJenaQuad()) }
+            diff.deletions.forEach { graph.delete(it.toJenaQuad()) }
             store.commit()
+        } catch(e: Exception) {
+            e.printStackTrace()
         } finally {
             store.end()
         }
@@ -42,7 +44,7 @@ class JenaReference(private val query: String) : Reference() {
                     checksum += when (val variable = solution[it].asNode()) {
                         is Node_URI -> variable.uri.length
                         is Node_Literal -> variable.literalValue.toString().length
-                        is Node_Blank -> variable.blankNodeLabel.length
+                        is Node_Blank -> 1
                         else -> throw IllegalArgumentException("Unknown node type `${this::class.simpleName}`")
                     }
                 }

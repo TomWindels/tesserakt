@@ -65,7 +65,7 @@ class N3Context internal constructor(
 
     infix fun Quad.Term.has(predicate: Quad.Term) = Statement(this, predicate)
 
-    infix fun Quad.Term.has(predicate: RdfQuad.Term) = Statement(this, predicate.toN3Term())
+    infix fun Quad.Term.has(predicate: RdfQuad.Element) = Statement(this, predicate.toN3Term())
 
     inner class Statement(val _s: Quad.Term, val _p: Quad.Term) {
 

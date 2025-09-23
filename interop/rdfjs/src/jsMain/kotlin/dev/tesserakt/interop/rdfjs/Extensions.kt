@@ -1,8 +1,10 @@
 package dev.tesserakt.interop.rdfjs
 
 import dev.tesserakt.interop.rdfjs.n3.*
+import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.MutableStore
 
 fun Collection<Quad>.toN3Store(): N3Store {
     val result = N3Store()
@@ -17,25 +19,34 @@ fun Quad.toN3Triple() = N3Quad(
     graph = g.toN3GraphTerm(),
 )
 
-fun Quad.Term.toN3Term() = when (this) {
+fun Quad.Element.toN3Term() = when (this) {
     is Quad.NamedTerm -> createN3NamedNode(value)
-    is Quad.Literal -> createN3Literal(value, createN3NamedNode(type.value))
-    is Quad.BlankTerm -> createN3NamedNode("_:b_$id")
+    is Quad.Literal -> createN3Literal(value, createN3MappedLiteralDType(type))
+    is Quad.LangString -> createN3Literal(value, language)
+    is Quad.BlankTerm -> createN3BlankNode("_:b_$id")
+    Quad.DefaultGraph -> DefaultN3Graph
+}
+
+fun createN3MappedLiteralDType(term: Quad.NamedTerm): N3NamedNode {
+    return when (term) {
+        XSD.int, XSD.integer -> createN3NamedNode(XSD.integer.value)
+        else -> createN3NamedNode(term.value)
+    }
 }
 
 private val DefaultN3Graph = object: N3Term {
     override val termType: String = "DefaultGraph"
-    override val value: String = "DefaultGraph"
+    override val value: String = ""
 }
 
 fun Quad.Graph.toN3GraphTerm() = when (this) {
     is Quad.NamedTerm -> createN3NamedNode(value)
-    is Quad.BlankTerm -> createN3NamedNode("_:b_$id")
+    is Quad.BlankTerm -> createN3BlankNode("_:b_$id")
     Quad.DefaultGraph -> DefaultN3Graph
 }
 
 fun N3Store.toStore(): Store {
-    val result = Store()
+    val result = MutableStore()
     forEach(callback = { quad ->
         result.add(quad.toQuad())
     })
@@ -43,13 +54,17 @@ fun N3Store.toStore(): Store {
 }
 
 fun N3Quad.toQuad() = Quad(
-    s = subject.toTerm(),
-    p = predicate.toTerm() as Quad.NamedTerm,
-    o = `object`.toTerm(),
+    s = subject.toTerm().jsCastOrBail(),
+    p = predicate.toTerm().jsCastOrBail(),
+    o = `object`.toTerm().jsCastOrBail(),
     g = graph.toGraphTerm()
 )
 
-fun N3Term.toTerm(): Quad.Term = when (termType) {
+private inline fun <reified T> Any.jsCastOrBail(): T {
+    return this as? T ?: throw Error("Invalid type: ${this::class.simpleName}\nExpected ${T::class.simpleName}")
+}
+
+fun N3Term.toTerm(): Quad.Element = when (termType) {
     "NamedNode" -> unsafeCast<N3NamedNode>().toTerm()
 
     "Literal" -> unsafeCast<N3Literal>().toTerm()
@@ -63,7 +78,10 @@ fun N3Term.toTerm(): Quad.Term = when (termType) {
 
 fun N3NamedNode.toTerm() = Quad.NamedTerm(value = value)
 
-fun N3Literal.toTerm() = Quad.Literal(value = value, type = datatype.toTerm())
+fun N3Literal.toTerm() = when {
+    language.isNotBlank() -> Quad.LangString(value = value, language = language)
+    else -> Quad.Literal(value = value, type = datatype.toTerm())
+}
 
 fun N3BlankNode.toTerm() = Quad.BlankTerm(id = value.takeLastWhile { it.isDigit() }.toInt())
 

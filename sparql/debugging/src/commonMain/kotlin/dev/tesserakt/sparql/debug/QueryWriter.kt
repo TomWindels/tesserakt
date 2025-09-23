@@ -52,7 +52,9 @@ abstract class QueryWriter<RT> {
             is Token.PrefixedTerm -> "$namespace:$value"
             is Token.BlankTerm -> "_:$value"
             is Token.StringLiteral -> value
-            is Token.Term -> "<$value>"
+            is Token.TypedLiteral -> "\"$value\"^^${datatype.stringified()}"
+            is Token.Identifier -> value.uppercase()
+            is Token.Uri -> "<$value>"
             is Token.Symbol -> syntax
             is Token.Keyword -> syntax
             Token.EOF -> "" // not expected to happen
@@ -83,9 +85,11 @@ abstract class QueryWriter<RT> {
                 add(Token.Binding(element.name))
 
             is TriplePattern.Exact -> when (element.term) {
+                is Quad.Literal -> add(Token.StringLiteral(element.term.value)) // FIXME - no datatype
+                is Quad.LangString -> add(Token.StringLiteral(element.term.value)) // FIXME - no language tag
+                is Quad.NamedTerm -> add(Token.Uri(element.term.value))
                 is Quad.BlankTerm -> throw UnsupportedOperationException()
-                is Quad.Literal -> add(Token.StringLiteral(element.term.value))
-                is Quad.NamedTerm -> add(Token.Term(element.term.value))
+                Quad.DefaultGraph -> throw UnsupportedOperationException()
             }
 
             is TriplePattern.Alts -> {
@@ -316,19 +320,6 @@ abstract class QueryWriter<RT> {
                 add(Token.Keyword.Filter)
                 add(Token.Symbol.RoundBracketStart)
                 process(element.expression)
-                add(Token.Symbol.RoundBracketEnd)
-            }
-
-            is Filter.Regex -> {
-                newline()
-                add(Token.Keyword.Filter)
-                add(Token.Keyword.Regex)
-                add(Token.Symbol.RoundBracketStart)
-                add(element.input.toToken())
-                add(Token.Symbol.Comma)
-                add(Token.StringLiteral(element.regex))
-                add(Token.Symbol.Comma)
-                add(Token.StringLiteral(element.mode))
                 add(Token.Symbol.RoundBracketEnd)
             }
 

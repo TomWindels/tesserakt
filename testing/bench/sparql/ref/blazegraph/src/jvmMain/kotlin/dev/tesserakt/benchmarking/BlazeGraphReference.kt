@@ -21,7 +21,7 @@ class BlazeGraphReference(private val query: String) : Reference() {
 
     private var checksum = 0
 
-    override fun prepare(diff: SnapshotStore.Diff) {
+    override suspend fun prepare(diff: SnapshotStore.Diff) {
         val conn = repo.connection
         conn.begin()
         try {
@@ -67,7 +67,7 @@ class BlazeGraphReference(private val query: String) : Reference() {
         return result
     }
 
-    override fun close() {
+    override suspend fun close() {
         val conn = repo.connection
         conn.begin()
         conn.clear()
@@ -114,23 +114,29 @@ private fun Quad.toStatement(): StatementImpl {
     )
 }
 
-private fun Quad.Term.toStatementSubject(): Resource = when (this) {
+private fun Quad.Element.toStatementSubject(): Resource = when (this) {
     is Quad.BlankTerm -> toBNode()
     is Quad.Literal -> throw IllegalArgumentException("`${this}` is not a valid subject!")
+    is Quad.LangString -> throw IllegalArgumentException("`${this}` is not a valid subject!")
     is Quad.NamedTerm -> toURI()
+    Quad.DefaultGraph -> throw IllegalArgumentException("`${this}` is not a valid subject!")
 }
 
-private fun Quad.Term.toStatementPredicate(): URIImpl = when (this) {
+private fun Quad.Element.toStatementPredicate(): URIImpl = when (this) {
     is Quad.NamedTerm -> toURI()
 
+    Quad.DefaultGraph,
     is Quad.Literal,
+    is Quad.LangString,
     is Quad.BlankTerm -> throw IllegalArgumentException("`${this}` is not a valid predicate!")
 }
 
-private fun Quad.Term.toStatementObject(): Value = when (this) {
+private fun Quad.Element.toStatementObject(): Value = when (this) {
     is Quad.BlankTerm -> toBNode()
     is Quad.Literal -> LiteralImpl(value, type.toURI())
+    is Quad.LangString -> LiteralImpl(value, language)
     is Quad.NamedTerm -> toURI()
+    Quad.DefaultGraph -> throw IllegalArgumentException("`${this}` is not a valid object!")
 }
 
 private fun Quad.NamedTerm.toURI(): URIImpl = URIImpl(value)
@@ -141,7 +147,7 @@ private fun Quad.BlankTerm.toBNode(): BNodeImpl {
 
 private val Value.checksumValue: Int
     get() = when (this) {
-        is BNode -> id.count { it.isDigit() }
+        is BNode -> 1
         is URI -> stringValue().length
         is Literal -> stringValue().length
         else -> throw IllegalArgumentException("Unknown value type ${this::class.simpleName}")
