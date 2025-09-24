@@ -1,6 +1,8 @@
 package dev.tesserakt.benchmarking.execution
 
 import dev.tesserakt.benchmarking.OutputWriter
+import dev.tesserakt.benchmarking.execution.growing.GrowingRunner
+import dev.tesserakt.benchmarking.execution.growing.GrowingRunnerEvaluation
 import dev.tesserakt.benchmarking.execution.regular.RegularRunner
 import dev.tesserakt.benchmarking.execution.regular.RegularRunnerEvaluation
 import dev.tesserakt.benchmarking.execution.replay.ReplayRunner
@@ -35,6 +37,7 @@ class BenchmarkRunnerHost(
                 return when (evaluation) {
                     is RegularRunnerEvaluation -> RegularRunner(evaluation)
                     is ReplayRunnerEvaluation -> ReplayRunner(evaluation)
+                    is GrowingRunnerEvaluation -> GrowingRunner(evaluation)
                     else -> throw RuntimeException("Unknown evaluation type: `${evaluation::class.simpleName}`")
                 }
             }

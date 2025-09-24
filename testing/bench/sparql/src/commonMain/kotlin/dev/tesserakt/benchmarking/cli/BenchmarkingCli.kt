@@ -13,6 +13,8 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import dev.tesserakt.benchmarking.*
 import dev.tesserakt.benchmarking.execution.BenchmarkRunnerHost
+import dev.tesserakt.benchmarking.execution.growing.GrowingEndpointConfig
+import dev.tesserakt.benchmarking.execution.growing.GrowingRunnerConfig
 import dev.tesserakt.benchmarking.execution.regular.RegularEndpointConfig
 import dev.tesserakt.benchmarking.execution.regular.RegularRunnerConfig
 import dev.tesserakt.benchmarking.execution.replay.ReplayEndpointConfig
@@ -24,6 +26,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
     override fun aliases(): Map<String, List<String>> = mapOf(
         "q" to listOf("query"),
         "r" to listOf("replay"),
+        "g" to listOf("growing"),
     )
 
     // can't use the no-op variant as that doesn't support the use of `suspend`ing variants down
@@ -211,6 +214,66 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
 
     }
 
+    class Growing: SuspendingCliktCommand("growing") {
+
+        private val common by CommonSettings()
+        private val platformOptions by PlatformOptions()
+
+        private val input: List<String> by option(
+                "--input", "-i",
+                help = "Select the various insertion files to use (will be evaluated in order)",
+                completionCandidates = CompletionCandidates.Path,
+            )
+            .multiple(required = true)
+
+        private val query: Set<String> by option(
+            "--query", "-q",
+            help = "Query to evaluate",
+        )
+            .convert { if (it.startsWith('@')) it.substring(1).readFile() else it }
+            .multiple(required = true)
+            .unique()
+
+        override fun help(context: Context): String {
+            return "Benchmark the performance when evaluating a specific query over a growing dataset"
+        }
+
+        override suspend fun run() {
+            common.validate()
+            platformOptions.apply()
+            val evaluatorIds  = if (EvaluatorId.Named("all") in common.implementations) {
+                references.keys + SELF_IMPL
+            } else {
+                common.implementations.map { if (it.name == "tesserakt") SELF_IMPL else it }
+            }
+            // creating all configs up-front
+            val localConfigs = evaluatorIds.map { evaluatorId ->
+                GrowingRunnerConfig(
+                    queries = query,
+                    insertionFilePaths = input,
+                    outputDirPath = common.output,
+                    evaluatorId = evaluatorId,
+                )
+            }
+            val endpointConfigs = common.endpoints.filterIsInstance<EvaluatorId.Endpoint.Mutable>().map { endpoint ->
+                GrowingEndpointConfig(
+                    queries = query,
+                    insertionFilePaths = input,
+                    outputDirPath = common.output,
+                    endpoint = endpoint,
+                )
+            }
+            // then mapping these to the various evaluations we can actually evaluate
+            val host = BenchmarkRunnerHost(
+                executions = common.runs,
+                evaluations = localConfigs.flatMap { it.toRunnerEvaluations() } + endpointConfigs.flatMap { it.toRunnerEvaluations() },
+            )
+            println("Executing ${host.evaluations.size} evaluation(s) [x${host.executions}]")
+            host.run()
+        }
+
+    }
+
 }
 
 private val URL = Regex("https?://.*")
@@ -219,5 +282,6 @@ suspend fun runMain(args: Array<String>) = BenchmarkingCli()
     .subcommands(
         BenchmarkingCli.Query(),
         BenchmarkingCli.Replay(),
+        BenchmarkingCli.Growing(),
     )
     .main(args)
