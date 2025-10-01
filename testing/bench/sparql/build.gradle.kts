@@ -1,3 +1,4 @@
+
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 
 plugins {
@@ -25,40 +26,31 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
+                implementation(project(":utils"))
+                implementation(project(":sparql"))
+                implementation(project(":testing:tooling:replay-benchmark"))
                 // to deserialize and evaluate datasets
                 implementation(project(":utils"))
                 implementation(project(":serialization:trig"))
-                // being able to actually execute the queries
-                implementation(project(":testing:bench:sparql:core"))
-                implementation(project(":testing:bench:sparql:endpoint"))
                 // necessary to properly launch the coroutines associated with the execution
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
                 // CLI implementation
                 implementation("com.github.ajalt.clikt:clikt:5.0.1")
+                // required for the actual endpoint client implementation
+                implementation(project(":sparql:endpoint:ktor:client"))
+                implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
             }
         }
         val jvmMain by getting {
             dependencies {
-                // required to get references from child implementors at runtime
-                implementation(kotlin("reflect"))
-                // further used in the reflection implementation to detect all reference implementations
-                implementation("com.google.guava:guava:33.4.6-jre")
-                if (project.hasEnabled("bench.sparql.blazegraph")) {
-                    implementation(project(":testing:bench:sparql:ref:blazegraph"))
-                }
-                if (project.hasEnabled("bench.sparql.jena")) {
-                    implementation(project(":testing:bench:sparql:ref:jena"))
-                }
-                if (project.hasEnabled("bench.sparql.rdfox")) {
-                    implementation(project(":testing:bench:sparql:ref:rdfox"))
-                }
+                // ktor java engine for the endpoint client
+                implementation("io.ktor:ktor-client-java:3.1.3")
             }
         }
         val jsMain by getting {
             dependencies {
-                if (project.hasEnabled("bench.sparql.comunica")) {
-                    implementation(project(":testing:bench:sparql:ref:comunica"))
-                }
+                // ktor js engine for the endpoint client
+                implementation("io.ktor:ktor-client-js:3.1.3")
             }
         }
     }

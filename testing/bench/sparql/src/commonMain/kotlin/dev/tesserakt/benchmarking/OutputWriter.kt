@@ -1,20 +1,10 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.benchmarking.execution.Evaluation
+import dev.tesserakt.benchmarking.endpoint.EndpointEvaluator
 
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-expect class OutputWriter(evaluation: Evaluation): AutoCloseable {
-
-    /**
-     * Called when the benchmark has been started, just before the very first call to [markStart]
-     */
-    fun create()
-
-    /**
-     * Called on every new run start
-     */
-    fun reset()
+expect class OutputWriter(evaluation: EvaluationConfig): AutoCloseable {
 
     /**
      * Called when the benchmark has finished, just after the very last call to [markEnd]
@@ -31,6 +21,6 @@ expect class OutputWriter(evaluation: Evaluation): AutoCloseable {
      */
     fun markEnd(id: String)
 
-    fun markOutputs(id: String, output: Evaluator.Output)
+    fun markOutputs(id: String, output: EndpointEvaluator.Output)
 
 }

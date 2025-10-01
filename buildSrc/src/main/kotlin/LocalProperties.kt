@@ -9,8 +9,3 @@ fun Project.local(name: String): String? =
         properties.load(File(rootDir.absolutePath + "/local.properties").inputStream())
         properties.getProperty(name, null)
     }.getOrNull()
-
-fun Project.hasEnabled(name: String): Boolean {
-    val value = local(name)?.lowercase() ?: return false
-    return value in setOf("true", "enabled")
-}

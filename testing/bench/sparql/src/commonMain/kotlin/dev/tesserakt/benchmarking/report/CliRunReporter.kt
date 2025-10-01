@@ -1,13 +1,13 @@
 package dev.tesserakt.benchmarking.report
 
+import dev.tesserakt.benchmarking.EvaluationConfig
 import dev.tesserakt.benchmarking.EvaluationStage
-import dev.tesserakt.benchmarking.execution.Evaluation
 import kotlin.math.roundToInt
 import kotlin.time.TimeSource
 
 private const val DOT_LENGTH = 5
 
-class CliRunReporter(private val run: Evaluation): RunReporter {
+class CliRunReporter(private val run: EvaluationConfig): RunReporter {
 
     private var dots = 0
     private var start: TimeSource.Monotonic.ValueTimeMark? = null
@@ -17,7 +17,7 @@ class CliRunReporter(private val run: Evaluation): RunReporter {
         if (state != null) {
             println(" ok, took ${start?.elapsedNow()}")
         } else {
-            print(run.evaluatorId)
+            print(run.endpoint)
             print(", ")
             println(run.name)
         }
@@ -44,6 +44,7 @@ class CliRunReporter(private val run: Evaluation): RunReporter {
 
     private val EvaluationStage.displayName: String
         get() = when (this) {
+            EvaluationStage.WARMUP -> "warmup"
             EvaluationStage.PREPARATION -> "preparation"
             EvaluationStage.EVALUATION -> "evaluation"
             EvaluationStage.FINISHED -> ""

@@ -1,12 +1,11 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.benchmarking.execution.Evaluation
+import dev.tesserakt.benchmarking.endpoint.EndpointEvaluator
 import java.io.File
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoCloseable {
+actual class OutputWriter actual constructor(evaluation: EvaluationConfig) : AutoCloseable {
 
-    private val memoryObserver: MemoryObserver?
     private val timeObserver: TimeObserver
     private val outputObserver: OutputObserver
 
@@ -20,35 +19,14 @@ actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoClose
             contents == null -> throw IllegalArgumentException("Path `$directory` is not a directory!")
             contents.isNotEmpty() -> throw IllegalArgumentException("Path `$directory` is not empty!")
         }
-        memoryObserver = if (RunContext.hasMemoryProfilingEnabled()) {
-            MemoryObserver(directory + "memory.csv")
-        } else {
-            null
-        }
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-    }
-
-    /**
-     * Called when the benchmark has been started, just before the very first call to [markStart]
-     */
-    actual fun create() {
-        // starting the periodic memory observations
-        memoryObserver?.start()
-    }
-
-    /**
-     * Called on every new run start
-     */
-    actual fun reset() {
-        memoryObserver?.reset()
     }
 
     /**
      * Called when the benchmark has finished, just after the very last call to [markEnd]
      */
     actual override fun close() {
-        memoryObserver?.stop()
         timeObserver.stop()
         outputObserver.stop()
     }
@@ -67,7 +45,7 @@ actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoClose
         timeObserver.end(id)
     }
 
-    actual fun markOutputs(id: String, output: Evaluator.Output) {
+    actual fun markOutputs(id: String, output: EndpointEvaluator.Output) {
         outputObserver.markResult(id, output)
     }
 

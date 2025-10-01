@@ -1,6 +1,5 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.benchmarking.execution.Evaluation
 import java.io.File
 
 private val version by lazy {
@@ -11,7 +10,7 @@ private val version by lazy {
     }
 }
 
-actual fun writeMetadata(directory: String, evaluation: Evaluation) {
+actual fun writeMetadata(directory: String, evaluation: EvaluationConfig) {
     File(directory + "metadata").writeText(buildString {
         append("version: ")
         append(version)

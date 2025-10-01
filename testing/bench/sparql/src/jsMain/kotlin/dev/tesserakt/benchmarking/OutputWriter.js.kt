@@ -1,11 +1,11 @@
 package dev.tesserakt.benchmarking
 
-import dev.tesserakt.benchmarking.execution.Evaluation
+import dev.tesserakt.benchmarking.endpoint.EndpointEvaluator
 
 private val fs = js("require('fs')")
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoCloseable {
+actual class OutputWriter actual constructor(evaluation: EvaluationConfig) : AutoCloseable {
 
     private val timeObserver: TimeObserver
     private val outputObserver: OutputObserver
@@ -23,20 +23,6 @@ actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoClose
         }
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
-    }
-
-    /**
-     * Called when the benchmark has been started, just before the very first call to [markStart]
-     */
-    actual fun create() {
-        /* nothing to do */
-    }
-
-    /**
-     * Called on every new run start
-     */
-    actual fun reset() {
-        /* nothing to do */
     }
 
     /**
@@ -61,7 +47,7 @@ actual class OutputWriter actual constructor(evaluation: Evaluation) : AutoClose
         timeObserver.end(id)
     }
 
-    actual fun markOutputs(id: String, output: Evaluator.Output) {
+    actual fun markOutputs(id: String, output: EndpointEvaluator.Output) {
         outputObserver.markResult(id, output)
     }
 

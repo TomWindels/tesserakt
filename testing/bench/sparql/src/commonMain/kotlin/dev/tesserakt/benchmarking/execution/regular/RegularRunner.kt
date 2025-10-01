@@ -1,7 +1,10 @@
 package dev.tesserakt.benchmarking.execution.regular
 
-import dev.tesserakt.benchmarking.*
-import dev.tesserakt.benchmarking.execution.BenchmarkRunnerHost
+import dev.tesserakt.benchmarking.EvaluationStage
+import dev.tesserakt.benchmarking.RunId
+import dev.tesserakt.benchmarking.endpoint.EndpointEvaluator
+import dev.tesserakt.benchmarking.execution.Benchmark
+import dev.tesserakt.benchmarking.execution.toRunner
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.SnapshotStore
@@ -11,8 +14,8 @@ import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
 class RegularRunner(
-    private val evaluation: RegularRunnerEvaluation,
-): BenchmarkRunnerHost.Runner() {
+    private val evaluation: RegularEvaluationConfig,
+): Benchmark.Runner() {
 
     override suspend fun run() {
         exec().fold(
@@ -36,9 +39,8 @@ class RegularRunner(
         //  stores (= endpoints) to be empty
         // * otherwise, we might be testing against data already present inside the endpoint, and thus should not
         //  expect empty responses upon executing any query (so the validation should be skipped)
-        EndpointImplementation.REQUIRE_EMPTY_INITIAL_STATE = store.isNotEmpty()
-        // actually executing it
-        EvaluatorFactory.createEvaluatorPreferRegular(evaluation).use { evaluator ->
+        EndpointEvaluator.REQUIRE_EMPTY_INITIAL_STATE = store.isNotEmpty()
+        evaluation.endpoint.toRunner(evaluation.query).use { evaluator ->
             if (store.isNotEmpty()) {
                 reporter.onStageChanged(EvaluationStage.PREPARATION)
                 output.markStart("preparation")
@@ -54,7 +56,6 @@ class RegularRunner(
             val outputs = evaluator.finish()
             output.markOutputs(id.id(), outputs)
             coroutineContext.ensureActive()
-            RunContext.onIterationFinished()
         }
     }
 
