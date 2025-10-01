@@ -37,6 +37,6 @@ application {
 
 ktor {
     fatJar {
-        archiveFileName.set("sparql-endpoint.jar")
+        archiveFileName.set("tesserakt-endpoint.jar")
     }
 }

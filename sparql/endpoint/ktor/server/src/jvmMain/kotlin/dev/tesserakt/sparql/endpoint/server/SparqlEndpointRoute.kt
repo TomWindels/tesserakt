@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.endpoint.server
 
 import dev.tesserakt.sparql.endpoint.core.SparqlContentType
 import dev.tesserakt.sparql.endpoint.core.data.UpdateRequest
-import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpoint
+import dev.tesserakt.sparql.endpoint.server.factory.SparqlEndpoint
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -18,7 +18,7 @@ fun Route.sparqlEndpoint(
     /** The path name used to make this endpoint available **/
     path: String = "sparql",
     /** The actual [SparqlEndpoint] instance, responsible for processing the requests **/
-    endpoint: SparqlEndpoint = CachingSparqlEndpoint(),
+    endpoint: SparqlEndpoint = SparqlEndpoint(),
     /** The used [ResultFormatter] instance to serialize binding results with **/
     formatter: ResultFormatter = ResultFormatter(),
 ) {

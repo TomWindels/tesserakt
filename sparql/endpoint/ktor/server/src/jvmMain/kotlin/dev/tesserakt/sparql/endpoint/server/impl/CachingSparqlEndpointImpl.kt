@@ -29,6 +29,7 @@ internal class CachingSparqlEndpointImpl(
      */
     // could be a RW lock, but doesn't seem to exist in coroutines (yet)
     private val storeLock: Mutex = Mutex(),
+    cacheSize: Int,
 ) : SparqlEndpoint {
 
     /**
@@ -37,7 +38,7 @@ internal class CachingSparqlEndpointImpl(
      */
     private val queryCacheLock = Mutex()
 
-    private val queryCache = mutableMapOf<Query<Bindings>, DeferredOngoingQueryEvaluation<Bindings>>()
+    private val queryCache = LRUCache<Query<Bindings>, DeferredOngoingQueryEvaluation<Bindings>>(cacheSize)
 
     override suspend fun onSelectQueryRequest(query: String): Result<SelectResponse> = runCatching {
         val compiled = Query.Select(query)

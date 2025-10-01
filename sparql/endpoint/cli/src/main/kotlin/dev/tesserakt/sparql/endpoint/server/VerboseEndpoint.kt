@@ -10,8 +10,7 @@ import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.rdf.types.factory.emptyStore
 import dev.tesserakt.sparql.endpoint.core.data.SelectResponse
 import dev.tesserakt.sparql.endpoint.core.data.UpdateRequest
-import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpoint
-import dev.tesserakt.sparql.endpoint.server.impl.SparqlEndpoint
+import dev.tesserakt.sparql.endpoint.server.factory.SparqlEndpoint
 
 /**
  * A [SparqlEndpoint] decorator, similar to [Endpoint], with the addition of making the various operations more verbose
@@ -31,11 +30,7 @@ class VerboseEndpoint(config: EndpointConfig) : SparqlEndpoint {
         }
         ObservableStore(base)
     }
-    private val inner = if (!config.useCaching) {
-        SparqlEndpoint(store)
-    } else {
-        CachingSparqlEndpoint(store)
-    }
+    private val inner = SparqlEndpoint(store, cacheSize = config.cacheSize)
 
     private var added = 0
     private var deleted = 0

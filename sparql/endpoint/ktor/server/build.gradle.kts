@@ -23,5 +23,10 @@ kotlin {
                 api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
             }
         }
+        val jvmTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
     }
 }
