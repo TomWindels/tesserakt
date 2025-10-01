@@ -6,10 +6,10 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 
-class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() {
+class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand("tesserakt-endpoint") {
 
     override fun help(context: Context): String {
-        return "Create a tesserakt-powered SPARQL endpoint from the command line"
+        return "Create a tesserakt SPARQL endpoint from the command line"
     }
 
     private val path: String by option()
