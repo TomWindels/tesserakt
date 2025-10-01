@@ -8,8 +8,7 @@ import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.rdf.types.factory.emptyStore
 import dev.tesserakt.sparql.endpoint.core.data.SelectResponse
 import dev.tesserakt.sparql.endpoint.core.data.UpdateRequest
-import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpoint
-import dev.tesserakt.sparql.endpoint.server.impl.SparqlEndpoint
+import dev.tesserakt.sparql.endpoint.server.factory.SparqlEndpoint
 
 /**
  * A simple [SparqlEndpoint] decorator, instantiating either a caching or regular endpoint based on the [EndpointConfig]
@@ -22,10 +21,16 @@ class Endpoint(config: EndpointConfig): SparqlEndpoint {
         } else {
             emptyStore()
         }
-        if (!config.useCaching) {
-            SparqlEndpoint(MutableStore(base))
-        } else {
-            CachingSparqlEndpoint(ObservableStore(base))
+        // we can get away with using a simpler 'MutableStore' if no caching is required - the actual updates happening
+        //  are not relevant for anything else
+        when {
+            config.cacheSize > 0 -> {
+                SparqlEndpoint(ObservableStore(base), cacheSize = config.cacheSize)
+            }
+            config.cacheSize == 0 -> {
+                SparqlEndpoint(MutableStore(base))
+            }
+            else -> throw IllegalStateException("Invalid cache configuration!")
         }
     }
 
