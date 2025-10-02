@@ -9,14 +9,11 @@ import com.github.ajalt.clikt.parameters.groups.OptionGroup
 import com.github.ajalt.clikt.parameters.groups.provideDelegate
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.int
-import dev.tesserakt.benchmarking.Endpoint
+import dev.tesserakt.benchmarking.*
 import dev.tesserakt.benchmarking.execution.Benchmark
 import dev.tesserakt.benchmarking.execution.regular.RegularEvaluationConfig
 import dev.tesserakt.benchmarking.execution.replay.ReplayEvaluationConfig
 import dev.tesserakt.benchmarking.execution.update.UpdateEvaluationConfig
-import dev.tesserakt.benchmarking.listFiles
-import dev.tesserakt.benchmarking.readFile
-import dev.tesserakt.benchmarking.tryMakeFolder
 
 class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
 
@@ -82,6 +79,23 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
             .multiple(required = true)
             .unique()
 
+        private val warmupQueries: Set<String> by option(
+                "--warmup-query",
+                help = "The warmup query to evaluate. This query is executed before the first evaluation of the to-be-evaluated query during the warmup phase. Multiple supported",
+            )
+            .convert { if (it.startsWith('@')) it.substring(1).readFile() else it }
+            .multiple(required = false)
+            .unique()
+
+        private val warmupRuns: Int by option(
+                "--warmup-runs",
+                help = "The number of executions of all warmup queries before evaluation",
+            )
+            .int()
+            .default(1)
+
+        fun getWarmup(): EvaluationConfig.Warmup = EvaluationConfig.Warmup(queries = warmupQueries.toList(), runs = warmupRuns)
+
     }
 
     class Query: SuspendingCliktCommand("query") {
@@ -114,6 +128,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 inputPaths = input,
                 outputFolder = common.output,
                 endpoints = common.endpoints,
+                warmup = common.getWarmup(),
             )
             val host = Benchmark(
                 evaluations = endpointConfigs,
@@ -145,6 +160,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 inputPaths = input,
                 outputFolder = common.output,
                 endpoints = common.endpoints.filterIsInstance<Endpoint.Mutable>(),
+                warmup = common.getWarmup(),
             )
             // then mapping these to the various evaluations we can actually evaluate
             val host = Benchmark(
@@ -174,21 +190,6 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
             .convert { if (it.startsWith('@')) it.substring(1).readFile() else it }
             .required()
 
-        private val warmupQueries: Set<String> by option(
-            "--warmup-query",
-            help = "The warmup query to evaluate. This query is executed before the first evaluation of the to-be-evaluated query during the warmup phase",
-        )
-            .convert { if (it.startsWith('@')) it.substring(1).readFile() else it }
-            .multiple(required = true)
-            .unique()
-
-        private val warmupRuns: Int by option(
-            "--warmup-runs",
-            help = "The number of executions of all warmup queries before evaluation",
-        )
-            .int()
-            .default(10)
-
         override fun help(context: Context): String {
             return "Benchmark the performance of a query over a dataset that is altered with a specific update between executions"
         }
@@ -201,11 +202,10 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
                 .map { endpoint ->
                     UpdateEvaluationConfig(
                         query = query,
-                        warmupQueries = warmupQueries.toList(),
-                        warmupRuns = warmupRuns,
                         updateFilePath = update,
                         outputDirPath = common.output,
                         endpoint = endpoint,
+                        warmup = common.getWarmup(),
                     )
                 }
             // then mapping these to the various evaluations we can actually evaluate

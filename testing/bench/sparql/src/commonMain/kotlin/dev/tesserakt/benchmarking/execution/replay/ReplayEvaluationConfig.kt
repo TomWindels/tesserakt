@@ -7,6 +7,7 @@ import dev.tesserakt.benchmarking.listFiles
 
 data class ReplayEvaluationConfig(
     val inputFilePath: String,
+    override val warmup: EvaluationConfig.Warmup,
     override val outputDirPath: String,
     override val endpoint: Endpoint.Mutable,
 ) : EvaluationConfig {
@@ -21,6 +22,8 @@ data class ReplayEvaluationConfig(
 
     override fun metadata(): String = buildString {
         appendLine("endpoint: $endpoint")
+        appendLine("warmup:")
+        appendLine(warmup)
         appendLine("inputFilePath: $inputFilePath")
         append("outputDirPath: $outputDirPath")
     }
@@ -38,6 +41,7 @@ data class ReplayEvaluationConfig(
             inputPaths: Collection<String>,
             outputFolder: String,
             endpoints: Collection<Endpoint.Mutable>,
+            warmup: EvaluationConfig.Warmup,
         ): List<ReplayEvaluationConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -51,6 +55,7 @@ data class ReplayEvaluationConfig(
                         inputFilePath = input,
                         outputDirPath = "${outputFolder}${endpoint}/$filename/input_${i}/",
                         endpoint = endpoint,
+                        warmup = warmup
                     )
                 }
             }

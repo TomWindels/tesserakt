@@ -4,6 +4,7 @@ import dev.tesserakt.benchmarking.EvaluationStage
 import dev.tesserakt.benchmarking.RunId
 import dev.tesserakt.benchmarking.endpoint.EndpointEvaluator
 import dev.tesserakt.benchmarking.execution.Benchmark
+import dev.tesserakt.benchmarking.execution.doWarmup
 import dev.tesserakt.benchmarking.execution.toRunner
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
@@ -33,6 +34,8 @@ class ReplayRunner(
             // currently only expecting a single benchmark to be present inside the file; whilst it could have multiple
             //  queries in its definition, we only care about the one in the evaluation we have available
             .single()
+        reporter.onStageChanged(EvaluationStage.WARMUP)
+        doWarmup(endpoint = evaluation.endpoint, warmup = evaluation.warmup)
         // ensuring the endpoint behaviour is correct:
         // as we require full control of the endpoint's state over time, we need to be sure it's initial value
         //  is empty too

@@ -8,6 +8,7 @@ import dev.tesserakt.benchmarking.listFiles
 data class RegularEvaluationConfig(
     val query: String,
     val inputFilePath: String?,
+    override val warmup: EvaluationConfig.Warmup,
     override val outputDirPath: String,
     override val endpoint: Endpoint,
 ) : EvaluationConfig {
@@ -25,6 +26,8 @@ data class RegularEvaluationConfig(
 
     override fun metadata(): String = buildString {
         appendLine("endpoint: $endpoint")
+        appendLine("warmup:")
+        appendLine(warmup)
         appendLine("inputFilePath: $inputFilePath")
         appendLine("outputDirPath: $outputDirPath")
         append("query: $query")
@@ -45,6 +48,7 @@ data class RegularEvaluationConfig(
             inputPaths: Iterable<String>,
             outputFolder: String,
             endpoints: Iterable<Endpoint>,
+            warmup: EvaluationConfig.Warmup,
         ): List<RegularEvaluationConfig> {
             val inputs = inputPaths
                 // flattening any and all folders (ONCE!)
@@ -59,6 +63,7 @@ data class RegularEvaluationConfig(
                             inputFilePath = null,
                             outputDirPath = "${outputFolder}${endpoint}/query_${i}/",
                             endpoint = endpoint,
+                            warmup = warmup,
                         )
                     }
                 }
@@ -71,6 +76,7 @@ data class RegularEvaluationConfig(
                             inputFilePath = input,
                             outputDirPath = "${outputFolder}${endpoint}/$filename/query_${i}/",
                             endpoint = endpoint,
+                            warmup = warmup,
                         )
                     }
                 }

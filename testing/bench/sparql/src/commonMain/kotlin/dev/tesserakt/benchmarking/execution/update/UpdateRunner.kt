@@ -3,6 +3,7 @@ package dev.tesserakt.benchmarking.execution.update
 import dev.tesserakt.benchmarking.EvaluationStage
 import dev.tesserakt.benchmarking.endpoint.EndpointEvaluator
 import dev.tesserakt.benchmarking.execution.Benchmark
+import dev.tesserakt.benchmarking.execution.doWarmup
 import dev.tesserakt.benchmarking.execution.toRunner
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
@@ -38,13 +39,7 @@ class UpdateRunner(
         // * warmup phase *
         // repeating every warmup query `warmup count` times
         reporter.onStageChanged(EvaluationStage.WARMUP)
-        repeat(evaluation.warmupRuns) {
-            evaluation.warmupQueries.forEach { query ->
-                evaluation.endpoint.toRunner(query).use { evaluator ->
-                    evaluator.eval()
-                }
-            }
-        }
+        doWarmup(endpoint = evaluation.endpoint, warmup = evaluation.warmup)
         // * evaluation phase *
         val insertion = TriGSerializer
             .deserialize(FileDataSource(evaluation.updateFilePath))

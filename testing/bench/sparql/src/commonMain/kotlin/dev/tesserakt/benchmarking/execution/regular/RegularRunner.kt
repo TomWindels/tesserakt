@@ -4,6 +4,7 @@ import dev.tesserakt.benchmarking.EvaluationStage
 import dev.tesserakt.benchmarking.RunId
 import dev.tesserakt.benchmarking.endpoint.EndpointEvaluator
 import dev.tesserakt.benchmarking.execution.Benchmark
+import dev.tesserakt.benchmarking.execution.doWarmup
 import dev.tesserakt.benchmarking.execution.toRunner
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
@@ -34,6 +35,8 @@ class RegularRunner(
             .inputFilePath
             ?.let { TriGSerializer.deserialize(FileDataSource(it)).consume() }
             ?: emptyStore()
+        reporter.onStageChanged(EvaluationStage.WARMUP)
+        doWarmup(endpoint = evaluation.endpoint, warmup = evaluation.warmup)
         // ensuring the endpoint behaviour is correct:
         // * if we have a data store we want to evaluate (!= null), we require the initial state of (external)
         //  stores (= endpoints) to be empty

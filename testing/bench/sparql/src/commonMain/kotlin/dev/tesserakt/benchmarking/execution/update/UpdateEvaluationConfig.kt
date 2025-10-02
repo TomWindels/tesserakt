@@ -5,9 +5,8 @@ import dev.tesserakt.benchmarking.EvaluationConfig
 
 data class UpdateEvaluationConfig(
     val query: String,
-    val warmupQueries: List<String>,
-    val warmupRuns: Int,
     val updateFilePath: String,
+    override val warmup: EvaluationConfig.Warmup,
     override val outputDirPath: String,
     override val endpoint: Endpoint.Mutable,
 ) : EvaluationConfig {
@@ -24,8 +23,8 @@ data class UpdateEvaluationConfig(
         appendLine("endpoint: $endpoint")
         appendLine("updateFilePath: $updateFilePath")
         appendLine("outputDirPath: $outputDirPath")
-        appendLine("warmupRuns: $warmupRuns")
-        appendLine("warmupQueries:\n${warmupQueries.joinToString("\n\n")}")
+        appendLine("warmup:")
+        appendLine(warmup)
         append("query: $query")
     }
 

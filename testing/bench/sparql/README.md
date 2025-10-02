@@ -26,6 +26,11 @@ Commands:
   update  Benchmark the performance of a query over a dataset that is altered with a specific update between executions
 ```
 
+### Warmup
+All modes support a warmup stage, which can be used to ensure the endpoint performs as expected and the JVM instance
+used by the tool is also warmed up. Any number of queries can be provided. This stage does not monitor the endpoint's
+performance.
+
 ### Query mode
 The `query` mode evaluates the performance of the specified endpoints using a fixed (= constant) dataset, using the
 queries that are passed in as additional arguments. Executing `sparql-bench query -h` results in the following help text:
@@ -36,12 +41,15 @@ Usage: sparql-bench query [<options>]
   Benchmark the performance when evaluating a specific query over a fixed dataset
 
 Options:
-  -o, --output=<value>  The output filepath to use
-  --url=<value>         Provide a SPARQL endpoint URL to use (multiple supported)
-  -i, --input=<text>    Select the input filepath(s) to use (has to be a valid Turtle/TriG file); not providing any results in a
-                        single data test per evaluation, without manipulating the data itself
-  -q, --query=<value>   Query to evaluate
-  -h, --help            Show this message and exit
+  -o, --output=<value>    The output filepath to use
+  --url=<value>           Provide a SPARQL endpoint URL to use (multiple supported)
+  --warmup-query=<value>  The warmup query to evaluate. This query is executed before the first evaluation of the
+                          to-be-evaluated query during the warmup phase. Multiple supported
+  --warmup-runs=<int>     The number of executions of all warmup queries before evaluation
+  -i, --input=<text>      Select the input filepath(s) to use (has to be a valid Turtle/TriG file); not providing any results in
+                          a single data test per evaluation, without manipulating the data itself
+  -q, --query=<value>     Query to evaluate
+  -h, --help              Show this message and exit
 ```
 
 The combination of `-u`/`--url` and no input data (no `-i`/`--input` argument) will result in the tool evaluating the
@@ -63,10 +71,13 @@ Usage: sparql-bench replay [<options>]
   Benchmark the performance when evaluating a specific query over a changing dataset
 
 Options:
-  -o, --output=<value>  The output filepath to use
-  --url=<value>         Provide a SPARQL endpoint URL to use (multiple supported)
-  -i, --input=<text>    Select the input filepath to use (has to be a replay format)
-  -h, --help            Show this message and exit
+  -o, --output=<value>    The output filepath to use
+  --url=<value>           Provide a SPARQL endpoint URL to use (multiple supported)
+  --warmup-query=<value>  The warmup query to evaluate. This query is executed before the first evaluation of the
+                          to-be-evaluated query during the warmup phase. Multiple supported
+  --warmup-runs=<int>     The number of executions of all warmup queries before evaluation
+  -i, --input=<text>      Select the input filepath to use (has to be a replay format)
+  -h, --help              Show this message and exit
 ```
 
 ### Update mode
@@ -84,7 +95,7 @@ Options:
   -u, --update-file=<text>  Path to the file containing the update
   -q, --query=<value>       Query to evaluate
   --warmup-query=<value>    The warmup query to evaluate. This query is executed before the first evaluation of the
-                            to-be-evaluated query during the warmup phase
+                            to-be-evaluated query during the warmup phase. Multiple supported
   --warmup-runs=<int>       The number of executions of all warmup queries before evaluation
   -h, --help                Show this message and exit
 ```
