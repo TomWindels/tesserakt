@@ -1,9 +1,6 @@
 package dev.tesserakt.benchmarking.execution.replay
 
-import dev.tesserakt.benchmarking.Endpoint
-import dev.tesserakt.benchmarking.EvaluationConfig
-import dev.tesserakt.benchmarking.isFolder
-import dev.tesserakt.benchmarking.listFiles
+import dev.tesserakt.benchmarking.*
 
 data class ReplayEvaluationConfig(
     val inputFilePath: String,
@@ -15,9 +12,9 @@ data class ReplayEvaluationConfig(
     override val name: String = buildString {
         append(endpoint.queryUrl)
         append(", ")
-        append(outputDirPath.substringAfterLast('/'))
+        append(outputDirPath.basename())
         append(", ")
-        append(inputFilePath.substringAfterLast('/'))
+        append(inputFilePath.basename())
     }
 
     override fun metadata(): String = buildString {
@@ -49,7 +46,7 @@ data class ReplayEvaluationConfig(
                 // ensuring the remaining files are turtle files
                 .filter { it.endsWith(".ttl") }
             return inputs.flatMapIndexed { i, input ->
-                val filename = input.substringAfterLast('/').substringBefore('.')
+                val filename = input.basename().substringBefore('.')
                 endpoints.map { endpoint ->
                     ReplayEvaluationConfig(
                         inputFilePath = input,

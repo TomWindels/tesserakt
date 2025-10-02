@@ -1,9 +1,6 @@
 package dev.tesserakt.benchmarking.execution.regular
 
-import dev.tesserakt.benchmarking.Endpoint
-import dev.tesserakt.benchmarking.EvaluationConfig
-import dev.tesserakt.benchmarking.isFolder
-import dev.tesserakt.benchmarking.listFiles
+import dev.tesserakt.benchmarking.*
 
 data class RegularEvaluationConfig(
     val query: String,
@@ -17,10 +14,10 @@ data class RegularEvaluationConfig(
         get() = buildString {
             append(endpoint.queryUrl)
             append(", ")
-            append(outputDirPath.substringAfterLast('/'))
+            append(outputDirPath.basename())
             if (inputFilePath != null) {
                 append(", ")
-                append(inputFilePath.substringAfterLast('/'))
+                append(inputFilePath.basename())
             }
         }
 
@@ -68,7 +65,7 @@ data class RegularEvaluationConfig(
                     }
                 }
             } else inputs.flatMap { input ->
-                val filename = input.substringAfterLast('/').substringBefore('.')
+                val filename = input.basename().substringBefore('.')
                 query.flatMapIndexed { i, query ->
                     endpoints.map { endpoint ->
                         RegularEvaluationConfig(

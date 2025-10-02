@@ -2,6 +2,7 @@ package dev.tesserakt.benchmarking.execution.update
 
 import dev.tesserakt.benchmarking.Endpoint
 import dev.tesserakt.benchmarking.EvaluationConfig
+import dev.tesserakt.benchmarking.basename
 
 data class UpdateEvaluationConfig(
     val query: String,
@@ -14,9 +15,9 @@ data class UpdateEvaluationConfig(
     override val name = buildString {
         append(endpoint.queryUrl)
         append(", ")
-        append(outputDirPath.substringAfterLast('/'))
+        append(outputDirPath.basename())
         append(", ")
-        append(updateFilePath.substringAfterLast('/'))
+        append(updateFilePath.basename())
     }
 
     override fun metadata(): String = buildString {

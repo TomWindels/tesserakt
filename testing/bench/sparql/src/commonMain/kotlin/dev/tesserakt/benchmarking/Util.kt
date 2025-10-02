@@ -14,3 +14,12 @@ expect fun String.isFolder(): Boolean
 expect fun String.tryMakeFolder(): Boolean
 
 expect fun String.listFiles(): List<String>
+
+fun String.basename(): String = when {
+    isEmpty() -> ""
+    last() != '/' -> substringAfterLast('/')
+    else -> {
+        val loc = lastIndexOf('/', length - 2)
+        substring(loc + 1, length - 1)
+    }
+}
