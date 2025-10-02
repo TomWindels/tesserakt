@@ -48,7 +48,7 @@ class BenchmarkingCli: SuspendingCliktCommand("sparql-bench") {
             )
 
         val endpoints: Set<Endpoint> by option(
-                "--url", "-u",
+                "--url",
                 help = "Provide a SPARQL endpoint URL to use (multiple supported)",
             )
             .convert { base ->

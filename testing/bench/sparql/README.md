@@ -10,32 +10,7 @@ repository, using the `installDist` task of this module.
 ```
 user@path/to/tesserakt$ ./gradlew testing:bench:sparql:installDist
 ```
-After the build has finished, the resulting installation can be located in `build/install/sparql-bench`.
-
-### Configuration
-Without further configuration, only tesserakt and endpoint evaluation is available. Other implementations can be added
-through build configuration.
-
-The following implementations, and their identifiers, are as follows:
-
-| Engine (JVM) | ID                        |
-|--------------|---------------------------|
-| Jena         | `bench.sparql.jena`       |
-| Blazegraph   | `bench.sparql.blazegraph` |
-| RDFox        | `bench.sparql.rdfox`      |
-
-| Engine (JS) | ID                      |
-|-------------|-------------------------|
-| Comunica    | `bench.sparql.comunica` |
-
-These IDs have to be added during the build process, with their values set to `enabled`.
-This configuration can be added through multiple build parameters `-P<key>=<value>` or as key-value
-pairs in `local.properties` (which has to be created at the root of the repository).
-
-For example, to include Jena support, the following command can be executed:
-```
-user@path/to/tesserakt$ ./gradlew testing:bench:sparql:installDist -Pbench.sparql.jena=enabled
-```
+After the build has finished, the resulting installation can be located in this module's `build/install/sparql-bench`.
 
 ## CLI
 The benchmarking tool can be interfaced with through its CLI. The `-h` flag exposes all available modes:
@@ -48,10 +23,11 @@ Options:
 Commands:
   query   Benchmark the performance when evaluating a specific query over a fixed dataset
   replay  Benchmark the performance when evaluating a specific query over a changing dataset
+  update  Benchmark the performance of a query over a dataset that is altered with a specific update between executions
 ```
 
 ### Query mode
-The `query` mode evaluates the performance of the enabled implementation(s) using a fixed (= constant) dataset, using the
+The `query` mode evaluates the performance of the specified endpoints using a fixed (= constant) dataset, using the
 queries that are passed in as additional arguments. Executing `sparql-bench query -h` results in the following help text:
 
 ```
@@ -59,23 +35,13 @@ Usage: sparql-bench query [<options>]
 
   Benchmark the performance when evaluating a specific query over a fixed dataset
 
-JVM-specific configuration:
-
-  Various properties that are specific to the JVM version of the benchmarking tool
-
-  --force-gc                 Request the garbage collector to execute after every query execution
-  --enable-memory-profiling  Enable memory profiling, writing additional output. Not useful when dealing with endpoints
-
 Options:
-  -o, --output=<value>                   The output filepath to use
-  -e, --use-engine=(tesserakt|all)       Select an engine implementation to use (multiple supported)
-  -u, --url=<text>                       Provide a SPARQL endpoint URL to use (multiple supported)
-  --runs=<int>                           The number of runs for every benchmark
-  -i, --input=<text>                     Select the input filepath(s) to use (has to be a valid
-                                         Turtle/TriG file); not providing any results in a single data
-                                         test per evaluation, without manipulating the data itself
-  -q, --query=<value>                    Query to evaluate
-  -h, --help                             Show this message and exit
+  -o, --output=<value>  The output filepath to use
+  --url=<value>         Provide a SPARQL endpoint URL to use (multiple supported)
+  -i, --input=<text>    Select the input filepath(s) to use (has to be a valid Turtle/TriG file); not providing any results in a
+                        single data test per evaluation, without manipulating the data itself
+  -q, --query=<value>   Query to evaluate
+  -h, --help            Show this message and exit
 ```
 
 The combination of `-u`/`--url` and no input data (no `-i`/`--input` argument) will result in the tool evaluating the
@@ -96,18 +62,29 @@ Usage: sparql-bench replay [<options>]
 
   Benchmark the performance when evaluating a specific query over a changing dataset
 
-JVM-specific configuration:
+Options:
+  -o, --output=<value>  The output filepath to use
+  --url=<value>         Provide a SPARQL endpoint URL to use (multiple supported)
+  -i, --input=<text>    Select the input filepath to use (has to be a replay format)
+  -h, --help            Show this message and exit
+```
 
-  Various properties that are specific to the JVM version of the benchmarking tool
+### Update mode
+The final evaluation strategy is called `update`, and allows benchmarks to evaluate a single query's performance before
+and after applying a single SPARQL Update.
 
-  --force-gc                 Request the garbage collector to execute after every query execution
-  --enable-memory-profiling  Enable memory profiling, writing additional output. Not useful when dealing with endpoints
+```
+Usage: sparql-bench update [<options>]
+
+  Benchmark the performance of a query over a dataset that is altered with a specific update between executions
 
 Options:
-  -o, --output=<value>                   The output filepath to use
-  -e, --use-engine=(tesserakt|all)       Select an engine implementation to use (multiple supported)
-  -u, --url=<text>                       Provide a SPARQL endpoint URL to use (multiple supported)
-  --runs=<int>                           The number of runs for every benchmark
-  -i, --input=<text>                     Select the input filepath to use (has to be a replay format)
-  -h, --help                             Show this message and exit
+  -o, --output=<value>      The output filepath to use
+  --url=<value>             Provide a SPARQL endpoint URL to use (multiple supported)
+  -u, --update-file=<text>  Path to the file containing the update
+  -q, --query=<value>       Query to evaluate
+  --warmup-query=<value>    The warmup query to evaluate. This query is executed before the first evaluation of the
+                            to-be-evaluated query during the warmup phase
+  --warmup-runs=<int>       The number of executions of all warmup queries before evaluation
+  -h, --help                Show this message and exit
 ```
