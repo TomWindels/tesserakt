@@ -10,7 +10,7 @@ private val version by lazy {
     }
 }
 
-actual fun writeMetadata(directory: String, evaluation: EvaluationConfig) {
+fun writeMetadata(directory: String, evaluation: EvaluationConfig) {
     File(directory + "metadata").writeText(buildString {
         append("version: ")
         append(version)

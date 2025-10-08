@@ -1,11 +1,9 @@
 package dev.tesserakt.benchmarking
 
 import dev.tesserakt.benchmarking.endpoint.EndpointEvaluator
+import java.io.File
 
-private val fs = js("require('fs')")
-
-@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual class OutputWriter actual constructor(evaluation: EvaluationConfig) : AutoCloseable {
+class OutputWriter(evaluation: EvaluationConfig) : AutoCloseable {
 
     private val timeObserver: TimeObserver
     private val outputObserver: OutputObserver
@@ -13,13 +11,12 @@ actual class OutputWriter actual constructor(evaluation: EvaluationConfig) : Aut
     init {
         val directory = evaluation.outputDirPath
         check(directory.endsWith('/'))
-        if (!directory.isFolder()) {
-            val opts: dynamic = Any()
-            opts.recursive = true
-            fs.mkdirSync(directory, opts)
-        }
-        if (directory.listFiles().isNotEmpty()) {
-            throw IllegalArgumentException("Path `$directory` is not empty!")
+        val root = File(directory)
+        root.mkdirs()
+        val contents = root.list()
+        when {
+            contents == null -> throw IllegalArgumentException("Path `$directory` is not a directory!")
+            contents.isNotEmpty() -> throw IllegalArgumentException("Path `$directory` is not empty!")
         }
         timeObserver = TimeObserver(directory + "time.csv")
         outputObserver = OutputObserver(directory + "outputs.csv")
@@ -28,7 +25,7 @@ actual class OutputWriter actual constructor(evaluation: EvaluationConfig) : Aut
     /**
      * Called when the benchmark has finished, just after the very last call to [markEnd]
      */
-    actual override fun close() {
+    override fun close() {
         timeObserver.stop()
         outputObserver.stop()
     }
@@ -36,18 +33,18 @@ actual class OutputWriter actual constructor(evaluation: EvaluationConfig) : Aut
     /**
      * Notification about the start of an execution for the given [id]
      */
-    actual fun markStart(id: String) {
+    fun markStart(id: String) {
         timeObserver.start(id)
     }
 
     /**
      * Notification about the end of an execution for the given [id]
      */
-    actual fun markEnd(id: String) {
+    fun markEnd(id: String) {
         timeObserver.end(id)
     }
 
-    actual fun markOutputs(id: String, output: EndpointEvaluator.Output) {
+    fun markOutputs(id: String, output: EndpointEvaluator.Output) {
         outputObserver.markResult(id, output)
     }
 

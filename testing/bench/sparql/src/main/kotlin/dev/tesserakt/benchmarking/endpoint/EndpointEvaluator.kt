@@ -8,7 +8,7 @@ import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.endpoint.client.*
 import dev.tesserakt.util.replace
 import io.ktor.client.*
-import io.ktor.client.engine.*
+import io.ktor.client.engine.java.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
@@ -37,7 +37,7 @@ class EndpointEvaluator(
     // keeping a local mirror of the endpoint state, so we remove it upon finishing
     private val mirror = MutableStore()
 
-    private val client = HttpClient(engine) {
+    private val client = HttpClient(Java) {
         install(ContentNegotiation) {
             sparql()
         }
@@ -174,8 +174,6 @@ class EndpointEvaluator(
     }
 
 }
-
-internal expect val engine: HttpClientEngineFactory<*>
 
 private val Quad.Element.checksumLength: Int
     get() = when (this) {

@@ -1,222 +1,34 @@
-
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
-
 plugins {
-    application
     // not distributed as a package, build targets are manually defined
-    id("base-config")
+    kotlin("jvm")
 }
 
 group = "sparql.bench"
 
-kotlin {
-    jvm {
-        // required to have a functional `application` plugin; otherwise, a very empty
-        //  single jar file is being built
-        withJava()
-    }
-    js {
-        nodejs {
-            @OptIn(ExperimentalMainFunctionArgumentsDsl::class)
-            passProcessArgvToMainFunction()
-            binaries.executable()
-        }
-    }
+dependencies {
+    implementation(project(":utils"))
+    implementation(project(":sparql"))
+    implementation(project(":testing:tooling:replay-benchmark"))
+    // to deserialize and evaluate datasets
+    implementation(project(":utils"))
+    implementation(project(":serialization:trig"))
+    // necessary to properly launch the coroutines associated with the execution
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    // CLI implementation
+    implementation("com.github.ajalt.clikt:clikt:5.0.1")
+    // required for the actual endpoint client implementation
+    implementation(project(":sparql:endpoint:ktor:client"))
+    implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
 
-    sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(project(":utils"))
-                implementation(project(":sparql"))
-                implementation(project(":testing:tooling:replay-benchmark"))
-                // to deserialize and evaluate datasets
-                implementation(project(":utils"))
-                implementation(project(":serialization:trig"))
-                // necessary to properly launch the coroutines associated with the execution
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-                // CLI implementation
-                implementation("com.github.ajalt.clikt:clikt:5.0.1")
-                // required for the actual endpoint client implementation
-                implementation(project(":sparql:endpoint:ktor:client"))
-                implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
-            }
-        }
-        val jvmMain by getting {
-            dependencies {
-                // ktor java engine for the endpoint client
-                implementation("io.ktor:ktor-client-java:3.1.3")
-            }
-        }
-        val jsMain by getting {
-            dependencies {
-                // ktor js engine for the endpoint client
-                implementation("io.ktor:ktor-client-js:3.1.3")
-            }
-        }
-    }
+    implementation("io.ktor:ktor-client-java:3.1.3")
 }
 
-val benchmarkingInput = project.local("benchmarking.input")
-val graphRepoUrl = project.local("benchmarking.graph.url")
-val benchmarkingEnabled = benchmarkingInput != null && File(benchmarkingInput).exists()
-
-val build = layout.buildDirectory
-val graphingTarget = build.dir("graphs")
-
-val cleanGraphTool = tasks.register("cleanGraphingTool", Delete::class.java) {
-    delete(graphingTarget.get())
-}
-
-val cleanBenchmarkResults = tasks.register("cleanBenchmarkResults", Delete::class.java) {
-    delete(build.dir("benchmark_output").get())
-}
-
-if (benchmarkingEnabled) {
-    setupBenchmarkTasks()
-    val graphingEnabled = graphRepoUrl != null
-    if (graphingEnabled) {
-        setupGraphingTasks()
-    } else {
-        println("w: No benchmark graph source configured! Please add `benchmarking.graph.url=<url>` to file://${project.rootProject.rootDir.path}/local.properties so Gradle graphing tasks can be generated!")
+tasks.register("buildFatJar", Jar::class) {
+    archiveBaseName = "sparql-bench"
+    manifest {
+        attributes["Main-Class"] = "MainKt"
     }
-} else {
-    println("w: No benchmark input configured! Please add `benchmarking.input=<path/to/dataset>` to file://${project.rootProject.rootDir.path}/local.properties so benchmarking Gradle tasks can be generated!")
-}
-
-rootProject.tasks.register("benchJvm", JavaExec::class) {
-    // src: https://slack-chats.kotlinlang.org/t/486856/anyone-knows-how-to-create-gradle-javaexec-configuration-for#20242df1-da93-4272-8f2e-168a8891a398
-    val jvmJar by tasks.existing
-    val jvmRuntimeClasspath by configurations.existing
-
-    description = "Execute the benchmark runner using args provided by the `args` property (`-Pargs=\"...\") (JVM)"
-    group = "benchmarking"
-    mainClass.set("Main_jvmKt")
-    classpath(jvmJar, jvmRuntimeClasspath)
-    args(*((project.properties["args"] as? String)?.split(' ')?.toTypedArray() ?: emptyArray()))
-}
-
-fun setupBenchmarkTasks() {
-    // src: https://slack-chats.kotlinlang.org/t/486856/anyone-knows-how-to-create-gradle-javaexec-configuration-for#20242df1-da93-4272-8f2e-168a8891a398
-    val jvmJar by tasks.existing
-    val jvmRuntimeClasspath by configurations.existing
-
-    val runnerJvm = tasks.register("runBenchmarkJvm", JavaExec::class) {
-        group = "benchmarking"
-        mainClass.set("Main_jvmKt")
-        classpath(jvmJar, jvmRuntimeClasspath)
-        args("-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/jvm/", "-e", "all")
-    }
-
-    val runnerJs = tasks.register("runBenchmarkJs", Exec::class) {
-        group = "benchmarking"
-        workingDir = rootDir
-        // retrieved & configured through the "kotlinNodejsSetup" task
-        val node = "${File("${gradle.gradleUserHomeDir}/nodejs").listFiles().single { file -> file.isDirectory }}/bin/node"
-        val file = "build/js/packages/tesserakt-benchmarking-runner/kotlin/tesserakt-benchmarking-runner.js"
-        commandLine(node, file, "-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/js/", "-e", "all")
-    }
-
-    runnerJs.get().dependsOn(tasks.named("kotlinNodeJsSetup"))
-    runnerJs.get().dependsOn(tasks.named("assemble"))
-
-    val runner = tasks.register("runBenchmark") {
-        group = "benchmarking"
-    }
-
-    runner.get().dependsOn(runnerJvm, runnerJs)
-}
-
-fun setupGraphingTasks() {
-    val graphPreparation = tasks.register("prepareGraphingTool", Exec::class.java) {
-        group = "benchmarking"
-        enabled = !graphingTarget.get().asFile.exists()
-        workingDir = build.asFile.get()
-        commandLine("git", "clone", graphRepoUrl, "graphs")
-    }
-
-    val graphConfiguration = tasks.register("configureGraphingTool", Exec::class.java) {
-        group = "benchmarking"
-        enabled = !graphingTarget.get().file("pyvenv.cfg").asFile.exists()
-        workingDir = build.asFile.get()
-        commandLine("python", "-m", "venv", "graphs")
-    }
-
-    val graphInstallation = tasks.register("installGraphingTool", Exec::class.java) {
-        group = "benchmarking"
-        enabled = !graphingTarget.get().dir("lib").asFile.listFiles()?.singleOrNull { it.isDirectory }?.listFiles()
-            ?.singleOrNull { it.name == "site-packages" }?.listFiles()
-            .let { it != null && it.any { it.isDirectory && it.name == "pandas" } }
-        workingDir = graphingTarget.get().asFile
-        commandLine("./bin/pip", "install", "-r", "requirements.txt")
-    }
-
-    val graphingJvm = tasks.register("createBenchmarkGraphsJvm", Exec::class.java) {
-        group = "benchmarking"
-        val targets = build.dir("benchmark_output").get().asFile.path + "/jvm/*/*"
-        workingDir = graphingTarget.get().asFile
-        commandLine("./bin/python", "single_graph.py", targets)
-    }
-
-    val graphingJs = tasks.register("createBenchmarkGraphsJs", Exec::class.java) {
-        group = "benchmarking"
-        val targets = build.dir("benchmark_output").get().asFile.path + "/js/*/*"
-        workingDir = graphingTarget.get().asFile
-        commandLine("./bin/python", "single_graph.py", targets)
-    }
-
-    val combinedGraphing = tasks.register("createBenchmarkGraphs", Exec::class.java) {
-        group = "benchmarking"
-        val targets = build
-            .dir("benchmark_output")
-            .get()
-            .asFile
-            .path
-            .let { base -> arrayOf("$base/js/*/*", "$base/jvm/*/*") }
-        workingDir = graphingTarget.get().asFile
-        commandLine("./bin/python", "multi_graph.py", *targets)
-    }
-
-    graphingJvm.get().dependsOn(graphInstallation)
-    graphingJs.get().dependsOn(graphInstallation)
-    graphInstallation.get().dependsOn(graphConfiguration)
-    graphConfiguration.get().dependsOn(graphPreparation)
-
-    // the execution tasks should also be created, so we can find them by name
-    tasks.named("runBenchmarkJvm").get()
-        .apply {
-            finalizedBy(graphingJvm)
-            finalizedBy(combinedGraphing)
-        }
-    tasks.named("runBenchmarkJs").get()
-        .apply {
-            finalizedBy(graphingJvm)
-            finalizedBy(combinedGraphing)
-        }
-    tasks.named("runBenchmark").get().finalizedBy(combinedGraphing)
-}
-
-tasks.named("clean").get().finalizedBy(cleanGraphTool)
-
-application {
-    mainClass.set("Main_jvmKt")
-    applicationName = "sparql-bench"
-}
-
-// the same fix found in `jvm-target` convention plugin - manually applied
-// we cannot use that plugin here, as we need to specify `withJava()` to the `jvm` target,
-//  and applying `withJava()` everywhere causes other errors
-
-tasks.withType(Jar::class.java) {
-    archiveBaseName.set(getBaseName())
-}
-
-fun getBaseName(): String {
-    var name = project.name.replace("-", "_")
-    var parent = project.parent?.takeIf { it != project.rootProject }
-    while (parent != null) {
-        val current = parent.name.replace("-", "_")
-        name = "$current-$name"
-        parent = parent.parent?.takeIf { it != project.rootProject }
-    }
-    return name
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    with(tasks["jar"] as CopySpec)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
