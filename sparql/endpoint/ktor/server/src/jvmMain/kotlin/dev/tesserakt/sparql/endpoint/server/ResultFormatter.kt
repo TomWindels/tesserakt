@@ -8,6 +8,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 
@@ -27,7 +28,7 @@ class ResultFormatter(
                 accept.forEach { format ->
                     when {
                         SparqlContentType.JsonBindings.match(format) -> {
-                            respondJson(call, response)
+                            respondJson(call, SelectResponse.serializer(), response)
                             return@fold
                         }
 
@@ -52,12 +53,12 @@ class ResultFormatter(
         )
     }
 
-    private suspend inline fun <reified T> respondJson(call: ApplicationCall, data: T) {
+    private suspend fun <T> respondJson(call: ApplicationCall, serializer: KSerializer<T>, data: T) {
         call.respondBytesWriter(
             contentType = SparqlContentType.JsonBindings.withCharset(Charsets.UTF_8)
         ) {
             @OptIn(ExperimentalSerializationApi::class)
-            json.encodeToStream(data, this.toOutputStream())
+            json.encodeToStream(serializer, data, this.toOutputStream())
         }
     }
 
