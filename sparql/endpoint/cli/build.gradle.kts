@@ -14,7 +14,7 @@ kotlin {
         implementation(project(":serialization:trig"))
         // hosting the actual endpoint
         implementation("io.ktor:ktor-server-core:3.1.3")
-        implementation("io.ktor:ktor-server-netty:3.1.3")
+        implementation("io.ktor:ktor-server-cio:3.1.3")
         implementation("io.ktor:ktor-server-status-pages:3.1.3")
         // proper CLI support
         implementation("com.github.ajalt.clikt:clikt:5.0.1")
