@@ -2,6 +2,7 @@ plugins {
     // not distributed as a package, build targets are manually defined
     kotlin("jvm")
     id("io.ktor.plugin") version "3.1.3"
+    id("org.graalvm.buildtools.native") version "0.11.1"
 }
 
 group = "sparql-endpoint"
@@ -28,6 +29,26 @@ kotlin {
 
         // actually creating / processing requests
         testImplementation(project(":sparql:endpoint:ktor:client"))
+    }
+}
+
+graalvmNative {
+    binaries {
+
+        named("main") {
+            fallback.set(false)
+            verbose.set(true)
+
+            // src: https://github.com/HewlettPackard/kraal/issues/5
+            buildArgs.add("--initialize-at-build-time=io.ktor,kotlinx,kotlin,org.slf4j")
+
+            // src: https://github.com/ktorio/ktor-samples/blob/main/graalvm/build.gradle.kts
+            buildArgs.add("-H:+InstallExitHandlers")
+            buildArgs.add("-H:+ReportUnsupportedElementsAtRuntime")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
+
+            imageName.set("tesserakt-endpoint")
+        }
     }
 }
 
