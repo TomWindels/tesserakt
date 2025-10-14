@@ -38,7 +38,16 @@ internal class CachingSparqlEndpointImpl(
      */
     private val queryCacheLock = Mutex()
 
-    private val queryCache = LRUCache<Query<Bindings>, DeferredOngoingQueryEvaluation<Bindings>>(cacheSize)
+    private val queryCache = LRUCache<Query<Bindings>, DeferredOngoingQueryEvaluation<Bindings>>(
+        capacity = cacheSize,
+        onEviction = { _, evaluation ->
+            // the evaluation should no longer listen to changes made to the store, as keeping it referenced would
+            //  leak memory
+            // as `onEviction` is called during an insertion of a new K-V pair, we assume
+            //  we already hold the queryCacheLock
+            evaluation.unsubscribe(store)
+        }
+    )
 
     override suspend fun onSelectQueryRequest(query: String): Result<SelectResponse> = runCatching {
         val compiled = Query.Select(query)
