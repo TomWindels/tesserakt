@@ -6,6 +6,10 @@ internal class LRUCache<K, V>(
     private val onEviction: (K, V) -> Unit = { _, _ -> },
 ) : LinkedHashMap<K, V>(capacity, 0.75f, true) {
 
+    init {
+        require(capacity > 0) { "A strictly positive capacity is required! Got: $capacity" }
+    }
+
     override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean {
         if (size > capacity) {
             onEviction(eldest!!.key, eldest.value)
