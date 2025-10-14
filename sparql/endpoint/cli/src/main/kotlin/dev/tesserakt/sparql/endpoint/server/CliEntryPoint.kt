@@ -2,17 +2,14 @@ package dev.tesserakt.sparql.endpoint.server
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.Context
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.flag
-import com.github.ajalt.clikt.parameters.options.help
-import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 
-class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() {
+class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand("tesserakt-endpoint") {
 
     override fun help(context: Context): String {
-        return "Create a tesserakt-powered SPARQL endpoint from the command line"
+        return "Create a tesserakt SPARQL endpoint from the command line"
     }
 
     private val path: String by option()
@@ -24,9 +21,11 @@ class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() 
         .default(3000)
         .help("The port number")
 
-    private val disableCache by option()
-        .flag(default = false, defaultForHelp = "cache enabled")
-        .help("Disables the use of in-memory query caches")
+    private val cacheSize by option()
+        .int()
+        .default(0)
+        .help("The number of queries to cache, with 0 being disabled (= default)")
+        .check { it >= 0 }
 
     private val verbose by option()
         .flag(default = false)
@@ -43,7 +42,7 @@ class CliEntryPoint(private val run: (EndpointConfig) -> Unit) : CliktCommand() 
     private fun toConfig(): EndpointConfig = EndpointConfig(
         port = port,
         path = path,
-        useCaching = !disableCache,
+        cacheSize = cacheSize,
         verbose = verbose,
         start = start,
     )

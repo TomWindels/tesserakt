@@ -2,6 +2,7 @@ plugins {
     // not distributed as a package, build targets are manually defined
     kotlin("jvm")
     id("io.ktor.plugin") version "3.1.3"
+    id("org.graalvm.buildtools.native") version "0.11.1"
 }
 
 group = "sparql-endpoint"
@@ -14,7 +15,7 @@ kotlin {
         implementation(project(":serialization:trig"))
         // hosting the actual endpoint
         implementation("io.ktor:ktor-server-core:3.1.3")
-        implementation("io.ktor:ktor-server-netty:3.1.3")
+        implementation("io.ktor:ktor-server-cio:3.1.3")
         implementation("io.ktor:ktor-server-status-pages:3.1.3")
         // proper CLI support
         implementation("com.github.ajalt.clikt:clikt:5.0.1")
@@ -31,12 +32,32 @@ kotlin {
     }
 }
 
+graalvmNative {
+    binaries {
+
+        named("main") {
+            fallback.set(false)
+            verbose.set(true)
+
+            // src: https://github.com/HewlettPackard/kraal/issues/5
+            buildArgs.add("--initialize-at-build-time=io.ktor,kotlinx,kotlin,org.slf4j")
+
+            // src: https://github.com/ktorio/ktor-samples/blob/main/graalvm/build.gradle.kts
+            buildArgs.add("-H:+InstallExitHandlers")
+            buildArgs.add("-H:+ReportUnsupportedElementsAtRuntime")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
+
+            imageName.set("tesserakt-endpoint")
+        }
+    }
+}
+
 application {
     mainClass.set("dev.tesserakt.sparql.endpoint.server.MainKt")
 }
 
 ktor {
     fatJar {
-        archiveFileName.set("sparql-endpoint.jar")
+        archiveFileName.set("tesserakt-endpoint.jar")
     }
 }

@@ -4,8 +4,11 @@ import dev.tesserakt.sparql.runtime.createState
 import dev.tesserakt.sparql.runtime.query.QueryState
 import dev.tesserakt.sparql.types.QueryStructure
 import dev.tesserakt.sparql.types.SelectQueryStructure
+import kotlin.jvm.JvmInline
 
-class Query<T> private constructor(internal val compiled: QueryStructure) {
+// this is a value class, as we want to identify equal `compiled` query structures
+@JvmInline
+value class Query<T> private constructor(internal val compiled: QueryStructure) {
 
     @Suppress("UNCHECKED_CAST")
     internal fun createState(): QueryState<T, *> = compiled.createState() as QueryState<T, *>

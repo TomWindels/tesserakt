@@ -30,7 +30,7 @@ internal object SparqlBindingsContentConverter : ContentConverter {
         }
         value as SelectResponse
         return TextContent(
-            text = json.encodeToString(value),
+            text = json.encodeToString(SelectResponse.serializer(), value),
             contentType = SparqlContentType.JsonBindings.withCharset(charset),
             status = HttpStatusCode.OK
         )
@@ -47,10 +47,10 @@ internal object SparqlBindingsContentConverter : ContentConverter {
         val response: SelectResponse = if (charset != Charsets.UTF_8) {
             @OptIn(InternalAPI::class)
             val text = charset.newDecoder().decode(input = content.readBuffer)
-            json.decodeFromString(text)
+            json.decodeFromString(SelectResponse.serializer(), text)
         } else {
             @OptIn(ExperimentalSerializationApi::class, InternalAPI::class)
-            json.decodeFromSource(content.readBuffer)
+            json.decodeFromSource(SelectResponse.serializer(), content.readBuffer)
         }
         return if (typeInfo.type == SelectResponse::class) {
             response
