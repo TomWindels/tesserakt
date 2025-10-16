@@ -2,7 +2,10 @@ package dev.tesserakt.sparql
 
 import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.evaluation.*
+import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluation
+import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluationImpl
+import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
+import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluationImpl
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.query.QueryState
@@ -21,20 +24,18 @@ internal inline fun <RT> Iterable<Quad>.query(
     callback: (QueryState.ResultChange<RT>) -> Unit
 ) {
     RuntimeStatistics.reset()
-    val processor = query.Processor()
     // setting initial state
-    processor.state().forEach {
+    query.results.forEach {
         callback(QueryState.ResultChange.New(it))
     }
     // now incrementally evaluating the input
     val it = iterator()
     while (it.hasNext()) {
-        processor.process(DataAddition(it.next())).forEach {
-            val mapped = query.process(it)
-            callback(mapped)
-        }
+        query
+            .processAndGet(DataAddition(it.next()))
+            .forEach { callback(it) }
     }
-    RuntimeStatistics.append(processor.debugInformation())
+    RuntimeStatistics.append(query.debugInformation())
 }
 
 fun <RT> Iterable<Quad>.query(query: Query<RT>): List<RT> {
@@ -42,38 +43,27 @@ fun <RT> Iterable<Quad>.query(query: Query<RT>): List<RT> {
     return query(queryState)
 }
 
-internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> = buildList {
+internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> {
     RuntimeStatistics.reset()
-    val processor = query.Processor()
-    // setting initial state
-    addAll(processor.state())
     // now incrementally evaluating the input
     val it = this@query.iterator()
     while (it.hasNext()) {
-        processor.process(DataAddition(it.next())).forEach {
-            when (val mapped = query.process(it)) {
-                is QueryState.ResultChange.New<RT> -> add(mapped.value)
-                is QueryState.ResultChange.Removed<RT> -> remove(mapped.value)
-            }
-        }
+        query.process(DataAddition(it.next()))
     }
-    RuntimeStatistics.append(processor.debugInformation())
+    RuntimeStatistics.append(query.debugInformation())
+    return query.results.toList()
 }
 
 fun <RT> ObservableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
-    return OngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
+    return OngoingQueryEvaluationImpl(query.createState()).also { it.subscribe(this) }
 }
 
 fun <RT> ObservableStore.queryDeferred(query: Query<RT>): DeferredOngoingQueryEvaluation<RT> {
-    return DeferredOngoingQueryEvaluationRelease(query.createState()).also { it.subscribe(this) }
-}
-
-fun <RT> ObservableStore.queryDebug(query: Query<RT>): OngoingQueryEvaluation<RT> {
-    return OngoingQueryEvaluationDebug(query.createState()).also { it.subscribe(this) }
+    return DeferredOngoingQueryEvaluationImpl(query.createState()).also { it.subscribe(this) }
 }
 
 internal fun <RT> ObservableStore.query(query: QueryState<RT, *>): OngoingQueryEvaluation<RT> {
-    return OngoingQueryEvaluationRelease(query).also { it.subscribe(this) }
+    return OngoingQueryEvaluationImpl(query).also { it.subscribe(this) }
 }
 
 /* helper properties */

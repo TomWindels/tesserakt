@@ -5,9 +5,9 @@ import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.MutableStore
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.Query
-import dev.tesserakt.sparql.queryDebug
+import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
+import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
@@ -56,7 +56,7 @@ class RandomUpdateTest(
 
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime = measureTime {
-            ongoing = input.queryDebug(query)
+            ongoing = input.query(query)
         }
         // checking the initial state (no data)
         builder.add(
