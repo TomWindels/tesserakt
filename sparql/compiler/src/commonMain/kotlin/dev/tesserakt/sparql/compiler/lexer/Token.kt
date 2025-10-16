@@ -54,10 +54,8 @@ sealed interface Token {
         Ask("ASK"),
         Bind("BIND"),
         Filter("FILTER"),
-        Order("ORDER"),
         Group("GROUP"),
         Having("HAVING"),
-        By("BY"),
         Limit("LIMIT"),
         Union("UNION"),
         Distinct("DISTINCT"),
@@ -66,6 +64,11 @@ sealed interface Token {
         Values("VALUES"),
         Exists("EXISTS"),
         Not("NOT"),
+        /* order by */
+        Order("ORDER"),
+        By("BY"),
+        Asc("ASC"),
+        Desc("DESC"),
         /* aggregates */
         AggCount("COUNT"),
         AggSum("SUM"),

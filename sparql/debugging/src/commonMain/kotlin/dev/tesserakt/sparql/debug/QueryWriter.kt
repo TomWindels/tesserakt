@@ -287,8 +287,6 @@ abstract class QueryWriter<RT> {
                 }
                 element.ordering?.let { ordering ->
                     newline()
-                    add(Token.Keyword.Order)
-                    add(Token.Keyword.By)
                     process(ordering)
                 }
             }
@@ -346,6 +344,20 @@ abstract class QueryWriter<RT> {
                 unindent()
                 newline()
                 add(Token.Symbol.CurlyBracketEnd)
+            }
+
+            is Ordering -> {
+                add(Token.Keyword.Order)
+                add(Token.Keyword.By)
+                element.elements.forEach { item ->
+                    when (item.mode) {
+                        Ordering.Element.Mode.Ascending -> add(Token.Keyword.Asc)
+                        Ordering.Element.Mode.Descending -> add(Token.Keyword.Desc)
+                    }
+                    add(Token.Symbol.RoundBracketStart)
+                    add(item.binding.toToken())
+                    add(Token.Symbol.RoundBracketEnd)
+                }
             }
         }
 

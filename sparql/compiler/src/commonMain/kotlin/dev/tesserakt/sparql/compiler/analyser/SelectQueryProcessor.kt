@@ -3,6 +3,7 @@ package dev.tesserakt.sparql.compiler.analyser
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.GraphPattern
+import dev.tesserakt.sparql.types.Ordering
 import dev.tesserakt.sparql.types.SelectQueryStructure
 
 class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
@@ -14,8 +15,8 @@ class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
         var grouping: Expression? = null,
         /** HAVING (filter) **/
         var groupingFilter: Expression? = null,
-        /** ORDER BY <expr> **/
-        var ordering: Expression? = null
+        /** ORDER BY [ASC/DESC]?binding [[ASC/DESC]?binding [...]] **/
+        var ordering: Ordering? = null
     ) {
         fun build() = SelectQueryStructure(
             output = output,
@@ -130,11 +131,7 @@ class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
         if (builder.ordering != null) {
             bail("Multiple order statements are not supported!")
         }
-        expectToken(Token.Keyword.Order)
-        consume()
-        expectToken(Token.Keyword.By)
-        consume()
-        builder.ordering = use(ExpressionProcessor())
+        builder.ordering = use(OrderProcessor())
     }
 
     private fun processGrouping() {
