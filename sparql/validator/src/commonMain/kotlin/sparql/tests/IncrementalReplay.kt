@@ -1,6 +1,5 @@
 package sparql.tests
 
-import bindingComparisonOf
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.trig.serialization.TriGSerializer
 import dev.tesserakt.rdf.types.MutableStore
@@ -8,13 +7,16 @@ import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
+import dev.tesserakt.sparql.types.SelectQueryStructure
 import dev.tesserakt.util.printerrln
 import sparql.ExternalQueryExecution
 import sparql.types.OutputComparisonTest
+import unorderedBindingComparisonOf
 import kotlin.time.measureTime
 
 private data class ReplayTestResult(
@@ -24,7 +26,7 @@ private data class ReplayTestResult(
     val diff: SnapshotStore.Diff,
 ) {
 
-    private val comparison = previous?.let { bindingComparisonOf(it, result.received) }
+    private val comparison = previous?.let { unorderedBindingComparisonOf(it, result.received) }
 
     fun isSuccess() = result.isSuccess()
 
@@ -78,6 +80,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
     awaitBenchmarkStart()
     benchmark.queries.forEachIndexed { i, query ->
         val store = ObservableStore()
+        val compiled = Compiler().compile(query).structure as SelectQueryStructure
         val evaluation = store.query(Query.Select(query))
         println("Beginning new evaluation for query ${i + 1}")
         var snapshotIndex = 0
@@ -104,6 +107,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
                 expected = solution,
                 debugInformation = "${RuntimeStatistics.report()}${external.report()}",
                 elapsedTime = time,
+                strictOrdering = compiled.ordering != null,
                 referenceTime = reference
             )
             val result = ReplayTestResult(previous, comparison, store.size, diff)

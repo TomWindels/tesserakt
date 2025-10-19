@@ -136,6 +136,22 @@ fun builtinTests() = tests {
         }
     """
 
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+        } ORDER BY ASC(?c)
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+        } ORDER BY DESC(?c)
+    """
+
     val timestamps = buildStore {
         val root = prefix("", "http://example.com/")
         val user = root("user")
@@ -155,6 +171,24 @@ fun builtinTests() = tests {
             ?s :dob ?dob .
             FILTER(?dob > "2010-01-01T00:00:00Z"^^xsd:dateTime) .
         }
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+        } ORDER BY ?dob
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+        } ORDER BY DESC(?dob)
     """
 
     val languages = buildStore {
@@ -291,6 +325,27 @@ fun builtinTests() = tests {
             ?n :q ?c2 .
             FILTER(?c1 < ?c2 - 1.5)
         }
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY ?v DESC(?s) ?p
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY DESC(?v) DESC(?s) ?p
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY ?v ?s DESC(?p)
     """
 
     val filtered = buildStore {

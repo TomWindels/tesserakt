@@ -36,6 +36,7 @@ class OutputComparisonTest(
             expected = expected,
             elapsedTime = elapsedTime,
             referenceTime = referenceTime,
+            strictOrdering = hasStrictOrdering,
             debugInformation = "${RuntimeStatistics.report()}${external.report()}"
         )
     }
@@ -91,12 +92,14 @@ class OutputComparisonTest(
                 expected: List<Bindings>,
                 elapsedTime: Duration,
                 referenceTime: Duration,
+                strictOrdering: Boolean,
                 debugInformation: String
             ): Result = compare(
                 received = received,
                 expected = expected,
                 elapsedTime = elapsedTime,
                 referenceTime = referenceTime,
+                strictOrdering = strictOrdering,
                 debugInformation = debugInformation
             )
         }

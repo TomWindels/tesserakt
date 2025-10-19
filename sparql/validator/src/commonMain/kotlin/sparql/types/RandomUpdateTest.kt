@@ -62,6 +62,7 @@ class RandomUpdateTest(
         builder.add(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
+            strictOrdering = hasStrictOrdering,
             debugInformation = ongoing.debugInformation()
         )
         repeat(iterations) { i ->
@@ -82,6 +83,7 @@ class RandomUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
+                strictOrdering = hasStrictOrdering,
                 debugInformation = ongoing.debugInformation()
             )
         }
@@ -111,6 +113,7 @@ class RandomUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
+                strictOrdering: Boolean,
                 debugInformation: String,
             ) {
                 list.add(
@@ -119,6 +122,7 @@ class RandomUpdateTest(
                         elapsedTime = self.first,
                         expected = reference.second,
                         referenceTime = reference.first,
+                        strictOrdering = strictOrdering,
                         debugInformation = debugInformation
                     )
                 )
