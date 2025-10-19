@@ -8,6 +8,9 @@ class BindingIdentifierSet(private val ids: IntArray) {
     constructor(context: QueryContext, names: Iterable<String>) :
             this(ids = names.distinct().map { context.resolveBinding(it) }.sorted().toIntArray())
 
+    constructor(context: QueryContext, names: Set<String>) :
+            this(ids = names.map { context.resolveBinding(it) }.sorted().toIntArray())
+
     val size: Int
         get() = ids.size
 

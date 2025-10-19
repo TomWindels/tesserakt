@@ -1,21 +1,21 @@
 package dev.tesserakt.sparql.runtime.query
 
-import dev.tesserakt.sparql.runtime.evaluation.BindingsImpl
-import dev.tesserakt.sparql.runtime.evaluation.DataDelta
-import dev.tesserakt.sparql.runtime.evaluation.MappingAddition
-import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.asResultChange
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.into
+import dev.tesserakt.sparql.runtime.query.select.OutputState
 import dev.tesserakt.sparql.types.SelectQueryStructure
-import dev.tesserakt.sparql.util.Counter
+import dev.tesserakt.sparql.util.MappedCollection.Companion.mapLazily
 
-class SelectQueryState(ast: SelectQueryStructure): QueryState<BindingsImpl, SelectQueryStructure>(ast) {
+class SelectQueryState(ast: SelectQueryStructure): QueryState<Bindings, SelectQueryStructure>(ast) {
 
-    val variables = ast.bindings
+    private val projectionSet = BindingIdentifierSet(context, ast.bindings)
 
-    private val _results = Counter<BindingsImpl>()
-
+    private val _results = OutputState(context, ast)
     override val results: Collection<BindingsImpl>
-        get() = _results.flatten()
+        get() = _results.mapLazily { it.into(context) }
 
     init {
          // required when setting up the initial state: sets up initial state
@@ -31,34 +31,32 @@ class SelectQueryState(ast: SelectQueryStructure): QueryState<BindingsImpl, Sele
             .forEach(::onNewBodyResult)
     }
 
-    override fun processAndGet(data: DataDelta): List<ResultChange<BindingsImpl>> {
+    override fun processAndGet(data: DataDelta): List<ResultChange<Bindings>> {
         return bgpState.insert(data)
-            .map { it.into(context) }
             .onEach(::onNewBodyResult)
+            .map { it.asResultChange(context) }
     }
 
     override fun process(data: DataDelta) {
         bgpState.insert(data).forEach(::onNewBodyResult)
     }
 
-    private inline fun onNewBodyResult(result: MappingDelta) = onNewBodyResult(result.into(context))
-
-    private inline fun onNewBodyResult(result: ResultChange<BindingsImpl>) {
-        val projected = applyProjection(result)
+    private inline fun onNewBodyResult(result: MappingDelta) {
+        val projected = applyProjection(result.asResultChange())
         insert(projected)
     }
 
-    private inline fun applyProjection(change: ResultChange<BindingsImpl>): ResultChange<BindingsImpl> {
+    private inline fun applyProjection(change: ResultChange<Mapping>): ResultChange<Mapping> {
         return when (change) {
-            is ResultChange.New -> ResultChange.New(change.value.retain(variables))
-            is ResultChange.Removed -> ResultChange.Removed(change.value.retain(variables))
+            is ResultChange.New -> ResultChange.New(change.value.retain(projectionSet))
+            is ResultChange.Removed -> ResultChange.Removed(change.value.retain(projectionSet))
         }
     }
 
-    private fun insert(change: ResultChange<BindingsImpl>) {
+    private fun insert(change: ResultChange<Mapping>) {
         when (change) {
-            is ResultChange.New<*> -> _results.increment(change.value)
-            is ResultChange.Removed<*> -> _results.decrement(change.value)
+            is ResultChange.New<*> -> _results.onResultAdded(change.value)
+            is ResultChange.Removed<*> -> _results.onResultRemoved(change.value)
         }
     }
 
