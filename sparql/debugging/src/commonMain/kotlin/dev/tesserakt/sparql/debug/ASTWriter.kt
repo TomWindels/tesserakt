@@ -240,6 +240,12 @@ class ASTWriter(private val indentStyle: String = "  ") {
                 symbol.ordering?.let {
                     process(it)
                 }
+                if (symbol.limit != Int.MAX_VALUE) {
+                    writeLine("limit: ${symbol.limit}")
+                }
+                if (symbol.offset != 0) {
+                    writeLine("offset: ${symbol.offset}")
+                }
             }
         }
 

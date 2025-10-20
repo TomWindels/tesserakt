@@ -56,7 +56,6 @@ sealed interface Token {
         Filter("FILTER"),
         Group("GROUP"),
         Having("HAVING"),
-        Limit("LIMIT"),
         Union("UNION"),
         Distinct("DISTINCT"),
         Optional("OPTIONAL"),
@@ -64,11 +63,13 @@ sealed interface Token {
         Values("VALUES"),
         Exists("EXISTS"),
         Not("NOT"),
-        /* order by */
+        /* solution sequence modifiers */
         Order("ORDER"),
         By("BY"),
         Asc("ASC"),
         Desc("DESC"),
+        Limit("LIMIT"),
+        Offset("OFFSET"),
         /* aggregates */
         AggCount("COUNT"),
         AggSum("SUM"),

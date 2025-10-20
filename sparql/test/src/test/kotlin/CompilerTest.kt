@@ -364,7 +364,67 @@ class CompilerTest {
             SELECT * {
                 ?s a ?type ; :name ?name .
             }
+            LIMIT 3
+            OFFSET 1
+        """ satisfies {
+            this is SelectQueryStructure && limit == 3 && offset == 1
+        }
+        """
+            PREFIX : <http://example.com/>
+            SELECT * {
+                ?s a ?type ; :name ?name .
+            }
+            ORDER BY ?s ASC(?name) DESC(?type)
+            LIMIT 3
+            OFFSET 1
+        """ satisfies {
+            val expected = listOf(
+                Ordering.Element(
+                    binding = Binding("s"),
+                    mode = Ordering.Element.Mode.Ascending,
+                ),
+                Ordering.Element(
+                    binding = Binding("name"),
+                    mode = Ordering.Element.Mode.Ascending,
+                ),
+                Ordering.Element(
+                    binding = Binding("type"),
+                    mode = Ordering.Element.Mode.Descending,
+                )
+            )
+            this is SelectQueryStructure &&
+            ordering.let { it != null && it.elements == expected } &&
+            limit == 3 &&
+            offset == 1
+        }
+        """
+            PREFIX : <http://example.com/>
+            SELECT * {
+                ?s a ?type ; :name ?name .
+            }
             ORDER BY
+        """ causes(CompilerException.Type.StructuralError)
+        """
+            PREFIX : <http://example.com/>
+            SELECT * {
+                ?s a ?type ; :name ?name .
+            }
+            LIMIT 5.2
+        """ causes(CompilerException.Type.StructuralError)
+        """
+            PREFIX : <http://example.com/>
+            SELECT * {
+                ?s a ?type ; :name ?name .
+            }
+            LIMIT -2
+        """ causes(CompilerException.Type.StructuralError)
+        """
+            PREFIX : <http://example.com/>
+            SELECT * {
+                ?s a ?type ; :name ?name .
+            }
+            LIMIT 2
+            LIMIT 3
         """ causes(CompilerException.Type.StructuralError)
     }
 
