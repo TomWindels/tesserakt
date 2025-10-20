@@ -17,15 +17,24 @@ import dev.tesserakt.sparql.types.SelectQueryStructure
  * Note that it is possible for results to be removed using [QueryState.ResultChange.Removed] as long as not all data
  *  has been processed.
  *
- * IMPORTANT: the query is not allowed to use `ORDER BY`, as the callback is not aware of result order. Providing such
- *  a query will throw a [UnsupportedOperationException] instead.
+ * IMPORTANT: the query is not allowed to have solution sequence modifiers (ORDER BY, LIMIT and OFFSET), as the callback
+ *  is not aware of result order. Providing such a query will throw a [UnsupportedOperationException] instead.
  */
 fun <RT> Iterable<Quad>.query(
     query: Query<RT>,
     callback: (QueryState.ResultChange<RT>) -> Unit
 ) {
-    if (query.compiled is SelectQueryStructure && query.compiled.ordering != null) {
-        throw UnsupportedOperationException("The query uses `ORDER BY`, which is not supported through this API! Use regular `query()` methods instead.")
+    if (
+        query.compiled is SelectQueryStructure && (
+            // ORDER BY is not allowed
+            query.compiled.ordering != null ||
+            // OFFSET is not allowed
+            query.compiled.offset != 0 ||
+            // LIMIT is not allowed
+            query.compiled.limit != Int.MAX_VALUE
+        )
+    ) {
+        throw UnsupportedOperationException("The query contains solution sequence modifiers (ORDER BY, LIMIT and/or OFFSET), which is not supported through this API. Use regular `query()` methods instead, which expose the entire result collection at all times, which do adhere to these solution modifiers, or create a new query without these modifiers.")
     }
     val state = query.createState()
     RuntimeStatistics.reset()
