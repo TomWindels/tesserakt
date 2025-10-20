@@ -5,7 +5,9 @@ import dev.tesserakt.sparql.util.Counter
 import kotlin.jvm.JvmInline
 
 @JvmInline
-value class UnconfinedOutputState private constructor(private val results: Counter<Mapping>): OutputState {
+value class UnconfinedOutputState private constructor(
+    private val results: Counter<Mapping>
+): OutputState.Unconfined {
 
     constructor(): this(Counter())
 

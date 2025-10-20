@@ -149,7 +149,23 @@ fun builtinTests() = tests {
 
         SELECT * WHERE {
             ?s a :Example ; :count ?c .
+        } ORDER BY ASC(?c) LIMIT 2
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
         } ORDER BY DESC(?c)
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+        } ORDER BY DESC(?c) LIMIT 1
     """
 
     val timestamps = buildStore {
@@ -188,7 +204,25 @@ fun builtinTests() = tests {
         SELECT * WHERE {
             ?s a :User .
             ?s :dob ?dob .
+        } ORDER BY ?dob LIMIT 1
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
         } ORDER BY DESC(?dob)
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+        } ORDER BY DESC(?dob) LIMIT 2 OFFSET 1
     """
 
     val languages = buildStore {
@@ -345,7 +379,21 @@ fun builtinTests() = tests {
         SELECT * {
             ?s ?p ?v
         }
+        ORDER BY DESC(?v) DESC(?s) ?p LIMIT 3
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
         ORDER BY ?v ?s DESC(?p)
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY ?v ?s DESC(?p) OFFSET 1
     """
 
     val filtered = buildStore {

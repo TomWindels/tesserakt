@@ -7,7 +7,7 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class UnconfinedOrderedOutputState private constructor(
     private val results: SortedCounter<Mapping>
-) : OutputState {
+) : OutputState.Unconfined {
 
     constructor(comparator: Comparator<Mapping>): this(results = SortedCounter<Mapping>(comparator = comparator))
 
