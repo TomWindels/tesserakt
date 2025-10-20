@@ -41,6 +41,7 @@ class IncrementalDeferredUpdateTest(
         builder.add(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
+            strictOrdering = hasStrictOrdering,
             debugInformation = ongoing.debugInformation()
         )
         // building it up
@@ -53,6 +54,7 @@ class IncrementalDeferredUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
+                strictOrdering = hasStrictOrdering,
                 debugInformation = ongoing.debugInformation()
             )
         }
@@ -66,6 +68,7 @@ class IncrementalDeferredUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
+                strictOrdering = hasStrictOrdering,
                 debugInformation = ongoing.debugInformation()
             )
         }
@@ -90,12 +93,14 @@ class IncrementalDeferredUpdateTest(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
                 debugInformation: String,
+                strictOrdering: Boolean,
             ) {
                 list.add(
                     compare(
                         received = self.second,
                         elapsedTime = self.first,
                         expected = reference.second,
+                        strictOrdering = strictOrdering,
                         referenceTime = reference.first,
                         debugInformation = debugInformation
                     )

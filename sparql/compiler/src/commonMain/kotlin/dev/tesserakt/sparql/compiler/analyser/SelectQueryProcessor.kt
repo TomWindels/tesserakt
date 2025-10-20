@@ -3,6 +3,7 @@ package dev.tesserakt.sparql.compiler.analyser
 import dev.tesserakt.sparql.compiler.lexer.Token
 import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.types.GraphPattern
+import dev.tesserakt.sparql.types.Ordering
 import dev.tesserakt.sparql.types.SelectQueryStructure
 
 class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
@@ -14,15 +15,21 @@ class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
         var grouping: Expression? = null,
         /** HAVING (filter) **/
         var groupingFilter: Expression? = null,
-        /** ORDER BY <expr> **/
-        var ordering: Expression? = null
+        /** ORDER BY [ASC/DESC]?binding [[ASC/DESC]?binding [...]] **/
+        var ordering: Ordering? = null,
+        /** LIMIT N (=[Int.MAX_VALUE] if not provided) */
+        var limit: Int = Int.MAX_VALUE,
+        /** OFFSET N (=`0` if not provided) */
+        var offset: Int = 0,
     ) {
         fun build() = SelectQueryStructure(
             output = output,
             body = body ?: bail("Query body is missing"),
             grouping = grouping,
             groupingFilter = groupingFilter,
-            ordering = ordering
+            ordering = ordering,
+            limit = limit,
+            offset = offset,
         )
     }
 
@@ -119,6 +126,8 @@ class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
     private fun processQueryEnd() {
         while (true) {
             when (token) {
+                Token.Keyword.Limit -> processLimit()
+                Token.Keyword.Offset -> processOffset()
                 Token.Keyword.Order -> processOrdering()
                 Token.Keyword.Group -> processGrouping()
                 else -> return // nothing for us to consume here
@@ -126,15 +135,35 @@ class SelectQueryProcessor: Analyser<SelectQueryStructure>() {
         }
     }
 
+    private fun processLimit() {
+        if (builder.limit != Int.MAX_VALUE) {
+            bail("A limit was already provided!")
+        }
+        consume()
+        builder.limit = ((token as? Token.NumericLiteral)?.value as? Long)
+            ?.toInt()
+            ?.takeIf { it >= 0 }
+            ?: bail("An integer argument was expected, but got $token")
+        consume()
+    }
+
+    private fun processOffset() {
+        if (builder.offset != 0) {
+            bail("An offset was already provided!")
+        }
+        consume()
+        builder.offset = ((token as? Token.NumericLiteral)?.value as? Long)
+            ?.toInt()
+            ?.takeIf { it >= 0 }
+            ?: bail("An integer argument was expected, but got $token")
+        consume()
+    }
+
     private fun processOrdering() {
         if (builder.ordering != null) {
             bail("Multiple order statements are not supported!")
         }
-        expectToken(Token.Keyword.Order)
-        consume()
-        expectToken(Token.Keyword.By)
-        consume()
-        builder.ordering = use(ExpressionProcessor())
+        builder.ordering = use(OrderProcessor())
     }
 
     private fun processGrouping() {

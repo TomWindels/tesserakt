@@ -12,7 +12,7 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.toStore
-import dev.tesserakt.testing.comparisonOf
+import dev.tesserakt.testing.unorderedComparisonOf
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertTrue
@@ -100,7 +100,7 @@ class TurtleSerialization {
             .asIterable().toStore()
         // as turtle doesn't contain graphs, every read-in quad should have the default graph
         val r = reference.map { it.copy(g = Quad.DefaultGraph) }.toStore()
-        var comparison = comparisonOf(
+        var comparison = unorderedComparisonOf(
             a = r,
             b = complete
         )
@@ -115,7 +115,7 @@ class TurtleSerialization {
             .joinToString("\n")
         val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
-        comparison = comparisonOf(
+        comparison = unorderedComparisonOf(
             a = r,
             b = incomplete
         )

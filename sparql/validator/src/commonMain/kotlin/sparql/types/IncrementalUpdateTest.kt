@@ -4,7 +4,7 @@ import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
-import dev.tesserakt.sparql.queryDebug
+import dev.tesserakt.sparql.query
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -34,12 +34,13 @@ class IncrementalUpdateTest(
         }
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime= measureTime {
-            ongoing = input.queryDebug(query)
+            ongoing = input.query(query)
         }
         // checking the initial state (no data)
         builder.add(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
+            strictOrdering = hasStrictOrdering,
             debugInformation = ongoing.debugInformation()
         )
         // building it up
@@ -52,6 +53,7 @@ class IncrementalUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
+                strictOrdering = hasStrictOrdering,
                 debugInformation = ongoing.debugInformation()
             )
         }
@@ -65,6 +67,7 @@ class IncrementalUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
+                strictOrdering = hasStrictOrdering,
                 debugInformation = ongoing.debugInformation()
             )
         }
@@ -88,6 +91,7 @@ class IncrementalUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
+                strictOrdering: Boolean,
                 debugInformation: String,
             ) {
                 list.add(
@@ -96,6 +100,7 @@ class IncrementalUpdateTest(
                         elapsedTime = self.first,
                         expected = reference.second,
                         referenceTime = reference.first,
+                        strictOrdering = strictOrdering,
                         debugInformation = debugInformation
                     )
                 )

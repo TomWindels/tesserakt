@@ -2,16 +2,14 @@ package dev.tesserakt.sparql.evaluation
 
 import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.evaluation.BindingsImpl
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.query.QueryState
-import dev.tesserakt.util.replace
 import kotlin.jvm.JvmInline
 
 
-class DeferredOngoingQueryEvaluationRelease<RT>(private val query: QueryState<RT, *>): DeferredOngoingQueryEvaluation<RT> {
+internal class DeferredOngoingQueryEvaluationImpl<RT>(private val query: QueryState<RT, *>): DeferredOngoingQueryEvaluation<RT> {
 
     private sealed interface Change {
         @JvmInline
@@ -31,17 +29,13 @@ class DeferredOngoingQueryEvaluationRelease<RT>(private val query: QueryState<RT
         }
     }
 
-    // a possibly out-of-date state of the ongoing query
-    private val _results = mutableMapOf<RT, Int>()
-
-    override val results: List<RT>
+    override val results: Collection<RT>
         get() {
             // ensuring the _results are up-to-date
             update()
-            return _results.flatMap { entry -> List(entry.value) { entry.key } }
+            return query.results
         }
 
-    private val processor = query.Processor()
     // a set, as duplicate insertions / deletions are not possible, and opposite changes can be found efficiently
     private val queue = mutableSetOf<Change>()
 
@@ -52,13 +46,6 @@ class DeferredOngoingQueryEvaluationRelease<RT>(private val query: QueryState<RT
 
         override fun onQuadRemoved(quad: Quad) {
             process(Change.Deletion(quad))
-        }
-    }
-
-    init {
-        // setting the query state as the current results
-        processor.state().forEach {
-            _results[it] = 1
         }
     }
 
@@ -76,7 +63,7 @@ class DeferredOngoingQueryEvaluationRelease<RT>(private val query: QueryState<RT
     }
 
     override fun debugInformation(): String {
-        return processor.debugInformation()
+        return query.debugInformation()
     }
 
     /**
@@ -85,7 +72,7 @@ class DeferredOngoingQueryEvaluationRelease<RT>(private val query: QueryState<RT
     fun update() {
         val iter = queue.iterator()
         while (iter.hasNext()) {
-            processor.process(iter.next().into()).forEach(::process)
+            query.process(iter.next().into())
             iter.remove()
         }
     }
@@ -96,17 +83,6 @@ class DeferredOngoingQueryEvaluationRelease<RT>(private val query: QueryState<RT
             return
         }
         queue.add(change)
-    }
-
-    private fun process(change: QueryState.ResultChange<BindingsImpl>) {
-        when (val mapped = query.process(change)) {
-            is QueryState.ResultChange.New<*> -> {
-                _results.replace(mapped.value) { current -> (current ?: 0) + 1 }
-            }
-            is QueryState.ResultChange.Removed<*> -> {
-                _results.replace(mapped.value) { current -> (current ?: 0) - 1 }
-            }
-        }
     }
 
 }

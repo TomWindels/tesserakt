@@ -35,7 +35,7 @@ data class Comparison<T>(
 
 val ExactMatch = Comparison<Nothing>(emptyList(), emptyList())
 
-fun <T> comparisonOf(
+fun <T> unorderedComparisonOf(
     a: Iterable<T>,
     b: Iterable<T>
 ): Comparison<T> {
