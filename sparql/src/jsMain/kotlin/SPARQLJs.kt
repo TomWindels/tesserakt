@@ -4,7 +4,6 @@ import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.createState
-import dev.tesserakt.sparql.runtime.evaluation.BindingsImpl
 import dev.tesserakt.sparql.runtime.query.SelectQueryState
 import dev.tesserakt.util.jsExpect
 import dev.tesserakt.util.mapToArray
@@ -25,7 +24,7 @@ object SPARQLJs {
     class SelectQueryJs internal constructor(internal val query: SelectQueryState)
 
     @JsName("SelectQueryEvaluation")
-    class SelectQueryEvaluationJs internal constructor(private val evaluation: OngoingQueryEvaluation<BindingsImpl>) {
+    class SelectQueryEvaluationJs internal constructor(private val evaluation: OngoingQueryEvaluation<Bindings>) {
 
         @OptIn(ExperimentalJsCollectionsApi::class)
         val bindings: Array<JsMap<String, QuadJs.TermJs>>
