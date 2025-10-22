@@ -128,15 +128,18 @@ class OrderComparator private constructor(
 
         private fun compare(left: Quad.Literal, right: Quad.Literal): Int {
             if (left.type == right.type) {
-                val comparator = Comparators[left.type] ?: return 0
-                return comparator.invoke(left, right)
+                val comparator = Comparators[left.type]
+                if (comparator != null) {
+                    return comparator.invoke(left, right)
+                }
             }
             // even though it's possible for left and right to represent valid numericals w/o checking their data types,
             //  it would also allow for non-XSD types to be compared, which is not supposed to happen
             if (left.hasNumericalType() && right.hasNumericalType()) {
                 return NumericalComparison.invoke(left, right)
             }
-            return 0
+            // falling back to lexical comparison
+            return left.value.compareTo(right.value)
         }
 
         private val NumericalComparison = cmp@ { left: Quad.Literal, right: Quad.Literal ->
