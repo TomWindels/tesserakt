@@ -103,6 +103,10 @@ fun setupBenchmarkTasks() {
     val jvmJar by tasks.existing
     val jvmRuntimeClasspath by configurations.existing
 
+    // cannot be null if the check above is applied properly, but just in
+    //  case (allows for the smart cast to work)
+    benchmarkingInput ?: return
+
     val runnerJvm = tasks.register("runBenchmarkJvm", JavaExec::class) {
         group = "benchmarking"
         mainClass.set("Main_jvmKt")
@@ -114,7 +118,7 @@ fun setupBenchmarkTasks() {
         group = "benchmarking"
         workingDir = rootDir
         // retrieved & configured through the "kotlinNodejsSetup" task
-        val node = "${File("${gradle.gradleUserHomeDir}/nodejs").listFiles().single { file -> file.isDirectory }}/bin/node"
+        val node = "${File("${gradle.gradleUserHomeDir}/nodejs").listFiles()!!.single { file -> file.isDirectory }}/bin/node"
         val file = "build/js/packages/tesserakt-benchmarking-runner/kotlin/tesserakt-benchmarking-runner.js"
         commandLine(node, file, "-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/js/", "-e", "all")
     }
@@ -130,6 +134,10 @@ fun setupBenchmarkTasks() {
 }
 
 fun setupGraphingTasks() {
+    // cannot be null if the check above is applied properly, but just in
+    //  case (allows for the smart cast to work)
+    graphRepoUrl ?: return
+
     val graphPreparation = tasks.register("prepareGraphingTool", Exec::class.java) {
         group = "benchmarking"
         enabled = !graphingTarget.get().asFile.exists()

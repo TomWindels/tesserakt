@@ -1,15 +1,15 @@
 [versions]
 
-compileSdk = "35"
-android-plugin = "8.9.1"
-kotlin = "2.2.20"
-kotlinx-benchmark = "0.4.13"
-kotlinx-coroutines = "1.8.1"
-kotlinx-serialization = "1.8.1"
-ktor = "3.1.3"
-clikt = "5.0.1"
+compileSdk = "36"
+android-plugin = "8.13.0"
+kotlin = "2.2.21"
+kotlinx-benchmark = "0.4.14"
+kotlinx-coroutines = "1.10.2"
+kotlinx-serialization = "1.9.0"
+ktor = "3.3.1"
+clikt = "5.0.3"
 dokka = "2.1.0"
-maven-publish = "0.31.0"
+maven-publish = "0.34.0"
 jena = "5.6.0"
 
 [libraries]
