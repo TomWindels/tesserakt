@@ -27,9 +27,9 @@ kotlin {
                 implementation(project(":testing:bench:sparql:core"))
                 implementation(project(":testing:bench:sparql:endpoint"))
                 // necessary to properly launch the coroutines associated with the execution
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+                implementation(libs.kotlinx.coroutines.core)
                 // CLI implementation
-                implementation("com.github.ajalt.clikt:clikt:5.0.1")
+                implementation(libs.clikt)
             }
         }
         val jvmMain by getting {

@@ -14,18 +14,18 @@ kotlin {
         // used to set an initial file as the in-memory store
         implementation(project(":serialization:trig"))
         // hosting the actual endpoint
-        implementation("io.ktor:ktor-server-core:3.1.3")
-        implementation("io.ktor:ktor-server-cio:3.1.3")
-        implementation("io.ktor:ktor-server-status-pages:3.1.3")
+        implementation(libs.ktor.server.core)
+        implementation(libs.ktor.server.cio)
+        implementation(libs.ktor.server.statusPages)
         // proper CLI support
-        implementation("com.github.ajalt.clikt:clikt:5.0.1")
+        implementation(libs.clikt)
 
         /* test dependencies */
 
         // setting up tests
         testImplementation(kotlin("test"))
-        testImplementation("io.ktor:ktor-server-test-host:3.1.3")
-        testImplementation("io.ktor:ktor-client-content-negotiation:3.1.3")
+        testImplementation(libs.ktor.serverTestHost)
+        testImplementation(libs.ktor.client.contentNegotiation)
 
         // actually creating / processing requests
         testImplementation(project(":sparql:endpoint:ktor:client"))

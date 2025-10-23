@@ -28,7 +28,7 @@ kotlin {
                 implementation(project(":utils"))
                 implementation(project(":interop:jena"))
                 implementation(project(":testing:tooling:environment"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
     }

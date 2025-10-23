@@ -24,7 +24,7 @@ kotlin {
                 implementation(project(":interop:rdfjs"))
                 implementation(npm("@comunica/query-sparql", "3.1.2"))
                 // awaiting promises
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
     }
