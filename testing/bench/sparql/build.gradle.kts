@@ -1,7 +1,6 @@
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 
 plugins {
-    application
     // not distributed as a package, build targets are manually defined
     id("base-config")
 }
@@ -9,11 +8,7 @@ plugins {
 group = "sparql.bench"
 
 kotlin {
-    jvm {
-        // required to have a functional `application` plugin; otherwise, a very empty
-        //  single jar file is being built
-        withJava()
-    }
+    jvm()
     js {
         nodejs {
             @OptIn(ExperimentalMainFunctionArgumentsDsl::class)
@@ -204,11 +199,6 @@ fun setupGraphingTasks() {
 }
 
 tasks.named("clean").get().finalizedBy(cleanGraphTool)
-
-application {
-    mainClass.set("Main_jvmKt")
-    applicationName = "sparql-bench"
-}
 
 // the same fix found in `jvm-target` convention plugin - manually applied
 // we cannot use that plugin here, as we need to specify `withJava()` to the `jvm` target,

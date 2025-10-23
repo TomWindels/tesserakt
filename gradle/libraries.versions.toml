@@ -2,10 +2,14 @@
 
 compileSdk = "35"
 android-plugin = "8.9.1"
-kotlin = "2.1.10"
+kotlin = "2.2.20"
+dokka = "2.1.0"
 maven-publish = "0.31.0"
+jena = "5.6.0"
 
 [libraries]
+
+apache-jena = { module = "org.apache.jena:jena-arq", version.ref = "jena" }
 
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "android-plugin" }
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -14,3 +18,4 @@ maven-publish-gradlePlugin = { module = "com.vanniktech.maven.publish.base:com.v
 [plugins]
 
 android-library = { id = "com.android.library", version.ref = "android-plugin" }
+kotlin-dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

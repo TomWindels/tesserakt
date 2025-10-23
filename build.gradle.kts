@@ -5,7 +5,7 @@ repositories {
 }
 
 plugins {
-    id("org.jetbrains.dokka") version "2.0.0"
+    alias(libs.plugins.kotlin.dokka)
 }
 
 subprojects {

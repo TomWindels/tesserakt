@@ -82,5 +82,3 @@ tasks.named("jsNodeDevelopmentRun").dependsOn("jsProductionExecutableCompileSync
 tasks.named("jsNodeDevelopmentRun").dependsOn("jsDevelopmentExecutableCompileSync")
 tasks.named("jsNodeProductionRun").dependsOn("jsProductionExecutableCompileSync")
 tasks.named("jsNodeProductionRun").dependsOn("jsDevelopmentExecutableCompileSync")
-tasks.named("jsNodeRun").dependsOn("jsProductionExecutableCompileSync")
-tasks.named("jsNodeRun").dependsOn("jsDevelopmentExecutableCompileSync")

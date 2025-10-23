@@ -33,3 +33,21 @@ kotlin {
         }
     }
 }
+
+tasks.jvmTest {
+    javaLauncher.set(
+        javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    )
+}
+
+// we want to target the JavaCompile task for the tests specifically, as those
+//  also need JVM >= 17 to function for a functional Jena (w/ its transitive dependencies) setup
+tasks.withType(JavaCompile::class.java) {
+    if (!name.contains("jvmTest", ignoreCase = true)) {
+        return@withType
+    }
+    sourceCompatibility = "17"
+    targetCompatibility = "17"
+}
