@@ -8,6 +8,7 @@ repositories {
 
 kotlin {
     // target configuration
+    @Suppress("OPT_IN_USAGE")
     wasmJs {
         nodejs()
         browser {
