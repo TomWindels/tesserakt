@@ -220,6 +220,8 @@ class ExpressionProcessor: Analyser<Expression>() {
         val args = mutableListOf<Expression>()
         while (true) {
             args += nextOperand()
+            // muting this warning as it's wrong: `token` here is not expected to be an identifier
+            @Suppress("INCOMPATIBLE_TYPES_WARNING")
             when (token) {
                 Token.Symbol.RoundBracketEnd -> break
                 Token.Symbol.Comma -> consume()

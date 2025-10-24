@@ -1,7 +1,7 @@
 plugins {
     id("base-config")
-    id("org.jetbrains.kotlinx.benchmark") version "0.4.13"
-    kotlin("plugin.allopen") version "2.0.20"
+    alias(libs.plugins.kotlinx.benchmark)
+    alias(libs.plugins.kotlinx.allopen)
 }
 
 kotlin {
@@ -15,7 +15,7 @@ kotlin {
             dependencies {
                 implementation(project(":utils"))
                 implementation(project(":rdf"))
-                implementation("org.jetbrains.kotlinx:kotlinx-benchmark-runtime:0.4.13")
+                implementation(libs.kotlinx.benchmark)
 
                 // also adding types from the runtime we want to benchmark
                 implementation(project(":sparql:runtime"))

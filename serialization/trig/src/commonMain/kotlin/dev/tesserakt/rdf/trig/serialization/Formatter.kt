@@ -45,7 +45,10 @@ data class PrettyFormatter(
     /**
      * A small token buffer, buffering two values of the underlying token iterator source
      */
-    private inner class TokenBuffer(private val iterator: Iterator<TriGToken>) {
+    private class TokenBuffer(
+        private val prefixes: Prefixes,
+        private val iterator: Iterator<TriGToken>
+    ) {
 
         var current: TriGToken = iterator.next().mapped(prefixes)
             private set
@@ -245,7 +248,7 @@ data class PrettyFormatter(
             yield("\n")
         }
         val stack = Stack()
-        val buffer = TokenBuffer(tokens)
+        val buffer = TokenBuffer(prefixes, tokens)
         while (buffer.next != null) {
             when (buffer.next) {
                 TriGToken.Structural.GraphStatementStart -> {

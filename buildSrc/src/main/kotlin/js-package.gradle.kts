@@ -31,7 +31,7 @@ kotlin {
             name = "${parent.name}-$name"
             parent = parent.parent?.takeIf { it != project.rootProject }
         }
-        moduleName = name
+        outputModuleName.set(name)
         val npmPackageName = "@${project.findProperty("NPM_ORGANISATION")}/${name}"
         // setting the outputModuleName to the entire name value (= incl. the scope) yields
         //  runtime exceptions, so that approach is avoided
@@ -43,13 +43,11 @@ kotlin {
             packageJson {
                 customField("name", npmPackageName)
             }
-            outputModuleName = name
         }
         compilations.named("test") {
             packageJson {
                 customField("name", "${npmPackageName}-test")
             }
-            outputModuleName = "${name}-test"
         }
         println("Configured NPM package $npmPackageName")
         nodejs()

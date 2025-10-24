@@ -1,7 +1,6 @@
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalMainFunctionArgumentsDsl
 
 plugins {
-    application
     // not distributed as a package, build targets are manually defined
     id("base-config")
 }
@@ -9,11 +8,7 @@ plugins {
 group = "sparql.bench"
 
 kotlin {
-    jvm {
-        // required to have a functional `application` plugin; otherwise, a very empty
-        //  single jar file is being built
-        withJava()
-    }
+    jvm()
     js {
         nodejs {
             @OptIn(ExperimentalMainFunctionArgumentsDsl::class)
@@ -32,9 +27,9 @@ kotlin {
                 implementation(project(":testing:bench:sparql:core"))
                 implementation(project(":testing:bench:sparql:endpoint"))
                 // necessary to properly launch the coroutines associated with the execution
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+                implementation(libs.kotlinx.coroutines.core)
                 // CLI implementation
-                implementation("com.github.ajalt.clikt:clikt:5.0.1")
+                implementation(libs.clikt)
             }
         }
         val jvmMain by getting {
@@ -108,6 +103,10 @@ fun setupBenchmarkTasks() {
     val jvmJar by tasks.existing
     val jvmRuntimeClasspath by configurations.existing
 
+    // cannot be null if the check above is applied properly, but just in
+    //  case (allows for the smart cast to work)
+    benchmarkingInput ?: return
+
     val runnerJvm = tasks.register("runBenchmarkJvm", JavaExec::class) {
         group = "benchmarking"
         mainClass.set("Main_jvmKt")
@@ -119,7 +118,7 @@ fun setupBenchmarkTasks() {
         group = "benchmarking"
         workingDir = rootDir
         // retrieved & configured through the "kotlinNodejsSetup" task
-        val node = "${File("${gradle.gradleUserHomeDir}/nodejs").listFiles().single { file -> file.isDirectory }}/bin/node"
+        val node = "${File("${gradle.gradleUserHomeDir}/nodejs").listFiles()!!.single { file -> file.isDirectory }}/bin/node"
         val file = "build/js/packages/tesserakt-benchmarking-runner/kotlin/tesserakt-benchmarking-runner.js"
         commandLine(node, file, "-i", benchmarkingInput, "-o", "${build.get().asFile.path}/benchmark_output/js/", "-e", "all")
     }
@@ -135,6 +134,10 @@ fun setupBenchmarkTasks() {
 }
 
 fun setupGraphingTasks() {
+    // cannot be null if the check above is applied properly, but just in
+    //  case (allows for the smart cast to work)
+    graphRepoUrl ?: return
+
     val graphPreparation = tasks.register("prepareGraphingTool", Exec::class.java) {
         group = "benchmarking"
         enabled = !graphingTarget.get().asFile.exists()
@@ -204,11 +207,6 @@ fun setupGraphingTasks() {
 }
 
 tasks.named("clean").get().finalizedBy(cleanGraphTool)
-
-application {
-    mainClass.set("Main_jvmKt")
-    applicationName = "sparql-bench"
-}
 
 // the same fix found in `jvm-target` convention plugin - manually applied
 // we cannot use that plugin here, as we need to specify `withJava()` to the `jvm` target,
