@@ -1,7 +1,7 @@
 [versions]
 
 compileSdk = "36"
-android-plugin = "8.13.0"
+android-plugin = "8.12.3"
 kotlin = "2.2.21"
 kotlinx-benchmark = "0.4.14"
 kotlinx-coroutines = "1.10.2"
