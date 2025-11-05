@@ -1,6 +1,8 @@
 package dev.tesserakt.util
 
-internal class CommonPrefixStringPoolImpl: CommonPrefixStringPool {
+internal class CommonPrefixStringPoolImpl(
+    private val minNodeValueLength: Int = 5,
+): CommonPrefixStringPool {
 
     private class Node(
         parent: Node?,
@@ -56,149 +58,169 @@ internal class CommonPrefixStringPoolImpl: CommonPrefixStringPool {
 
     private var root: Node? = null
 
+    init {
+        require(minNodeValueLength > 0) { "The minimum node length should be no smaller than 1, but was $minNodeValueLength" }
+    }
+
     override fun createHandle(value: String): CommonPrefixStringPool.Handle {
         var node = root ?: run {
             val new = Node(parent = null, value = value, children = mutableListOf())
             root = new
             return new.backing
         }
-        // we need to track this node's parent separately; `null` meaning it has no parent (as we're looking at the root)
-        var nodeParent: Node? = null
-        // four possible scenarios
-        // * the node we're currently pointing at is identical with the remaining value to add, meaning it's already
-        //  present and its handle can be reused (`onExactMatch`)
-        // * the node we want to insert into is compatible with the new value, meaning we have to look at one of its
-        //  children (`onNodeValueEnded`)
-        // * the node we want to insert into is not compatible with the new value, meaning we have to create a new
-        //  in-between 'split' node that is a parent of both the incompatible node and the new child (`onIncompatible`)
-        // * the remaining value we want to insert is shorter than the currently considered node, meaning we have
-        //  to create a 'split' node to have a handle that terminates quicker in the tree, and the original node can
-        //  branch of off (`onRefValueEnded`)
+        // we have to traverse the tree, starting from our current node, until reaching a point where we can insert
+        //  (or find) the node that builds up to the passed-in value
         var valueIndex = 0
+        // we have to cover the first case in which the root node
+        node.match(
+            refValue = value,
+            startIndex = 0,
+            onIncompatible = { nodeValueIndex ->
+                // a split has to occur here, meaning the root node will have to change into a split node
+                val splitNodeChildren = mutableListOf<Node>()
+                // this becomes the new root, so no parent set
+                val newRoot = Node(
+                    parent = null,
+                    value = node.value.substring(0, nodeValueIndex),
+                    children = splitNodeChildren,
+                )
+                // we now also create a new child for the split node
+                val newChild = Node(
+                    parent = newRoot,
+                    // the remainder of the value, without what is contained by the new split node
+                    value = value.substring(/* valueIndex (= 0) +  */ nodeValueIndex),
+                    // leaf
+                    children = null,
+                )
+                // with it configured, we can set it as the root value
+                root = newRoot
+                // now we can transform the existing node to have this split node as its parent
+                node.backing.parent = newRoot.backing
+                node.value = node.value.substring(nodeValueIndex)
+                // finally, we set this updated node and the newly created child as children of the split node;
+                //  we can simply compare their first character value
+                if (node.value[0] < newChild.value[0]) {
+                    splitNodeChildren.add(node)
+                    splitNodeChildren.add(newChild)
+                } else {
+                    splitNodeChildren.add(newChild)
+                    splitNodeChildren.add(node)
+                }
+                // this new child also becomes the leaf we're looking for
+                return newChild.backing
+            },
+            onExactMatch = {
+                // special case where the root node itself has the exact value we need
+                return node.backing
+            },
+            onNodeValueEnded = {
+                // no node splitting required; we can continue with the tree traversal knowing the root node does
+                //  not have to change
+                valueIndex += node.value.length
+            },
+            onRefValueEnded = {
+                // we have to update the root node here using a split node of the existing value, with the current
+                //  root set as its direct child
+                val newRoot = Node(
+                    parent = null,
+                    value = value,
+                    children = mutableListOf(node),
+                )
+                // this original node (root) has to reduce its value's size
+                node.value = node.value.substring(value.length)
+                // moving the root over
+                root = newRoot
+                return newRoot.backing
+            },
+        )
+        // with the `node` value guaranteed to be traversed and matching value-wise with the target value, we can
+        //  continue going deeper into the tree knowing the root node doesn't change past this point
         while (true) {
-            node.match(
+            node.findChildNode(
                 refValue = value,
                 startIndex = valueIndex,
-                onExactMatch = {
-                    // we don't have to add anything, we already found the node we're looking for
-                    return node.backing
+                onExactMatchFound = { child ->
+                    // no further tree changes required, this is the node we're looking for
+                    return child.backing
                 },
-                onNodeValueEnded = {
-                    // we know we're compatible, so we can move the value index the entire node value's length
-                    valueIndex += node.value.length
-                    // we know the valueIndex is not out of bounds, so we can now find the next node safely
-                    val c = value[valueIndex]
-                    val children = node.children
-                    if (children == null) {
-                        // as it currently has no children, we can immediately create the remaining value as it's
-                        //  first child
-                        val newChild = Node(
-                            parent = node,
-                            // the remainder of the value
-                            value = value.substring(valueIndex),
-                            // leaf
-                            children = null,
-                        )
-                        // also inserting this new child so it can be discovered for subsequent tree updates
-                        node.children = mutableListOf(newChild)
-                        // it's the leaf we're looking for as we've automatically set its value in accordance
-                        return newChild.backing
-                    }
-                    val childIndex = children.binarySearch { childNode ->
-                        childNode.value[0].compareTo(c)
-                    }
-                    // it's possible for the childIndex to be negative, i.e. equal to `- insertion point - 1`, in which
-                    //  case no child exist with a matching start character, creating it here
-                    if (childIndex >= 0) {
-                        // continuing our search
-                        nodeParent = node
-                        node = children[childIndex]
-                    } else {
-                        val newChild = Node(
-                            parent = node,
-                            // the remainder of the value
-                            value = value.substring(valueIndex),
-                            // leaf
-                            children = null,
-                        )
-                        // also inserting this new child so it can be discovered for subsequent tree updates
-                        val targetIndex = - childIndex - 1
-                        children.add(targetIndex, newChild)
-                        // it's the leaf we're looking for as we've automatically set its value in accordance
-                        return newChild.backing
-                    }
+                onFullMatchFound = { child ->
+                    // we shift the value over for the entire existing child's value length
+                    valueIndex += child.value.length
+                    // and go deeper in the tree
+                    node = child
+                    // we continue iterating
                 },
-                onIncompatible = { nodeIndex ->
+                onPartialMatchFound = { child, childIndex, childValueIndex ->
+                    // the childValueIndex is guaranteed to be >= minNodeValueLength, meaning the child we retrieved can be
+                    //  split into two nodes, with the original child being one of the new node's children, and a
+                    //  new value node being the other
                     // we have to split the tree at this point, using a new node, containing a new child for the value
                     //  we're inserting
                     val splitNodeChildren = mutableListOf<Node>()
                     val splitNode = Node(
-                        parent = nodeParent,
-                        value = node.value.substring(0, nodeIndex),
+                        parent = node,
+                        value = child.value.substring(0, childValueIndex),
                         children = splitNodeChildren,
                     )
                     // we now also create a new child for the split node
                     val newChild = Node(
                         parent = splitNode,
                         // the remainder of the value, without what is contained by the new split node
-                        value = value.substring(valueIndex + nodeIndex),
+                        value = value.substring(valueIndex + childValueIndex),
                         // leaf
                         children = null,
                     )
                     // we replace the direct reference of the parent node from the original child node to the split node
                     //  if not root, or set the split node as the root node
-                    nodeParent?.let { parent ->
-                        val c = splitNode.value[0]
-                        val children = parent.children
-                            ?: throw IllegalStateException("\"Failed to find child `${splitNode.value}${node.value}` in parent ${parent} as it has no children!")
-                        val i = children.binarySearch { childNode ->
-                            childNode.value[0].compareTo(c)
-                        }
-                        check(i >= 0) { "Failed to find child `${splitNode.value}${node.value}` in parent ${parent} with children ${children.joinToString()}. Structure:\n$this" }
-                        children[i] = splitNode
-                    } ?: run {
-                        root = splitNode
-                    }
+                    node.children!![childIndex] = splitNode
                     // now we can transform the existing node to have this split node as its parent
-                    node.backing.parent = splitNode.backing
-                    node.value = node.value.substring(nodeIndex)
+                    child.backing.parent = splitNode.backing
+                    child.value = child.value.substring(childValueIndex)
                     // finally, we set this updated node and the newly created child as children of the split node;
                     //  we can simply compare their first character value
-                    if (node.value[0] < newChild.value[0]) {
-                        splitNodeChildren.add(node)
+                    if (child.value[0] < newChild.value[0]) {
+                        splitNodeChildren.add(child)
                         splitNodeChildren.add(newChild)
                     } else {
                         splitNodeChildren.add(newChild)
-                        splitNodeChildren.add(node)
+                        splitNodeChildren.add(child)
                     }
                     // this new child also becomes the leaf we're looking for
                     return newChild.backing
                 },
-                onRefValueEnded = {
+                onRefValueEnded = { child, childIndex ->
                     // we have to introduce a new split node again, but only so there's a handle mid-way through
                     //  the tree
                     val splitNode = Node(
-                        parent = nodeParent,
-                        value = node.value.substring(0, value.length - valueIndex),
-                        children = mutableListOf(node)
+                        parent = node,
+                        value = child.value.substring(0, value.length - valueIndex),
+                        children = mutableListOf(child)
                     )
                     // we have to update the original node's parent too
-                    nodeParent?.let { parent ->
-                        val c = splitNode.value[0]
-                        val children = splitNode.children
-                            ?: throw IllegalStateException("\"Failed to find child `${splitNode.value}${node.value}` in parent ${parent} as it has no children!")
-                        val i = children.binarySearch { childNode ->
-                            childNode.value[0].compareTo(c)
-                        }
-                        check(i >= 0) { "Failed to find child `${splitNode.value}${node.value}` in parent ${parent} with children ${children.joinToString()}. Structure:\n$this" }
-                        children[i] = splitNode
-                    } ?: run {
-                        root = splitNode
-                    }
+                    node.children!![childIndex] = splitNode
                     // we have to update the original node too
-                    node.value = node.value.substring(value.length - valueIndex)
-                    node.backing.parent = splitNode.backing
+                    child.value = child.value.substring(value.length - valueIndex)
+                    child.backing.parent = splitNode.backing
                     return splitNode.backing
+                },
+                onNoResult = { targetChildIndex ->
+                    val newChild = Node(
+                        parent = node,
+                        // the remainder of the value
+                        value = value.substring(valueIndex),
+                        // leaf
+                        children = null,
+                    )
+                    // also inserting this new child so it can be discovered for subsequent tree updates
+                    val children = node.children
+                    if (children != null) {
+                        children.add(targetChildIndex, newChild)
+                    } else {
+                        check(targetChildIndex == 0)
+                        node.children = mutableListOf(newChild)
+                    }
+                    // it's the leaf we're looking for as we've automatically set its value in accordance
+                    return newChild.backing
                 },
             )
         }
@@ -228,6 +250,100 @@ internal class CommonPrefixStringPoolImpl: CommonPrefixStringPool {
     }
 
     /* helpers */
+
+    /**
+     * Searches the [Node.children] of this [Node] to find its child for which the provided [refValue] (starting
+     *  at [startIndex]) can be used, issuing exactly one of these callbacks depending on the scenario:
+     *
+     * @param onExactMatchFound called upon encountering a child node for which its entire value matches the remainder of
+     *  the [refValue]
+     * @param onFullMatchFound called upon encountering a child node for which its value is at least [minNodeValueLength]
+     *  long and its entire value fits inside the remainder of the [refValue]
+     * @param onPartialMatchFound called upon encountering a child node with a mismatching value at an index exceeding
+     *  [minNodeValueLength], signaling the need for a split node. The two integer parameters represent the child's
+     *  index in this [Node]s [Node.children] list, whilst the second represents the index at which the values mismatch.
+     * @param onRefValueEnded called upon encountering a child node for which its value overlaps entirely with the
+     *  remainder of the [refValue], with this node exceeding the content and having enough content left over of itself
+     *  to become a smaller child node
+     * @param onNoResult called when no children are found matching any of the scenarios above, with an index
+     *  that can be used to insert a new child into if applicable (node value is long enough to be 'parent-worthy')
+     */
+    private inline fun Node.findChildNode(
+        refValue: String,
+        startIndex: Int,
+        onExactMatchFound: (Node) -> Unit,
+        onFullMatchFound: (Node) -> Unit,
+        onPartialMatchFound: (Node, Int, Int) -> Unit,
+        onRefValueEnded: (Node, Int) -> Unit,
+        onNoResult: (Int) -> Unit,
+    ) {
+        val children = children
+        if (children.isNullOrEmpty()) {
+            onNoResult(0)
+            return
+        }
+        val c = refValue[startIndex]
+        var currentChildIndex = run {
+            // only sorted based on the first char, no other sorting has been done
+            var s = children.binarySearch { it.value[0].compareTo(c) }
+            if (s < 0) {
+                onNoResult(-s-1)
+                return
+            }
+            // s is a valid index, but not necessarily the first one, so we put it back until it is
+            while (s > 0 && children[s - 1].value[0] == c) {
+                --s
+            }
+            s
+        }
+        // it's possible for the remainder of the value itself to be too short in any configuration, meaning
+        //  we're better off giving it its own separate node
+        if (refValue.length - startIndex < minNodeValueLength) {
+            // we want it inserted at this child index, as it's possible we're at the very start here
+            onNoResult(currentChildIndex)
+            return
+        }
+        // we can now loop for every child that matches on a first character
+        while (currentChildIndex < children.size && children[currentChildIndex].value[0] == c) {
+            val child = children[currentChildIndex]
+            child.match(
+                refValue = refValue,
+                startIndex = startIndex,
+                onIncompatible = { nodeValueIndex ->
+                    // ensuring that, when a split would be issued through this callback:
+                    if (
+                    // the first half of the node, which is guaranteed to be a parent, is long enough (minNodeValueLength)
+                        nodeValueIndex >= minNodeValueLength &&
+                        // the second half of the node, which may be a parent, is long enough to be a parent
+                        (child.children.isNullOrEmpty() || child.value.length - nodeValueIndex >= minNodeValueLength)
+                    ) {
+                        onPartialMatchFound(child, currentChildIndex, nodeValueIndex)
+                        return
+                    }
+                    // else, this node is not good enough to split of off, it would introduce a node that is too small
+                    //  in a structural position where that is not allowed
+                },
+                onExactMatch = { onExactMatchFound(child) },
+                onNodeValueEnded = {
+                    if (child.value.length >= minNodeValueLength) {
+                        onFullMatchFound(child)
+                        return
+                    }
+                    // else, this node is not good enough to split of off
+                },
+                onRefValueEnded = {
+                    // we already know that the value ref is long enough, so we can use the callback directly
+                    onRefValueEnded(child, currentChildIndex)
+                    return
+                },
+            )
+            ++currentChildIndex
+        }
+        // if we reached the end of the loop, there's no child that is applicable anymore;
+        // we had at least one child that was valid (we're now one past that index), meaning we
+        //  can point the callback to that spot
+        onNoResult(currentChildIndex - 1)
+    }
 
     /**
      * Checks if this [Node] matches the provided [refValue] starting from the given [startIndex].

@@ -1,7 +1,6 @@
 
 import dev.tesserakt.util.CommonPrefixStringPool
 import dev.tesserakt.util.CommonPrefixStringPoolImpl
-import kotlin.math.absoluteValue
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -10,9 +9,23 @@ import kotlin.test.fail
 class CommonPrefixStringPoolTest {
 
     @Test
-    fun increaseInsertion() {
+    fun smallIncreaseInsertion() {
+        increaseInsertion(1)
+    }
+
+    @Test
+    fun mediumIncreaseInsertion() {
+        increaseInsertion(3)
+    }
+
+    @Test
+    fun maxSizeIncreaseInsertion() {
+        increaseInsertion(Int.MAX_VALUE)
+    }
+
+    fun increaseInsertion(size: Int) {
         // testing with increasing string length (1 -> 10 -> 100 ...)
-        val collection = CommonPrefixStringPoolImpl()
+        val collection = CommonPrefixStringPoolImpl(size)
         val handles = (0..1000).map { index ->
             val text = index.toString()
             val handle = collection.createHandle(text)
@@ -27,9 +40,23 @@ class CommonPrefixStringPoolTest {
     }
 
     @Test
-    fun decreaseInsertion() {
+    fun smallDecreaseInsertion() {
+        decreaseInsertion(1)
+    }
+
+    @Test
+    fun mediumDecreaseInsertion() {
+        decreaseInsertion(3)
+    }
+
+    @Test
+    fun maxSizeDecreaseInsertion() {
+        decreaseInsertion(Int.MAX_VALUE)
+    }
+
+    fun decreaseInsertion(size: Int) {
         // testing with decreasing string length (1000 -> 100 -> 10 ...)
-        val collection = CommonPrefixStringPoolImpl()
+        val collection = CommonPrefixStringPoolImpl(size)
         val handles = (0..1000).reversed().map { index ->
             val text = index.toString()
             val handle = collection.createHandle(text)
@@ -44,8 +71,23 @@ class CommonPrefixStringPoolTest {
     }
 
     @Test
-    fun uriTest() {
+    fun smallUriTest() {
+        uriTest(1)
+    }
+
+    @Test
+    fun mediumUriTest() {
+        uriTest(5)
+    }
+
+    @Test
+    fun maxSizeUriTest() {
+        uriTest(Int.MAX_VALUE)
+    }
+
+    fun uriTest(size: Int) {
         val uris = listOf(
+            "abc",
             "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
             "http://purl.org/dc/elements/1.1/",
             "http://xmlns.com/foaf/0.1/",
@@ -61,7 +103,7 @@ class CommonPrefixStringPoolTest {
             "http://dublincore.org/2000/03/13-dcagent#",
             "http://www.w3.org/Addressing/schemes#",
         )
-        val collection = CommonPrefixStringPool()
+        val collection = CommonPrefixStringPool(size)
         val mapped = uris.associateWith {
             collection.createHandle(it)
         }
@@ -72,12 +114,31 @@ class CommonPrefixStringPoolTest {
     }
 
     @Test
-    fun specialStringTest() {
+    fun smallSpecialStringTest() {
+        specialStringTest(1)
+    }
+
+    @Test
+    fun mediumSpecialStringTest() {
+        specialStringTest(3)
+    }
+
+    @Test
+    fun maxSizeSpecialStringTest() {
+        specialStringTest(Int.MAX_VALUE)
+    }
+
+    fun specialStringTest(size: Int) {
         val random = Random(0)
-        val collection = CommonPrefixStringPoolImpl()
+        val collection = CommonPrefixStringPoolImpl(size)
         val results = mutableMapOf<String, CommonPrefixStringPool.Handle>()
         repeat(1000) {
-            val text = random.nextBytes(random.nextInt().absoluteValue.coerceAtMost(100)).decodeToString()
+            val bytes = random.nextBytes(100 + random.nextInt() % 50)
+            repeat(bytes.size) {
+                // 'a' - 'z'
+                bytes[it] = (bytes[it] % 12 + 109).toByte()
+            }
+            val text = bytes.decodeToString()
             val handle = collection.createHandle(text)
             val old = results.put(text, handle)
             assertTrue(old == null || old === handle)

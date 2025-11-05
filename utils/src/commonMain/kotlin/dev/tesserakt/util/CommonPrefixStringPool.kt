@@ -27,4 +27,8 @@ interface CommonPrefixStringPool {
 
 }
 
-fun CommonPrefixStringPool(): CommonPrefixStringPool = CommonPrefixStringPoolImpl()
+fun CommonPrefixStringPool(
+    minNodeValueLength: Int = 5,
+): CommonPrefixStringPool = CommonPrefixStringPoolImpl(
+    minNodeValueLength = minNodeValueLength,
+)

@@ -59,7 +59,7 @@ class StringPoolBenchmark {
         val bytes = random.nextBytes(random.nextInt() % 5 + 20)
         repeat (bytes.size) {
             // 'a' - 'z'
-            bytes[it] = bytes[it].coerceIn(97, 123)
+            bytes[it] = (bytes[it] % 12 + 109).toByte()
         }
         return prefixes.random(random) + bytes
     }
