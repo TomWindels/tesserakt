@@ -1,12 +1,12 @@
 package dev.tesserakt.util
 
-internal class CompactStringCollectionImpl: CompactStringCollection {
+internal class CommonPrefixStringPoolImpl: CommonPrefixStringPool {
 
     private class Node(
         parent: Node?,
         value: String,
-        // sorted using `backing.value`
-        val children: MutableList<Node>
+        // sorted using `backing.value[0]`
+        var children: MutableList<Node>? = null,
     ) {
 
         // the backing structure used to only retain the various values and relevant tree section required for a
@@ -16,7 +16,7 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
             // as it's possible for the hierarchy to change, parts of the value may move to the parent node over time
             //  requiring this to be mutable
             var value: String,
-        ) : CompactStringCollection.Handle {
+        ) : CommonPrefixStringPool.Handle {
 
             override fun retrieve(): String {
                 var current: Backing? = parent ?: return value
@@ -56,7 +56,7 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
 
     private var root: Node? = null
 
-    override fun add(value: String): CompactStringCollection.Handle {
+    override fun createHandle(value: String): CommonPrefixStringPool.Handle {
         var node = root ?: run {
             val new = Node(parent = null, value = value, children = mutableListOf())
             root = new
@@ -88,7 +88,23 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
                     valueIndex += node.value.length
                     // we know the valueIndex is not out of bounds, so we can now find the next node safely
                     val c = value[valueIndex]
-                    val childIndex = node.children.binarySearch { childNode ->
+                    val children = node.children
+                    if (children == null) {
+                        // as it currently has no children, we can immediately create the remaining value as it's
+                        //  first child
+                        val newChild = Node(
+                            parent = node,
+                            // the remainder of the value
+                            value = value.substring(valueIndex),
+                            // leaf
+                            children = null,
+                        )
+                        // also inserting this new child so it can be discovered for subsequent tree updates
+                        node.children = mutableListOf(newChild)
+                        // it's the leaf we're looking for as we've automatically set its value in accordance
+                        return newChild.backing
+                    }
+                    val childIndex = children.binarySearch { childNode ->
                         childNode.value[0].compareTo(c)
                     }
                     // it's possible for the childIndex to be negative, i.e. equal to `- insertion point - 1`, in which
@@ -96,18 +112,18 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
                     if (childIndex >= 0) {
                         // continuing our search
                         nodeParent = node
-                        node = node.children[childIndex]
+                        node = children[childIndex]
                     } else {
                         val newChild = Node(
                             parent = node,
                             // the remainder of the value
                             value = value.substring(valueIndex),
                             // leaf
-                            children = mutableListOf()
+                            children = null,
                         )
                         // also inserting this new child so it can be discovered for subsequent tree updates
                         val targetIndex = - childIndex - 1
-                        node.children.add(targetIndex, newChild)
+                        children.add(targetIndex, newChild)
                         // it's the leaf we're looking for as we've automatically set its value in accordance
                         return newChild.backing
                     }
@@ -115,10 +131,11 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
                 onIncompatible = { nodeIndex ->
                     // we have to split the tree at this point, using a new node, containing a new child for the value
                     //  we're inserting
+                    val splitNodeChildren = mutableListOf<Node>()
                     val splitNode = Node(
                         parent = nodeParent,
                         value = node.value.substring(0, nodeIndex),
-                        children = mutableListOf()
+                        children = splitNodeChildren,
                     )
                     // we now also create a new child for the split node
                     val newChild = Node(
@@ -126,17 +143,19 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
                         // the remainder of the value, without what is contained by the new split node
                         value = value.substring(valueIndex + nodeIndex),
                         // leaf
-                        children = mutableListOf()
+                        children = null,
                     )
                     // we replace the direct reference of the parent node from the original child node to the split node
                     //  if not root, or set the split node as the root node
                     nodeParent?.let { parent ->
                         val c = splitNode.value[0]
-                        val i = parent.children.binarySearch { childNode ->
+                        val children = parent.children
+                            ?: throw IllegalStateException("\"Failed to find child `${splitNode.value}${node.value}` in parent ${parent} as it has no children!")
+                        val i = children.binarySearch { childNode ->
                             childNode.value[0].compareTo(c)
                         }
-                        check(i >= 0) { "Failed to find child `${splitNode.value}${node.value}` in parent ${parent} with children ${parent.children.joinToString()}. Structure:\n$this" }
-                        parent.children[i] = splitNode
+                        check(i >= 0) { "Failed to find child `${splitNode.value}${node.value}` in parent ${parent} with children ${children.joinToString()}. Structure:\n$this" }
+                        children[i] = splitNode
                     } ?: run {
                         root = splitNode
                     }
@@ -145,9 +164,13 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
                     node.value = node.value.substring(nodeIndex)
                     // finally, we set this updated node and the newly created child as children of the split node;
                     //  we can simply compare their first character value
-                    splitNode.children.add(node)
-                    splitNode.children.add(newChild)
-                    splitNode.children.sortBy { it.value.first() }
+                    if (node.value[0] < newChild.value[0]) {
+                        splitNodeChildren.add(node)
+                        splitNodeChildren.add(newChild)
+                    } else {
+                        splitNodeChildren.add(newChild)
+                        splitNodeChildren.add(node)
+                    }
                     // this new child also becomes the leaf we're looking for
                     return newChild.backing
                 },
@@ -162,11 +185,13 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
                     // we have to update the original node's parent too
                     nodeParent?.let { parent ->
                         val c = splitNode.value[0]
-                        val i = parent.children.binarySearch { childNode ->
+                        val children = splitNode.children
+                            ?: throw IllegalStateException("\"Failed to find child `${splitNode.value}${node.value}` in parent ${parent} as it has no children!")
+                        val i = children.binarySearch { childNode ->
                             childNode.value[0].compareTo(c)
                         }
-                        check(i >= 0)
-                        parent.children[i] = splitNode
+                        check(i >= 0) { "Failed to find child `${splitNode.value}${node.value}` in parent ${parent} with children ${children.joinToString()}. Structure:\n$this" }
+                        children[i] = splitNode
                     } ?: run {
                         root = splitNode
                     }
@@ -182,7 +207,7 @@ internal class CompactStringCollectionImpl: CompactStringCollection {
     override fun toString(): String {
         fun nodeToString(node: Node, prefix: String): String = buildString {
             val children = node.children
-            if (children.isEmpty()) {
+            if (children == null || children.isEmpty()) {
                 return "$prefix`${node.value}`"
             }
             val self = "$prefix`${node.value}`-|"

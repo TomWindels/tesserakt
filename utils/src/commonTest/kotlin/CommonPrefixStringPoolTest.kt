@@ -1,21 +1,21 @@
 
-import dev.tesserakt.util.CompactStringCollection
-import dev.tesserakt.util.CompactStringCollectionImpl
+import dev.tesserakt.util.CommonPrefixStringPool
+import dev.tesserakt.util.CommonPrefixStringPoolImpl
 import kotlin.math.absoluteValue
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
-class CompactStringCollectionTest {
+class CommonPrefixStringPoolTest {
 
     @Test
     fun increaseInsertion() {
         // testing with increasing string length (1 -> 10 -> 100 ...)
-        val collection = CompactStringCollectionImpl()
+        val collection = CommonPrefixStringPoolImpl()
         val handles = (0..1000).map { index ->
             val text = index.toString()
-            val handle = collection.add(text)
+            val handle = collection.createHandle(text)
             assertEquals(text, handle.retrieve()) { "Collection structure:\n${collection}\n" }
             handle
         }
@@ -29,10 +29,10 @@ class CompactStringCollectionTest {
     @Test
     fun decreaseInsertion() {
         // testing with decreasing string length (1000 -> 100 -> 10 ...)
-        val collection = CompactStringCollectionImpl()
+        val collection = CommonPrefixStringPoolImpl()
         val handles = (0..1000).reversed().map { index ->
             val text = index.toString()
-            val handle = collection.add(text)
+            val handle = collection.createHandle(text)
             assertEquals(text, handle.retrieve()) { "Collection structure:\n${collection}\n" }
             handle
         }
@@ -61,9 +61,9 @@ class CompactStringCollectionTest {
             "http://dublincore.org/2000/03/13-dcagent#",
             "http://www.w3.org/Addressing/schemes#",
         )
-        val collection = CompactStringCollection()
+        val collection = CommonPrefixStringPool()
         val mapped = uris.associateWith {
-            collection.add(it)
+            collection.createHandle(it)
         }
         println("Collection structure:\n$collection")
         mapped.forEach { (text, handle) ->
@@ -74,11 +74,11 @@ class CompactStringCollectionTest {
     @Test
     fun specialStringTest() {
         val random = Random(0)
-        val collection = CompactStringCollectionImpl()
-        val results = mutableMapOf<String, CompactStringCollection.Handle>()
+        val collection = CommonPrefixStringPoolImpl()
+        val results = mutableMapOf<String, CommonPrefixStringPool.Handle>()
         repeat(1000) {
             val text = random.nextBytes(random.nextInt().absoluteValue.coerceAtMost(100)).decodeToString()
-            val handle = collection.add(text)
+            val handle = collection.createHandle(text)
             val old = results.put(text, handle)
             assertTrue(old == null || old === handle)
             assertEquals(text, handle.retrieve()) { "Collection structure:\n${collection}\n" }
