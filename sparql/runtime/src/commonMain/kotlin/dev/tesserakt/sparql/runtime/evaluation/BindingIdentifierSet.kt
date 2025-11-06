@@ -54,4 +54,6 @@ class BindingIdentifierSet(private val ids: IntArray) {
         return ids.contentHashCode()
     }
 
+    override fun toString() = ids.joinToString(prefix = "BindingIdentifierSet {", postfix = "}")
+
 }
