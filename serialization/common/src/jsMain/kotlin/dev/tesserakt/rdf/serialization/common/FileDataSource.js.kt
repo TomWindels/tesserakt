@@ -2,6 +2,7 @@ package dev.tesserakt.rdf.serialization.common
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.core.DataSourceStream
+import dev.tesserakt.rdf.serialization.core.TextDataSourceStream
 
 private val fs = js("require('fs')")
 
@@ -15,6 +16,6 @@ actual class FileDataSource actual constructor(private val filepath: String) : D
         opts.flag = "r"
         // const data = fs.readFileSync('./input.txt', { encoding: 'utf8', flag: 'r' });
         val content = fs.readFileSync(filepath, opts)
-        return DataSourceStream(content = content as String)
+        return TextDataSourceStream(content = content as String)
     }
 }

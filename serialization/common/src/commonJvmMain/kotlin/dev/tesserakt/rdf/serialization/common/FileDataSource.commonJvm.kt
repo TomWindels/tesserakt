@@ -1,6 +1,7 @@
 package dev.tesserakt.rdf.serialization.common
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
+import dev.tesserakt.rdf.serialization.core.BufferedDataSourceStream
 import dev.tesserakt.rdf.serialization.core.DataSourceStream
 import java.io.FileInputStream
 import java.io.InputStreamReader
@@ -14,6 +15,6 @@ actual class FileDataSource(private val file: java.io.File) : DataSource {
             /* in = */ FileInputStream(file),
             /* charsetName = */ "UTF-8"
         )
-        return java.io.BufferedReader(stream)
+        return BufferedDataSourceStream(java.io.BufferedReader(stream))
     }
 }

@@ -2,7 +2,6 @@ package dev.tesserakt.rdf.serialization.util
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.core.DataSourceStream
-import dev.tesserakt.rdf.serialization.core.read
 
 @InternalSerializationApi
 class BufferedString(
