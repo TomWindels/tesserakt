@@ -1,8 +1,6 @@
-
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.trig.serialization.trig
 import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
 import dev.tesserakt.rdf.trig.serialization.withPrefixes
@@ -88,6 +86,10 @@ class ReplayBenchmarkTest {
         if (missing.isNotEmpty() || superfluous.isNotEmpty()) {
             fail("Store content mismatch!\nMissing quads: ${missing.toTruncatedString(200)}\nUnexpected quads: ${superfluous.toTruncatedString(200)}")
         }
+    }
+
+    private fun Iterator<String>.collect(): String = buildString {
+        this@collect.forEach { segment -> append(segment) }
     }
 
 }

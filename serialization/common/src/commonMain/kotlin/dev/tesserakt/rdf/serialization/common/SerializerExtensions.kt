@@ -10,7 +10,3 @@ import dev.tesserakt.rdf.types.Quad
 fun Serializer.deserialize(input: String): Iterator<Quad> {
     return deserialize(input = TextDataSource(text = input))
 }
-
-fun Iterator<String>.collect(): String = buildString {
-    this@collect.forEach { segment -> append(segment) }
-}

@@ -1,9 +1,7 @@
-
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.NTriples
-import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
@@ -57,6 +55,10 @@ class NTriplesTest {
         val serialized = NTriples.serialize(deserialized).collect()
         println(serialized)
         assertTrue(block(deserialized))
+    }
+
+    private fun Iterator<String>.collect(): String = buildString {
+        this@collect.forEach { segment -> append(segment) }
     }
 
 }

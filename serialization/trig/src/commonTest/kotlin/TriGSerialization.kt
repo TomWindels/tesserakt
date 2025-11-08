@@ -4,7 +4,6 @@ import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
-import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.trig.serialization.*
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
@@ -124,6 +123,10 @@ class TriGSerialization {
                 yield(iter.next().also { if (verbose) println("${this@asIterable::class.simpleName} yields $it") })
             }
         }
+    }
+
+    private fun Iterator<String>.collect(): String = buildString {
+        this@collect.forEach { segment -> append(segment) }
     }
 
 }
