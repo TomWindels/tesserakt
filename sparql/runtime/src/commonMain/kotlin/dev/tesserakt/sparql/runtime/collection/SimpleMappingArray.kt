@@ -16,6 +16,8 @@ value class SimpleMappingArray(
     override val cardinality: Cardinality
         get() = Cardinality(mappings.size)
 
+    val size get() = mappings.size
+
     override fun iter(mappings: List<Mapping>): List<CollectedStream<Mapping>> {
         // the parameter is unused as we're not indexed
         val stream = iter()
