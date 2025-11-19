@@ -20,10 +20,10 @@ fun MappingArray(context: QueryContext, vararg bindings: String?): MappingArray 
     return MappingArray(context, set)
 }
 
-fun RehashableMappingArray(context: QueryContext, bindings: Collection<String>): RehashableMappingArray {
-    return RehashableMappingArray(active = MappingArray(context, bindings))
+fun ReindexableMappingArray(context: QueryContext, bindings: Collection<String>): ReindexableMappingArray {
+    return ReindexableMappingArray(active = MappingArray(context, bindings))
 }
 
-fun RehashableMappingArray(bindings: BindingIdentifierSet): RehashableMappingArray {
-    return RehashableMappingArray(active = MappingArray(bindings))
+fun ReindexableMappingArray(bindings: BindingIdentifierSet): ReindexableMappingArray {
+    return ReindexableMappingArray(active = MappingArray(bindings))
 }

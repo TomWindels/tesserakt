@@ -127,6 +127,9 @@ class MultiHashMappingArray(
     override var cardinality = Cardinality(0)
         private set
 
+    override val indexes: BindingIdentifierSet
+        get() = indexBindingSet
+
     override fun iter(mapping: Mapping): OptimisedStream<Mapping> {
         val constraints = createConstraints(mapping)
         return iter(constraints)

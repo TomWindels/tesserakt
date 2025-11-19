@@ -86,8 +86,8 @@ internal object DynamicJoinTreeBuilder {
             ).also {
                 // requesting the child nodes to rehash themselves based on common bindings
                 val common = BindingIdentifierSet(context, first.node.bindings.intersect(second.node.bindings))
-                first.node.rehash(common)
-                second.node.rehash(common)
+                first.node.reindex(common)
+                second.node.reindex(common)
             }
 
             fun <J: MutableJoinState> disconnected(
@@ -100,8 +100,8 @@ internal object DynamicJoinTreeBuilder {
             ).also {
                 // requesting the child nodes to rehash themselves based on common bindings
                 val common = BindingIdentifierSet(context, first.node.bindings.intersect(second.node.bindings))
-                first.node.rehash(common)
-                second.node.rehash(common)
+                first.node.reindex(common)
+                second.node.reindex(common)
             }
 
             /* helpers */

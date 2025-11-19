@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.collection
 
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.CollectedStream
 import dev.tesserakt.sparql.util.Cardinality
@@ -15,6 +16,9 @@ value class SimpleMappingArray(
 
     override val cardinality: Cardinality
         get() = Cardinality(mappings.size)
+
+    override val indexes: BindingIdentifierSet
+        get() = BindingIdentifierSet.EMPTY
 
     val size get() = mappings.size
 

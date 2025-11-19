@@ -6,12 +6,15 @@ import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.util.Cardinality
 
-class RehashableMappingArray(
+class ReindexableMappingArray(
     private var active: MappingArray
 ) : MappingArray {
 
     override val cardinality: Cardinality
         get() = active.cardinality
+
+    override val indexes: BindingIdentifierSet
+        get() = active.indexes
 
     override fun iter(mapping: Mapping): OptimisedStream<Mapping> {
         return active.iter(mapping)
@@ -41,11 +44,11 @@ class RehashableMappingArray(
         active.removeAll(mappings)
     }
 
-    fun rehash(context: QueryContext, bindings: Iterable<String>) {
-        rehash(bindings = BindingIdentifierSet(context, bindings))
+    fun reindex(context: QueryContext, bindings: Iterable<String>) {
+        reindex(bindings = BindingIdentifierSet(context, bindings))
     }
 
-    fun rehash(bindings: BindingIdentifierSet) {
+    fun reindex(bindings: BindingIdentifierSet) {
         val new = MappingArray(bindings)
         active.iter().forEach { new.add(it) }
         active = new

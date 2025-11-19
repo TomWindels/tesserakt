@@ -56,4 +56,8 @@ class BindingIdentifierSet(private val ids: IntArray) {
 
     override fun toString() = ids.joinToString(prefix = "BindingIdentifierSet {", postfix = "}")
 
+    companion object {
+        val EMPTY = BindingIdentifierSet(ids = intArrayOf())
+    }
+
 }

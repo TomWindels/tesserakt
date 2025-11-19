@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
-import dev.tesserakt.sparql.runtime.collection.RehashableMappingArray
+import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
@@ -28,7 +28,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         obj: TriplePattern.Object
     ) : TriplePatternState<P>(context, subj, pred, obj) {
 
-        private val data = RehashableMappingArray(context, bindingNamesOf(subj, pred, obj))
+        private val data = ReindexableMappingArray(context, bindingNamesOf(subj, pred, obj))
 
         override val cardinality get() = data.cardinality
 
@@ -63,7 +63,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         }
 
         final override fun rehash(bindings: BindingIdentifierSet) {
-            data.rehash(bindings)
+            data.reindex(bindings)
         }
 
         // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
