@@ -363,6 +363,14 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             }
         }
 
+        fun DATETIME(context: QueryContext, param: Operation) = Operation {
+            val termValue = param.evalToSingleQuadElementOrNull(context, it)
+            if (termValue !is Quad.Literal || termValue.type != XSD.dateTime) {
+                return@Operation OperationValue.Unbound
+            }
+            OperationValue.DateValue(DateTime.parse(termValue.value))
+        }
+
         fun from(context: QueryContext, call: FuncCall): Operation {
             fun matches(name: String) = call.name.contentEquals(name, ignoreCase = true)
             return when {
@@ -373,6 +381,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 matches("langmatches") -> {
                     check(call.args.size == 2)
                     LANGMATCHES(context, Operation.from(context, call.args[0]), Operation.from(context, call.args[1]))
+                }
+                matches(XSD.dateTime.value) -> {
+                    check(call.args.size == 1)
+                    DATETIME(context, Operation.from(context, call.args[0]))
                 }
                 else -> throw IllegalArgumentException("Unknown function identifier: `${call.name}`")
             }
