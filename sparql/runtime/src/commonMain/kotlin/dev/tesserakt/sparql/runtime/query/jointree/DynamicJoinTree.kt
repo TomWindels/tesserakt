@@ -80,10 +80,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
             }
         }
 
-        class Connected<J: MutableJoinState, L: Node<J>, R: Node<J>>(
+        class Connected<J: MutableJoinState>(
             context: QueryContext,
-            internal val left: L,
-            internal val right: R,
+            internal val left: Node<J>,
+            internal val right: Node<J>,
             indexes: Collection<String>
         ): Node<J> {
 
@@ -179,10 +179,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
         }
 
-        class Disconnected<J: MutableJoinState, L: Node<J>, R: Node<J>>(
+        class Disconnected<J: MutableJoinState>(
             internal val context: QueryContext,
-            internal val left: L,
-            internal val right: R
+            internal val left: Node<J>,
+            internal val right: Node<J>,
         ): Node<J> {
 
             override val bindings = left.bindings + right.bindings
@@ -292,12 +292,12 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
     override fun rehash(bindings: BindingIdentifierSet) {
         // this only affects the root node, as that's the one that is joined with directly
         when (val root = root) {
-            is Node.Connected<*, *, *> -> {
+            is Node.Connected<*> -> {
                 root.reindex(bindings)
                 // TODO: consider transforming this into a disconnected node if the requested bindings
                 //  is empty and both child nodes have no overlap
             }
-            is Node.Disconnected<*, *, *> -> {
+            is Node.Disconnected<*> -> {
                 // nothing to do, as joins are not hashed anyway
                 // TODO: consider transforming this into a connected node if the requested bindings
                 //  is not empty
