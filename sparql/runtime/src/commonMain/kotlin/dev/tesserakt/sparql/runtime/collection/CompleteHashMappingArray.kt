@@ -146,4 +146,7 @@ class CompleteHashMappingArray(
         }
     }
 
+    override fun toString(): String =
+        "CompleteHashMappingArray (cardinality $cardinality, indexed on ${indexBindingSet}, ${backing.size} distinct hashes)"
+
 }
