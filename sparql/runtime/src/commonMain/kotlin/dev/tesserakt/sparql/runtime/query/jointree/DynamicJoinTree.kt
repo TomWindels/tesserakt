@@ -121,7 +121,16 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
-                return delta.mapToStream { buf.join(it) }
+                return when (val origin = delta.origin) {
+                    is DataAddition, null -> delta.mapToStream { buf.join(it) }
+                    is DataDeletion -> {
+                        delta.mapToStream {
+                            buf.iter(it)
+                                .remove(peek(origin).mapped { it.value })
+                                .join(it)
+                        }
+                    }
+                }
             }
 
             override fun reindex(bindings: BindingIdentifierSet) {
