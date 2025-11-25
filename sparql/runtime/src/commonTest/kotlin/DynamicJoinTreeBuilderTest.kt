@@ -223,8 +223,15 @@ class DynamicJoinTreeBuilderTest {
         listOf("a", "b"),
         listOf("1", "2"),
         listOf("x", "y")
-    ) {
-
+    ) { root ->
+        // the tree should be completely made up of disconnected nodes and no indexes for any of its leafs
+        root.assertIsDisconnected()
+        assertTrue("Got unexpected indexes!") { root.single<DynamicJoinTree.Node.Leaf<TestNode>>().state.indexes.isEmpty() }
+        val subtree = root.single<DynamicJoinTree.Node.Disconnected<TestNode>>()
+        subtree.left.assertIsLeaf()
+        assertTrue("Got unexpected indexes!") { subtree.left.state.indexes.isEmpty() }
+        subtree.right.assertIsLeaf()
+        assertTrue("Got unexpected indexes!") { subtree.right.state.indexes.isEmpty() }
     }
 
     /* test helpers */
