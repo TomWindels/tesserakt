@@ -1,5 +1,6 @@
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.collection.CompleteHashMappingArray
 import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.collection.MultiHashMappingArray
 import dev.tesserakt.sparql.runtime.collection.SimpleMappingArray
@@ -47,6 +48,11 @@ class MappingArrayTest {
         check(MultiHashMappingArray(BindingIdentifierSet(intArrayOf(0, 1))))
     }
 
+    @Test
+    fun completeHashArrayInsertion() {
+        check(CompleteHashMappingArray(BindingIdentifierSet(intArrayOf(0, 1))))
+    }
+
     fun check(array: MappingArray) {
         mappings.forEachIndexed { index, mapping ->
             array.add(mapping)
@@ -54,6 +60,9 @@ class MappingArrayTest {
             assertNotNull(array.iter(mapping).find { it == mapping }, "Failed to find mapping $mapping in $array, index $index")
         }
         println("Intermediate state: $array")
+        var i = 0
+        array.iter().forEach { ++i }
+        assertEquals(mappings.size, i)
         mappings.forEachIndexed { index, mapping ->
             assertNotNull(array.iter(mapping).find { it == mapping }, "Failed to find mapping $mapping in $array, removal index $index")
             array.remove(mapping)
