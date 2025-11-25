@@ -45,6 +45,11 @@ fun Mapping.join(other: Stream<Mapping>): Stream<Mapping> =
 fun <E : Any> Stream<E>.remove(elements: Iterable<E>): Stream<E> =
     StreamReduction(this, removed = elements)
 
+fun <E : Any> Stream<E>.remove(elements: Stream<E>): Stream<E> = when {
+    elements.hasZeroCardinality() -> this
+    else -> StreamReduction(this, removed = elements)
+}
+
 fun <E : Any> Stream<E>.chain(other: Stream<E>): Stream<E> = when {
     hasZeroCardinality() && other.hasZeroCardinality() -> emptyStream()
     hasZeroCardinality() -> other
