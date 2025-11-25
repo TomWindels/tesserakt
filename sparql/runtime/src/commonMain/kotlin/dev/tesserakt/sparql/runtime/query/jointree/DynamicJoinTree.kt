@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
@@ -72,7 +73,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
             }
 
             override fun reindex(bindings: BindingIdentifierSet) {
-                state.rehash(bindings)
+                state.reindex(bindings, hint = MappingArrayHint.DEFAULT)
             }
 
             override fun debugInformation(): String {
@@ -125,6 +126,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
             override fun reindex(bindings: BindingIdentifierSet) {
                 buf.reindex(bindings)
+            }
+
+            fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+                buf.reindex(bindings, hint)
             }
 
             override fun debugInformation() = buildString {
@@ -289,11 +294,11 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
         return root.join(delta)
     }
 
-    override fun rehash(bindings: BindingIdentifierSet) {
+    override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
         // this only affects the root node, as that's the one that is joined with directly
         when (val root = root) {
             is Node.Connected<*> -> {
-                root.reindex(bindings)
+                root.reindex(bindings, hint)
                 // TODO: consider transforming this into a disconnected node if the requested bindings
                 //  is empty and both child nodes have no overlap
             }

@@ -47,7 +47,7 @@ value class SimpleMappingArray(
         val i = this.mappings.indexOfLast { it == mapping }
         when (i) {
             -1 -> {
-                throw IllegalStateException("$mapping cannot be removed from SimpleMappingArray - not found!")
+                throw NoSuchElementException("$mapping cannot be removed from SimpleMappingArray - not found!")
             }
             this.mappings.size - 1 -> {
                 this.mappings.removeLastElement()

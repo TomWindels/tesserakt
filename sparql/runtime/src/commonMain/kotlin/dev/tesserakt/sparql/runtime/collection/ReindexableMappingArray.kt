@@ -44,12 +44,15 @@ class ReindexableMappingArray(
         active.removeAll(mappings)
     }
 
-    fun reindex(context: QueryContext, bindings: Iterable<String>) {
-        reindex(bindings = BindingIdentifierSet(context, bindings))
+    fun reindex(context: QueryContext, bindings: Iterable<String>, hint: MappingArrayHint = MappingArrayHint.DEFAULT) {
+        reindex(
+            bindings = BindingIdentifierSet(context, bindings),
+            hint = hint,
+        )
     }
 
-    fun reindex(bindings: BindingIdentifierSet) {
-        val new = MappingArray(bindings)
+    fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint = MappingArrayHint.DEFAULT) {
+        val new = MappingArray(bindings, hint)
         active.iter().forEach { new.add(it) }
         active = new
     }

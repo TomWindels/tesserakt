@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.jointree.JoinTree
@@ -21,8 +22,13 @@ class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions
 
     init {
         val common = BindingIdentifierSet(context, this.unions.bindings.intersect(this.patterns.bindings))
-        this.patterns.rehash(common)
-        this.unions.rehash(common)
+        val hint = if (pattern.isNotEmpty() && unions.isNotEmpty()) {
+            MappingArrayHint(partialHashAccess = true)
+        } else {
+            MappingArrayHint.DEFAULT
+        }
+        this.patterns.reindex(common, hint)
+        this.unions.reindex(common, hint)
     }
 
     override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
@@ -53,9 +59,9 @@ class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions
         return unions.join(patterns.join(delta).optimisedForSingleUse()) as Stream<MappingDeletion>
     }
 
-    override fun rehash(bindings: BindingIdentifierSet) {
-        patterns.rehash(bindings)
-        unions.rehash(bindings)
+    override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+        patterns.reindex(bindings, hint)
+        unions.reindex(bindings, hint)
     }
 
     fun debugInformation() = buildString {

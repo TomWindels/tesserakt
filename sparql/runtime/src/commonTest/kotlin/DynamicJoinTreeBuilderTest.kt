@@ -1,4 +1,5 @@
 
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
@@ -23,7 +24,7 @@ class DynamicJoinTreeBuilderTest {
         override val cardinality: Cardinality
             get() = throw UnsupportedOperationException()
 
-        override fun rehash(bindings: BindingIdentifierSet) {
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
             indexes = bindings.asIntIterable().mapTo(mutableSetOf()) { binding ->
                 GlobalQueryContext.resolveBinding(binding)
             }

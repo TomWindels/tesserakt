@@ -12,8 +12,9 @@ import dev.tesserakt.sparql.util.Cardinality
 import kotlin.jvm.JvmInline
 
 /**
- * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
- *  algorithm. Hash tables are created for every binding name passed in the constructor.
+ * A [MappingArray] implementation that divides its various [Mapping] elements into buckets that are linked on common
+ *  mapping values for a given indexed binding. The links between the various buckets allow for efficient retrieval
+ *  using a partial index (<-> [CompleteHashMappingArray])
  */
 class MultiHashMappingArray(
     // the binding set associated with the index
@@ -121,7 +122,9 @@ class MultiHashMappingArray(
     private var last: Bucket? = null
 
     init {
-        check(indexBindingSet.size > 0) { "Invalid use of MultiHashMappingArray! No bindings are used!" }
+        check(indexBindingSet.size > 1) {
+            "Invalid use of MultiHashMappingArray! At least 2 index bindings have to be configured!"
+        }
     }
 
     override var cardinality = Cardinality(0)
@@ -408,7 +411,7 @@ class MultiHashMappingArray(
             mappings = SimpleMappingArray(),
         )
         // also updating the last bucket
-        check(last?.next == null) { "Structural error, last element ${last} contains a next element" }
+        check(last?.next == null) { "Structural error, last element $last contains a next element" }
         last?.next = new
         // we have to update the tail for all our constraints, making sure it points to us now; the original tail
         //  value becomes our 'previous' entry, or indicate there is no such bucket before us
