@@ -3,6 +3,7 @@ package dev.tesserakt.interop.jena
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import org.apache.jena.datatypes.BaseDatatype
 import org.apache.jena.datatypes.RDFDatatype
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.*
@@ -60,7 +61,7 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
     XSD.dateTime -> XSDDatatype.XSDdateTime
     XSD.time -> XSDDatatype.XSDtime
     XSD.date -> XSDDatatype.XSDdate
-    else -> throw IllegalArgumentException("Unknown type: `$value`")
+    else -> BaseDatatype(value)
 }
 
 fun Node.toTerm() : Quad.Element = when (this) {

@@ -49,6 +49,7 @@ class JenaReference(private val query: String) : Reference() {
                     }
                 }
             }
+            solutions.close()
             current = results
         }
     }
