@@ -16,14 +16,16 @@ internal object DynamicJoinTreeBuilder {
             val a = groups.removeAt(matches.group2)
             val b = groups.removeAt(matches.group1)
 
-            // getting all bindings found in the other groups, and intersecting these with the individual bindings
-            //  found in this group
-            val indices = groups.flatMapTo(mutableSetOf()) { it.bindings }.apply {
-                retainAll(a.bindings + b.bindings)
-            }
-
-            val segment = if (indices.isNotEmpty()) {
-                TreeSegment.connected(context, a, b, indices)
+            // if the new group have internal binding overlap, having their combination cached is beneficial as the
+            //  number of results obtained here are not the result of a cartesian join;
+            //  otherwise, falling back on the indexes of the leafs themselves is as performant
+            val segment = if (a.getCommonBindingsCount(b) > 0) {
+                // getting all bindings found in the other groups, and intersecting these with the individual bindings
+                //  found in this group
+                val indexes = groups.flatMapTo(mutableSetOf()) { it.bindings }.apply {
+                    retainAll(a.bindings + b.bindings)
+                }
+                TreeSegment.connected(context, a, b, indexes)
             } else {
                 TreeSegment.disconnected(context, a, b)
             }
@@ -31,7 +33,9 @@ internal object DynamicJoinTreeBuilder {
             groups.add(segment)
         }
         return if (groups.size == 2) {
-            Node.Disconnected(context, groups[0].node, groups[1].node)
+            // creating a temporary TreeSegment instance, so the two final groups are also properly configured
+            //  indexing-wise
+            TreeSegment.disconnected(context, groups[0], groups[1]).node
         } else {
             groups.single().node
         }
@@ -52,26 +56,21 @@ internal object DynamicJoinTreeBuilder {
 
         val bindings: Set<String> get() = node.bindings
 
-        /**
-         * Calculates a "score" representing how much data is estimated to go through; multiple segments with matching
-         *  binding overlap should prefer matching with the node having lower selectivity.
-         */
-        fun peekSelectivity(other: TreeSegment<J>): Double {
-            // a higher binding count matches with more possible values, e.g. leaf nodes `?s ?p ?o` and `?s a <Type>`
-            //  should prefer matching with the latter if only `?s` binding matches, which can be achieved through
-            //  an adjusted value for selectivity
-            return unionSize(bindings, other.bindings).toDouble() / (length + other.length)
-        }
+        fun getTotalBindingsCount(other: TreeSegment<*>) =
+            unionSize(bindings, other.bindings)
+
+        fun getCommonBindingsCount(other: TreeSegment<*>) =
+            intersectionSize(bindings, other.bindings)
+
+        fun getTotalLength(other: TreeSegment<*>) =
+            length + other.length
+
+        override fun toString(): String = "TreeNode(${bindings.joinToString()}, length=${length})"
 
         companion object {
 
             fun <J: MutableJoinState> leaf(leaf: J) = TreeSegment(
                 node = Node.Leaf(leaf),
-                length = 1,
-            )
-
-            fun <J: MutableJoinState> leaf(leaf: Node.Leaf<J>) = TreeSegment(
-                node = leaf,
                 length = 1,
             )
 
@@ -86,8 +85,8 @@ internal object DynamicJoinTreeBuilder {
             ).also {
                 // requesting the child nodes to rehash themselves based on common bindings
                 val common = BindingIdentifierSet(context, first.node.bindings.intersect(second.node.bindings))
-                first.node.rehash(common)
-                second.node.rehash(common)
+                first.node.reindex(common)
+                second.node.reindex(common)
             }
 
             fun <J: MutableJoinState> disconnected(
@@ -100,8 +99,8 @@ internal object DynamicJoinTreeBuilder {
             ).also {
                 // requesting the child nodes to rehash themselves based on common bindings
                 val common = BindingIdentifierSet(context, first.node.bindings.intersect(second.node.bindings))
-                first.node.rehash(common)
-                second.node.rehash(common)
+                first.node.reindex(common)
+                second.node.reindex(common)
             }
 
             /* helpers */
@@ -111,6 +110,14 @@ internal object DynamicJoinTreeBuilder {
                     right.size + left.count { it !in right }
                 } else {
                     left.size + right.count { it !in left }
+                }
+            }
+
+            private inline fun intersectionSize(left: Set<*>, right: Set<*>): Int {
+                return if (left.size < right.size) {
+                    left.count { it in right }
+                } else {
+                    right.count { it in left }
                 }
             }
 
@@ -125,37 +132,64 @@ internal object DynamicJoinTreeBuilder {
         val group2: Int,
     )
 
+    /**
+     * A comparable intermediate result type, comparing two [TreeSegment]s, storing intermediate statistics between them,
+     *  making comparison for the best match possible (larger = better match)
+     */
+    private data class IntermediateMatchResult(
+        val common: Int,
+        val total: Int,
+        val length: Int,
+    ) : Comparable<IntermediateMatchResult> {
+        constructor(a: TreeSegment<*>, b: TreeSegment<*>): this(
+            common = a.getCommonBindingsCount(b),
+            total = a.getTotalBindingsCount(b),
+            length = a.getTotalLength(b),
+        )
+
+        override fun compareTo(other: IntermediateMatchResult): Int {
+            // we prefer common bindings first
+            if (common > other.common) {
+                return 1
+            } else if (common < other.common) {
+                return -1
+            }
+            // next, we prefer longer segments, as longer segments require more data to
+            //  create results
+            if (length > other.length) {
+                return 1
+            } else if (length < other.length) {
+                return -1
+            }
+            // we prefer lower amount of total bindings next, as fewer bindings in total
+            //  means less data is likely to match
+            return other.total - total
+        }
+    }
+
     private fun <J: MutableJoinState> findGroupMatch(
         groups: List<TreeSegment<J>>
     ): MatchResult {
         require(groups.size > 1)
 
-        var group1 = 0
-        var group2 = 1
-        var currentSelectivity = groups[group1].peekSelectivity(groups[group2])
-
-        for (candidate2 in 1 ..< groups.size) {
-            val candidateSelectivity = groups[group1].peekSelectivity(groups[candidate2])
-            if (candidateSelectivity < currentSelectivity) {
-                group2 = candidate2
-                currentSelectivity = candidateSelectivity
-            }
-        }
-
-        for (candidate1 in 1 ..< groups.size) {
-            for (candidate2 in candidate1 + 1 ..< groups.size) {
-                val candidateSelectivity = groups[candidate1].peekSelectivity(groups[candidate2])
-                if (candidateSelectivity < currentSelectivity) {
-                    group1 = candidate1
-                    group2 = candidate2
-                    currentSelectivity = candidateSelectivity
+        val allResults = (0 ..< groups.size - 1).map { i ->
+            val left = groups[i]
+            var j = i + 1
+            var bestMatchResult = IntermediateMatchResult(left, groups[j])
+            for (k in i + 2 ..< groups.size) {
+                val right = groups[k]
+                val current = IntermediateMatchResult(left, right)
+                if (current > bestMatchResult) {
+                    bestMatchResult = current
+                    j = k
                 }
             }
+            (i to j) to bestMatchResult
         }
-
+        val best = allResults.maxBy { it.second }.first
         return MatchResult(
-            group1 = group1,
-            group2 = group2,
+            group1 = best.first,
+            group2 = best.second,
         )
     }
 

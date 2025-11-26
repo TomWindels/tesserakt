@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
@@ -28,7 +29,7 @@ interface MutableJoinState {
      *  on the underlying type, this hint may be ignored. Requesting a rehash on bindings not found in the [bindings]
      *  collection for this state is not useful.
      */
-    fun rehash(bindings: BindingIdentifierSet)
+    fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint)
 
     /**
      * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in this state, without

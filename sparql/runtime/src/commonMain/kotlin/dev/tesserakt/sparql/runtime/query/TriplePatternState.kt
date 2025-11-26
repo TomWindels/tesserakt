@@ -2,7 +2,8 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.RuntimeStatistics
-import dev.tesserakt.sparql.runtime.collection.RehashableMappingArray
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
+import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
@@ -28,7 +29,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         obj: TriplePattern.Object
     ) : TriplePatternState<P>(context, subj, pred, obj) {
 
-        private val data = RehashableMappingArray(context, bindingNamesOf(subj, pred, obj))
+        private val data = ReindexableMappingArray(context, bindingNamesOf(subj, pred, obj))
 
         override val cardinality get() = data.cardinality
 
@@ -62,8 +63,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             }
         }
 
-        final override fun rehash(bindings: BindingIdentifierSet) {
-            data.rehash(bindings)
+        final override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            data.reindex(bindings, hint)
         }
 
         // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
@@ -179,7 +180,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             }
         }
 
-        override fun rehash(bindings: BindingIdentifierSet) {
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
             // TODO
         }
 
@@ -216,8 +217,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
         }
 
-        override fun rehash(bindings: BindingIdentifierSet) {
-            states.forEach { it.rehash(bindings) }
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            states.forEach { it.reindex(bindings, hint) }
         }
 
     }
@@ -251,8 +252,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
         }
 
-        override fun rehash(bindings: BindingIdentifierSet) {
-            states.forEach { it.rehash(bindings) }
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            states.forEach { it.reindex(bindings, hint) }
         }
 
     }
@@ -282,8 +283,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return tree.join(delta)
         }
 
-        override fun rehash(bindings: BindingIdentifierSet) {
-            tree.rehash(bindings)
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            tree.reindex(bindings, hint)
         }
 
     }
@@ -313,8 +314,8 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             return tree.join(delta)
         }
 
-        override fun rehash(bindings: BindingIdentifierSet) {
-            tree.rehash(bindings)
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            tree.reindex(bindings, hint)
         }
 
     }
