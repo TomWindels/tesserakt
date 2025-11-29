@@ -1,8 +1,9 @@
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
-import dev.tesserakt.rdf.serialization.NTriples
 import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.ntriples.NTriples
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.toStore
@@ -50,9 +51,9 @@ class NTriplesTest {
 
     @OptIn(DelicateSerializationApi::class)
     private inline fun test(nt: String, block: (Store) -> Boolean) {
-        val deserialized = NTriples.deserialize(nt).toStore()
+        val deserialized = serializer(NTriples).deserialize(nt).toStore()
         println(deserialized)
-        val serialized = NTriples.serialize(deserialized).collect()
+        val serialized = serializer(NTriples).serialize(deserialized).collect()
         println(serialized)
         assertTrue(block(deserialized))
     }

@@ -1,11 +1,12 @@
-package dev.tesserakt.rdf.serialization
+package dev.tesserakt.rdf.serialization.ntriples
 
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.Serializer
 import dev.tesserakt.rdf.serialization.core.DataStream
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
 
-object NTriples: Serializer() {
+internal object NTriplesSerializer: Serializer() {
 
     @OptIn(InternalSerializationApi::class)
     override fun deserialize(input: DataStream): Iterator<Quad> {

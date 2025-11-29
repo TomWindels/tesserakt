@@ -1,7 +1,7 @@
-package dev.tesserakt.rdf.serialization
+package dev.tesserakt.rdf.serialization.ntriples
 
-import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.util.isNullOr
@@ -70,9 +70,8 @@ internal class Deserializer(private val source: BufferedString) : Iterator<Quad>
                     check(dt is Quad.NamedTerm) { "$dt is not a valid data type for a literal!" }
                     Quad.Literal(value = value, type = dt)
                 } else if (source.peek() == '@') {
-                    // FIXME use the lang tag
-                    consumeWhile { !it.isWhitespace() }
-                    Quad.Literal(value = value, type = RDF.langString)
+                    val lang = consumeWhile { !it.isWhitespace() }
+                    Quad.LangString(value = value, language = lang)
                 } else {
                     Quad.Literal(value = value, type = XSD.string)
                 }
