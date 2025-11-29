@@ -6,10 +6,11 @@ kotlin = "2.2.21"
 kotlinx-benchmark = "0.4.14"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.9.0"
-ktor = "3.3.1"
+ktor = "3.3.3"
+graalvm = "0.11.3"
 clikt = "5.0.3"
 dokka = "2.1.0"
-maven-publish = "0.34.0"
+maven-publish = "0.35.0"
 jena = "5.6.0"
 
 [libraries]
@@ -38,3 +39,5 @@ kotlin-dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 kotlinx-benchmark = { id = "org.jetbrains.kotlinx.benchmark", version.ref = "kotlinx-benchmark" }
 kotlinx-allopen = { id = "org.jetbrains.kotlin.plugin.allopen", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+graalvm = { id = "org.graalvm.buildtools.native", version.ref = "graalvm" }

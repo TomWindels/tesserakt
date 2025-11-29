@@ -1,8 +1,8 @@
 plugins {
     // not distributed as a package, build targets are manually defined
     kotlin("jvm")
-    id("io.ktor.plugin") version "3.1.3"
-    id("org.graalvm.buildtools.native") version "0.11.1"
+    alias(libs.plugins.ktor)
+    alias(libs.plugins.graalvm)
 }
 
 group = "sparql-endpoint"

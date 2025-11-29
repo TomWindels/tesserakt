@@ -73,9 +73,9 @@ val trigTests = tasks.register("rdf-test-suite-js-trig", Exec::class.java) {
     )
 }
 
-turtleTests.dependsOn("jsRun")
+turtleTests.dependsOn("jsNodeDevelopmentRun")
 
-trigTests.dependsOn("jsRun")
+trigTests.dependsOn("jsNodeDevelopmentRun")
 
 // required for `jsRun` to behave; does cause constant recompiles, but worth the test correctness
 tasks.named("jsNodeDevelopmentRun").dependsOn("jsProductionExecutableCompileSync")
