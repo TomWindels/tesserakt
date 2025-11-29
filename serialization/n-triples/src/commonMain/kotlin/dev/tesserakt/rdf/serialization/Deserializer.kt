@@ -44,7 +44,7 @@ internal class Deserializer(private val source: BufferedString) : Iterator<Quad>
 
     private fun consumeTerm(): Quad.Element? {
         consumeWhitespace()
-        return when (val c = source.peek().also { source.consume() }) {
+        return when (val c = source.pop()) {
             null -> return null
             '<' -> {
                 val inner = consumeWhile { it != '>' }

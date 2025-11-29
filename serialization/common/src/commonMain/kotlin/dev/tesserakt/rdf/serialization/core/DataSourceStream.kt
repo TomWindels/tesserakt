@@ -1,8 +1,0 @@
-package dev.tesserakt.rdf.serialization.core
-
-import dev.tesserakt.rdf.serialization.InternalSerializationApi
-
-@InternalSerializationApi
-interface DataSourceStream: AutoCloseable {
-    fun read(count: Int): String?
-}

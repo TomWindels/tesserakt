@@ -1,47 +1,46 @@
 package dev.tesserakt.rdf.serialization.common
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
-import dev.tesserakt.rdf.serialization.core.DataSourceStream
+import dev.tesserakt.rdf.serialization.core.DataStream
 
 class StringIterableSource(private val source: Iterable<String>): DataSource {
 
     @OptIn(InternalSerializationApi::class)
-    private class Stream(private val iterator: Iterator<String>): DataSourceStream {
+    private class Stream(private val iterator: Iterator<String>): DataStream {
 
-        private var i = 0
         private var curr = if (iterator.hasNext()) iterator.next() else null
+        private var remaining = curr?.length ?: -1
 
-        override fun read(count: Int): String? {
-            val curr = curr ?: return null
-            if (count + i < curr.length) {
-                val result = curr.substring(i, i + count)
-                i += count
-                return result
-            }
-            val result = StringBuilder(count)
-            result.append(curr, i, curr.length)
-            while (true) {
-                val next = if (iterator.hasNext()) {
-                    iterator.next()
+        override fun read(target: CharArray, offset: Int, count: Int): Int {
+            val curr = curr ?: return -1
+            return if (remaining > count) {
+                val start = curr.length - remaining
+                curr.toCharArray(
+                    destination = target,
+                    destinationOffset = offset,
+                    startIndex = start,
+                    endIndex = start + count,
+                )
+                remaining -= count
+                count
+            } else {
+                val inserted = remaining
+                curr.toCharArray(
+                    destination = target,
+                    destinationOffset = offset,
+                    startIndex = curr.length - remaining,
+                    endIndex = curr.length,
+                )
+                if (iterator.hasNext()) {
+                    val next = iterator.next()
+                    this.curr = next
+                    remaining = next.length
                 } else {
                     this.curr = null
-                    break
+                    remaining = -1
                 }
-                if (result.length + next.length > count) {
-                    i = count - result.length
-                    result.append(next, 0, count - result.length)
-                    this.curr = next
-                    break
-                } else if (result.length + next.length == count) {
-                    result.append(next)
-                    i = 0
-                    this.curr = if (iterator.hasNext()) iterator.next() else null
-                    break
-                } else /* < count */ {
-                    result.append(next)
-                }
+                inserted
             }
-            return result.toString()
         }
 
         override fun close() {
@@ -51,7 +50,7 @@ class StringIterableSource(private val source: Iterable<String>): DataSource {
     }
 
     @OptIn(InternalSerializationApi::class)
-    override fun open(): DataSourceStream {
+    override fun open(): DataStream {
         return Stream(iterator = source.iterator())
     }
 
