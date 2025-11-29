@@ -1,15 +1,15 @@
 package dev.tesserakt.rdf.serialization
 
-import dev.tesserakt.rdf.serialization.common.DataSource
 import dev.tesserakt.rdf.serialization.common.Serializer
+import dev.tesserakt.rdf.serialization.core.DataStream
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
 
 object NTriples: Serializer() {
 
     @OptIn(InternalSerializationApi::class)
-    override fun deserialize(input: DataSource): Iterator<Quad> {
-        return Deserializer(BufferedString(input.open()))
+    override fun deserialize(input: DataStream): Iterator<Quad> {
+        return Deserializer(BufferedString(input))
     }
 
     override fun serialize(data: Iterator<Quad>): Iterator<String> = iterator {

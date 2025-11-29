@@ -1,12 +1,9 @@
 package dev.tesserakt.rdf.serialization.common
 
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
-import dev.tesserakt.rdf.types.Quad
 
 /**
- * A helper to streamline deserialization from text.
+ * Deserializes the [input] [String] directly. Not recommended as the serialized representation may be large.
  */
 @DelicateSerializationApi
-fun Serializer.deserialize(input: String): Iterator<Quad> {
-    return deserialize(input = TextDataSource(text = input))
-}
+fun Serializer.deserialize(input: String) = deserialize(input = TextDataSource(text = input))

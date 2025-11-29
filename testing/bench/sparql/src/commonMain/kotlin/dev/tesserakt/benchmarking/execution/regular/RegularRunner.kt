@@ -3,10 +3,11 @@ package dev.tesserakt.benchmarking.execution.regular
 import dev.tesserakt.benchmarking.*
 import dev.tesserakt.benchmarking.execution.BenchmarkRunnerHost
 import dev.tesserakt.rdf.serialization.common.FileDataSource
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.trig.serialization.TriG
 import dev.tesserakt.rdf.types.SnapshotStore
-import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.rdf.types.factory.emptyStore
+import dev.tesserakt.rdf.types.toStore
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
@@ -29,7 +30,7 @@ class RegularRunner(
         // ensuring we have the initially required data in memory - if any
         val store = evaluation
             .inputFilePath
-            ?.let { TriGSerializer.deserialize(FileDataSource(it)).consume() }
+            ?.let { serializer(TriG).deserialize(FileDataSource(it)).toStore() }
             ?: emptyStore()
         // ensuring the endpoint behaviour is correct:
         // * if we have a data store we want to evaluate (!= null), we require the initial state of (external)

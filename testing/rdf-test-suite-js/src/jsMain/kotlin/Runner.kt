@@ -4,12 +4,13 @@ import dev.tesserakt.interop.rdfjs.toN3Triple
 import dev.tesserakt.interop.rdfjs.toQuad
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.trig.serialization.TriG
 import dev.tesserakt.rdf.trig.serialization.setBase
-import dev.tesserakt.rdf.trig.serialization.trig
+import dev.tesserakt.rdf.turtle.serialization.Turtle
 import dev.tesserakt.rdf.turtle.serialization.setBase
-import dev.tesserakt.rdf.turtle.serialization.turtle
-import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.rdf.types.factory.Store
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.query
@@ -33,23 +34,23 @@ fun parse(data: String, options: Any): Promise<dynamic> {
         val result = runCatching {
             when {
                 "rdf-turtle" in options -> {
-                    val serializer = turtle {
+                    val serializer = serializer(Turtle) {
                         setBase(options)
                     }
                     serializer
                         .deserialize(data)
-                        .consume()
+                        .toStore()
                         .map { it.toN3Triple() }
                         .toTypedArray()
                 }
 
                 "rdf-trig" in options -> {
-                    val serializer = trig {
+                    val serializer = serializer(TriG) {
                          setBase(options)
                     }
                     serializer
                         .deserialize(data)
-                        .consume()
+                        .toStore()
                         .map { it.toN3Triple() }
                         .toTypedArray()
                 }

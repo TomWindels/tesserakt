@@ -36,7 +36,7 @@ val rdf: RDF_DSL = {
 val store = buildStore(block = rdf)
 
 // using the default Turtle serializer
-val serializer = turtle {
+val serializer = serializer(Turtle) {
     usePrettyFormatting {
         // applying the `ex:` prefix
         withPrefixes(rdf.extractPrefixes())

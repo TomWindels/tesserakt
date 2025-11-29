@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.endpoint.client
 
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.trig.serialization.TriG
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.factory.mutableStoreOf
 
@@ -25,7 +26,7 @@ class SparqlUpdateRequestBuilder(
     fun toQueryString(): String = buildString {
         if (additions.isNotEmpty()) {
             append("INSERT DATA { ")
-            TriGSerializer.serialize(additions).forEach { append(it) }
+            serializer(TriG).serialize(additions).forEach { append(it) }
             append(" }")
         }
         if (additions.isNotEmpty() && deletions.isNotEmpty()) {
@@ -33,7 +34,7 @@ class SparqlUpdateRequestBuilder(
         }
         if (deletions.isNotEmpty()) {
             append("DELETE DATA { ")
-            TriGSerializer.serialize(deletions).forEach { append(it) }
+            serializer(TriG).serialize(deletions).forEach { append(it) }
             append(" }")
         }
     }

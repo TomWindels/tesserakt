@@ -6,12 +6,6 @@ import dev.tesserakt.rdf.turtle.serialization.TurtleConfig.PrettyFormatterConf
 import dev.tesserakt.rdf.types.Quad
 
 
-@TurtleSerializerDsl
-fun turtle(builder: TurtleConfig.() -> Unit): TurtleSerializer {
-    val config = TurtleConfig().apply(builder)
-    return TurtleSerializer(config = config)
-}
-
 inline fun TurtleConfig.setBase(iri: String) {
     base = iri
 }

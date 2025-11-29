@@ -11,7 +11,18 @@ fun Iterable<Quad>.toStore(): Store {
     }
 }
 
-fun Iterator<Quad>.consume(target: MutableStore = MutableStore()): MutableStore {
+/**
+ * Consumes `this` [Iterator], creating a [Store] that contains all (remaining) [Quad]s.
+ */
+fun Iterator<Quad>.toStore(): Store {
+    return toStore(MutableStore())
+}
+
+/**
+ * Consumes `this` [Iterator], adding all (remaining) [Quad]s into the [target] [MutableStore]. The [target] instance
+ *  is returned.
+ */
+fun <S: MutableStore> Iterator<Quad>.toStore(target: S): S {
     forEach { target.add(it) }
     return target
 }

@@ -1,7 +1,8 @@
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.trig.serialization.trig
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.trig.serialization.TriG
 import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
 import dev.tesserakt.rdf.trig.serialization.withPrefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
@@ -22,12 +23,12 @@ class ReplayBenchmarkTest {
     @Test
     fun evaluation() {
         val benchmark = buildBenchmark()
-        val serializer = trig {
+        val serializer = serializer(TriG) {
             usePrettyFormatting {
                 withPrefixes(XSD, TREE, LDES, DC, RDF, RBO)
             }
         }
-        println(serializer.serialize(data = benchmark.toStore()).collect())
+        println(serializer.serialize(benchmark.toStore()).collect())
         var i = 0
         benchmark.eval { current: Store, diff: SnapshotStore.Diff ->
             println(current)

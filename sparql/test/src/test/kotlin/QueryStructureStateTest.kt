@@ -2,10 +2,12 @@
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
-import dev.tesserakt.rdf.turtle.serialization.TurtleSerializer.Companion.parseTurtleString
+import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.turtle.serialization.Turtle
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.debug.BindingsTable.Companion.tabulate
 import dev.tesserakt.sparql.query
@@ -221,7 +223,7 @@ class QueryStructureStateTest {
     @Test
     fun aggregation() = with(VerboseCompiler) {
         // src: https://www.w3.org/TR/sparql11-query/#aggregateExample
-        val store = """
+        val store = serializer(Turtle).deserialize("""
             @prefix : <http://books.example/> .
 
             :org1 :affiliates :auth1, :auth2 .
@@ -233,7 +235,7 @@ class QueryStructureStateTest {
             :org2 :affiliates :auth3 .
             :auth3 :writesBook :book4 .
             :book4 :price 7 .
-        """.parseTurtleString().consume()
+        """).toStore()
         val query = """
             PREFIX : <http://books.example/>
             SELECT (SUM(?lprice) AS ?totalPrice)
@@ -251,7 +253,7 @@ class QueryStructureStateTest {
     @OptIn(DelicateSerializationApi::class)
     @Test
     fun filters() = with (VerboseCompiler) {
-        val data1 = """
+        val data1 = serializer(Turtle).deserialize("""
             @prefix  :       <http://example/> .
             @prefix  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
             @prefix  foaf:   <http://xmlns.com/foaf/0.1/> .
@@ -259,7 +261,7 @@ class QueryStructureStateTest {
             :alice  rdf:type   foaf:Person .
             :alice  foaf:name  "Alice" .
             :bob    rdf:type   foaf:Person .
-        """.parseTurtleString().consume()
+        """).toStore()
         val query1 = """
             PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
             PREFIX  foaf:   <http://xmlns.com/foaf/0.1/> 

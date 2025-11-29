@@ -4,8 +4,9 @@ import dev.tesserakt.benchmarking.execution.EndpointUtil
 import dev.tesserakt.benchmarking.isFolder
 import dev.tesserakt.benchmarking.listFiles
 import dev.tesserakt.rdf.serialization.common.FileDataSource
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.trig.serialization.TriG
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 
 data class ReplayEndpointConfig(
@@ -21,7 +22,7 @@ data class ReplayEndpointConfig(
     fun toRunnerEvaluations(): List<ReplayRunnerEvaluation> {
         var i = 0
         return ReplayBenchmark
-            .from(TriGSerializer.deserialize(FileDataSource(inputFilePath)).consume())
+            .from(serializer(TriG).deserialize(FileDataSource(inputFilePath)).toStore())
             .flatMap { benchmark ->
                 val nameBase = inputFilePath.substringAfterLast('/').substringBeforeLast('.')
                 benchmark.queries.map { query ->

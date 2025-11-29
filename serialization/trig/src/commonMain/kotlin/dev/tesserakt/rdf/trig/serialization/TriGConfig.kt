@@ -4,7 +4,7 @@ import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.trig.serialization.PrettyFormatter.*
 
 
-class TRiGConfig(
+class TriGConfig(
     var base: String = DEFAULT_BASE,
     var formatter: Formatter = DEFAULT_FORMATTER
 ) {

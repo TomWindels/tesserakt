@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
+import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.trig.serialization.*
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
@@ -74,7 +75,7 @@ class TriGSerialization {
     @OptIn(DelicateSerializationApi::class, InternalSerializationApi::class)
     private fun serialize(block: RDF.() -> Unit) {
         val reference = buildStore(block = block)
-        val serializer = trig {
+        val serializer = serializer(TriG) {
             usePrettyFormatting {
                 withPrefixes(block.extractPrefixes())
                 withDynamicIndent()

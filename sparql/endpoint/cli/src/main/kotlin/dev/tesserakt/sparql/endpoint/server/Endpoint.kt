@@ -1,11 +1,12 @@
 package dev.tesserakt.sparql.endpoint.server
 
-import dev.tesserakt.rdf.serialization.common.FileDataSource
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.trig.serialization.TriG
 import dev.tesserakt.rdf.types.factory.MutableStore
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.rdf.types.factory.emptyStore
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.endpoint.core.data.SelectResponse
 import dev.tesserakt.sparql.endpoint.core.data.UpdateRequest
 import dev.tesserakt.sparql.endpoint.server.factory.SparqlEndpoint
@@ -17,7 +18,7 @@ class Endpoint(config: EndpointConfig): SparqlEndpoint {
 
     private val inner = run {
         val base = if (config.start != null) {
-            TriGSerializer.deserialize(FileDataSource(config.start)).consume()
+            serializer(TriG).deserialize(config.start).toStore()
         } else {
             emptyStore()
         }

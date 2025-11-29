@@ -1,15 +1,16 @@
 package dev.tesserakt.rdf.trig.serialization
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
-import dev.tesserakt.rdf.serialization.common.DataSource
 import dev.tesserakt.rdf.serialization.common.Serializer
+import dev.tesserakt.rdf.serialization.core.DataStream
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Store
 
-class TriGSerializer(private val config: TRiGConfig): Serializer() {
+internal class TriGSerializer(private val config: TriGConfig): Serializer() {
 
-    override fun serialize(data: Collection<Quad>): Iterator<String> {
-        return config.formatter.format(TokenEncoder(data))
+    override fun serialize(store: Store): Iterator<String> {
+        return config.formatter.format(TokenEncoder(store.iterator()))
     }
 
     override fun serialize(data: Iterator<Quad>): Iterator<String> {
@@ -17,16 +18,16 @@ class TriGSerializer(private val config: TRiGConfig): Serializer() {
     }
 
     @OptIn(InternalSerializationApi::class)
-    override fun deserialize(input: DataSource): Iterator<Quad> {
+    override fun deserialize(input: DataStream): Iterator<Quad> {
         return Deserializer(
             base = config.base,
-            source = TokenDecoder(BufferedString(input.open()))
+            source = TokenDecoder(BufferedString(input))
         )
     }
 
     companion object: Serializer() {
-        override fun serialize(data: Collection<Quad>): Iterator<String> {
-            return DEFAULT_FORMATTER.format(TokenEncoder(data))
+        override fun serialize(store: Store): Iterator<String> {
+            return DEFAULT_FORMATTER.format(TokenEncoder(store.iterator()))
         }
 
         override fun serialize(data: Iterator<Quad>): Iterator<String> {
@@ -34,8 +35,8 @@ class TriGSerializer(private val config: TRiGConfig): Serializer() {
         }
 
         @OptIn(InternalSerializationApi::class)
-        override fun deserialize(input: DataSource): Iterator<Quad> {
-            return Deserializer(TokenDecoder(BufferedString(input.open())))
+        override fun deserialize(input: DataStream): Iterator<Quad> {
+            return Deserializer(TokenDecoder(BufferedString(input)))
         }
     }
 

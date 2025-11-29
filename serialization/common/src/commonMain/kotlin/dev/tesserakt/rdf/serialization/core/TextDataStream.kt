@@ -9,7 +9,8 @@ class TextDataStream(private val content: String) : DataStream {
     private var pos = 0
 
     override fun close() {
-        // nothing to do
+        // moving the pos out of reach so subsequent `read`s fail
+        pos = content.length
     }
 
     override fun read(target: CharArray, offset: Int, count: Int): Int {
