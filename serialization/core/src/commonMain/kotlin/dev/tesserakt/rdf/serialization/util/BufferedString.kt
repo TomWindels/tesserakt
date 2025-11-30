@@ -18,12 +18,28 @@ class BufferedString(
     private var finished = !buffer.read(source)
 
     /**
+     * Reads the current top character, returning `null` if EOF has been reached.
+     */
+    fun peek(): Char? {
+        // we have to make sure there's enough data in the buffer
+        while (!finished && buffer.size == 0) {
+            finished = !buffer.read(source)
+        }
+        // if the buffer is exhausted, and we're looking for a character past it's size, we can conclusively say we've
+        //  reached EOF
+        if (buffer.size == 0) {
+            return null
+        }
+        return buffer.first()
+    }
+
+    /**
      * Reads the current top + [offset] character (cannot be negative!), returning `null` if EOF has been
      *  reached. Automatically reads as much data in from the [source] depending on the offset.
      *
      * Throws an exception if [offset] exceeds the internal [CircularCharBuffer.capacity].
      */
-    fun peek(offset: Int = 0): Char? {
+    fun peek(offset: Int): Char? {
         if (offset >= buffer.capacity) {
             throw IllegalArgumentException("The offset cannot exceed the buffer's capacity (${offset} >= ${buffer.capacity})")
         }
@@ -70,6 +86,14 @@ class BufferedString(
 
     override fun close() {
         source.close()
+    }
+
+    fun report(index: Int = 0): String {
+        return buffer.highlight(index)?.prependIndent("| ") ?: "No report available"
+    }
+
+    fun report(start: Int, end: Int): String {
+        return buffer.highlight(start, end)?.prependIndent("| ") ?: "No report available"
     }
 
 }

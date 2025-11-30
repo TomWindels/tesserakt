@@ -2,6 +2,7 @@ package dev.tesserakt.rdf.serialization.util
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.core.DataStream
+import kotlin.jvm.JvmInline
 
 /**
  * A circular buffer, storing characters efficiently for streaming use of various [dev.tesserakt.rdf.serialization.core.DataStream] implementations during
@@ -39,7 +40,28 @@ class CircularCharBuffer(capacity: Int = 1024) {
     val capacity: Int
         get() = buffer.size
 
+    /**
+     * Returns the first character. Identical behaviour as invoking `get(0)`. Throws [NoSuchElementException] if the
+     *  buffer is empty ([size] is `0`)
+     */
+    fun first(): Char {
+        if (size == 0) {
+            throw NoSuchElementException("The buffer is empty!")
+        }
+        // no need to mask the offset, it's guaranteed to be in the [0..capacity[ range
+        return buffer[offset]
+    }
+
+    /**
+     * Gets the character at the given [index].
+     *
+     * Throws [IllegalArgumentException] if [index]` < 0`.
+     * Throws [NoSuchElementException] if [index] exceeds the buffer's [size].
+     */
     operator fun get(index: Int): Char {
+        if (index < 0) {
+            throw IllegalArgumentException("Index cannot be negative, was $index")
+        }
         if (index >= size) {
             throw NoSuchElementException("Index $index exceeds size $size")
         }
@@ -113,10 +135,12 @@ class CircularCharBuffer(capacity: Int = 1024) {
 
     override fun toString(): String = buildString {
         append("CircularCharBuffer { ")
-        append("capacity: ")
-        append(buffer.size)
+        append("offset: ")
+        append(offset)
         append(", size: ")
         append(size)
+        append(", capacity: ")
+        append(buffer.size)
         append(", contents: [")
         val end = (size + offset) and mask
         buffer.forEachIndexed { i, c ->
@@ -138,6 +162,175 @@ class CircularCharBuffer(capacity: Int = 1024) {
             append(' ')
         }
         append("] }")
+    }
+
+    /**
+     * Represents logic that defines what to include in a context window returned from [highlight]
+     */
+    interface ContextWindow {
+
+        /**
+         * Defines how far before the target position should be included. This will be called for every character
+         *  preceding the target, with an increased [offset] and its corresponding [value], until `false` is
+         *  returned (end of context window) or the buffer's data is exhausted
+         */
+        fun includeBefore(offset: Int, value: Char): Boolean
+
+        /**
+         * Defines how far after the target position should be included. This will be called for every character
+         *  following the target, with an increased [offset] and its corresponding [value], until `false` is
+         *  returned (end of context window) or the buffer's data is exhausted
+         */
+        fun includeAfter(offset: Int, value: Char): Boolean
+
+        /**
+         * A simple [ContextWindow] implementation that extends the context until first newline character `\n` is
+         *  encountered, or [maxLength] has been reached w.r.t. the target position.
+         */
+        @JvmInline
+        value class LineBased(
+            /**
+             * The max length preceding / following the target position
+             */
+            val maxLength: Int
+        ): ContextWindow {
+            override fun includeAfter(offset: Int, value: Char): Boolean {
+                return value != '\n' && offset < maxLength
+            }
+
+            override fun includeBefore(offset: Int, value: Char): Boolean {
+                return value != '\n' && offset < maxLength
+            }
+        }
+
+    }
+
+    fun highlight(index: Int = 0, context: ContextWindow = ContextWindow.LineBased(capacity / 2)): String? {
+        return highlight(
+            start = index,
+            end = index + 1,
+            context = context,
+        )
+    }
+
+    /**
+     * Returns a string that contains (part of) this buffer, with the character region [start]`..<`[end] marked.
+     * The [context] parameter allows for fine-tuning of the surrounding context shown. This context is limited to
+     *  what is available in the buffer: it is possible for data to be overwritten if it was [consume]d.
+     */
+    fun highlight(
+        start: Int,
+        end: Int = start + 1,
+        context: ContextWindow = ContextWindow.LineBased(capacity / 2)
+    ): String? {
+        require(start < end) { "Invalid region to highlight: $start >= $end" }
+        if (size == 0) {
+            return null
+        }
+        val startPos = offset + start
+        val endPos = offset + end
+
+        val (contextStart, contextEnd) = findContextWindow(
+            indexStart = startPos,
+            indexEnd = endPos,
+            context = context,
+        )
+
+        return buildString {
+            var offset = 0
+            var length = end - start
+            (contextStart ..< startPos).forEach { i ->
+                when (val c = buffer[i and mask]) {
+                    '\n' -> {
+                        ++offset
+                        append("\\n")
+                    }
+                    '\t' -> {
+                        ++offset
+                        append("\\t")
+                    }
+                    else -> {
+                        append(c)
+                    }
+                }
+            }
+            (startPos ..< endPos).forEach { i ->
+                when (val c = buffer[i and mask]) {
+                    '\n' -> {
+                        ++length
+                        append("\\n")
+                    }
+                    '\t' -> {
+                        ++length
+                        append("\\t")
+                    }
+                    else -> {
+                        append(c)
+                    }
+                }
+            }
+            (endPos .. contextEnd).forEach { i ->
+                when (val c = buffer[i and mask]) {
+                    '\n' -> {
+                        append("\\n")
+                    }
+                    '\t' -> {
+                        append("\\t")
+                    }
+                    else -> {
+                        append(c)
+                    }
+                }
+            }
+            appendLine()
+            repeat(startPos - contextStart + offset) {
+                append(' ')
+            }
+            repeat(length) {
+                append('^')
+            }
+        }
+    }
+
+    /**
+     * Finds the start and end index of the [buffer] that represents a context window according to the requirements
+     *  of the [context] object. The returned bounds are inclusive, and are at least [indexStart], [indexEnd].
+     */
+    private fun findContextWindow(indexStart: Int, indexEnd: Int, context: ContextWindow): Pair<Int, Int> {
+        val end = (size + offset) and mask
+
+        var startOffset = 0
+        var endOffset = 0
+
+        val maxLengthBefore = if (indexStart < end) {
+            indexStart + (buffer.size - end)
+        } else {
+            end - indexStart
+        }
+        val maxLengthAfter = if (indexEnd < end) {
+            end - indexEnd
+        } else {
+            (buffer.size - indexEnd) + end
+        }
+
+        while (
+            maxLengthBefore > startOffset &&
+            // making sure there's actual data here
+            buffer[(indexStart - startOffset) and mask].code != 0 &&
+            context.includeBefore(startOffset, buffer[(indexStart - startOffset) and mask])
+        ) {
+            ++startOffset
+        }
+
+        while (
+            maxLengthAfter > endOffset &&
+            context.includeAfter(endOffset, buffer[(indexEnd + endOffset) and mask])
+        ) {
+            ++endOffset
+        }
+
+        // the two offsets now point just outside the region, so we adjust both before returning
+        return ((indexStart - startOffset + 1) and mask) to ((indexEnd + endOffset - 1) and mask)
     }
 
 }

@@ -1,15 +1,13 @@
-package dev.tesserakt.rdf.turtle.serialization
+package dev.tesserakt.rdf.trig.serialization
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import kotlin.jvm.JvmInline
 
-// TODO: blank node syntax `[]` support
-// TODO: improved exception handling
 
-internal class Deserializer(
-    source: Iterator<TurtleToken>,
+internal class TriGDeserializer(
+    source: Iterator<TriGToken>,
     base: String = DEFAULT_BASE,
 ) : Iterator<Quad> {
 
@@ -42,13 +40,13 @@ internal class Deserializer(
             }
         }
 
-        fun update(new: TurtleToken.TermToken): Base {
+        fun update(new: TriGToken.TermToken): Base {
             return when (new) {
-                is TurtleToken.RelativeTerm -> {
+                is TriGToken.RelativeTerm -> {
                     Base(full = resolve(new).value)
                 }
 
-                is TurtleToken.Term -> {
+                is TriGToken.Term -> {
                     Base(full = new.value)
                 }
 
@@ -56,7 +54,7 @@ internal class Deserializer(
             }
         }
 
-        fun resolve(term: TurtleToken.RelativeTerm): Quad.NamedTerm {
+        fun resolve(term: TriGToken.RelativeTerm): Quad.NamedTerm {
             val value = when {
                 term.value.isEmpty() -> full
 
@@ -102,7 +100,7 @@ internal class Deserializer(
         abstract val name: Quad.Subject // all subjects are valid objects, but not all objects are valid subjects
 
         class BlankNode(
-            private val parent: Deserializer,
+            private val parent: TriGDeserializer,
         ) : Structure() {
 
             override val name = Quad.BlankTerm(id = parent.blankTermCount++)
@@ -111,8 +109,8 @@ internal class Deserializer(
             private var next: Quad? = null
 
             init {
-                check(parent.source.peek() == TurtleToken.Structural.BlankStart) {
-                    "Expected ${TurtleToken.Structural.BlankStart}, got ${parent.source.peek()}"
+                check(parent.source.peek() == TriGToken.Structural.BlankStart) {
+                    "Expected ${TriGToken.Structural.BlankStart}, got ${parent.source.peek()}"
                 }
                 parent.source.consume()
             }
@@ -141,33 +139,33 @@ internal class Deserializer(
                                 return child.next()
                             }
                             // the inner structure has finished, emitting its name as the next quad
-                            val result = Quad(s = name, p = p!!, o = child.name as Quad.Object)
+                            val result = Quad(s = name, p = p!!, o = child.name as Quad.Object, g = parent.g)
                             // and cleaning up
                             this.child = null
                             // with the object position terminated, we have to check the next token
-                            if (parent.source.peek() == TurtleToken.Structural.ObjectTermination) {
+                            if (parent.source.peek() == TriGToken.Structural.ObjectTermination) {
                                 parent.source.consume()
-                            } else if (parent.source.peek() == TurtleToken.Structural.PredicateTermination) {
+                            } else if (parent.source.peek() == TriGToken.Structural.PredicateTermination) {
                                 p = null
                                 parent.source.consume()
                             }
                             return result
                         }
 
-                        token == TurtleToken.EOF -> unexpectedToken(TurtleToken.EOF)
+                        token == TriGToken.EOF -> unexpectedToken(TriGToken.EOF)
 
-                        token == TurtleToken.Structural.BlankEnd -> {
+                        token == TriGToken.Structural.BlankEnd -> {
                             parent.source.consume()
                             return null
                         }
 
                         p == null -> {
                             p = when (token) {
-                                is TurtleToken.TermToken -> {
+                                is TriGToken.TermToken -> {
                                     parent.resolve(token).into()
                                 }
 
-                                TurtleToken.Keyword.TypePredicate -> {
+                                TriGToken.Keyword.TypePredicate -> {
                                     RDF.type
                                 }
 
@@ -176,29 +174,29 @@ internal class Deserializer(
                             parent.source.consume()
                         }
 
-                        token == TurtleToken.Structural.BlankStart -> {
+                        token == TriGToken.Structural.BlankStart -> {
                             this.child = BlankNode(parent)
                         }
 
-                        token == TurtleToken.Structural.ListStart -> {
+                        token == TriGToken.Structural.ListStart -> {
                             this.child = List(parent)
                         }
 
-                        token is TurtleToken.TermToken -> {
+                        token is TriGToken.TermToken -> {
                             val o = parent.resolve(token) as Quad.Object
-                            val result = Quad(s = name, p = p!!, o = o)
+                            val result = Quad(s = name, p = p!!, o = o, g = parent.g)
                             // consuming token `o`
                             parent.source.consume()
                             when (parent.source.peek()) {
-                                TurtleToken.Structural.BlankEnd -> {
+                                TriGToken.Structural.BlankEnd -> {
                                     // not consuming this token, next iteration will yield null
                                 }
 
-                                TurtleToken.Structural.ObjectTermination -> {
+                                TriGToken.Structural.ObjectTermination -> {
                                     parent.source.consume()
                                 }
 
-                                TurtleToken.Structural.PredicateTermination -> {
+                                TriGToken.Structural.PredicateTermination -> {
                                     parent.source.consume()
                                     p = null
                                 }
@@ -215,7 +213,7 @@ internal class Deserializer(
 
         }
 
-        class RegularList(private val parent: Deserializer) : Structure() {
+        class RegularList(private val parent: TriGDeserializer) : Structure() {
 
             sealed interface ListItem {
                 @JvmInline
@@ -247,11 +245,11 @@ internal class Deserializer(
                 // then ensuring there's a link between the child's value and its associated list node
                 when (val current = currentValue.also { currentValue = null }) {
                     is ListItem.SimpleItem -> {
-                        return Quad(currentNode, RDF.first, current.item)
+                        return Quad(currentNode, RDF.first, current.item, g = parent.g)
                     }
 
                     is ListItem.StructureItem -> {
-                        return Quad(currentNode, RDF.first, current.structure.name as Quad.Object)
+                        return Quad(currentNode, RDF.first, current.structure.name as Quad.Object, g = parent.g)
                     }
 
                     null -> {
@@ -259,30 +257,30 @@ internal class Deserializer(
                     }
                 }
                 // then ensuring we emitted the link to the next node
-                if (parent.source.peek() == TurtleToken.Structural.ListEnd) {
+                if (parent.source.peek() == TriGToken.Structural.ListEnd) {
                     parent.source.consume()
                     // indicating we're finished here
                     this.currentNode = null
-                    return Quad(currentNode, RDF.rest, RDF.nil)
+                    return Quad(currentNode, RDF.rest, RDF.nil, g = parent.g)
                 }
                 val nextNode = Quad.BlankTerm(id = parent.blankTermCount++)
                 // already updating the local value, which will be consumed in subsequent iterations
                 this.currentValue = nextItemValue()
                 this.currentNode = nextNode
-                return Quad(currentNode, RDF.rest, nextNode)
+                return Quad(currentNode, RDF.rest, nextNode, g = parent.g)
             }
 
             private fun nextItemValue(): ListItem {
                 return when (val current = parent.source.peek()) {
-                    TurtleToken.Structural.ListStart -> {
+                    TriGToken.Structural.ListStart -> {
                         ListItem.StructureItem(List(parent))
                     }
 
-                    TurtleToken.Structural.BlankStart -> {
+                    TriGToken.Structural.BlankStart -> {
                         ListItem.StructureItem(BlankNode(parent))
                     }
 
-                    is TurtleToken.TermToken -> {
+                    is TriGToken.TermToken -> {
                         ListItem.SimpleItem(item = parent.resolve(current) as Quad.Object).also { parent.source.consume() }
                     }
 
@@ -307,12 +305,12 @@ internal class Deserializer(
 
         companion object {
 
-            fun List(parent: Deserializer): Structure {
-                check(parent.source.peek() == TurtleToken.Structural.ListStart) {
-                    "Expected ${TurtleToken.Structural.ListStart}, got ${parent.source.peek()}"
+            fun List(parent: TriGDeserializer): Structure {
+                check(parent.source.peek() == TriGToken.Structural.ListStart) {
+                    "Expected ${TriGToken.Structural.ListStart}, got ${parent.source.peek()}"
                 }
                 parent.source.consume()
-                return if (parent.source.peek() == TurtleToken.Structural.ListEnd) {
+                return if (parent.source.peek() == TriGToken.Structural.ListEnd) {
                     parent.source.consume()
                     EmptyList
                 } else {
@@ -326,7 +324,7 @@ internal class Deserializer(
 
     /* state/input logic */
 
-    private val source = TokenBuffer(source)
+    private val source = TriGTokenBuffer(source)
 
     private val prefixes = mutableMapOf<String /* prefix */, String /* uri */>()
     private val namedBlankNodes = mutableMapOf<String /* serialized label */, Quad.BlankTerm>()
@@ -335,6 +333,11 @@ internal class Deserializer(
     private var child: Structure? = null
     private var s: Quad.Subject? = null
     private var p: Quad.Predicate? = null
+    internal var g: Quad.Graph = Quad.DefaultGraph
+        private set
+    // specifically keeping track of whether we're in a graph block, as the current graph being the default graph
+    //  can also be done syntactically (e.g. `{ <s> <p> <o> }`)
+    private var inGraphBlock = false
 
     /* iterator/output logic */
 
@@ -368,9 +371,15 @@ internal class Deserializer(
                     // using the child from this iteration one last time - to reference its name in the appropriate
                     //  quad
                     when {
+                        !inGraphBlock && source.peek() == TriGToken.Structural.GraphStatementStart -> {
+                            source.consume()
+                            g = child.name.into()
+                            inGraphBlock = true
+                        }
+
                         s == null -> {
                             val next = source.peek()
-                            if (next == TurtleToken.Structural.StatementTermination || next == TurtleToken.EOF) {
+                            if (next == TriGToken.Structural.StatementTermination || next == TriGToken.EOF) {
                                 // state was already cleared
                                 source.consume()
                             } else {
@@ -385,28 +394,58 @@ internal class Deserializer(
                     }
                 }
 
-                token == TurtleToken.EOF -> return null
+                token == TriGToken.EOF -> return null
 
-                token == TurtleToken.Structural.BlankStart -> {
+                token == TriGToken.Structural.BlankStart -> {
                     this.child = Structure.BlankNode(parent = this)
                 }
 
-                token == TurtleToken.Structural.ListStart -> {
+                token == TriGToken.Structural.ListStart -> {
                     this.child = Structure.List(parent = this)
+                }
+
+                token == TriGToken.Structural.GraphStatementStart -> {
+                    if (inGraphBlock) {
+                        unexpectedToken(token)
+                    }
+                    source.consume()
+                    inGraphBlock = true
+                    // the active subject, if any, becomes the graph
+                    g = s?.into() ?: Quad.DefaultGraph
+                    s = null
+                }
+
+                token == TriGToken.Keyword.GraphAnnotation -> {
+                    source.consume()
+                    g = resolve(source.consume().into()).into()
+                    check(source.consume() == TriGToken.Structural.GraphStatementStart)
+                    inGraphBlock = true
+                }
+
+                token == TriGToken.Structural.GraphStatementEnd -> {
+                    if (!inGraphBlock) {
+                        unexpectedToken(token)
+                    }
+                    source.consume()
+                    // resetting the rest of the state too
+                    g = Quad.DefaultGraph
+                    inGraphBlock = false
+                    s = null
+                    p = null
                 }
 
                 s == null -> {
                     if (source.peek().isBaseOrPrefixDeclaration()) {
+                        check(!inGraphBlock)
                         processPrefix()
                         continue
                     }
 
-                    s = resolve(source.peek().into()) as Quad.Subject
-                    source.consume()
+                    s = resolve(source.consume().into()) as Quad.Subject
                 }
 
                 p == null -> {
-                    p = if (source.peek() == TurtleToken.Keyword.TypePredicate) {
+                    p = if (source.peek() == TriGToken.Keyword.TypePredicate) {
                         RDF.type
                     } else {
                         resolve(source.peek().into()).into()
@@ -416,15 +455,15 @@ internal class Deserializer(
 
                 else -> {
                     val o = when (token) {
-                        is TurtleToken.TermToken -> {
+                        is TriGToken.TermToken -> {
                             resolve(token)
                         }
 
-                        TurtleToken.Keyword.TrueLiteral -> {
+                        TriGToken.Keyword.TrueLiteral -> {
                             Quad.Literal(value = "true", type = XSD.boolean)
                         }
 
-                        TurtleToken.Keyword.FalseLiteral -> {
+                        TriGToken.Keyword.FalseLiteral -> {
                             Quad.Literal(value = "false", type = XSD.boolean)
                         }
 
@@ -439,19 +478,26 @@ internal class Deserializer(
     }
 
     private fun onObjectElement(o: Quad.Object): Quad {
-        val result = Quad(s = s!!, p = p!!, o = o)
-        when (val terminator = source.consume()) {
-            TurtleToken.Structural.StatementTermination -> {
+        val result = Quad(s = s!!, p = p!!, o = o, g = g)
+        when (val terminator = source.peek()) {
+            TriGToken.Structural.StatementTermination -> {
                 s = null
                 p = null
+                source.consume()
             }
 
-            TurtleToken.Structural.PredicateTermination -> {
+            TriGToken.Structural.PredicateTermination -> {
                 p = null
+                source.consume()
             }
 
-            TurtleToken.Structural.ObjectTermination, TurtleToken.EOF -> {
-                /* nothing to do */
+            TriGToken.Structural.ObjectTermination -> {
+                source.consume()
+            }
+
+            TriGToken.EOF, TriGToken.Structural.GraphStatementEnd -> {
+                /* nothing else to do */
+                return result
             }
 
             else -> unexpectedToken(terminator)
@@ -459,18 +505,18 @@ internal class Deserializer(
         // it's possible for other termination characters to occur now, so repeating in case this happens
         while (true) {
             when (source.peek()) {
-                TurtleToken.Structural.StatementTermination -> {
+                TriGToken.Structural.StatementTermination -> {
                     source.consume()
                     s = null
                     p = null
                 }
 
-                TurtleToken.Structural.PredicateTermination -> {
+                TriGToken.Structural.PredicateTermination -> {
                     source.consume()
                     p = null
                 }
 
-                TurtleToken.Structural.ObjectTermination -> {
+                TriGToken.Structural.ObjectTermination -> {
                     source.consume()
                 }
 
@@ -480,33 +526,33 @@ internal class Deserializer(
         }
     }
 
-    private fun TurtleToken.isBaseOrPrefixDeclaration(): Boolean =
-        this == TurtleToken.Keyword.BaseAnnotationA || this == TurtleToken.Keyword.BaseAnnotationB ||
-        this == TurtleToken.Keyword.PrefixAnnotationA || this == TurtleToken.Keyword.PrefixAnnotationB
+    private fun TriGToken.isBaseOrPrefixDeclaration(): Boolean =
+        this == TriGToken.Keyword.BaseAnnotationA || this == TriGToken.Keyword.BaseAnnotationB ||
+        this == TriGToken.Keyword.PrefixAnnotationA || this == TriGToken.Keyword.PrefixAnnotationB
 
     private fun processPrefix() {
         when (val token = source.consume()) {
-            TurtleToken.Keyword.BaseAnnotationA,
-            TurtleToken.Keyword.BaseAnnotationB -> {
-                val uri = source.consume().into<TurtleToken.TermToken>()
+            TriGToken.Keyword.BaseAnnotationA,
+            TriGToken.Keyword.BaseAnnotationB -> {
+                val uri = source.consume().into<TriGToken.TermToken>()
                 base = base.update(uri)
-                if (source.peek() == TurtleToken.Structural.StatementTermination) {
+                if (source.peek() == TriGToken.Structural.StatementTermination) {
                     source.consume()
                 }
             }
 
-            TurtleToken.Keyword.PrefixAnnotationA,
-            TurtleToken.Keyword.PrefixAnnotationB -> {
+            TriGToken.Keyword.PrefixAnnotationA,
+            TriGToken.Keyword.PrefixAnnotationB -> {
                 val prefix = source.consume()
-                check(prefix is TurtleToken.PrefixedTerm && prefix.value.isEmpty())
+                check(prefix is TriGToken.PrefixedTerm && prefix.value.isEmpty())
                 prefixes[prefix.prefix] = when (val uri = source.consume()) {
-                    is TurtleToken.Term -> uri.value
+                    is TriGToken.Term -> uri.value
 
-                    is TurtleToken.RelativeTerm -> base.resolve(uri).value
+                    is TriGToken.RelativeTerm -> base.resolve(uri).value
 
                     else -> unexpectedToken(uri)
                 }
-                if (source.peek() == TurtleToken.Structural.StatementTermination) {
+                if (source.peek() == TriGToken.Structural.StatementTermination) {
                     source.consume()
                 }
             }
@@ -515,19 +561,19 @@ internal class Deserializer(
         }
     }
 
-    private fun resolve(term: TurtleToken.TermToken): Quad.Element {
+    private fun resolve(term: TriGToken.TermToken): Quad.Element {
         return when (term) {
-            is TurtleToken.LiteralTerm -> {
+            is TriGToken.LiteralTerm -> {
                 val type = resolve(term.type) as? Quad.NamedTerm
                     ?: throw IllegalStateException("Invalid literal type `${term.type}` in token $term")
                 Quad.Literal(value = term.value, type = type)
             }
 
-            is TurtleToken.LocalizedLiteralTerm -> {
+            is TriGToken.LocalizedLiteralTerm -> {
                 Quad.LangString(value = term.value, language = term.language)
             }
 
-            is TurtleToken.PrefixedTerm -> {
+            is TriGToken.PrefixedTerm -> {
                 if (term.prefix == "_") {
                     namedBlankNodes.getOrPut(term.value) { Quad.BlankTerm(id = blankTermCount++) }
                 } else {
@@ -537,14 +583,14 @@ internal class Deserializer(
                 }
             }
 
-            is TurtleToken.RelativeTerm -> base.resolve(term)
-            is TurtleToken.Term -> Quad.NamedTerm(value = term.value)
+            is TriGToken.RelativeTerm -> base.resolve(term)
+            is TriGToken.Term -> Quad.NamedTerm(value = term.value)
         }
     }
 
     internal companion object {
 
-        fun unexpectedToken(token: TurtleToken?): Nothing {
+        fun unexpectedToken(token: TriGToken?): Nothing {
             if (token == null) {
                 throw IllegalStateException("Unexpected end of input")
             }

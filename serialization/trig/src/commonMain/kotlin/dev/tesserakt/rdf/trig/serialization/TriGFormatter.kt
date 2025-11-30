@@ -8,13 +8,13 @@ import dev.tesserakt.util.removeFirstElement
 import kotlin.jvm.JvmInline
 
 
-sealed class Formatter {
+sealed class TriGFormatter {
 
     internal abstract fun format(tokens: Iterator<TriGToken>): Iterator<String>
 
 }
 
-data object SimpleFormatter: Formatter() {
+data object SimpleTriGFormatter: TriGFormatter() {
     override fun format(tokens: Iterator<TriGToken>) = iterator {
         if (!tokens.hasNext()) {
             return@iterator
@@ -27,7 +27,7 @@ data object SimpleFormatter: Formatter() {
     }
 }
 
-data class PrettyFormatter(
+data class PrettyTriGFormatter(
     val prefixes: Prefixes,
     /**
      * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
@@ -40,7 +40,7 @@ data class PrettyFormatter(
      * The strategy used to flatten block structures
      */
     val flattenStrategy: FlattenStrategy = LengthBasedFlattening(64),
-): Formatter() {
+): TriGFormatter() {
 
     /**
      * A small token buffer, buffering two values of the underlying token iterator source

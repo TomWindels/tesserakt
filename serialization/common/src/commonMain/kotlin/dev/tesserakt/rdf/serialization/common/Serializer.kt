@@ -36,7 +36,7 @@ abstract class Serializer {
         private val inner: Iterator<Quad>
     ): Iterator<Quad>, AutoCloseable {
 
-        private var curr = getNext()
+        private var curr: Quad? = null
 
         override fun hasNext(): Boolean {
             if (curr != null) {

@@ -7,12 +7,9 @@ import dev.tesserakt.util.isNullOr
 import kotlin.jvm.JvmInline
 import kotlin.text.isWhitespace
 
-// TODO: `source.report()` use
-// TODO: improved exception uses
-
 @InternalSerializationApi
 @JvmInline
-internal value class TokenDecoder(private val source: BufferedString) : Iterator<TriGToken> {
+internal value class TriGTokenDecoder(private val source: BufferedString) : Iterator<TriGToken> {
 
     override fun hasNext(): Boolean {
         consumeWhitespace()
@@ -60,9 +57,9 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
     }
 
     private fun consumeTerm(): TriGToken.TermToken {
-        check(source.peek() == '<')
+        source.expect('<')
         source.consume() // '<'
-        val content = consumeWhile { check(!it.isWhitespace()); it != '>' }
+        val content = source.consumeWhile(invalid = Char::isWhitespace) { it != '>' }
             .let { EscapeSequenceHelper.decodeNumericEscapes(it) }
         source.consume() // '>'
         // valid non-relative terms start with `mailto:`, `http(s)://`, etc.
@@ -74,10 +71,10 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
     }
 
     private fun consumeLiteralTerm(terminator: Char): TriGToken.TermToken {
-        check(source.peek() == terminator)
+        source.expect(terminator)
         source.consume() // terminator
         var escaped = false
-        val value = consumeWhile { c -> (escaped || c != terminator).also { escaped = !escaped && c == '\\' } }
+        val value = source.consumeWhile { c -> (escaped || c != terminator).also { escaped = !escaped && c == '\\' } }
             .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
         source.consume() // terminator
         if (source.peek() == '@') {
@@ -87,10 +84,10 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
             return TriGToken.LocalizedLiteralTerm(value, language)
         } else if (terminator == '"' && source.peek() == '^') {
             source.consume() // '^'
-            check(source.peek() == '^')
+            source.expect('^')
             source.consume() // '^'
             val type = next()
-            check(type is TriGToken.NonLiteralTerm) { "Invalid literal type: $type" }
+            source.expect(type is TriGToken.NonLiteralTerm) { "Invalid literal type: $type" }
             return TriGToken.LiteralTerm(value, type)
         } else {
             return TriGToken.LiteralTerm(value, TriGToken.Term(XSD.string.value))
@@ -98,10 +95,10 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
     }
 
     private fun consumeLongLiteralTerm(terminator: String): TriGToken.TermToken {
-        check(matches(terminator))
+        source.expect(matches(terminator)) { "`$terminator` sequence expected" }
         source.consume(terminator.length)
         var escaped = false
-        val value = consumeWhile { c -> (escaped || !matches(terminator)).also { escaped = !escaped && c == '\\' } }
+        val value = source.consumeWhile { c -> (escaped || !matches(terminator)).also { escaped = !escaped && c == '\\' } }
             .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
         source.consume(terminator.length)
         return if (source.peek() == '@') {
@@ -143,7 +140,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
 
     private fun consumePrefixedTermOrBail(): TriGToken.PrefixedTerm {
         // bailing if we find a whitespace first: invalid term!
-        val prefix = consumeWhile { it.isWhitespace() || it != ':' }
+        val prefix = source.consumeWhile { it.isWhitespace() || it != ':' }
         if (source.peek().isNullOr { it.isWhitespace() }) {
             throw IllegalStateException("Invalid term: $prefix")
         }
@@ -156,10 +153,10 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
         // structure: '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
         // keeping track of whether a `-` has been discovered, and we're in the second half
         var secondHalf = false
-        return consumeWhile { current ->
+        return source.consumeWhile { current ->
             if (current == '-' && !secondHalf) {
                 // at least one character has to be available after this one
-                check(source.peek(1).let { it != null && it.isLetterOrDigit() })
+                source.expect(source.peek(1).let { it != null && it.isLetterOrDigit() }) { "Letter or digit expected, got `${source.peek(1)}`" }
                 secondHalf = true
                 true
             } else {
@@ -210,15 +207,6 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
         return source.peek(i).isNullOr { it.isWhitespace() || it == '<' || it == ':' }
     }
 
-    private inline fun consumeWhile(predicate: (Char) -> Boolean): String {
-        val result = StringBuilder()
-        while (predicate(source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached! Last received data: `$result`"))) {
-            result.append(source.peek(0))
-            source.consume()
-        }
-        return result.toString()
-    }
-
     /**
      * Consumes, and returns, the prefix local name value, respecting escaping rules.
      * Examples:
@@ -242,7 +230,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
         while (escaped || !c.isTerminatingCharacter()) {
             val isReserved = c in ReservedCharacters
             if (escaped) {
-                check(isReserved) { "Invalid character `$c` encountered - unexpected escape!" }
+                source.expect(isReserved) { "Invalid character `$c` encountered - unexpected escape!" }
                 result.append(c)
                 escaped = false
                 source.consume()
@@ -301,7 +289,7 @@ internal value class TokenDecoder(private val source: BufferedString) : Iterator
         while (escaped || !c.isTerminatingCharacter()) {
             val isReserved = c in ReservedCharacters
             if (escaped) {
-                check(isReserved) { "Invalid character `$c` encountered - unexpected escape!" }
+                source.expect(isReserved) { "Invalid character `$c` encountered - unexpected escape!" }
                 result.append(c)
                 escaped = false
                 source.consume()

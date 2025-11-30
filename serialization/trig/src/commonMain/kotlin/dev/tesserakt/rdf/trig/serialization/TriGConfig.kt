@@ -1,12 +1,12 @@
 package dev.tesserakt.rdf.trig.serialization
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
-import dev.tesserakt.rdf.trig.serialization.PrettyFormatter.*
+import dev.tesserakt.rdf.trig.serialization.PrettyTriGFormatter.*
 
 
 class TriGConfig(
     var base: String = DEFAULT_BASE,
-    var formatter: Formatter = DEFAULT_FORMATTER
+    var formatter: TriGFormatter = DEFAULT_TRIG_FORMATTER
 ) {
 
     data class PrettyFormatterConf(
@@ -21,7 +21,7 @@ class TriGConfig(
          */
         internal var flattenStrategy: FlattenStrategy = LengthBasedFlattening(64),
     ) {
-        fun build() = PrettyFormatter(
+        fun build() = PrettyTriGFormatter(
             prefixes = prefixes,
             indent = indent,
             flattenStrategy = flattenStrategy

@@ -1,15 +1,11 @@
 package dev.tesserakt.rdf.turtle.serialization
 
-internal class TokenBuffer(private val source: Iterator<TurtleToken>) {
+internal class TurtleTokenBuffer(private val source: Iterator<TurtleToken>) {
 
     private var current: TurtleToken = if (source.hasNext()) source.next() else TurtleToken.EOF
 
     fun peek(): TurtleToken {
         return current
-    }
-
-    fun peekOrNull(): TurtleToken? {
-        return current.takeIf { it != TurtleToken.EOF }
     }
 
     /**
@@ -29,5 +25,7 @@ internal class TokenBuffer(private val source: Iterator<TurtleToken>) {
     fun hasNext(): Boolean {
         return current != TurtleToken.EOF
     }
+
+    override fun toString(): String = "TokenBuffer { current = $current, source = $source }"
 
 }

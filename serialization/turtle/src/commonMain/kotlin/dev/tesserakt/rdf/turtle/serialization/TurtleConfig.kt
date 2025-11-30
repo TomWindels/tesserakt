@@ -1,13 +1,13 @@
 package dev.tesserakt.rdf.turtle.serialization
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
-import dev.tesserakt.rdf.turtle.serialization.PrettyFormatter.FixedStepIndent
-import dev.tesserakt.rdf.turtle.serialization.PrettyFormatter.Indent
+import dev.tesserakt.rdf.turtle.serialization.PrettyTurtleFormatter.FixedStepIndent
+import dev.tesserakt.rdf.turtle.serialization.PrettyTurtleFormatter.Indent
 
 
 class TurtleConfig(
     var base: String = DEFAULT_BASE,
-    var formatter: Formatter = DEFAULT_FORMATTER
+    var formatter: TurtleFormatter = DEFAULT_TURTLE_FORMATTER
 ) {
 
     data class PrettyFormatterConf(
@@ -18,7 +18,7 @@ class TurtleConfig(
          */
         internal var indent: Indent = FixedStepIndent(INDENT_PATTERN),
     ) {
-        fun build() = PrettyFormatter(
+        fun build() = PrettyTurtleFormatter(
             prefixes = prefixes,
             indent = indent,
         )

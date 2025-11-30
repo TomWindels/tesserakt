@@ -88,14 +88,14 @@ class TurtleSerialization {
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
         assertContentEquals(
-            expected = TokenEncoder(reference.iterator()).asIterable(),
-            actual = TokenDecoder(
+            expected = TurtleTokenEncoder(reference.iterator()).asIterable(),
+            actual = TurtleTokenDecoder(
                 BufferedString(
                     TextDataSource(TurtleSerializer.serialize(reference.iterator()).collect()).open()
                 )
             ).asIterable()
         )
-        val complete = Deserializer(TokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
+        val complete = TurtleDeserializer(TurtleTokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
             .asIterable().toStore()
         // as turtle doesn't contain graphs, every read-in quad should have the default graph
         val r = reference.map { it.copy(g = Quad.DefaultGraph) }.toStore()
@@ -112,7 +112,7 @@ class TurtleSerialization {
             // making sure we're not cutting in the middle of a statement
             .dropLastWhile { it.isNotBlank() }
             .joinToString("\n")
-        val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
+        val incomplete = TurtleDeserializer(TurtleTokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
         comparison = unorderedComparisonOf(
             a = r,

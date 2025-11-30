@@ -1,6 +1,6 @@
 package dev.tesserakt.rdf.trig.serialization
 
-internal class TokenBuffer(private val source: Iterator<TriGToken>) {
+internal class TriGTokenBuffer(private val source: Iterator<TriGToken>) {
 
     private var current: TriGToken = if (source.hasNext()) source.next() else TriGToken.EOF
 

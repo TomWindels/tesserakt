@@ -8,13 +8,13 @@ import dev.tesserakt.util.removeFirstElement
 import kotlin.jvm.JvmInline
 
 
-sealed class Formatter {
+sealed class TurtleFormatter {
 
     internal abstract fun format(tokens: Iterator<TurtleToken>): Iterator<String>
 
 }
 
-data object SimpleFormatter: Formatter() {
+data object SimpleTurtleFormatter: TurtleFormatter() {
     override fun format(tokens: Iterator<TurtleToken>) = iterator {
         if (!tokens.hasNext()) {
             return@iterator
@@ -27,7 +27,7 @@ data object SimpleFormatter: Formatter() {
     }
 }
 
-data class PrettyFormatter(
+data class PrettyTurtleFormatter(
     val prefixes: Prefixes,
     /**
      * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
@@ -36,7 +36,7 @@ data class PrettyFormatter(
     // if we have no prefixes configured, the individual text elements are likely to be lengthy, causing a dynamic
     //  indent to be too long
     val indent: Indent = if (prefixes.isEmpty()) FixedStepIndent(INDENT_PATTERN) else DynamicIndent(INDENT_PATTERN),
-): Formatter() {
+): TurtleFormatter() {
 
     /**
      * A small token buffer, buffering two values of the underlying token iterator source

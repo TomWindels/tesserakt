@@ -56,6 +56,7 @@ class TurtleDeserialization {
         val serializer = serializer(Turtle)
         val source = TestSource(input)
         assertFailsWith<DeserializationException> { serializer.deserialize(source).toStore() }
+            .also { it.printStackTrace() }
         source.assertClosed()
     }
 

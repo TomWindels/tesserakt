@@ -86,14 +86,14 @@ class TriGSerialization {
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
         assertContentEquals(
-            expected = TokenEncoder(reference.iterator()).asIterable(),
-            actual = TokenDecoder(
+            expected = TriGTokenEncoder(reference.iterator()).asIterable(),
+            actual = TriGTokenDecoder(
                 BufferedString(
                     TextDataSource(TriGSerializer.serialize(reference.iterator()).collect()).open()
                 )
             ).asIterable()
         )
-        val complete = Deserializer(TokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
+        val complete = TriGDeserializer(TriGTokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
             .asIterable().toStore()
         val diffA1 = reference - complete
         val diffB1 = complete - reference
@@ -107,7 +107,7 @@ class TriGSerialization {
             // making sure we're not cutting in the middle of a statement
             .dropLastWhile { it.isNotBlank() }
             .joinToString("\n")
-        val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
+        val incomplete = TriGDeserializer(TriGTokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
         val diffA2 = reference - incomplete
         val diffB2 = incomplete - reference

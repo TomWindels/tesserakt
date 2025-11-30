@@ -10,35 +10,35 @@ import dev.tesserakt.rdf.types.Store
 internal class TurtleSerializer(private val config: TurtleConfig): Serializer() {
 
     override fun serialize(store: Store): Iterator<String> {
-        return config.formatter.format(TokenEncoder(store.iterator()))
+        return config.formatter.format(TurtleTokenEncoder(store.iterator()))
     }
 
     override fun serialize(data: Iterator<Quad>): Iterator<String> {
-        return config.formatter.format(TokenEncoder(data))
+        return config.formatter.format(TurtleTokenEncoder(data))
     }
 
     @OptIn(InternalSerializationApi::class)
     override fun deserialize(input: DataStream): Iterator<Quad> {
-        return Deserializer(
+        return TurtleDeserializer(
             base = config.base,
-            source = TokenDecoder(BufferedString(input)),
+            source = TurtleTokenDecoder(BufferedString(input)),
         )
     }
 
     companion object: Serializer() {
         override fun serialize(store: Store): Iterator<String> {
-            return SimpleFormatter.format(TokenEncoder(store.iterator()))
+            return SimpleTurtleFormatter.format(TurtleTokenEncoder(store.iterator()))
         }
 
         override fun serialize(data: Iterator<Quad>): Iterator<String> {
-            return SimpleFormatter.format(TokenEncoder(data))
+            return SimpleTurtleFormatter.format(TurtleTokenEncoder(data))
         }
 
         @OptIn(InternalSerializationApi::class)
         override fun deserialize(input: DataStream): Iterator<Quad> {
-            return Deserializer(
+            return TurtleDeserializer(
                 base = "",
-                source = TokenDecoder(BufferedString(input)),
+                source = TurtleTokenDecoder(BufferedString(input)),
             )
         }
     }

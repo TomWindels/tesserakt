@@ -19,7 +19,7 @@ inline fun TurtleConfig.usePrettyFormatting(block: PrettyFormatterConf.() -> Uni
 }
 
 inline fun TurtleConfig.useSimpleFormatting() {
-    formatter = SimpleFormatter
+    formatter = SimpleTurtleFormatter
 }
 
 /**
@@ -65,12 +65,12 @@ inline fun PrettyFormatterConf.withPrefixes(block: MutableMap<String, String>.()
  * This is the default indent type.
  */
 fun PrettyFormatterConf.withFixedIndent(pattern: String = INDENT_PATTERN) {
-    this.indent = PrettyFormatter.FixedStepIndent(pattern = pattern)
+    this.indent = PrettyTurtleFormatter.FixedStepIndent(pattern = pattern)
 }
 
 /**
  * Apply a dynamic indent: the indent for new lines is depending on the length of the preceding content
  */
 fun PrettyFormatterConf.withDynamicIndent(pattern: String = INDENT_PATTERN) {
-    this.indent = PrettyFormatter.DynamicIndent(pattern = pattern)
+    this.indent = PrettyTurtleFormatter.DynamicIndent(pattern = pattern)
 }
