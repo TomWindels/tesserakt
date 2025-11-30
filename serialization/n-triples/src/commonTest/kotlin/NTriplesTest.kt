@@ -1,4 +1,4 @@
-import dev.tesserakt.rdf.ontology.RDF
+
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
@@ -33,8 +33,9 @@ class NTriplesTest {
     """) { store ->
         // one duplicate entry, so 6 distinct items expected
         store.size == 6 &&
-        store.all { it.o is Quad.Literal } &&
-        store.count { it.o.let { it is Quad.Literal && it.type == RDF.langString } } == 2
+        store.count { it.o.let { it is Quad.LangString } } == 2 &&
+        store.singleOrNull { it.o.let { it is Quad.LangString && it.language == "en" } } != null &&
+        store.singleOrNull { it.o.let { it is Quad.LangString && it.language == "fr-be" } } != null
     }
 
     @Test

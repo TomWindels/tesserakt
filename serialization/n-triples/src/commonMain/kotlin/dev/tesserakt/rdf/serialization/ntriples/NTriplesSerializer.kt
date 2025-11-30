@@ -10,7 +10,7 @@ internal object NTriplesSerializer: Serializer() {
 
     @OptIn(InternalSerializationApi::class)
     override fun deserialize(input: DataStream): Iterator<Quad> {
-        return Deserializer(BufferedString(input))
+        return NTriplesDeserializer(BufferedString(input))
     }
 
     override fun serialize(data: Iterator<Quad>): Iterator<String> = iterator {

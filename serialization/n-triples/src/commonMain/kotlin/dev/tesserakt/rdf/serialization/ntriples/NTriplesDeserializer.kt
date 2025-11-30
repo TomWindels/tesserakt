@@ -3,11 +3,13 @@ package dev.tesserakt.rdf.serialization.ntriples
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedString
+import dev.tesserakt.rdf.serialization.util.bail
+import dev.tesserakt.rdf.serialization.util.consumeWhile
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.util.isNullOr
 
 @InternalSerializationApi
-internal class Deserializer(private val source: BufferedString) : Iterator<Quad> {
+internal class NTriplesDeserializer(private val source: BufferedString) : Iterator<Quad> {
 
     private val lut = mutableMapOf<String, Int>()
     private var next: Quad? = null
@@ -47,7 +49,7 @@ internal class Deserializer(private val source: BufferedString) : Iterator<Quad>
         return when (val c = source.pop()) {
             null -> return null
             '<' -> {
-                val inner = consumeWhile { it != '>' }
+                val inner = source.consumeWhile(Char::isWhitespace) { it != '>' }
                 source.consume() // '>'
                 Quad.NamedTerm(inner)
             }
@@ -55,7 +57,7 @@ internal class Deserializer(private val source: BufferedString) : Iterator<Quad>
             '_' -> {
                 check(source.peek() == ':')
                 source.consume()
-                val label = consumeWhile { !it.isWhitespace() }
+                val label = source.consumeWhile { !it.isWhitespace() }
                 Quad.BlankTerm(id = label.asBlankNodeId())
             }
 
@@ -70,7 +72,9 @@ internal class Deserializer(private val source: BufferedString) : Iterator<Quad>
                     check(dt is Quad.NamedTerm) { "$dt is not a valid data type for a literal!" }
                     Quad.Literal(value = value, type = dt)
                 } else if (source.peek() == '@') {
-                    val lang = consumeWhile { !it.isWhitespace() }
+                    // getting rid of the '@'
+                    source.consume()
+                    val lang = source.consumeWhile { !it.isWhitespace() }
                     Quad.LangString(value = value, language = lang)
                 } else {
                     Quad.Literal(value = value, type = XSD.string)
@@ -98,24 +102,15 @@ internal class Deserializer(private val source: BufferedString) : Iterator<Quad>
         }
     }
 
-    private inline fun consumeWhile(predicate: (Char) -> Boolean): String {
-        val result = StringBuilder()
-        while (predicate(source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!"))) {
-            result.append(source.peek(0))
-            source.consume()
-        }
-        return result.toString()
-    }
-
     private inline fun consumeUntilUnescaped(char: Char): String {
         val result = StringBuilder()
-        var c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
+        var c = source.peek(0) ?: source.bail("Unexpected EOF reached!")
         var escaped = false
         while (escaped || c != char) {
             result.append(source.peek(0))
             source.consume()
             escaped = !escaped && c == '\\'
-            c = source.peek(0) ?: throw NoSuchElementException("Unexpected EOF reached!")
+            c = source.peek(0) ?: source.bail("Unexpected EOF reached!", -result.length .. 0)
         }
         return result.toString()
     }
