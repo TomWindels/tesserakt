@@ -6,7 +6,7 @@ import dev.tesserakt.rdf.serialization.common.DeserializationException
 import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.core.DataStream
 import dev.tesserakt.rdf.serialization.core.TextDataStream
-import dev.tesserakt.rdf.turtle.serialization.Turtle
+import dev.tesserakt.rdf.serialization.turtle.Turtle
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.toStore
 import kotlin.test.*

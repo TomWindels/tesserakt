@@ -2,7 +2,7 @@ package dev.tesserakt.sparql.endpoint.server
 
 import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.serialization.common.serializer
-import dev.tesserakt.rdf.trig.serialization.TriG
+import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store

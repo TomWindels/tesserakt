@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.trig.serialization
+package dev.tesserakt.rdf.serialization.trig
 
 internal const val DEFAULT_BASE = ""
 

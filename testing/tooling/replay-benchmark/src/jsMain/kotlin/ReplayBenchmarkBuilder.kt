@@ -6,9 +6,9 @@ import dev.tesserakt.interop.rdfjs.toStore
 import dev.tesserakt.interop.rdfjs.toTerm
 import dev.tesserakt.rdf.serialization.common.Prefixes.Companion.plus
 import dev.tesserakt.rdf.serialization.common.serializer
-import dev.tesserakt.rdf.trig.serialization.TriG
-import dev.tesserakt.rdf.trig.serialization.withPrefixes
-import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
+import dev.tesserakt.rdf.serialization.trig.TriG
+import dev.tesserakt.rdf.serialization.trig.withPrefixes
+import dev.tesserakt.rdf.serialization.trig.usePrettyFormatting
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store

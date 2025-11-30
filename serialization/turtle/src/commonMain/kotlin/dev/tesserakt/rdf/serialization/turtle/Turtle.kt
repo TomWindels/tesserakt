@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.turtle.serialization
+package dev.tesserakt.rdf.serialization.turtle
 
 import dev.tesserakt.rdf.serialization.common.Format
 import dev.tesserakt.rdf.serialization.common.Serializer

@@ -4,7 +4,7 @@ import dev.tesserakt.benchmarking.*
 import dev.tesserakt.benchmarking.execution.BenchmarkRunnerHost
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.serialization.common.serializer
-import dev.tesserakt.rdf.trig.serialization.TriG
+import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import kotlinx.coroutines.ensureActive

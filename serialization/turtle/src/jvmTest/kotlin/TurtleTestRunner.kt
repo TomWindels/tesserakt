@@ -2,7 +2,7 @@
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.serialization.common.deserialize
-import dev.tesserakt.rdf.turtle.serialization.TurtleSerializer
+import dev.tesserakt.rdf.serialization.turtle.TurtleSerializer
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.testing.testEnv
 import dev.tesserakt.util.toTruncatedString

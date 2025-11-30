@@ -5,10 +5,10 @@ import dev.tesserakt.interop.rdfjs.toQuad
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.serialization.common.serializer
-import dev.tesserakt.rdf.trig.serialization.TriG
-import dev.tesserakt.rdf.trig.serialization.setBase
-import dev.tesserakt.rdf.turtle.serialization.Turtle
-import dev.tesserakt.rdf.turtle.serialization.setBase
+import dev.tesserakt.rdf.serialization.trig.TriG
+import dev.tesserakt.rdf.serialization.trig.setBase
+import dev.tesserakt.rdf.serialization.turtle.Turtle
+import dev.tesserakt.rdf.serialization.turtle.setBase
 import dev.tesserakt.rdf.types.factory.Store
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Compiler

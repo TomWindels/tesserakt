@@ -1,8 +1,6 @@
-package dev.tesserakt.rdf.turtle.serialization
+package dev.tesserakt.rdf.serialization.turtle
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
-import dev.tesserakt.rdf.turtle.serialization.PrettyTurtleFormatter.FixedStepIndent
-import dev.tesserakt.rdf.turtle.serialization.PrettyTurtleFormatter.Indent
 
 
 class TurtleConfig(
@@ -16,7 +14,7 @@ class TurtleConfig(
          * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
          *  a set of spaces or tabs
          */
-        internal var indent: Indent = FixedStepIndent(INDENT_PATTERN),
+        internal var indent: PrettyTurtleFormatter.Indent = PrettyTurtleFormatter.FixedStepIndent(INDENT_PATTERN),
     ) {
         fun build() = PrettyTurtleFormatter(
             prefixes = prefixes,

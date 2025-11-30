@@ -1,7 +1,6 @@
-package dev.tesserakt.rdf.trig.serialization
+package dev.tesserakt.rdf.serialization.trig
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
-import dev.tesserakt.rdf.trig.serialization.PrettyTriGFormatter.*
 
 
 class TriGConfig(
@@ -15,11 +14,11 @@ class TriGConfig(
          * The (group of) character(s) to repeat for every depth in the resulting structure, typically either
          *  a set of spaces or tabs
          */
-        internal var indent: Indent = FixedStepIndent(INDENT_PATTERN),
+        internal var indent: PrettyTriGFormatter.Indent = PrettyTriGFormatter.FixedStepIndent(INDENT_PATTERN),
         /**
          * The strategy used to flatten block structures
          */
-        internal var flattenStrategy: FlattenStrategy = LengthBasedFlattening(64),
+        internal var flattenStrategy: PrettyTriGFormatter.FlattenStrategy = PrettyTriGFormatter.LengthBasedFlattening(64),
     ) {
         fun build() = PrettyTriGFormatter(
             prefixes = prefixes,

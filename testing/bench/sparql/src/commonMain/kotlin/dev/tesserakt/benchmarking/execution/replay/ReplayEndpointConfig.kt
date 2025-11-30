@@ -5,7 +5,7 @@ import dev.tesserakt.benchmarking.isFolder
 import dev.tesserakt.benchmarking.listFiles
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.serialization.common.serializer
-import dev.tesserakt.rdf.trig.serialization.TriG
+import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 

@@ -5,8 +5,15 @@ import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
 import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.turtle.Turtle
+import dev.tesserakt.rdf.serialization.turtle.TurtleDeserializer
+import dev.tesserakt.rdf.serialization.turtle.TurtleSerializer
+import dev.tesserakt.rdf.serialization.turtle.TurtleTokenDecoder
+import dev.tesserakt.rdf.serialization.turtle.TurtleTokenEncoder
+import dev.tesserakt.rdf.serialization.turtle.usePrettyFormatting
+import dev.tesserakt.rdf.serialization.turtle.withDynamicIndent
+import dev.tesserakt.rdf.serialization.turtle.withPrefixes
 import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.turtle.serialization.*
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm

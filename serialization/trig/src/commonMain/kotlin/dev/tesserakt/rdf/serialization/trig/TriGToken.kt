@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.trig.serialization
+package dev.tesserakt.rdf.serialization.trig
 
 import dev.tesserakt.rdf.serialization.util.EscapeSequenceHelper
 import kotlin.jvm.JvmInline

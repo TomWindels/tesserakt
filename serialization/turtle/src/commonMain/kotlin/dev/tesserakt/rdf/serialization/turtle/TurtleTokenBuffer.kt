@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.turtle.serialization
+package dev.tesserakt.rdf.serialization.turtle
 
 internal class TurtleTokenBuffer(private val source: Iterator<TurtleToken>) {
 

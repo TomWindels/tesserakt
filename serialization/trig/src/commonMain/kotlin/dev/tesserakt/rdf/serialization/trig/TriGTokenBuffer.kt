@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.trig.serialization
+package dev.tesserakt.rdf.serialization.trig
 
 internal class TriGTokenBuffer(private val source: Iterator<TriGToken>) {
 

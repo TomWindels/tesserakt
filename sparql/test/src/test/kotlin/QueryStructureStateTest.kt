@@ -4,7 +4,7 @@ import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.serialization.common.serializer
-import dev.tesserakt.rdf.turtle.serialization.Turtle
+import dev.tesserakt.rdf.serialization.turtle.Turtle
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.toStore

@@ -1,3 +1,4 @@
+
 import dev.tesserakt.rdf.dsl.RDF
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.dsl.extractPrefixes
@@ -5,8 +6,8 @@ import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
 import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.trig.*
 import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.trig.serialization.*
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.toStore

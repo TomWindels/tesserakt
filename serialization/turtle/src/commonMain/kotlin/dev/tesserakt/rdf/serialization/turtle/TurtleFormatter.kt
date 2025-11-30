@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.turtle.serialization
+package dev.tesserakt.rdf.serialization.turtle
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm

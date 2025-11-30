@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.turtle.serialization
+package dev.tesserakt.rdf.serialization.turtle
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad

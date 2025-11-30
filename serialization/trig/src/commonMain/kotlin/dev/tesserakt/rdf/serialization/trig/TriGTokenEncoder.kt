@@ -1,4 +1,4 @@
-package dev.tesserakt.rdf.trig.serialization
+package dev.tesserakt.rdf.serialization.trig
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad

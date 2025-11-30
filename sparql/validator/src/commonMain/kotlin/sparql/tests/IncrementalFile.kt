@@ -3,7 +3,7 @@ package sparql.tests
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.serialization.common.serializer
-import dev.tesserakt.rdf.turtle.serialization.Turtle
+import dev.tesserakt.rdf.serialization.turtle.Turtle
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.util.printerrln
 import sparql.readFile
