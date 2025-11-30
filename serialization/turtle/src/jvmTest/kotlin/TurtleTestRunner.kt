@@ -2,11 +2,14 @@
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.serialization.turtle.Turtle
 import dev.tesserakt.rdf.serialization.turtle.TurtleSerializer
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.testing.testEnv
 import dev.tesserakt.util.toTruncatedString
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import kotlin.test.Test
 
 class TurtleTestRunner {
@@ -113,6 +116,16 @@ class TurtleTestRunner {
             val results = env.run()
             results.report()
             require(results.isSuccess())
+        }
+    }
+
+    @Test
+    fun factory() {
+        listFiles("src/jvmTest/resources/turtle").forEach { file ->
+            val file = File(file)
+            val store = Store(file, Turtle)
+            println("Got ${store.size} triple(s) from $file")
+            assert(store.isNotEmpty()) { "Did not get any data from `$file`" }
         }
     }
 
