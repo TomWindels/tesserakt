@@ -2,7 +2,9 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.newAnonymousBinding
-import dev.tesserakt.sparql.runtime.collection.MappingArray
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
+import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
@@ -26,7 +28,7 @@ sealed class RepeatingPathState {
         // all terms that have been discovered (count of "zero-length" segments)
         private val terms = Counter<Quad.Element>()
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, start.name, end.name)
+        private val arr = ReindexableMappingArray(context, start.name, end.name)
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -103,6 +105,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -117,7 +123,7 @@ sealed class RepeatingPathState {
         private val segments = SegmentsList()
         // all terms that have been discovered (count of "zero-length" segments)
         private val terms = Counter<Quad.Element>()
-        private val arr = MappingArray(context, start.name, end.name)
+        private val arr = ReindexableMappingArray(context, start.name, end.name)
         private val inner = TriplePatternState.from(context, start, inner, end)
 
         override val cardinality: Cardinality
@@ -203,6 +209,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -215,7 +225,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, start.name)
+        private val arr = ReindexableMappingArray(context, start.name)
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -286,6 +296,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -298,7 +312,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, start.name)
+        private val arr = ReindexableMappingArray(context, start.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -378,6 +392,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -390,7 +408,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, end.name)
+        private val arr = ReindexableMappingArray(context, end.name)
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -461,6 +479,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -473,7 +495,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, end.name)
+        private val arr = ReindexableMappingArray(context, end.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -550,6 +572,10 @@ sealed class RepeatingPathState {
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+        }
+
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
         }
 
         override fun toString() = segments.toString()
@@ -649,6 +675,10 @@ sealed class RepeatingPathState {
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
+        }
+
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            // ignored
         }
 
     }
@@ -772,6 +802,10 @@ sealed class RepeatingPathState {
             TODO("Not yet implemented")
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            // ignored
+        }
+
     }
 
     class OneOrMoreStatelessBindings(
@@ -782,7 +816,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, start.name, end.name)
+        private val arr = ReindexableMappingArray(context, start.name, end.name)
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -828,6 +862,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -840,7 +878,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, start.name, end.name)
+        private val arr = ReindexableMappingArray(context, start.name, end.name)
         private val inner = TriplePatternState.from(context, start, inner, end)
 
         override val cardinality: Cardinality
@@ -882,6 +920,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
         private fun getNewSegments(quad: Quad): Set<SegmentsList.Segment> {
@@ -899,7 +941,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, start.name)
+        private val arr = ReindexableMappingArray(context, start.name)
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -945,6 +987,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -957,7 +1003,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, start.name)
+        private val arr = ReindexableMappingArray(context, start.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -1023,6 +1069,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
         private fun getNewSegments(quad: Quad): Set<SegmentsList.Segment> {
@@ -1040,7 +1090,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, end.name)
+        private val arr = ReindexableMappingArray(context, end.name)
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -1086,6 +1136,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
     }
@@ -1098,7 +1152,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = MappingArray(context, end.name)
+        private val arr = ReindexableMappingArray(context, end.name)
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -1164,6 +1218,10 @@ sealed class RepeatingPathState {
             return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            arr.reindex(bindings, hint)
+        }
+
         override fun toString() = segments.toString()
 
         private fun getNewSegments(quad: Quad): Set<SegmentsList.Segment> {
@@ -1218,6 +1276,10 @@ sealed class RepeatingPathState {
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
             TODO("Not yet implemented")
+        }
+
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            // ignored
         }
 
     }
@@ -1298,6 +1360,10 @@ sealed class RepeatingPathState {
             TODO("Not yet implemented")
         }
 
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            // ignored
+        }
+
     }
 
 
@@ -1312,6 +1378,8 @@ sealed class RepeatingPathState {
     abstract fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping>
 
     abstract fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping>
+
+    abstract fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint)
 
     companion object {
 

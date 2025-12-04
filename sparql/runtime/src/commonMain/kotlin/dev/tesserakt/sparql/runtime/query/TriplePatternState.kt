@@ -181,7 +181,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         }
 
         override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
-            // TODO
+            state.reindex(bindings, hint)
         }
 
     }

@@ -5,7 +5,6 @@ import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.collection.MultiHashMappingArray
 import dev.tesserakt.sparql.runtime.collection.SimpleMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
-import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
 import kotlin.random.Random
 import kotlin.test.Test
@@ -14,7 +13,7 @@ import kotlin.test.assertNotNull
 
 class MappingArrayTest {
 
-    val context = GlobalQueryContext
+    val context = TestQueryContext()
     val bindings = run {
         val rng = Random(0)
         buildSet {

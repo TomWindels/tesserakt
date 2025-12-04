@@ -61,6 +61,15 @@ fun MappingArray(
 
 fun ReindexableMappingArray(
     context: QueryContext,
+    vararg bindings: String?,
+    hint: MappingArrayHint = MappingArrayHint.DEFAULT,
+): ReindexableMappingArray {
+    val set = setOfNotNull(*bindings)
+    return ReindexableMappingArray(active = MappingArray(context, set, hint))
+}
+
+fun ReindexableMappingArray(
+    context: QueryContext,
     bindings: Collection<String>,
     hint: MappingArrayHint = MappingArrayHint.DEFAULT,
 ): ReindexableMappingArray {
