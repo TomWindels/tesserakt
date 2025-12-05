@@ -144,7 +144,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                     left is OperationValue.DateValue -> {
                         // assuming `right` produces a literal that can be interpreted as a date time
                         val r = right.getTerm(context) ?: return null
-                        if (r !is Quad.Literal || !r.isDateTimeValue()) {
+                        if (r !is Quad.TypedLiteral || !r.isDateTimeValue()) {
                             return null
                         }
                         // TODO: check why this one doesn't seem to work
@@ -164,10 +164,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                                 return 0
                             }
                             // we can't compare when one of them is not a literal
-                            if (a !is Quad.Literal || b !is Quad.Literal) {
+                            if (a !is Quad.TypedLiteral || b !is Quad.TypedLiteral) {
                                 return 1
                             }
-                            return compare(a.literal, b.literal)
+                            return compare(a.typedLiteral, b.typedLiteral)
                         } catch (_: UnsupportedOperationException) {
                             // incompatible types
                             null
@@ -181,7 +181,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
              *  specified [right] value, a negative number if it's less than [right], or a positive number if it's
              *  greater than [right].
              */
-            private fun compare(left: Quad.Literal, right: Quad.Literal): Int {
+            private fun compare(left: Quad.TypedLiteral, right: Quad.TypedLiteral): Int {
                 return when {
                     left.isNumericalValue() && right.isNumericalValue() ->
                         left.numericalValue.compareTo(right.numericalValue)
@@ -205,8 +205,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     ): Operation {
 
         final override fun eval(input: OperationValue): OperationValue {
-            val left = lhs.eval(input).getTerm(context)?.literal?.numericalValue ?: return OperationValue.Unbound
-            val right = rhs.eval(input).getTerm(context)?.literal?.numericalValue ?: return OperationValue.Unbound
+            val left = lhs.eval(input).getTerm(context)?.typedLiteral?.numericalValue ?: return OperationValue.Unbound
+            val right = rhs.eval(input).getTerm(context)?.typedLiteral?.numericalValue ?: return OperationValue.Unbound
             return eval(left, right).asLiteralTerm().into()
         }
 
@@ -278,7 +278,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         override fun eval(input: OperationValue): OperationValue {
             val result = parent.eval(input).getTerm(context)
             return when {
-                result !is Quad.Literal -> {
+                result !is Quad.TypedLiteral -> {
                     throw IllegalStateException("Unexpected non-literal `$result` received!")
                 }
 
@@ -323,8 +323,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             get() = (this as? OperationValue.SingleMapping)?.mapping
                 ?: throw IllegalStateException("Single mapping value expected, but received a `${this::class.simpleName}` instead!")
 
-        private val Quad.Element.literal
-            get() = (this as? Quad.Literal)
+        private val Quad.Element.typedLiteral
+            get() = (this as? Quad.TypedLiteral)
                 ?: throw IllegalStateException("Literal term value expected, but received $this instead!")
 
     }
@@ -342,14 +342,14 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         fun LANGMATCHES(context: QueryContext, tag: Operation, range: Operation) = Operation {
             val tagValue = tag.evalToSingleQuadElementOrNull(context, it)
             // simple literal expected, as we're doing string matching
-            if (tagValue !is Quad.Literal || tagValue.type != XSD.string) {
+            if (tagValue !is Quad.SimpleLiteral) {
                 return@Operation OperationValue.Unbound
             }
             val tag = tagValue.value
             // same goes for the tag range
             val tagRange = range.evalToSingleQuadElementOrNull(context, it)
             // simple literal expected, as we're doing string matching
-            if (tagRange !is Quad.Literal || tagRange.type != XSD.string) {
+            if (tagRange !is Quad.SimpleLiteral || tagRange.type != XSD.string) {
                 return@Operation OperationValue.Unbound
             }
             val range = tagRange.value
@@ -365,7 +365,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
         fun DATETIME(context: QueryContext, param: Operation) = Operation {
             val termValue = param.evalToSingleQuadElementOrNull(context, it)
-            if (termValue !is Quad.Literal || termValue.type != XSD.dateTime) {
+            if (termValue !is Quad.TypedLiteral || termValue.type != XSD.dateTime) {
                 return@Operation OperationValue.Unbound
             }
             OperationValue.DateValue(DateTime.parse(termValue.value))
@@ -411,15 +411,15 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
 private val numerals = setOf(XSD.long, XSD.int, XSD.double, XSD.float, XSD.integer)
 
-private fun Quad.Literal.isNumericalValue(): Boolean {
+private fun Quad.TypedLiteral.isNumericalValue(): Boolean {
     return type in numerals
 }
 
-private fun Quad.Literal.isDateTimeValue(): Boolean {
+private fun Quad.TypedLiteral.isDateTimeValue(): Boolean {
     return type == XSD.dateTime
 }
 
-private val Quad.Literal.numericalValue: Double
+private val Quad.TypedLiteral.numericalValue: Double
     get() = this.value.toDouble()
 
 private fun FilterExpression.OperationValue.isTrue(): Boolean = when (this) {

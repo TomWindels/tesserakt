@@ -106,16 +106,6 @@ class OrderComparator private constructor(
                         else -> -1
                     }
                 }
-                is Quad.LangString -> {
-                    when (b) {
-                        is Quad.LangString -> a.value.compareTo(b.value)
-
-                        is Quad.Literal -> -1
-                        is Quad.BlankTerm,
-                        is Quad.NamedTerm,
-                        Quad.DefaultGraph -> 1
-                    }
-                }
                 is Quad.Literal -> {
                     when (b) {
                         is Quad.Literal -> compare(a, b)
@@ -126,38 +116,72 @@ class OrderComparator private constructor(
             }
         }
 
-        private fun compare(left: Quad.Literal, right: Quad.Literal): Int {
-            if (left.type == right.type) {
-                val comparator = Comparators[left.type]
-                if (comparator != null) {
-                    return comparator.invoke(left, right)
+        private fun compare(a: Quad.Literal, b: Quad.Literal): Int {
+            return when (a) {
+                is Quad.LangString -> {
+                    when (b) {
+                        is Quad.LangString -> a.value.compareTo(b.value)
+
+                        is Quad.TypedLiteral, is Quad.SimpleLiteral -> -1
+                    }
+                }
+
+                is Quad.TypedLiteral -> {
+                    when (b) {
+                        is Quad.TypedLiteral -> {
+                            if (a.type == b.type) {
+                                val comparator = Comparators[a.type]
+                                if (comparator != null) {
+                                    return comparator.invoke(a, b)
+                                }
+                            }
+                            // even though it's possible for left and right to represent valid numericals w/o checking their data types,
+                            //  it would also allow for non-XSD types to be compared, which is not supposed to happen
+                            if (a.hasNumericalType() && b.hasNumericalType()) {
+                                return NumericalComparison.invoke(a, b)
+                            }
+                            // falling back to lexical comparison
+                            a.value.compareTo(b.value)
+                        }
+
+                        else -> {
+                            // undefined order
+                            1
+                        }
+                    }
+                }
+
+                is Quad.SimpleLiteral -> {
+                    when (b) {
+                        is Quad.SimpleLiteral -> {
+                            a.value.compareTo(b.value)
+                        }
+
+                        else -> {
+                            // undefined order
+                            -1
+                        }
+                    }
                 }
             }
-            // even though it's possible for left and right to represent valid numericals w/o checking their data types,
-            //  it would also allow for non-XSD types to be compared, which is not supposed to happen
-            if (left.hasNumericalType() && right.hasNumericalType()) {
-                return NumericalComparison.invoke(left, right)
-            }
-            // falling back to lexical comparison
-            return left.value.compareTo(right.value)
         }
 
-        private val NumericalComparison = cmp@ { left: Quad.Literal, right: Quad.Literal ->
+        private val NumericalComparison = cmp@ { left: Quad.TypedLiteral, right: Quad.TypedLiteral ->
             val a = left.value.toDoubleOrNull() ?: return@cmp 0
             val b = right.value.toDoubleOrNull() ?: return@cmp 0
             (a - b).sign.toInt()
         }
-        private val DateTimeComparison = cmp@ { left: Quad.Literal, right: Quad.Literal ->
+        private val DateTimeComparison = cmp@ { left: Quad.TypedLiteral, right: Quad.TypedLiteral ->
             val a = left.value.toDateTimeOrNull() ?: return@cmp 0
             val b = right.value.toDateTimeOrNull() ?: return@cmp 0
             a.compareTo(b)
         }
-        private val BooleanComparison = cmp@ { left: Quad.Literal, right: Quad.Literal ->
+        private val BooleanComparison = cmp@ { left: Quad.TypedLiteral, right: Quad.TypedLiteral ->
             val a = left.value.toBooleanStrictOrNull() ?: return@cmp 0
             val b = right.value.toBooleanStrictOrNull() ?: return@cmp 0
             a.compareTo(b)
         }
-        private val StringComparison = cmp@ { left: Quad.Literal, right: Quad.Literal ->
+        private val StringComparison = cmp@ { left: Quad.TypedLiteral, right: Quad.TypedLiteral ->
             left.value.compareTo(right.value)
         }
 
@@ -185,7 +209,7 @@ class OrderComparator private constructor(
             XSD.decimal,
         )
 
-        private fun Quad.Literal.hasNumericalType() = type in NumericalTypes
+        private fun Quad.TypedLiteral.hasNumericalType() = type in NumericalTypes
 
         private fun String.toDateTimeOrNull() = runCatching { DateTime.parse(this) }.getOrNull()
 

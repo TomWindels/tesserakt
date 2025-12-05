@@ -570,7 +570,7 @@ internal class TriGDeserializer(
             }
 
             is TriGToken.LocalizedLiteralTerm -> {
-                Quad.LangString(value = term.value, language = term.language)
+                Quad.Literal(value = term.value, language = term.language)
             }
 
             is TriGToken.PrefixedTerm -> {

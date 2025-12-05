@@ -521,7 +521,7 @@ internal class TurtleDeserializer(
             }
 
             is TurtleToken.LocalizedLiteralTerm -> {
-                Quad.LangString(value = term.value, language = term.language)
+                Quad.Literal(value = term.value, language = term.language)
             }
 
             is TurtleToken.PrefixedTerm -> {

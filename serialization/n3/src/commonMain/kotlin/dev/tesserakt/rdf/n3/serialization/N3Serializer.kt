@@ -58,7 +58,10 @@ object N3Serializer {
             is dev.tesserakt.rdf.types.Quad.BlankTerm ->
                 N3Token.PrefixedTerm(prefix = "_", value = "b$id")
 
-            is dev.tesserakt.rdf.types.Quad.Literal ->
+            is dev.tesserakt.rdf.types.Quad.SimpleLiteral ->
+                N3Token.LiteralTerm(value = value, type = type.tokenized() as N3Token.NonLiteralTerm)
+
+            is dev.tesserakt.rdf.types.Quad.TypedLiteral ->
                 N3Token.LiteralTerm(value = value, type = type.tokenized() as N3Token.NonLiteralTerm)
 
             is dev.tesserakt.rdf.types.Quad.LangString ->

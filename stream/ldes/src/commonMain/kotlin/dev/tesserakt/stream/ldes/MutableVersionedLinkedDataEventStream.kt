@@ -13,7 +13,7 @@ import dev.tesserakt.util.single
 class MutableVersionedLinkedDataEventStream<StreamElement>(
     identifier: Quad.NamedTerm,
     private val store: MutableStore,
-    internal val comparator: Comparator<Quad.Literal> = DateComparator,
+    internal val comparator: Comparator<Quad.TypedLiteral> = DateComparator,
     internal val transform: StreamTransform<StreamElement>,
 ): VersionedLinkedDataEventStream<StreamElement>(identifier, store) {
 
@@ -34,7 +34,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
      * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
      *  implementation.
      */
-    override val timestamps: List<Quad.Literal>
+    override val timestamps: List<Quad.TypedLiteral>
         get() = _members
             .mapTo(mutableSetOf()) { it.timestampValue }
             .sortedWith(comparator)
@@ -53,7 +53,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
 
     override fun iterator(): Iterator<Quad> = store.iterator()
 
-    override fun read(until: Quad.Literal): Store = transform.decode(
+    override fun read(until: Quad.TypedLiteral): Store = transform.decode(
         source = store,
         identifiers = _members
             // only allowing members that have been added before (including) the provided parameter
@@ -69,7 +69,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
      *  to [timestampValue]). The additional [inclusive] flag dictates whether versions with a [timestampValue]
      *  identical to the one provided are allowed.
      */
-    override fun read(base: Quad.NamedTerm, timestampValue: Quad.Literal, inclusive: Boolean): StreamElement? {
+    override fun read(base: Quad.NamedTerm, timestampValue: Quad.TypedLiteral, inclusive: Boolean): StreamElement? {
         val version = _members
             .filter {
                 if (it.base != base)
@@ -83,7 +83,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
 
     fun add(
         baseVersion: Quad.NamedTerm,
-        timestamp: Quad.Literal,
+        timestamp: Quad.TypedLiteral,
         data: StreamElement,
     ) {
         // it's discouraged to use a `#`, as most serialization formats cannot use a prefixed representation of the
@@ -109,7 +109,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
             timestampPath: Quad.NamedTerm = DC.modified,
             versionOfPath: Quad.NamedTerm = DC.isVersionOf,
             transform: StreamTransform<StreamUnit>,
-            comparator: Comparator<Quad.Literal> = DateComparator
+            comparator: Comparator<Quad.TypedLiteral> = DateComparator
         ): MutableVersionedLinkedDataEventStream<StreamUnit> = MutableVersionedLinkedDataEventStream(
             identifier = identifier,
             transform = transform,
@@ -128,7 +128,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
             transform: StreamTransform<StreamUnit>,
             identifier: Quad.NamedTerm =
                 store.iter(p = RDF.type, o = LDES.EventStream).single().s as Quad.NamedTerm,
-            comparator: Comparator<Quad.Literal> = DateComparator
+            comparator: Comparator<Quad.TypedLiteral> = DateComparator
         ): MutableVersionedLinkedDataEventStream<StreamUnit> = MutableVersionedLinkedDataEventStream(
             identifier = identifier,
             store = MutableStore(store),

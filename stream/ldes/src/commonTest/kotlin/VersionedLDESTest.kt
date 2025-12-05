@@ -211,4 +211,4 @@ class VersionedLDESTest {
 
 }
 
-private fun Instant.asLiteral() = Quad.Literal(value = toString(), type = XSD.date)
+private fun Instant.asLiteral() = Quad.Literal(value = toString(), type = XSD.date) as Quad.TypedLiteral

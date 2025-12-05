@@ -84,9 +84,10 @@ abstract class QueryWriter<RT> {
             is TriplePattern.NamedBinding ->
                 add(Token.Binding(element.name))
 
-            is TriplePattern.Exact -> when (element.term) {
-                is Quad.Literal -> add(Token.StringLiteral(element.term.value)) // FIXME - no datatype
+            is TriplePattern.Exact -> when (val term = element.term) {
+                is Quad.TypedLiteral -> add(Token.TypedLiteral(value = term.value, datatype = Token.Uri(term.type.value)))
                 is Quad.LangString -> add(Token.StringLiteral(element.term.value)) // FIXME - no language tag
+                is Quad.SimpleLiteral -> add(Token.StringLiteral(element.term.value))
                 is Quad.NamedTerm -> add(Token.Uri(element.term.value))
                 is Quad.BlankTerm -> throw UnsupportedOperationException()
                 Quad.DefaultGraph -> throw UnsupportedOperationException()
