@@ -4,8 +4,6 @@ import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.core.DataStream
 import dev.tesserakt.rdf.serialization.core.TextDataStream
 
-private val fs = js("require('fs')")
-
 actual class FileDataSource actual constructor(private val filepath: String) : DataSource {
     @OptIn(InternalSerializationApi::class)
     actual override fun open(): DataStream {
