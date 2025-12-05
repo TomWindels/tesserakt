@@ -1,13 +1,12 @@
 
-import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
-import dev.tesserakt.rdf.serialization.NTriples
-import dev.tesserakt.rdf.serialization.common.collect
 import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.ntriples.NTriples
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.types.toStore
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -34,8 +33,9 @@ class NTriplesTest {
     """) { store ->
         // one duplicate entry, so 6 distinct items expected
         store.size == 6 &&
-        store.all { it.o is Quad.Literal } &&
-        store.count { it.o.let { it is Quad.Literal && it.type == RDF.langString } } == 2
+        store.count { it.o.let { it is Quad.LangString } } == 2 &&
+        store.singleOrNull { it.o.let { it is Quad.LangString && it.language == "en" } } != null &&
+        store.singleOrNull { it.o.let { it is Quad.LangString && it.language == "fr-be" } } != null
     }
 
     @Test
@@ -52,11 +52,15 @@ class NTriplesTest {
 
     @OptIn(DelicateSerializationApi::class)
     private inline fun test(nt: String, block: (Store) -> Boolean) {
-        val deserialized = NTriples.deserialize(nt).consume()
+        val deserialized = serializer(NTriples).deserialize(nt).toStore()
         println(deserialized)
-        val serialized = NTriples.serialize(deserialized).collect()
+        val serialized = serializer(NTriples).serialize(deserialized).collect()
         println(serialized)
         assertTrue(block(deserialized))
+    }
+
+    private fun Iterator<String>.collect(): String = buildString {
+        this@collect.forEach { segment -> append(segment) }
     }
 
 }

@@ -1,12 +1,13 @@
+
 import dev.tesserakt.rdf.dsl.RDF
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
-import dev.tesserakt.rdf.serialization.common.collect
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.trig.*
 import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.trig.serialization.*
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.toStore
@@ -75,7 +76,7 @@ class TriGSerialization {
     @OptIn(DelicateSerializationApi::class, InternalSerializationApi::class)
     private fun serialize(block: RDF.() -> Unit) {
         val reference = buildStore(block = block)
-        val serializer = trig {
+        val serializer = serializer(TriG) {
             usePrettyFormatting {
                 withPrefixes(block.extractPrefixes())
                 withDynamicIndent()
@@ -86,14 +87,14 @@ class TriGSerialization {
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
         assertContentEquals(
-            expected = TokenEncoder(reference.iterator()).asIterable(),
-            actual = TokenDecoder(
+            expected = TriGTokenEncoder(reference.iterator()).asIterable(),
+            actual = TriGTokenDecoder(
                 BufferedString(
                     TextDataSource(TriGSerializer.serialize(reference.iterator()).collect()).open()
                 )
             ).asIterable()
         )
-        val complete = Deserializer(TokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
+        val complete = TriGDeserializer(TriGTokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
             .asIterable().toStore()
         val diffA1 = reference - complete
         val diffB1 = complete - reference
@@ -107,7 +108,7 @@ class TriGSerialization {
             // making sure we're not cutting in the middle of a statement
             .dropLastWhile { it.isNotBlank() }
             .joinToString("\n")
-        val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
+        val incomplete = TriGDeserializer(TriGTokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
         val diffA2 = reference - incomplete
         val diffB2 = incomplete - reference
@@ -124,6 +125,10 @@ class TriGSerialization {
                 yield(iter.next().also { if (verbose) println("${this@asIterable::class.simpleName} yields $it") })
             }
         }
+    }
+
+    private fun Iterator<String>.collect(): String = buildString {
+        this@collect.forEach { segment -> append(segment) }
     }
 
 }

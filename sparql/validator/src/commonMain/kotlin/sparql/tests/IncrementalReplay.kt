@@ -1,11 +1,12 @@
 package sparql.tests
 
 import dev.tesserakt.rdf.serialization.common.FileDataSource
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.SnapshotStore
-import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.rdf.types.factory.ObservableStore
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Query
@@ -70,7 +71,7 @@ expect fun awaitBenchmarkStart()
 
 suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
     val benchmark = ReplayBenchmark
-        .from(store = TriGSerializer.deserialize(FileDataSource(benchmarkFilepath)).consume())
+        .from(store = serializer(TriG).deserialize(FileDataSource(benchmarkFilepath)).toStore())
         .single()
     if (benchmark.queries.size == 1) {
         println("Found ${benchmark.queries.size} query that will be used on a store with ${benchmark.store.snapshotCount} snapshot(s)!")

@@ -1,118 +1,99 @@
 package dev.tesserakt.rdf.serialization.util
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
-import dev.tesserakt.rdf.serialization.core.DataSourceStream
-import dev.tesserakt.rdf.serialization.core.read
+import dev.tesserakt.rdf.serialization.core.DataStream
 
 @InternalSerializationApi
 class BufferedString(
-    private val reader: DataSourceStream,
-    private val bufferSize: Int = 4000
-) {
+    private val source: DataStream,
+    /**
+     * The capacity to use in the internal buffer. The largest power of two will be used as the actual buffer size.
+     *  This value affects how far ahead a [peek] can be issued.
+     */
+    capacity: Int = 1024,
+): AutoCloseable {
 
-    private val threshold = bufferSize / 2
-    private var elapsed = 0
-    private var i = 0
-    private var buf: String? = reader.read(bufferSize)
+    private val buffer = CircularCharBuffer(capacity)
+    // immediately populating the buffer for the first time, and storing when we've reached the end of the source
+    private var finished = !buffer.read(source)
 
     /**
-     * Reads the current top + [offset] character (cannot be negative!), returning `null` if EOF has been reached
+     * Reads the current top character, returning `null` if EOF has been reached.
      */
-    fun peek(offset: Int = 0): Char? {
-        return buf?.getOrNull(i + offset)
+    fun peek(): Char? {
+        // we have to make sure there's enough data in the buffer
+        while (!finished && buffer.size == 0) {
+            finished = !buffer.read(source)
+        }
+        // if the buffer is exhausted, and we're looking for a character past it's size, we can conclusively say we've
+        //  reached EOF
+        if (buffer.size == 0) {
+            return null
+        }
+        return buffer.first()
     }
 
+    /**
+     * Reads the current top + [offset] character (cannot be negative!), returning `null` if EOF has been
+     *  reached. Automatically reads as much data in from the [source] depending on the offset.
+     *
+     * Throws an exception if [offset] exceeds the internal [CircularCharBuffer.capacity].
+     */
+    fun peek(offset: Int): Char? {
+        if (offset >= buffer.capacity) {
+            throw IllegalArgumentException("The offset cannot exceed the buffer's capacity (${offset} >= ${buffer.capacity})")
+        }
+        // we have to make sure there's enough data in the buffer
+        while (!finished && offset >= buffer.size) {
+            finished = !buffer.read(source)
+        }
+        // if the buffer is exhausted, and we're looking for a character past it's size, we can conclusively say we've
+        //  reached EOF
+        if (offset >= buffer.size) {
+            return null
+        }
+        return buffer[offset]
+    }
+
+    /**
+     * Consumes [count] characters from the underlying data stream, shifting the data returned by [peek].
+     *
+     * Throws an exception if more characters are being consumed than are remaining in the buffer. For an optional
+     *  consume based on the presence of a next character, see [pop].
+     */
     fun consume(count: Int = 1) {
-        // if it fits in the first half of what has been read in, nothing has to be done
-        if (count + i < threshold) {
-            i += count
-            return
-        }
-        // if it fits in the second half of what has been read in, the buffer gets shifted halfway
-        if (count + i < bufferSize) {
-            // trying to read the rest
-            val next = reader.read(threshold) ?: run {
-                // nothing else to read, so only updating the index
-                i += count
-                return
-            }
-            // dropping half of the old buffer and reading half extra
-            elapsed += threshold
-            i = i - threshold + count
-            buf = buf!!.drop(threshold) + next
-            return
-        }
-        // it doesn't fit in this buffer at all, continuing to rotate until destination reached
-        next()
-        if (buf == null) {
-            return
-        }
-        var remaining = count - bufferSize + i
-        while (remaining >= bufferSize) {
-            next()
-            remaining -= bufferSize
-            if (buf == null) {
-                return
-            }
-        }
-        i = remaining
-        // if we ended halfway the buffer, we can already rotate once more
-        if (i > threshold) {
-            // trying to continue reading, and if successful, advancing the indexing state
-            val next = reader.read(threshold) ?: return
-            // dropping half of the old buffer and reading half extra
-            elapsed += threshold
-            i -= threshold
-            buf = buf!!.drop(threshold) + next
-        }
+        buffer.consume(count)
     }
 
-    private fun next() {
-        elapsed += bufferSize
-        buf = reader.read(bufferSize)
-    }
-
-    fun report(indicator: String, message: String): String {
-        val start = buf!!.lastIndexOf('\n', i)
-        val end = buf!!.indexOf('\n', i)
-        val line1: String
-        val line2: String
-        when {
-            start == -1 && end == -1 -> {
-                line1 = buf!!
-                line2 = indicator
-            }
-            start == -1 -> {
-                line1 = buf!!.take(end)
-                line2 = indicator
-            }
-            end == -1 -> {
-                line1 = buf!!.substring(start + 1)
-                line2 = " ".repeat(i - start - 1) + indicator
-            }
-            else -> {
-                line1 = buf!!.substring(start + 1, end)
-                line2 = " ".repeat(i - start - 1) + indicator
-            }
+    /**
+     * A helper for a common [peek] and [consume] usage pattern:
+     * ```kt
+     * val c = peek(0)
+     * if (c != null) consume(1)
+     * ```
+     */
+    fun pop(): Char? {
+        val c = peek(0)
+        if (c != null) {
+            consume()
         }
-        return "$line1\n$line2 - $message"
+        return c
     }
 
-    fun index(): Int {
-        return elapsed + i
+    override fun toString(): String {
+        return buffer.toString()
     }
 
-    fun substring(start: Int, end: Int): String {
-        return buf!!.substring(i + start, i + end)
+    override fun close() {
+        source.close()
     }
 
-    fun startsWith(other: String, ignoreCase: Boolean = false): Boolean {
-        var i = 0
-        return if (ignoreCase) {
-            other.all { it.equals(peek(i++) ?: return false, ignoreCase = true) }
-        } else {
-            other.all { peek(i++) == it }
-        }
+    fun report(index: Int = 0): String {
+        return buffer.highlight(index)?.prependIndent("| ") ?: "No report available"
+    }
+
+    fun report(start: Int, end: Int): String {
+        return buffer.highlight(start, end)?.prependIndent("| ") ?: "No report available"
     }
 
 }
