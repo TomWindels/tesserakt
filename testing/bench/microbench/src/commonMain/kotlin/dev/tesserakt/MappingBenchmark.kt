@@ -68,19 +68,19 @@ class MappingBenchmark {
         mapping2right = right.map { BitsetMapping(context, it) }
     }
 
-    @Benchmark
+//    @Benchmark
     fun joinRegular(): List<MapMapping> {
         return left.flatMap { l -> right.mapNotNull { r -> join(l, r) } }
             .also { println("Result size regular: ${it.size}") }
     }
 
-    @Benchmark
+//    @Benchmark
     fun joinNew(): List<IntPairMapping> {
         return mapping1left.flatMap { l -> mapping1right.mapNotNull { r -> l.join(r) } }
             .also { println("Result size new 1: ${it.size}") }
     }
 
-    @Benchmark
+//    @Benchmark
     fun joinNew2(): List<BitsetMapping> {
         return mapping2left.flatMap { l -> mapping2right.mapNotNull { r -> l.join(r) } }
             .also { println("Result size new 2: ${it.size}") }

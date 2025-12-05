@@ -6,7 +6,6 @@ import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.*
-import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.Scope
 import kotlinx.benchmark.Setup
 import kotlinx.benchmark.State
@@ -89,7 +88,7 @@ class JoinStreamBenchmark {
         rightStream = right.toBitsetMappingStream()
     }
 
-    @Benchmark
+//    @Benchmark
     fun regularJoinStream(): Stream<Mapping> {
         // cast required for the `join` method
         @Suppress("UNCHECKED_CAST")
@@ -99,7 +98,7 @@ class JoinStreamBenchmark {
         return a.join(b).collect()
     }
 
-    @Benchmark
+//    @Benchmark
     fun arrJoinStream(): Stream<Mapping> {
         return BitsetMappingStream.join(leftStream!!, rightStream!!)
     }
