@@ -13,7 +13,7 @@ import dev.tesserakt.util.single
 class IndexedVersionedLinkedDataEventStream<StreamElement>(
     identifier: Quad.NamedTerm,
     private val store: IndexedStore,
-    private val comparator: Comparator<Quad.Literal> = DateComparator,
+    private val comparator: Comparator<Quad.TypedLiteral> = DateComparator,
     private val transform: StreamTransform<StreamElement>,
 ): VersionedLinkedDataEventStream<StreamElement>(identifier, store) {
 
@@ -35,7 +35,7 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
      * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
      *  implementation.
      */
-    override val timestamps: List<Quad.Literal> by lazy {
+    override val timestamps: List<Quad.TypedLiteral> by lazy {
         _members
             .map { it.timestampValue }
             .distinct()
@@ -55,7 +55,7 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
 
     override fun iterator(): Iterator<Quad> = store.iterator()
 
-    override fun read(until: Quad.Literal): Store = transform.decode(
+    override fun read(until: Quad.TypedLiteral): Store = transform.decode(
         source = store,
         identifiers = _members
             // only allowing members that have been added before (including) the provided parameter;
@@ -73,7 +73,7 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
      *  to [timestampValue]). The additional [inclusive] flag dictates whether versions with a [timestampValue]
      *  identical to the one provided are allowed.
      */
-    override fun read(base: Quad.NamedTerm, timestampValue: Quad.Literal, inclusive: Boolean): StreamElement? {
+    override fun read(base: Quad.NamedTerm, timestampValue: Quad.TypedLiteral, inclusive: Boolean): StreamElement? {
         val version = _members
             .filter {
                 if (it.base != base)
@@ -92,7 +92,7 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
             timestampPath: Quad.NamedTerm = DC.modified,
             versionOfPath: Quad.NamedTerm = DC.isVersionOf,
             transform: StreamTransform<StreamUnit>,
-            comparator: Comparator<Quad.Literal> = DateComparator
+            comparator: Comparator<Quad.TypedLiteral> = DateComparator
         ): IndexedVersionedLinkedDataEventStream<StreamUnit> = IndexedVersionedLinkedDataEventStream(
             identifier = identifier,
             transform = transform,
@@ -110,7 +110,7 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
             transform: StreamTransform<StreamUnit>,
             identifier: Quad.NamedTerm =
                 store.iter(p = RDF.type, o = LDES.EventStream).single().s as Quad.NamedTerm,
-            comparator: Comparator<Quad.Literal> = DateComparator
+            comparator: Comparator<Quad.TypedLiteral> = DateComparator
         ): IndexedVersionedLinkedDataEventStream<StreamUnit> = IndexedVersionedLinkedDataEventStream(
             identifier = identifier,
             store = IndexedStore(store),

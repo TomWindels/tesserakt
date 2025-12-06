@@ -18,7 +18,7 @@ kotlin {
                 implementation(project(":testing:bench:sparql:core"))
                 implementation(project(":sparql:endpoint:ktor:client"))
 
-                implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
+                implementation(libs.ktor.client.contentNegotiation)
             }
         }
         val jvmMain by getting {

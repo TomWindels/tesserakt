@@ -66,8 +66,14 @@ class ExpressionProcessor: Analyser<Expression>() {
                 .also { consume() }
         }
         is Token.PrefixedTerm -> {
-            Expression.UriValue(token.resolve())
-                .also { consume() }
+            val resolved = token.resolve()
+            consume()
+            val next = this.token
+            if (next == Token.Symbol.RoundBracketStart) {
+                processFuncCall(resolved.value)
+            } else {
+                Expression.UriValue(resolved)
+            }
         }
         Token.Keyword.AggCount,
         Token.Keyword.AggSum,
@@ -212,6 +218,11 @@ class ExpressionProcessor: Analyser<Expression>() {
     private fun processFuncCall(): Expression.FuncCall {
         val name = (token as? Token.Identifier)?.value ?: bail("Invalid identifier: $token")
         consume()
+        return processFuncCall(name)
+    }
+
+    // processes & consumes structures like `concat("A", ?s)`
+    private fun processFuncCall(name: String): Expression.FuncCall {
         expectToken(Token.Symbol.RoundBracketStart)
         consume()
         if (token == Token.Symbol.RoundBracketEnd) {
@@ -220,6 +231,8 @@ class ExpressionProcessor: Analyser<Expression>() {
         val args = mutableListOf<Expression>()
         while (true) {
             args += nextOperand()
+            // muting this warning as it's wrong: `token` here is not expected to be an identifier
+            @Suppress("INCOMPATIBLE_TYPES_WARNING")
             when (token) {
                 Token.Symbol.RoundBracketEnd -> break
                 Token.Symbol.Comma -> consume()

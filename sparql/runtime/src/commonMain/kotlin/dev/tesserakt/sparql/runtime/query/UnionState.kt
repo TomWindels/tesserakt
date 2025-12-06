@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
@@ -90,7 +91,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
         return state.toStream().transform(maxCardinality = state.maxOf { it.cardinality }) { s -> s.join(delta) }
     }
 
-    override fun rehash(bindings: BindingIdentifierSet) {
+    override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
         // TODO: not yet implemented
     }
 

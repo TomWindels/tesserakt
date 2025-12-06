@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.collection
 
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.util.Cardinality
@@ -7,6 +8,8 @@ import dev.tesserakt.sparql.util.Cardinality
 interface MappingArray {
 
     val cardinality: Cardinality
+
+    val indexes: BindingIdentifierSet
 
     /**
      * Returns an [OptimisedStream] of [Mapping]s that are present inside this structure

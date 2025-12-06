@@ -94,7 +94,7 @@ data class GraphPatternFilterState(
                 val one = filter.filter(parent.peek(delta), delta)
                 // getting the new results from the filter, affecting the pattern group
                 val two = filter.peek(delta).transform(parent.cardinality) { parent.join(it) }
-                return one.chain(two)
+                return two.chain(one)
             }
 
             override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {

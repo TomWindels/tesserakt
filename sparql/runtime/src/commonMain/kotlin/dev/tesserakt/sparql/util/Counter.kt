@@ -1,14 +1,19 @@
 package dev.tesserakt.sparql.util
 
 import dev.tesserakt.util.replace
-import kotlin.jvm.JvmInline
 
-@JvmInline
-value class Counter<T : Any> private constructor(private val map: MutableMap<T, Int>): Iterable<Map.Entry<T, Int>> {
+class Counter<T : Any> private constructor(private val map: MutableMap<T, Int>): Iterable<Map.Entry<T, Int>> {
 
     constructor(): this(mutableMapOf())
 
     constructor(elements: Iterable<T>): this(map = elements.groupingBy { it }.eachCountTo(mutableMapOf()))
+
+    // various state-related properties; they're private as they make more sense when used in their respective
+    //  collections, i.e. `current.size` and `flattened.size`
+    /**
+     * The total number of inserted items (= sum of all node counts)
+     */
+    private var count = 0
 
     val current: Set<T> get() = map.keys
 
@@ -18,6 +23,8 @@ value class Counter<T : Any> private constructor(private val map: MutableMap<T, 
 
     fun increment(value: T, count: Int = 1) {
         map.replace(value) { original -> (original ?: 0) + count }
+        // just in case `map.replace` would fail, we only update our own state afterward
+        this.count += count
     }
 
     fun increment(changes: Map<T, Int>) {
@@ -27,9 +34,18 @@ value class Counter<T : Any> private constructor(private val map: MutableMap<T, 
     fun decrement(value: T, count: Int = 1) {
         map.replace(value) { current ->
             when {
-                current == null || current < count -> throw NoSuchElementException()
-                current == count -> { null }
-                else -> { current - count }
+                current == null || current < count -> {
+                    // we're not actually mutating anything here, so we're not updating the count state either
+                    throw NoSuchElementException()
+                }
+                current == count -> {
+                    this.count -= count
+                    null
+                }
+                else -> {
+                    this.count -= count
+                    current - count
+                }
             }
         }
     }
@@ -39,46 +55,42 @@ value class Counter<T : Any> private constructor(private val map: MutableMap<T, 
     }
 
     fun clear(value: T) {
+        count = 0
         map.remove(value)
     }
 
     fun clone() = Counter(map.toMutableMap())
 
-    fun flatten() = object: Collection<T> {
+    val flattened = object: Collection<T> {
 
-        override val size: Int by lazy { this@Counter.map.asIterable().sumOf { it.value } }
+        override val size: Int
+            get() = this@Counter.count
 
         override fun iterator(): Iterator<T> = object: Iterator<T> {
-
             private val iter = this@Counter.iterator()
-            private lateinit var current: T
-            private var remaining = 0
+            private var node = if (iter.hasNext()) iter.next() else null
+            private var remaining = node?.value ?: 0
 
             override fun hasNext(): Boolean {
-                ensureNext()
                 return remaining > 0
             }
 
             override fun next(): T {
-                ensureNext()
-                if (remaining == 0) {
+                val cur = node
+                if (remaining <= 0 || cur == null) {
                     throw NoSuchElementException()
                 }
-                --remaining
-                return current
-            }
-
-            private fun ensureNext() {
-                if (remaining > 0) {
-                    return
+                if (--remaining <= 0) {
+                    node = if (iter.hasNext()) {
+                        val next = iter.next()
+                        remaining = next.value
+                        next
+                    } else {
+                        null
+                    }
                 }
-                while (iter.hasNext() && remaining == 0) {
-                    val (next, count) = iter.next()
-                    current = next
-                    remaining = count
-                }
+                return cur.key
             }
-
         }
 
         override fun isEmpty(): Boolean {

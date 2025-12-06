@@ -18,9 +18,9 @@ kotlin {
                 api(project(":sparql:common"))
                 // providing custom content negotiation support
                 // as an `implementation` instead of `api` so it's not exposing all there is to ktor
-                implementation("io.ktor:ktor-client-content-negotiation:3.1.3")
+                implementation(libs.ktor.client.contentNegotiation)
                 // used to actually (de)serialize the bindings representation from client responses
-                implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.3")
+                implementation(libs.ktor.serialization.json)
             }
         }
     }

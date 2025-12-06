@@ -3,6 +3,7 @@ package dev.tesserakt.interop.jena
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import org.apache.jena.datatypes.BaseDatatype
 import org.apache.jena.datatypes.RDFDatatype
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.*
@@ -43,7 +44,8 @@ fun Quad.Predicate.toJenaTerm() = when (this) {
 
 fun Quad.Object.toJenaTerm() = when (this) {
     is Quad.NamedTerm -> NodeFactory.createURI(value)
-    is Quad.Literal -> NodeFactory.createLiteral(value, type.asRDFDataType())
+    is Quad.SimpleLiteral -> NodeFactory.createLiteralDT(value, type.asRDFDataType())
+    is Quad.TypedLiteral -> NodeFactory.createLiteralDT(value, type.asRDFDataType())
     is Quad.LangString -> NodeFactory.createLiteralLang(value, language)
     is Quad.BlankTerm -> NodeFactory.createBlankNode(value)
 }
@@ -60,13 +62,13 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
     XSD.dateTime -> XSDDatatype.XSDdateTime
     XSD.time -> XSDDatatype.XSDtime
     XSD.date -> XSDDatatype.XSDdate
-    else -> throw IllegalArgumentException("Unknown type: `$value`")
+    else -> BaseDatatype(value)
 }
 
 fun Node.toTerm() : Quad.Element = when (this) {
     is Node_URI -> Quad.NamedTerm(value = uri)
     is Node_Literal -> when {
-        literalLanguage.isNotBlank() -> Quad.LangString(
+        literalLanguage.isNotBlank() -> Quad.Literal(
             value = literalValue.toString(),
             language = literalLanguage
         )

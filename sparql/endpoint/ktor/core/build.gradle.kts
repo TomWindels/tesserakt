@@ -1,6 +1,6 @@
 plugins {
     id("kmp-package")
-    kotlin("plugin.serialization") version libs.versions.kotlin
+    alias(libs.plugins.kotlinx.serialization)
 }
 
 group = "sparql-endpoint"
@@ -12,11 +12,11 @@ kotlin {
                 // types used in sparql: bindings, quad elements, etc
                 api(project(":sparql:common"))
                 // public content type instances
-                api("io.ktor:ktor-http:3.1.3")
+                api(libs.ktor.http)
                 // to deserialize and evaluate update queries
                 implementation(project(":serialization:trig"))
                 // support for sparql-results+json mime type
-                implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.3")
+                implementation(libs.ktor.serialization.json)
             }
         }
     }

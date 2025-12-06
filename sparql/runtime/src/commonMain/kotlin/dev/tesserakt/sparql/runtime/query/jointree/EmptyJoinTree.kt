@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
@@ -33,7 +34,7 @@ data object EmptyJoinTree: JoinTree {
         return streamOf(delta)
     }
 
-    override fun rehash(bindings: BindingIdentifierSet) {
+    override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
         // nothing to do
     }
 

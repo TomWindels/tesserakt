@@ -21,7 +21,8 @@ fun Quad.toN3Triple() = N3Quad(
 
 fun Quad.Element.toN3Term() = when (this) {
     is Quad.NamedTerm -> createN3NamedNode(value)
-    is Quad.Literal -> createN3Literal(value, createN3MappedLiteralDType(type))
+    is Quad.SimpleLiteral -> createN3Literal(value, createN3MappedLiteralDType(type))
+    is Quad.TypedLiteral -> createN3Literal(value, createN3MappedLiteralDType(type))
     is Quad.LangString -> createN3Literal(value, language)
     is Quad.BlankTerm -> createN3BlankNode("_:b_$id")
     Quad.DefaultGraph -> DefaultN3Graph
@@ -79,7 +80,7 @@ fun N3Term.toTerm(): Quad.Element = when (termType) {
 fun N3NamedNode.toTerm() = Quad.NamedTerm(value = value)
 
 fun N3Literal.toTerm() = when {
-    language.isNotBlank() -> Quad.LangString(value = value, language = language)
+    language.isNotBlank() -> Quad.Literal(value = value, language = language)
     else -> Quad.Literal(value = value, type = datatype.toTerm())
 }
 

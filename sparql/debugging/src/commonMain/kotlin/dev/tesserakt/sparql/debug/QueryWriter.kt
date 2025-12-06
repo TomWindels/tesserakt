@@ -84,9 +84,10 @@ abstract class QueryWriter<RT> {
             is TriplePattern.NamedBinding ->
                 add(Token.Binding(element.name))
 
-            is TriplePattern.Exact -> when (element.term) {
-                is Quad.Literal -> add(Token.StringLiteral(element.term.value)) // FIXME - no datatype
+            is TriplePattern.Exact -> when (val term = element.term) {
+                is Quad.TypedLiteral -> add(Token.TypedLiteral(value = term.value, datatype = Token.Uri(term.type.value)))
                 is Quad.LangString -> add(Token.StringLiteral(element.term.value)) // FIXME - no language tag
+                is Quad.SimpleLiteral -> add(Token.StringLiteral(element.term.value))
                 is Quad.NamedTerm -> add(Token.Uri(element.term.value))
                 is Quad.BlankTerm -> throw UnsupportedOperationException()
                 Quad.DefaultGraph -> throw UnsupportedOperationException()
@@ -287,8 +288,6 @@ abstract class QueryWriter<RT> {
                 }
                 element.ordering?.let { ordering ->
                     newline()
-                    add(Token.Keyword.Order)
-                    add(Token.Keyword.By)
                     process(ordering)
                 }
             }
@@ -346,6 +345,20 @@ abstract class QueryWriter<RT> {
                 unindent()
                 newline()
                 add(Token.Symbol.CurlyBracketEnd)
+            }
+
+            is Ordering -> {
+                add(Token.Keyword.Order)
+                add(Token.Keyword.By)
+                element.elements.forEach { item ->
+                    when (item.mode) {
+                        Ordering.Element.Mode.Ascending -> add(Token.Keyword.Asc)
+                        Ordering.Element.Mode.Descending -> add(Token.Keyword.Desc)
+                    }
+                    add(Token.Symbol.RoundBracketStart)
+                    add(item.binding.toToken())
+                    add(Token.Symbol.RoundBracketEnd)
+                }
             }
         }
 

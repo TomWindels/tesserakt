@@ -238,8 +238,13 @@ class ASTWriter(private val indentStyle: String = "  ") {
                     process(it)
                 }
                 symbol.ordering?.let {
-                    writeLine("ordering modifier")
                     process(it)
+                }
+                if (symbol.limit != Int.MAX_VALUE) {
+                    writeLine("limit: ${symbol.limit}")
+                }
+                if (symbol.offset != 0) {
+                    writeLine("offset: ${symbol.offset}")
                 }
             }
         }
@@ -337,6 +342,19 @@ class ASTWriter(private val indentStyle: String = "  ") {
                     writeLine("arg $i")
                     indented {
                         process(arg)
+                    }
+                }
+            }
+        }
+
+        is Ordering -> {
+            writeLine("ordering")
+            symbol.elements.forEachIndexed { i, element ->
+                indented {
+                    writeLine("element #${i}")
+                    indented {
+                        writeLine("ordering: ${element.mode}")
+                        writeLine("binding: ${element.binding}")
                     }
                 }
             }

@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.collection
 
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
@@ -28,6 +29,9 @@ class SingleHashMappingArray(
 
     override var cardinality = Cardinality(0)
         private set
+
+    override val indexes: BindingIdentifierSet
+        get() = BindingIdentifierSet(ids = intArrayOf(key.id))
 
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
