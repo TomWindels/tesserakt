@@ -87,7 +87,7 @@ class SnapshotStore private constructor(
                 val timestamp = Quad.Literal(
                     value = date.plus(i.minutes).toString(),
                     type = XSD.date
-                )
+                ) as Quad.TypedLiteral
                 val current = clusters.associateWith { cluster -> cluster.extractClusterContent(store) }
                 // all cluster versions worth updating are those that have different values compared to the previous iteration
                 val remaining = current.filter { it.value != previous[it.key] }

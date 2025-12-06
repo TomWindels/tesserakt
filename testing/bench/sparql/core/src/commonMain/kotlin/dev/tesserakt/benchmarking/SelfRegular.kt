@@ -40,7 +40,6 @@ class SelfRegular(private val query: Query<Bindings>): Evaluator() {
         get() = when (this) {
             is Quad.BlankTerm -> 1
             is Quad.Literal -> value.length
-            is Quad.LangString -> value.length
             is Quad.NamedTerm -> value.length
             Quad.DefaultGraph -> 0
         }

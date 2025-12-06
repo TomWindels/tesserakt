@@ -44,7 +44,8 @@ fun Quad.Predicate.toJenaTerm() = when (this) {
 
 fun Quad.Object.toJenaTerm() = when (this) {
     is Quad.NamedTerm -> NodeFactory.createURI(value)
-    is Quad.Literal -> NodeFactory.createLiteralDT(value, type.asRDFDataType())
+    is Quad.SimpleLiteral -> NodeFactory.createLiteralDT(value, type.asRDFDataType())
+    is Quad.TypedLiteral -> NodeFactory.createLiteralDT(value, type.asRDFDataType())
     is Quad.LangString -> NodeFactory.createLiteralLang(value, language)
     is Quad.BlankTerm -> NodeFactory.createBlankNode(value)
 }
@@ -67,7 +68,7 @@ private fun Quad.NamedTerm.asRDFDataType(): RDFDatatype = when (this) {
 fun Node.toTerm() : Quad.Element = when (this) {
     is Node_URI -> Quad.NamedTerm(value = uri)
     is Node_Literal -> when {
-        literalLanguage.isNotBlank() -> Quad.LangString(
+        literalLanguage.isNotBlank() -> Quad.Literal(
             value = literalValue.toString(),
             language = literalLanguage
         )

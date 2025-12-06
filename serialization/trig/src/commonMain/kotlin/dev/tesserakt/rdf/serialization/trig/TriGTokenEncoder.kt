@@ -198,7 +198,8 @@ internal class TriGTokenEncoder(
     private fun Quad.Object.toToken() = when (this) {
         is Quad.NamedTerm -> TriGToken.Term(value = value)
         is Quad.BlankTerm -> TriGToken.PrefixedTerm(prefix = "_", value = "b$id")
-        is Quad.Literal -> TriGToken.LiteralTerm(value = value, type = TriGToken.Term(value = type.value))
+        is Quad.SimpleLiteral -> TriGToken.LiteralTerm(value = value, type = TriGToken.Term(value = type.value))
+        is Quad.TypedLiteral -> TriGToken.LiteralTerm(value = value, type = TriGToken.Term(value = type.value))
         is Quad.LangString -> TriGToken.LocalizedLiteralTerm(value = value, language = language)
     }
 

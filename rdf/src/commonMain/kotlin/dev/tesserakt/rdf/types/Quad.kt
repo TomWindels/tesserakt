@@ -39,24 +39,78 @@ data class Quad(
         override fun toString() = value
     }
 
-    data class Literal(
-        override val value: String,
+    sealed interface Literal : Object {
+
+        override val value: String
+
         val type: NamedTerm
-    ): Object {
+
+    }
+
+    @JvmInline
+    value class SimpleLiteral internal constructor(
+        override val value: String
+    ) : Literal {
+
+        override val type: NamedTerm
+            get() = XSD.string
+
+        override fun toString(): String {
+            return "\"${value}\""
+        }
+
+    }
+
+    class TypedLiteral internal constructor(
+        override val value: String,
+        override val type: NamedTerm
+    ): Literal {
+
         override fun toString(): String {
             return "\"$value\"^^${type.value}"
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is TypedLiteral) {
+                return false
+            }
+            return value == other.value && type == other.type
+        }
+
+        override fun hashCode(): Int {
+            var result = value.hashCode()
+            result = 31 * result + type.hashCode()
+            return result
+        }
+
     }
 
-    data class LangString(
+    class LangString internal constructor(
         override val value: String,
         val language: String,
-    ): Object {
-        val type: NamedTerm
+    ): Literal {
+
+        override val type: NamedTerm
             get() = RDF.langString
+
         override fun toString(): String {
             return "\"$value\"@$language"
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is LangString) {
+                return false
+            }
+            return value == other.value && language == other.language
+        }
+
+        override fun hashCode(): Int {
+            var result = value.hashCode()
+            result = 31 * result + language.hashCode()
+            result = 31 * result + type.hashCode()
+            return result
+        }
+
     }
 
     data object DefaultGraph: Graph {
@@ -69,22 +123,22 @@ data class Quad(
         fun String.asNamedTerm() = NamedTerm(this)
 
         @JvmStatic
-        fun String.asLiteralTerm() = Literal(this, type = XSD.string)
+        fun String.asLiteralTerm() = SimpleLiteral(this)
 
         @JvmStatic
-        fun Int.asLiteralTerm() = Literal(toString(), type = XSD.int)
+        fun Int.asLiteralTerm() = TypedLiteral(toString(), type = XSD.int)
 
         @JvmStatic
-        fun Long.asLiteralTerm() = Literal(toString(), type = XSD.long)
+        fun Long.asLiteralTerm() = TypedLiteral(toString(), type = XSD.long)
 
         @JvmStatic
-        fun Float.asLiteralTerm() = Literal(toString(), type = XSD.float)
+        fun Float.asLiteralTerm() = TypedLiteral(toString(), type = XSD.float)
 
         @JvmStatic
-        fun Double.asLiteralTerm() = Literal(toString(), type = XSD.double)
+        fun Double.asLiteralTerm() = TypedLiteral(toString(), type = XSD.double)
 
         @JvmStatic
-        fun Boolean.asLiteralTerm() = Literal(toString(), type = XSD.boolean)
+        fun Boolean.asLiteralTerm() = TypedLiteral(toString(), type = XSD.boolean)
 
         @JvmStatic
         fun Number.asLiteralTerm() = when (this) {
@@ -102,6 +156,17 @@ data class Quad(
             is Boolean -> asLiteralTerm()
             else -> throw IllegalArgumentException("Unknown literal type `$this`")
         }
+
+        /* factories */
+
+        @JvmStatic
+        fun Literal(value: String): Literal = SimpleLiteral(value)
+
+        @JvmStatic
+        fun Literal(value: String, language: String): Literal = LangString(value, language)
+
+        @JvmStatic
+        fun Literal(value: String, type: NamedTerm): Literal = if (type != XSD.string) TypedLiteral(value, type) else SimpleLiteral(value)
 
     }
 

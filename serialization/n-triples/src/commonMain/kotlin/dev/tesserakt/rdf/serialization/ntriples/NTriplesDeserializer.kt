@@ -1,6 +1,5 @@
 package dev.tesserakt.rdf.serialization.ntriples
 
-import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.serialization.util.bail
@@ -75,9 +74,9 @@ internal class NTriplesDeserializer(private val source: BufferedString) : Iterat
                     // getting rid of the '@'
                     source.consume()
                     val lang = source.consumeWhile { !it.isWhitespace() }
-                    Quad.LangString(value = value, language = lang)
+                    Quad.Literal(value = value, language = lang)
                 } else {
-                    Quad.Literal(value = value, type = XSD.string)
+                    Quad.Literal(value = value)
                 }
             }
 

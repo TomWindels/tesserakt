@@ -229,8 +229,8 @@ fun builtinTests() = tests {
         val root = prefix("", "http://example.com/")
         val user = root("user")
         user has type being root("User")
-        user has root("name") being Quad.LangString("Name", "en")
-        user has root("name") being Quad.LangString("Naam", "nl")
+        user has root("name") being Quad.Literal("Name", "en")
+        user has root("name") being Quad.Literal("Naam", "nl")
     }
 
     using(languages) test """

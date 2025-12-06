@@ -152,7 +152,8 @@ internal class TurtleTokenEncoder(
     private fun Quad.Object.toToken() = when (this) {
         is Quad.NamedTerm -> TurtleToken.Term(value = value)
         is Quad.BlankTerm -> TurtleToken.PrefixedTerm(prefix = "_", value = "b$id")
-        is Quad.Literal -> TurtleToken.LiteralTerm(value = value, type = TurtleToken.Term(value = type.value))
+        is Quad.SimpleLiteral -> TurtleToken.LiteralTerm(value = value, type = TurtleToken.Term(value = type.value))
+        is Quad.TypedLiteral -> TurtleToken.LiteralTerm(value = value, type = TurtleToken.Term(value = type.value))
         is Quad.LangString -> TurtleToken.LocalizedLiteralTerm(value = value, language = language)
     }
 
