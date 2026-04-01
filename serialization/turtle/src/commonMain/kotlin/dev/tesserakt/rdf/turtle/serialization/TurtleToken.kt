@@ -101,7 +101,19 @@ internal sealed interface TurtleToken {
          */
         val escaped = EscapeSequenceHelper.encodeMappedCharacterEscapes(value)
 
-        override val syntax get() = "\"$escaped\"^^${type.syntax}"
+        private fun matchesXsd(localName: String): Boolean = when (type) {
+            is Term -> type.value == "http://www.w3.org/2001/XMLSchema#$localName"
+            is PrefixedTerm -> type.prefix == "xsd" && type.value == localName
+            else -> false
+        }
+
+        override val syntax get() = when {
+            matchesXsd("string") -> "\"$escaped\""
+            matchesXsd("integer") -> value
+            matchesXsd("decimal") -> value
+            matchesXsd("boolean") -> value
+            else -> "\"$escaped\"^^${type.syntax}"
+        }
         override fun toString(): String = "literal `$syntax`"
     }
 
