@@ -1,0 +1,276 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>dev.tesserakt.sparql.endpoint.client</title>
+<link href="../../../../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="../../../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../../../ui-kit/ui-kit.min.js" defer></script>
+<script type="text/javascript" src="../../../../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+<a class="library-name--link" href="../../../../../index.html">
+                    tesserakt
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filter=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    tesserakt
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="package" id="content" pageids="sparql.endpoint.ktor.client::dev.tesserakt.sparql.endpoint.client////PointingToDeclaration//-1012832896">
+  <div class="breadcrumbs"><a href="../index.html">sparql.endpoint.ktor.client</a><span class="delimiter">/</span><span class="current">dev.tesserakt.sparql.endpoint.client</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="-427347622%2FClasslikes%2F-1012832896" anchor-label="QueryOperationMode" id="-427347622%2FClasslikes%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-query-operation-mode/index.html"><span>Query</span><wbr><span>Operation</span><wbr><span><span>Mode</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-427347622%2FClasslikes%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-query-operation-mode/index.html">QueryOperationMode</a> : <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-query-operation-mode/index.html">QueryOperationMode</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Models the different possible approaches to issue a SPARQL SELECT request, as described in the <a href="https://www.w3.org/TR/sparql11-protocol/#query-operation">SPARQL spec</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="404756190%2FClasslikes%2F-1012832896" anchor-label="SparqlUpdateRequestBuilder" id="404756190%2FClasslikes%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-sparql-update-request-builder/index.html"><span>Sparql</span><wbr><span>Update</span><wbr><span>Request</span><wbr><span><span>Builder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="404756190%2FClasslikes%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">additions<span class="token operator">: </span><a href="../../../../../rdf/dev.tesserakt.rdf.types/-mutable-store/index.html">MutableStore</a><span class="token operator"> = </span>mutableStoreOf()<span class="token punctuation">, </span></span><span class="parameter ">deletions<span class="token operator">: </span><a href="../../../../../rdf/dev.tesserakt.rdf.types/-mutable-store/index.html">MutableStore</a><span class="token operator"> = </span>mutableStoreOf()</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Intermediate builder type, used to construct SPARQL UPDATE queries.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="EXTENSION_FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="-213770482%2FFunctions%2F-1012832896" anchor-label="add" id="-213770482%2FFunctions%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="add.html"><span><span>add</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-213770482%2FFunctions%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a><span class="token punctuation">.</span><a href="add.html"><span class="token function">add</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">quad<span class="token operator">: </span><a href="../../../../../rdf/dev.tesserakt.rdf.types/-quad/index.html">Quad</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Adds a single <a href="add.html">quad</a> for insertion. If this quad is present inside the DELETE operation, they cancel each other out.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a><span class="token punctuation">.</span><a href="add.html"><span class="token function">add</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">data<span class="token operator">: </span><a href="../../../../../rdf/dev.tesserakt.rdf.types/-store/index.html">Store</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Adds all <a href="../../../../../rdf/dev.tesserakt.rdf.types/-quad/index.html">Quad</a>s found in the <a href="../../../../../rdf/dev.tesserakt.rdf.types/-store/index.html">data</a> for insertion. Quads present inside the DELETE operation cancel each other out.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="356348204%2FFunctions%2F-1012832896" anchor-label="bodyAsBindings" id="356348204%2FFunctions%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="body-as-bindings.html"><span>body</span><wbr><span>As</span><wbr><span><span>Bindings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="356348204%2FFunctions%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><span data-unresolved-link="io.ktor.client.statement/HttpResponse///PointingToDeclaration/">HttpResponse</span><span class="token punctuation">.</span><a href="body-as-bindings.html"><span class="token function">bodyAsBindings</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../../../../sparql/common/dev.tesserakt.sparql/-bindings/index.html">Bindings</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Read this <span data-unresolved-link="io.ktor.client.statement/HttpResponse///PointingToDeclaration/">HttpResponse</span>'s body as a list of <a href="../../../../../sparql/common/dev.tesserakt.sparql/-bindings/index.html">Bindings</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1786300659%2FFunctions%2F-1012832896" anchor-label="delete" id="1786300659%2FFunctions%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="delete.html"><span><span>delete</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1786300659%2FFunctions%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a><span class="token punctuation">.</span><a href="delete.html"><span class="token function">delete</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">builder<span class="token operator">: </span><a href="../../../../../rdf/dsl/dev.tesserakt.rdf.dsl/-r-d-f/index.html">RDF</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Deletes all quads that are generated inside the <a href="delete.html">builder</a> block. Quads also present in the INSERT operation cancel each other out.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="369225253%2FFunctions%2F-1012832896" anchor-label="insert" id="369225253%2FFunctions%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="insert.html"><span><span>insert</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="369225253%2FFunctions%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a><span class="token punctuation">.</span><a href="insert.html"><span class="token function">insert</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">builder<span class="token operator">: </span><a href="../../../../../rdf/dsl/dev.tesserakt.rdf.dsl/-r-d-f/index.html">RDF</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Inserts all quads that are generated inside the <a href="insert.html">builder</a> block. Quads also present in the DELETE operation cancel each other out.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="968385738%2FFunctions%2F-1012832896" anchor-label="remove" id="968385738%2FFunctions%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="remove.html"><span><span>remove</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="968385738%2FFunctions%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a><span class="token punctuation">.</span><a href="remove.html"><span class="token function">remove</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">quad<span class="token operator">: </span><a href="../../../../../rdf/dev.tesserakt.rdf.types/-quad/index.html">Quad</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Adds a single <a href="remove.html">quad</a> for deletion. If this quad is present inside the INSERT operation, they cancel each other out.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a><span class="token punctuation">.</span><a href="remove.html"><span class="token function">remove</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">data<span class="token operator">: </span><a href="../../../../../rdf/dev.tesserakt.rdf.types/-store/index.html">Store</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Adds all <a href="../../../../../rdf/dev.tesserakt.rdf.types/-quad/index.html">Quad</a>s found in the <a href="../../../../../rdf/dev.tesserakt.rdf.types/-store/index.html">data</a> for deletion. Quads present inside the INSERT operation cancel each other out.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1924642829%2FFunctions%2F-1012832896" anchor-label="sparql" id="-1924642829%2FFunctions%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="sparql.html"><span><span>sparql</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1924642829%2FFunctions%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><span data-unresolved-link="io.ktor.client.plugins.contentnegotiation/ContentNegotiationConfig///PointingToDeclaration/">ContentNegotiationConfig</span><span class="token punctuation">.</span><a href="sparql.html"><span class="token function">sparql</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Adds support for the <code class="lang-kotlin">application/sparql-results+json</code> Content Type. Required when using <a href="body-as-bindings.html">bodyAsBindings</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-925949074%2FFunctions%2F-1012832896" anchor-label="sparqlQuery" id="-925949074%2FFunctions%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="sparql-query.html"><span>sparql</span><wbr><span><span>Query</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-925949074%2FFunctions%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">suspend </span><span class="token keyword">fun </span><span data-unresolved-link="io.ktor.client/HttpClient///PointingToDeclaration/">HttpClient</span><span class="token punctuation">.</span><a href="sparql-query.html"><span class="token function">sparqlQuery</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">endpoint<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">query<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">mode<span class="token operator">: </span><a href="-query-operation-mode/index.html">QueryOperationMode</a><span class="token operator"> = </span>QueryOperationMode.POST_BODY<span class="token punctuation">, </span></span><span class="parameter ">block<span class="token operator">: </span><span data-unresolved-link="io.ktor.client.request/HttpRequestBuilder///PointingToDeclaration/">HttpRequestBuilder</span><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{}</span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="io.ktor.client.statement/HttpResponse///PointingToDeclaration/">HttpResponse</span></div><div class="brief "><p class="paragraph">Execute a SPARQL SELECT query according to the <a href="https://www.w3.org/TR/sparql11-protocol/#query-operation">SPARQL spec</a>. The <a href="sparql-query.html">endpoint</a> represents the URL of the SPARQL endpoint. The <a href="sparql-query.html">mode</a> represents the approach that should be used to create the request. See <a href="-query-operation-mode/index.html">QueryOperationMode</a> for more information.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1575651083%2FFunctions%2F-1012832896" anchor-label="sparqlUpdate" id="1575651083%2FFunctions%2F-1012832896" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"></a>
+          <div class="table-row" data-filterable-current=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain" data-filterable-set=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="sparql-update.html"><span>sparql</span><wbr><span><span>Update</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1575651083%2FFunctions%2F-1012832896"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:endpoint:ktor:client:dokkaHtmlPartial/commonMain"><div class="symbol monospace"><span class="token keyword">inline suspend </span><span class="token keyword">fun </span><span data-unresolved-link="io.ktor.client/HttpClient///PointingToDeclaration/">HttpClient</span><span class="token punctuation">.</span><a href="sparql-update.html"><span class="token function">sparqlUpdate</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">endpoint<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">"sparql"</span><span class="token punctuation">, </span></span><span class="parameter ">block<span class="token operator">: </span><a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a><span class="token punctuation">.</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><span data-unresolved-link="io.ktor.client.statement/HttpResponse///PointingToDeclaration/">HttpResponse</span></div><div class="brief "><p class="paragraph">Execute a SPARQL UPDATE query according to the <a href="https://www.w3.org/TR/sparql11-protocol/#update-operation">SPARQL spec</a>. The <a href="sparql-update.html">endpoint</a> represents the URL of the SPARQL endpoint. The <a href="sparql-update.html">block</a> can be used to add data to be inserted and/or removed. See <a href="-sparql-update-request-builder/index.html">SparqlUpdateRequestBuilder</a> for more information.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2026 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
