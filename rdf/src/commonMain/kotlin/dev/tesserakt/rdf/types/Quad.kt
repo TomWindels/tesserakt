@@ -41,7 +41,7 @@ data class Quad(
 
     data class Literal(
         override val value: String,
-        val type: NamedTerm
+        val type: NamedTerm = XSD.string
     ): Object {
         override fun toString(): String {
             return "\"$value\"^^${type.value}"
