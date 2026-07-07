@@ -27,6 +27,8 @@ sealed interface InclusionFilterState: MutableFilterState {
 
     override fun process(delta: DataDelta)
 
+    override fun stats(): Statistics
+
     override fun debugInformation(): String
 
     /**
@@ -119,6 +121,18 @@ sealed interface InclusionFilterState: MutableFilterState {
             state.process(delta)
         }
 
+        override fun stats(): Statistics {
+            val inner = state.stats()
+            return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = "FILTER EXISTS\nnarrow, ${commonBindingNames.size} common binding names"
+                )
+            } else {
+                inner
+            }
+        }
+
         override fun debugInformation(): String = buildString {
             appendLine("* Include graph filter (narrow)")
             append(state.debugInformation())
@@ -162,6 +176,18 @@ sealed interface InclusionFilterState: MutableFilterState {
                 input
             } else {
                 emptyStream()
+            }
+        }
+
+        override fun stats(): Statistics {
+            val inner = state.stats()
+            return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = "FILTER EXISTS\nbroad, active count $count"
+                )
+            } else {
+                inner
             }
         }
 

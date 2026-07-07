@@ -2,11 +2,10 @@ package dev.tesserakt.sparql.runtime.query.jointree
 
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
-import dev.tesserakt.sparql.runtime.query.join
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.runtime.stream.join
 
 /**
  * A general join tree type, containing intermediate joined values depending on the tree implementation
@@ -30,6 +29,8 @@ interface JoinTree : MutableJoinState {
      * Returns the result of [join]ing the [delta] with its own internal state
      */
     override fun join(delta: MappingDelta): Stream<MappingDelta>
+
+    override fun stats(): Statistics
 
     /**
      * Returns a string containing debug information (runtime statistics)

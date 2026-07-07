@@ -19,8 +19,15 @@ object RuntimeStatistics {
         appendLine("\tArray-backed pattern joins: ${state.arrayBackedJoin}")
         appendLine("\tJoin tree hits: ${state.joinTreeHits}")
         appendLine("\tJoin tree misses: ${state.joinTreeMisses}")
-        appendLine("\tJoin tree results: ${state.joinTreeResults}")
-        state.extra.forEach { append(it) }
+        if (state.extra.isEmpty()) {
+            append("\tJoin tree results: ${state.joinTreeResults}")
+        } else {
+            appendLine("\tJoin tree results: ${state.joinTreeResults}")
+            repeat(state.extra.size - 1) {
+                appendLine(state.extra[it])
+            }
+            append(state.extra.last())
+        }
     }
 
     private var state = State()

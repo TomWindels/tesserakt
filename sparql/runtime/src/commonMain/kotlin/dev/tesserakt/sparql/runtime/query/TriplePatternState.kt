@@ -371,6 +371,44 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         }.optimisedForReuse() // peek()s are already optimised, and mapping doesn't change that, so this is guaranteed to be a type wrapping
     }
 
+    final override fun stats(): Statistics {
+        val description = when (Statistics.Mode.current) {
+            Statistics.Mode.HIGH_LEVEL -> {
+                return Statistics.SingleElement(cardinality = cardinality)
+            }
+            Statistics.Mode.DETAILED -> {
+                fun TriplePattern.Binding.description(): String =
+                    if (name[0] == ' ') "?_${name.substring(1)}" else "?$name"
+                val s = when (s) {
+                    is TriplePattern.Binding -> s.description()
+                    is TriplePattern.Exact -> "<s>"
+                }
+                fun TriplePattern.Predicate.description(): String = when (this) {
+                    is TriplePattern.Binding -> "?${name}"
+                    is TriplePattern.Sequence -> chain.joinToString("/") { it.description() }
+                    is TriplePattern.UnboundSequence -> chain.joinToString("/") { it.description() }
+                    is TriplePattern.Exact -> "<p>"
+                    is TriplePattern.Negated -> "!${terms.description()}"
+                    is TriplePattern.SimpleAlts -> allowed.joinToString(", ", "(", ")") { it.description() }
+                    is TriplePattern.Alts -> allowed.joinToString(", ", "(", ")") { it.description() }
+                    is TriplePattern.OneOrMore -> "${element.description()}+"
+                    is TriplePattern.ZeroOrMore -> "${element.description()}*"
+                }
+                val p = p.description()
+                val o = when (o) {
+                    is TriplePattern.Binding -> o.description()
+                    is TriplePattern.Exact -> "<o>"
+                }
+                "$s $p $o"
+            }
+            Statistics.Mode.VERBOSE -> {
+                "$s $p $o"
+            }
+        }
+        val inner = Statistics.SingleElement(cardinality = cardinality)
+        return Statistics.DescriptionElement(inner = inner, description = description)
+    }
+
     final override fun toString() = "$s $p $o - cardinality $cardinality"
 
     companion object {

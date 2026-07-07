@@ -37,7 +37,14 @@ class OutputComparisonTest(
             elapsedTime = elapsedTime,
             referenceTime = referenceTime,
             strictOrdering = hasStrictOrdering,
-            debugInformation = "${RuntimeStatistics.report()}${external.report()}"
+            debugInformation = buildString {
+                val report = RuntimeStatistics.report()
+                if (report.isNotBlank()) {
+                    // only adding the newline with the report if there is one
+                    appendLine(report)
+                }
+                append(external.report())
+            }
         )
     }
 

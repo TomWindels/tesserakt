@@ -4,6 +4,7 @@ import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.util.Cardinality
@@ -41,5 +42,7 @@ interface MutableJoinState {
      * Updates the state according to the [delta] change.
      */
     fun process(delta: DataDelta)
+
+    fun stats(): Statistics
 
 }

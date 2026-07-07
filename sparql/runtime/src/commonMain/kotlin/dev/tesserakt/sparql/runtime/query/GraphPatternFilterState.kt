@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
@@ -38,6 +39,28 @@ data class GraphPatternFilterState(
         stateful.process(delta)
     }
 
+    fun stats(base: Statistics): Statistics {
+        val base = if (stateless !is Stateless.Unfiltered) {
+            val inner = Statistics.SelectiveElement(inner = base, cardinality = null)
+            if (Statistics.Mode isAtLeast Statistics.Mode.DETAILED) {
+                val description = when (stateless) {
+                    is Stateless.MultiFilter -> "${stateless.count} expression filters"
+                    is Stateless.SingleFilter -> "1 expression filter"
+                    Stateless.Unfiltered -> "" // cannot happen here
+                }
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = description,
+                )
+            } else {
+                inner
+            }
+        } else {
+            base
+        }
+        return stateful.stats(base)
+    }
+
     fun debugInformation(): String = stateful.debugInformation()
 
     sealed interface Stateful {
@@ -58,6 +81,8 @@ data class GraphPatternFilterState(
         fun filter(input: Stream<MappingDelta>): Stream<MappingDelta>
 
         fun process(delta: DataDelta)
+
+        fun stats(base: Statistics): Statistics
 
         fun debugInformation(): String
 
@@ -80,6 +105,10 @@ data class GraphPatternFilterState(
 
             override fun process(delta: DataDelta) {
                 // nothing to do, no filters applicable
+            }
+
+            override fun stats(base: Statistics): Statistics {
+                return base
             }
 
             override fun debugInformation(): String = "Not filtered"
@@ -107,6 +136,13 @@ data class GraphPatternFilterState(
 
             override fun process(delta: DataDelta) {
                 filter.process(delta)
+            }
+
+            override fun stats(base: Statistics): Statistics {
+                return Statistics.SelectiveElement(
+                    inner = Statistics.JoinedElement(left = base, right = filter.stats()),
+                    cardinality = null,
+                )
             }
 
             override fun debugInformation(): String = filter.debugInformation()
@@ -146,6 +182,15 @@ data class GraphPatternFilterState(
 
             override fun process(delta: DataDelta) {
                 filters.forEach { it.process(delta) }
+            }
+
+            override fun stats(base: Statistics): Statistics {
+                return filters.fold(base) { stats, filter ->
+                    Statistics.SelectiveElement(
+                        inner = Statistics.JoinedElement(left = stats, right = filter.stats()),
+                        cardinality = null,
+                    )
+                }
             }
 
             override fun debugInformation(): String =
@@ -189,9 +234,12 @@ data class GraphPatternFilterState(
         @JvmInline
         value class MultiFilter(private val filters: CollectedStream<StatelessFilter>): Stateless {
 
+            val count get() = filters.size
+
             override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
                 return filters.folded(input) { acc, element -> element.filter(acc) }
             }
+
         }
 
         companion object {

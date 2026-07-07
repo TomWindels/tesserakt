@@ -49,6 +49,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
         fun reindex(bindings: BindingIdentifierSet)
 
+        fun stats(): Statistics
+
         fun debugInformation(): String
 
         @JvmInline
@@ -74,6 +76,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
             override fun reindex(bindings: BindingIdentifierSet) {
                 state.reindex(bindings, hint = MappingArrayHint.DEFAULT)
+            }
+
+            override fun stats(): Statistics {
+                return state.stats()
             }
 
             override fun debugInformation(): String {
@@ -139,6 +145,16 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
             fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
                 buf.reindex(bindings, hint)
+            }
+
+            override fun stats(): Statistics {
+                return Statistics.SelectiveElement(
+                    inner = Statistics.JoinedElement(
+                        left = left.stats(),
+                        right = right.stats(),
+                    ),
+                    cardinality = cardinality,
+                )
             }
 
             override fun debugInformation() = buildString {
@@ -231,6 +247,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 // nothing to do
             }
 
+            override fun stats(): Statistics {
+                return Statistics.JoinedElement(left = left.stats(), right = right.stats())
+            }
+
             override fun debugInformation() = buildString {
                 var lines = left.debugInformation().lines()
                 if (lines.size > 2) {
@@ -318,6 +338,10 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
             }
             is Node.Leaf<*> -> root.reindex(bindings)
         }
+    }
+
+    override fun stats(): Statistics {
+        return root.stats()
     }
 
     override fun debugInformation() = buildString {

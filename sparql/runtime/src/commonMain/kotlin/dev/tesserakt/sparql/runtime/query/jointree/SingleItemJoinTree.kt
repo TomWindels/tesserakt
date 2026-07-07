@@ -4,6 +4,7 @@ import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.TriplePatternState
@@ -40,6 +41,10 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {
         return element.join(delta)
+    }
+
+    override fun stats(): Statistics {
+        return element.stats()
     }
 
     override fun debugInformation(): String = buildString {

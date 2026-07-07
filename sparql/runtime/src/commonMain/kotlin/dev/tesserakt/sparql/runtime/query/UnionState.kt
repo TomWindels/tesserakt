@@ -4,6 +4,7 @@ import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.GraphPatternSegment
@@ -36,6 +37,10 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 return state.join(delta)
             }
 
+            override fun stats(): Statistics {
+                return state.stats()
+            }
+
         }
 
         class SubqueryState(parent: SelectQuerySegment): Segment() {
@@ -57,6 +62,10 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 TODO("Not yet implemented")
             }
 
+            override fun stats(): Statistics {
+                TODO("Not yet implemented")
+            }
+
         }
 
         abstract val bindings: Set<String>
@@ -68,6 +77,8 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
         abstract fun process(delta: DataDelta)
 
         abstract fun join(delta: MappingDelta): Stream<MappingDelta>
+
+        abstract fun stats(): Statistics
 
     }
 
@@ -93,6 +104,29 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
     override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
         // TODO: not yet implemented
+    }
+
+    override fun stats(): Statistics {
+        val inner = when (state.size) {
+            0 -> return Statistics.Empty
+            1 -> {
+                state[0].stats()
+            }
+            else -> {
+                (1 ..< state.size).fold(state[0].stats()) { stats, i ->
+                    val state = state[i]
+                    Statistics.JoinedElement(left = stats, right = state.stats())
+                }
+            }
+        }
+        return if (Statistics.Mode isAtLeast Statistics.Mode.DETAILED) {
+            Statistics.DescriptionElement(
+                inner = inner,
+                description = "Union"
+            )
+        } else {
+            inner
+        }
     }
 
     companion object {

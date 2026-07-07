@@ -27,6 +27,8 @@ sealed interface ExclusionFilterState: MutableFilterState {
 
     override fun process(delta: DataDelta)
 
+    override fun stats(): Statistics
+
     override fun debugInformation(): String
 
     /**
@@ -119,6 +121,18 @@ sealed interface ExclusionFilterState: MutableFilterState {
             state.process(delta)
         }
 
+        override fun stats(): Statistics {
+            val inner = state.stats()
+            return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = "FILTER NOT EXISTS\nnarrow, ${commonBindingNames.size} common binding names"
+                )
+            } else {
+                inner
+            }
+        }
+
         override fun debugInformation(): String = buildString {
             appendLine("* Exclude graph filter (narrow)")
             append(state.debugInformation())
@@ -189,6 +203,18 @@ sealed interface ExclusionFilterState: MutableFilterState {
             }
             state.process(delta)
             check(count >= 0) { "Invalid internal state!" }
+        }
+
+        override fun stats(): Statistics {
+            val inner = state.stats()
+            return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = "FILTER NOT EXISTS\nbroad, active count $count"
+                )
+            } else {
+                inner
+            }
         }
 
         override fun debugInformation(): String = buildString {

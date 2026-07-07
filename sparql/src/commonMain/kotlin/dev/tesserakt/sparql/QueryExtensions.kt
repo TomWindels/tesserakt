@@ -49,7 +49,9 @@ fun <RT> Iterable<Quad>.query(
             .processAndGet(DataAddition(it.next()))
             .forEach { callback(it) }
     }
+    // FIXME only need one
     RuntimeStatistics.append(state.debugInformation())
+    RuntimeStatistics.append(state.stats().toString())
 }
 
 fun <RT> Iterable<Quad>.query(query: Query<RT>): List<RT> {
@@ -64,7 +66,9 @@ internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> {
     while (it.hasNext()) {
         query.process(DataAddition(it.next()))
     }
+    // FIXME only need one
     RuntimeStatistics.append(query.debugInformation())
+    RuntimeStatistics.append(query.stats().toString())
     return query.results.toList()
 }
 
