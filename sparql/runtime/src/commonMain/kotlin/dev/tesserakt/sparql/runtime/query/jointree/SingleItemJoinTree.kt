@@ -43,8 +43,8 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
         return element.join(delta)
     }
 
-    override fun stats(): Statistics {
-        return element.stats()
+    override fun stats(context: QueryContext): Statistics {
+        return element.stats(context)
     }
 
     override fun debugInformation(): String = buildString {

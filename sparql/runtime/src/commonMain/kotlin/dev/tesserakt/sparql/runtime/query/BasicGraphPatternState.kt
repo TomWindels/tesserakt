@@ -46,9 +46,9 @@ class BasicGraphPatternState(val context: QueryContext, ast: GraphPattern) {
         return filters.filter(group.join(delta))
     }
 
-    fun stats(): Statistics {
-        val base = group.stats()
-        return filters.stats(base)
+    fun stats(context: QueryContext): Statistics {
+        val base = group.stats(context)
+        return filters.stats(context, base)
     }
 
     fun debugInformation() = buildString {

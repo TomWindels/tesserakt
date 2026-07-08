@@ -32,16 +32,16 @@ class ReindexableMappingArray(
         active.add(mapping)
     }
 
-    override fun addAll(mappings: Iterable<Mapping>) {
-        active.addAll(mappings)
+    override fun addAll(mappings: Iterable<Mapping>): Int {
+        return active.addAll(mappings)
     }
 
     override fun remove(mapping: Mapping) {
         active.remove(mapping)
     }
 
-    override fun removeAll(mappings: Iterable<Mapping>) {
-        active.removeAll(mappings)
+    override fun removeAll(mappings: Iterable<Mapping>): Int {
+        return active.removeAll(mappings)
     }
 
     fun reindex(context: QueryContext, bindings: Iterable<String>, hint: MappingArrayHint = MappingArrayHint.DEFAULT) {

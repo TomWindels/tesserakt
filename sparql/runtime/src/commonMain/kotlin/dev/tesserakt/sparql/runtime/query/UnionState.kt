@@ -37,8 +37,8 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 return state.join(delta)
             }
 
-            override fun stats(): Statistics {
-                return state.stats()
+            override fun stats(context: QueryContext): Statistics {
+                return state.stats(context)
             }
 
         }
@@ -62,7 +62,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 TODO("Not yet implemented")
             }
 
-            override fun stats(): Statistics {
+            override fun stats(context: QueryContext): Statistics {
                 TODO("Not yet implemented")
             }
 
@@ -78,7 +78,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
         abstract fun join(delta: MappingDelta): Stream<MappingDelta>
 
-        abstract fun stats(): Statistics
+        abstract fun stats(context: QueryContext): Statistics
 
     }
 
@@ -106,16 +106,16 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
         // TODO: not yet implemented
     }
 
-    override fun stats(): Statistics {
+    override fun stats(context: QueryContext): Statistics {
         val inner = when (state.size) {
             0 -> return Statistics.Empty
             1 -> {
-                state[0].stats()
+                state[0].stats(context)
             }
             else -> {
-                (1 ..< state.size).fold(state[0].stats()) { stats, i ->
+                (1 ..< state.size).fold(state[0].stats(context)) { stats, i ->
                     val state = state[i]
-                    Statistics.JoinedElement(left = stats, right = state.stats())
+                    Statistics.JoinedElement(left = stats, right = state.stats(context))
                 }
             }
         }

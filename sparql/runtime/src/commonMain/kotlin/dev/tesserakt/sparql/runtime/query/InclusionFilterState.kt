@@ -27,7 +27,7 @@ sealed interface InclusionFilterState: MutableFilterState {
 
     override fun process(delta: DataDelta)
 
-    override fun stats(): Statistics
+    override fun stats(context: QueryContext): Statistics
 
     override fun debugInformation(): String
 
@@ -121,12 +121,12 @@ sealed interface InclusionFilterState: MutableFilterState {
             state.process(delta)
         }
 
-        override fun stats(): Statistics {
-            val inner = state.stats()
+        override fun stats(context: QueryContext): Statistics {
+            val inner = state.stats(context)
             return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
                 Statistics.DescriptionElement(
                     inner = inner,
-                    description = "FILTER EXISTS\nnarrow, ${commonBindingNames.size} common binding names"
+                    description = "FILTER EXISTS\nnarrow, bindings ${commonBindingNames.asIntIterable().joinToString { bindingId -> context.resolveBinding(bindingId) }}"
                 )
             } else {
                 inner
@@ -179,8 +179,8 @@ sealed interface InclusionFilterState: MutableFilterState {
             }
         }
 
-        override fun stats(): Statistics {
-            val inner = state.stats()
+        override fun stats(context: QueryContext): Statistics {
+            val inner = state.stats(context)
             return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
                 Statistics.DescriptionElement(
                     inner = inner,

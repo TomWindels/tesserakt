@@ -16,4 +16,8 @@ value class ExpressionFilter private constructor(private val compiled: FilterExp
         return input.filtered { compiled.test(it.value) }
     }
 
+    override fun toString(): String {
+        return compiled.toString()
+    }
+
 }

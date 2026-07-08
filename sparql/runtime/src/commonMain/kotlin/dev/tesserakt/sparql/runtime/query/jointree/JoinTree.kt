@@ -3,6 +3,7 @@ package dev.tesserakt.sparql.runtime.query.jointree
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
@@ -30,7 +31,7 @@ interface JoinTree : MutableJoinState {
      */
     override fun join(delta: MappingDelta): Stream<MappingDelta>
 
-    override fun stats(): Statistics
+    override fun stats(context: QueryContext): Statistics
 
     /**
      * Returns a string containing debug information (runtime statistics)

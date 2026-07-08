@@ -14,6 +14,7 @@ import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.matches
 import dev.tesserakt.sparql.util.Cardinality
+import kotlin.math.absoluteValue
 
 sealed class TriplePatternState<P : TriplePattern.Predicate>(
     val context: QueryContext,
@@ -33,16 +34,19 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
 
         override val cardinality get() = data.cardinality
 
+        final override var changeCount = 0L
+            private set
+
         final override fun process(delta: DataDelta) {
             when (delta) {
                 is DataAddition -> {
                     val new = peek(delta)
-                    data.addAll(new)
+                    changeCount += data.addAll(new)
                 }
 
                 is DataDeletion -> {
                     val removed = peek(delta)
-                    data.removeAll(removed)
+                    changeCount += data.removeAll(removed)
                 }
             }
         }
@@ -155,6 +159,10 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
             )
         }
 
+        // TODO: use the inner state to increment the count every time a triple became part of the segment list
+        override val changeCount: Long
+            get() = -1
+
         override val cardinality: Cardinality
             get() = state.cardinality
 
@@ -198,6 +206,9 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         override val cardinality: Cardinality
             get() = Cardinality(states.sumOf { it.cardinality.toDouble() })
 
+        override val changeCount: Long
+            get() = states.sumOf { it.changeCount }
+
         override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
@@ -235,6 +246,9 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         override val cardinality: Cardinality
             get() = Cardinality(states.sumOf { it.cardinality.toDouble() })
 
+        override val changeCount: Long
+            get() = states.sumOf { it.changeCount }
+
         override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
@@ -266,11 +280,25 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
     ) : TriplePatternState<TriplePattern.Sequence>(context, s, p, o) {
 
         private val tree = JoinTree.from(context, p.unfold(start = s, end = o))
+
         override val cardinality: Cardinality
             get() = tree.cardinality
 
+        override var changeCount = 0L
+            private set
+
         override fun process(delta: DataDelta) {
+            val prev = tree.cardinality.value.toLong()
             tree.process(delta)
+            // the change count for a sequence is a bit unique: as the main goal of the change count is to track
+            //  how frequent it emits new mappings as a source, tracking the changes to individual segment elements
+            //  is not very insightful (as it is possible these individual elements never make up a full sequence and
+            //  thus do not contribute much to query performance)
+            // therefore, the changecount for this element is represented by the changes observed in the cardinality of
+            //  the sequence 'root' element
+            // this means we have to convert the double representation, which may come with
+            //  precision errors
+            changeCount += (tree.cardinality.value.toLong() - prev).absoluteValue
         }
 
         override fun peek(delta: DataAddition): Stream<Mapping> {
@@ -297,11 +325,26 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
     ) : TriplePatternState<TriplePattern.UnboundSequence>(context, subj, pred, obj) {
 
         private val tree = JoinTree.from(context, pred.unfold(start = subj, end = obj))
+
         override val cardinality: Cardinality
             get() = tree.cardinality
 
+        override var changeCount = 0L
+            private set
+
+
         override fun process(delta: DataDelta) {
+            val prev = tree.cardinality.value.toLong()
             tree.process(delta)
+            // the change count for a sequence is a bit unique: as the main goal of the change count is to track
+            //  how frequent it emits new mappings as a source, tracking the changes to individual segment elements
+            //  is not very insightful (as it is possible these individual elements never make up a full sequence and
+            //  thus do not contribute much to query performance)
+            // therefore, the changecount for this element is represented by the changes observed in the cardinality of
+            //  the sequence 'root' element
+            // this means we have to convert the double representation, which may come with
+            //  precision errors
+            changeCount += (tree.cardinality.value.toLong() - prev).absoluteValue
         }
 
         override fun peek(delta: DataAddition): Stream<Mapping> {
@@ -319,6 +362,11 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         }
 
     }
+
+    /**
+     * The sum of all insertions and deletions, used to track the 'stress' put on this specific triple pattern
+     */
+    protected abstract val changeCount: Long
 
     final override val bindings: Set<String> = bindingNamesOf(s, p, o)
 
@@ -371,12 +419,14 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         }.optimisedForReuse() // peek()s are already optimised, and mapping doesn't change that, so this is guaranteed to be a type wrapping
     }
 
-    final override fun stats(): Statistics {
+    final override fun stats(context: QueryContext): Statistics {
         val description = when (Statistics.Mode.current) {
+            Statistics.Mode.STRUCTURE_ONLY,
             Statistics.Mode.HIGH_LEVEL -> {
-                return Statistics.SingleElement(cardinality = cardinality)
+                return Statistics.SingleElement(cardinality = cardinality, changeCount = changeCount)
             }
             Statistics.Mode.DETAILED -> {
+                // avoiding 'generated' bindings, which lead with a ` `, to be formatted poorly
                 fun TriplePattern.Binding.description(): String =
                     if (name[0] == ' ') "?_${name.substring(1)}" else "?$name"
                 val s = when (s) {
@@ -405,7 +455,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
                 "$s $p $o"
             }
         }
-        val inner = Statistics.SingleElement(cardinality = cardinality)
+        val inner = Statistics.SingleElement(cardinality = cardinality, changeCount = changeCount)
         return Statistics.DescriptionElement(inner = inner, description = description)
     }
 

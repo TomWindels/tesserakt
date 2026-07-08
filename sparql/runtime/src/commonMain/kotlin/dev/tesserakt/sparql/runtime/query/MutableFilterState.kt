@@ -3,6 +3,7 @@ package dev.tesserakt.sparql.runtime.query
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
 
@@ -25,7 +26,7 @@ interface MutableFilterState {
 
     fun process(delta: DataDelta)
 
-    fun stats(): Statistics
+    fun stats(context: QueryContext): Statistics
 
     fun debugInformation(): String
 

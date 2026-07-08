@@ -1,7 +1,6 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
 import dev.tesserakt.sparql.util.Cardinality
-import kotlin.jvm.JvmInline
 
 /**
  * Base statistics type, used to observe query state (e.g. explaining a join plan, behaviour of the state w.r.t. certain
@@ -10,8 +9,24 @@ import kotlin.jvm.JvmInline
 sealed interface Statistics {
 
     enum class Mode {
+        /**
+         * Only retain the logical structure of the query evaluation operators, with no descriptions.
+         */
+        STRUCTURE_ONLY,
+
+        /**
+         * Provide a high level set of query structure descriptions
+         */
         HIGH_LEVEL,
+
+        /**
+         * Provide more detailed query structure definitions
+         */
         DETAILED,
+
+        /**
+         * Provide all possible information with the query structure
+         */
         VERBOSE,
         ;
 
@@ -21,7 +36,7 @@ sealed interface Statistics {
                 private set
 
             infix fun isAtLeast(mode: Mode) : Boolean {
-                return current.ordinal <= mode.ordinal
+                return current.ordinal >= mode.ordinal
             }
 
             fun setMode(mode: Mode) {
@@ -88,13 +103,13 @@ sealed interface Statistics {
     }
 
     /**
-     * A single query element, simply holding a set of elements, resulting in a given cardinality (e.g. X triples
-     *  matching a single triple pattern).
+     * A single query element, simply holding a set of elements, resulting in a given cardinality (e.g. X bindings
+     *  matching a single triple pattern), and the change count (e.g. X triples being inserted + Y of those X triples
+     *  having been removed matching a triple pattern).
      */
-    @JvmInline
-    value class SingleElement(val cardinality: Cardinality) : Statistics {
+    data class SingleElement(val cardinality: Cardinality, val changeCount: Long) : Statistics {
         override fun toString(): String {
-            return "* cardinality: $cardinality"
+            return "* cardinality: $cardinality\n* change count: $changeCount"
         }
     }
 

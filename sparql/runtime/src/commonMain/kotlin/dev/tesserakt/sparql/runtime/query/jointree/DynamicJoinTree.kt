@@ -49,7 +49,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
         fun reindex(bindings: BindingIdentifierSet)
 
-        fun stats(): Statistics
+        fun stats(context: QueryContext): Statistics
 
         fun debugInformation(): String
 
@@ -78,8 +78,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 state.reindex(bindings, hint = MappingArrayHint.DEFAULT)
             }
 
-            override fun stats(): Statistics {
-                return state.stats()
+            override fun stats(context: QueryContext): Statistics {
+                return state.stats(context)
             }
 
             override fun debugInformation(): String {
@@ -147,11 +147,11 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 buf.reindex(bindings, hint)
             }
 
-            override fun stats(): Statistics {
+            override fun stats(context: QueryContext): Statistics {
                 return Statistics.SelectiveElement(
                     inner = Statistics.JoinedElement(
-                        left = left.stats(),
-                        right = right.stats(),
+                        left = left.stats(context),
+                        right = right.stats(context),
                     ),
                     cardinality = cardinality,
                 )
@@ -247,8 +247,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 // nothing to do
             }
 
-            override fun stats(): Statistics {
-                return Statistics.JoinedElement(left = left.stats(), right = right.stats())
+            override fun stats(context: QueryContext): Statistics {
+                return Statistics.JoinedElement(left = left.stats(context), right = right.stats(context))
             }
 
             override fun debugInformation() = buildString {
@@ -340,8 +340,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
         }
     }
 
-    override fun stats(): Statistics {
-        return root.stats()
+    override fun stats(context: QueryContext): Statistics {
+        return root.stats(context)
     }
 
     override fun debugInformation() = buildString {

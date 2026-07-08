@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.emptyStream
@@ -39,7 +40,7 @@ data object EmptyJoinTree: JoinTree {
         // nothing to do
     }
 
-    override fun stats(): Statistics {
+    override fun stats(context: QueryContext): Statistics {
         return Statistics.Empty
     }
 

@@ -80,7 +80,7 @@ class CompleteHashMappingArray(
         cardinality += 1
     }
 
-    override fun addAll(mappings: Iterable<Mapping>) {
+    override fun addAll(mappings: Iterable<Mapping>): Int {
         if (mappings is Collection<Mapping>) {
             mappings.forEach { mapping ->
                 val hash = mapping.retain(indexBindingSet).values()
@@ -93,8 +93,11 @@ class CompleteHashMappingArray(
                 arr.add(mapping)
             }
             cardinality += mappings.size
+            return mappings.size
         } else {
-            mappings.forEach { add(it) }
+            var i = 0
+            mappings.forEach { add(it); ++i }
+            return i
         }
     }
 
@@ -119,7 +122,7 @@ class CompleteHashMappingArray(
         cardinality -= 1
     }
 
-    override fun removeAll(mappings: Iterable<Mapping>) {
+    override fun removeAll(mappings: Iterable<Mapping>): Int {
         if (mappings is Collection<Mapping>) {
             mappings.forEach { mapping ->
                 val hash = mapping.retain(indexBindingSet).values()
@@ -141,8 +144,11 @@ class CompleteHashMappingArray(
                 }
             }
             cardinality -= mappings.size
+            return mappings.size
         } else {
-            mappings.forEach { remove(it) }
+            var i = 0
+            mappings.forEach { remove(it); ++i }
+            return i
         }
     }
 
