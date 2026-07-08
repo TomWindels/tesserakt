@@ -68,11 +68,4 @@ class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions
         return Statistics.JoinedElement(left = patterns.stats(context), right = unions.stats(context))
     }
 
-    fun debugInformation() = buildString {
-        appendLine("* Patterns")
-        append(patterns.debugInformation())
-        appendLine("* Unions")
-        append(unions.debugInformation())
-    }
-
 }

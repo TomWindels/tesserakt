@@ -47,11 +47,6 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
         return element.stats(context)
     }
 
-    override fun debugInformation(): String = buildString {
-        appendLine(" * Join tree statistics (SingleItem)")
-        appendLine("\t $element")
-    }
-
     override fun reindex(
         bindings: BindingIdentifierSet,
         hint: MappingArrayHint

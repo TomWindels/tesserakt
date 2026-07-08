@@ -1,7 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
@@ -52,7 +51,6 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         }
 
         final override fun join(delta: MappingDelta): Stream<MappingDelta> {
-            RuntimeStatistics.onArrayPatternJoinExecuted()
             val removed = (delta.origin as? DataDeletion)?.value
             return if (removed != null) {
                 val ignored = peek(removed)

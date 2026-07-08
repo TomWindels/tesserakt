@@ -28,6 +28,4 @@ interface MutableFilterState {
 
     fun stats(context: QueryContext): Statistics
 
-    fun debugInformation(): String
-
 }

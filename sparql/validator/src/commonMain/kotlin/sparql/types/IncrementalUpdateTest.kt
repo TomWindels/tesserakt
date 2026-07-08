@@ -5,6 +5,7 @@ import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.query
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -41,7 +42,7 @@ class IncrementalUpdateTest(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
             strictOrdering = hasStrictOrdering,
-            debugInformation = ongoing.debugInformation()
+            statistics = ongoing.stats()
         )
         // building it up
         store.forEach { quad ->
@@ -54,7 +55,7 @@ class IncrementalUpdateTest(
                 self = elapsedTime to current,
                 reference = reference(),
                 strictOrdering = hasStrictOrdering,
-                debugInformation = ongoing.debugInformation()
+                statistics = ongoing.stats()
             )
         }
         // breaking it back down
@@ -68,7 +69,7 @@ class IncrementalUpdateTest(
                 self = elapsedTime to current,
                 reference = reference(),
                 strictOrdering = hasStrictOrdering,
-                debugInformation = ongoing.debugInformation()
+                statistics = ongoing.stats()
             )
         }
         builder.build()
@@ -92,7 +93,7 @@ class IncrementalUpdateTest(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
                 strictOrdering: Boolean,
-                debugInformation: String,
+                statistics: Statistics,
             ) {
                 list.add(
                     compare(
@@ -101,7 +102,7 @@ class IncrementalUpdateTest(
                         expected = reference.second,
                         referenceTime = reference.first,
                         strictOrdering = strictOrdering,
-                        debugInformation = debugInformation
+                        statistics = statistics
                     )
                 )
             }

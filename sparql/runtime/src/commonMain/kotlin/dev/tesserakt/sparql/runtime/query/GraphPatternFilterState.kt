@@ -75,8 +75,6 @@ data class GraphPatternFilterState(
         return stateful.stats(context, base)
     }
 
-    fun debugInformation(): String = stateful.debugInformation()
-
     sealed interface Stateful {
 
         /**
@@ -97,8 +95,6 @@ data class GraphPatternFilterState(
         fun process(delta: DataDelta)
 
         fun stats(context: QueryContext, base: Statistics): Statistics
-
-        fun debugInformation(): String
 
         data object Unfiltered: Stateful {
 
@@ -124,8 +120,6 @@ data class GraphPatternFilterState(
             override fun stats(context: QueryContext, base: Statistics): Statistics {
                 return base
             }
-
-            override fun debugInformation(): String = "Not filtered"
 
         }
 
@@ -158,8 +152,6 @@ data class GraphPatternFilterState(
                     cardinality = null,
                 )
             }
-
-            override fun debugInformation(): String = filter.debugInformation()
 
         }
 
@@ -206,13 +198,6 @@ data class GraphPatternFilterState(
                     )
                 }
             }
-
-            override fun debugInformation(): String =
-                filters
-                    .withIndex()
-                    .joinToString("\n") {
-                        "* Filter #${it.index + 1}\n\t${it.value.debugInformation()}"
-                    }
 
         }
 

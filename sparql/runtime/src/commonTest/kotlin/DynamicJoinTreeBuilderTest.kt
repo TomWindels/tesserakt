@@ -3,7 +3,9 @@ import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTreeBuilder
@@ -35,6 +37,8 @@ class DynamicJoinTreeBuilderTest {
         override fun peek(delta: DataDelta) = throw UnsupportedOperationException()
 
         override fun process(delta: DataDelta) = throw UnsupportedOperationException()
+
+        override fun stats(context: QueryContext) = throw UnsupportedOperationException()
 
         override fun toString() = "Node(bindings=${bindings}, indexes=${indexes})"
 
@@ -244,7 +248,7 @@ class DynamicJoinTreeBuilderTest {
             try {
                 test(tree)
             } catch (t: Throwable) {
-                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}\nTree structure:\n${tree.debugInformation()}", t)
+                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}\nTree structure:\n${tree.stats(GlobalQueryContext)}", t)
             }
             ++i
         }

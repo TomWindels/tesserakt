@@ -49,6 +49,4 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
         return bgpState.stats(context)
     }
 
-    fun debugInformation() = bgpState.debugInformation()
-
 }

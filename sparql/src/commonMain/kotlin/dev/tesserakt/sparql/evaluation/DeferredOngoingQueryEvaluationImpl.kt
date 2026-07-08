@@ -5,6 +5,7 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.query.QueryState
 import kotlin.jvm.JvmInline
 
@@ -62,8 +63,8 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(private val query: QuerySt
         store.removeListener(listener)
     }
 
-    override fun debugInformation(): String {
-        return query.debugInformation()
+    override fun stats(): Statistics {
+        return query.stats()
     }
 
     /**

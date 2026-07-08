@@ -51,8 +51,6 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
         fun stats(context: QueryContext): Statistics
 
-        fun debugInformation(): String
-
         @JvmInline
         value class Leaf<J: MutableJoinState>(val state: J): Node<J> {
 
@@ -82,9 +80,6 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 return state.stats(context)
             }
 
-            override fun debugInformation(): String {
-                return "leaf\n$state"
-            }
         }
 
         class Connected<J: MutableJoinState>(
@@ -157,56 +152,6 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 )
             }
 
-            override fun debugInformation() = buildString {
-                var lines = left.debugInformation().lines()
-                if (lines.size > 2) {
-                    repeat(lines.size / 2) {
-                        appendLine("   ${lines[it]}")
-                    }
-                    append(" ┌ ")
-                    appendLine(lines[lines.size / 2])
-                    (lines.size / 2 + 1 until lines.size - 1).forEach {
-                        append(" │ ")
-                        appendLine(lines[it])
-                    }
-                    append("/└ ")
-                    appendLine(lines.last())
-                } else {
-                    append(" ┌ ")
-                    appendLine(lines.first())
-                    repeat(lines.size - 2) {
-                        append(" │ ")
-                        appendLine(lines[it + 1])
-                    }
-                    append("/└ ")
-                    appendLine(lines.last())
-                }
-                appendLine("⨉ cached: $buf")
-                lines = right.debugInformation().lines()
-                if (lines.size > 2) {
-                    repeat(lines.size / 2) {
-                        appendLine("   ${lines[it]}")
-                    }
-                    append("\\┌ ")
-                    appendLine(lines[lines.size / 2])
-                    (lines.size / 2 + 1 until lines.size - 1).forEach {
-                        append(" │ ")
-                        appendLine(lines[it])
-                    }
-                    append(" └ ")
-                    append(lines.last())
-                } else {
-                    append("\\┌ ")
-                    appendLine(lines.first())
-                    repeat(lines.size - 2) {
-                        append(" │ ")
-                        appendLine(lines[it + 1])
-                    }
-                    append(" └ ")
-                    append(lines.last())
-                }
-            }
-
         }
 
         class Disconnected<J: MutableJoinState>(
@@ -251,56 +196,6 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 return Statistics.JoinedElement(left = left.stats(context), right = right.stats(context))
             }
 
-            override fun debugInformation() = buildString {
-                var lines = left.debugInformation().lines()
-                if (lines.size > 2) {
-                    repeat(lines.size / 2) {
-                        appendLine("   ${lines[it]}")
-                    }
-                    append(" ┌ ")
-                    appendLine(lines[lines.size / 2])
-                    (lines.size / 2 + 1 until lines.size - 1).forEach {
-                        append(" │ ")
-                        appendLine(lines[it])
-                    }
-                    append("/└ ")
-                    appendLine(lines.last())
-                } else {
-                    append(" ┌ ")
-                    appendLine(lines.first())
-                    repeat(lines.size - 2) {
-                        append(" │ ")
-                        appendLine(lines[it + 1])
-                    }
-                    append("/└ ")
-                    appendLine(lines.last())
-                }
-                appendLine("⨉ not cached")
-                lines = right.debugInformation().lines()
-                if (lines.size > 2) {
-                    repeat(lines.size / 2) {
-                        appendLine("   ${lines[it]}")
-                    }
-                    append("\\┌ ")
-                    appendLine(lines[lines.size / 2])
-                    (lines.size / 2 + 1 until lines.size - 1).forEach {
-                        append(" │ ")
-                        appendLine(lines[it])
-                    }
-                    append(" └ ")
-                    append(lines.last())
-                } else {
-                    append("\\┌ ")
-                    appendLine(lines.first())
-                    repeat(lines.size - 2) {
-                        append(" │ ")
-                        appendLine(lines[it + 1])
-                    }
-                    append(" └ ")
-                    append(lines.last())
-                }
-            }
-
         }
 
     }
@@ -342,11 +237,6 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
     override fun stats(context: QueryContext): Statistics {
         return root.stats(context)
-    }
-
-    override fun debugInformation() = buildString {
-        appendLine(" * Join tree statistics (Dynamic)")
-        appendLine(root.debugInformation().prependIndent("    "))
     }
 
     companion object {

@@ -2,8 +2,8 @@ package sparql.types
 
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.runtime.RuntimeStatistics
+import dev.tesserakt.sparql.queryWithStatistics
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import dev.tesserakt.util.toTruncatedString
@@ -19,8 +19,11 @@ class OutputComparisonTest(
 
     override suspend fun test() = runTest {
         val actual: List<Bindings>
+        val statistics: Statistics
         val elapsedTime = measureTime {
-            actual = store.query(query)
+            val result = store.queryWithStatistics(query)
+            actual = result.first
+            statistics = result.second
         }
         val external = ExternalQueryExecution(queryString, store)
         val expected: List<Bindings>
@@ -37,14 +40,7 @@ class OutputComparisonTest(
             elapsedTime = elapsedTime,
             referenceTime = referenceTime,
             strictOrdering = hasStrictOrdering,
-            debugInformation = buildString {
-                val report = RuntimeStatistics.report()
-                if (report.isNotBlank()) {
-                    // only adding the newline with the report if there is one
-                    appendLine(report)
-                }
-                append(external.report())
-            }
+            statistics = statistics,
         )
     }
 
@@ -60,7 +56,7 @@ class OutputComparisonTest(
         val missing: List<Bindings>,
         val elapsedTime: Duration,
         val referenceTime: Duration,
-        val debugInformation: String
+        val statistics: Statistics
     ) : Test.Result {
 
         fun isNotEmpty() = leftOver.isNotEmpty() || missing.isNotEmpty()
@@ -85,11 +81,8 @@ class OutputComparisonTest(
             append(" binding(s) (")
             append(referenceTime)
             append("):\n\t")
-            append(expected.toTruncatedString(500))
-            if (debugInformation.isNotBlank()) {
-                append("\n * ")
-                append(debugInformation)
-            }
+            appendLine(expected.toTruncatedString(500))
+            append(statistics)
         }
 
         companion object {
@@ -100,14 +93,14 @@ class OutputComparisonTest(
                 elapsedTime: Duration,
                 referenceTime: Duration,
                 strictOrdering: Boolean,
-                debugInformation: String
+                statistics: Statistics,
             ): Result = compare(
                 received = received,
                 expected = expected,
                 elapsedTime = elapsedTime,
                 referenceTime = referenceTime,
                 strictOrdering = strictOrdering,
-                debugInformation = debugInformation
+                statistics = statistics
             )
         }
 

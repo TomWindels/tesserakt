@@ -51,9 +51,4 @@ class BasicGraphPatternState(val context: QueryContext, ast: GraphPattern) {
         return filters.stats(context, base)
     }
 
-    fun debugInformation() = buildString {
-        append(group.debugInformation())
-        append(filters.debugInformation())
-    }
-
 }

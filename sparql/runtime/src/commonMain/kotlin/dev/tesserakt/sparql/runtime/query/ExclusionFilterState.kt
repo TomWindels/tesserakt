@@ -29,8 +29,6 @@ sealed interface ExclusionFilterState: MutableFilterState {
 
     override fun stats(context: QueryContext): Statistics
 
-    override fun debugInformation(): String
-
     /**
      * The typical exclude filter, where its internal state affects parts of the results from its parent; those
      *  affected have shared binding names, represented using the [commonBindingNames]
@@ -133,12 +131,6 @@ sealed interface ExclusionFilterState: MutableFilterState {
             }
         }
 
-        override fun debugInformation(): String = buildString {
-            appendLine("* Exclude graph filter (narrow)")
-            append(state.debugInformation())
-            append("blocking ${filtered.current.size} binding variants: ${filtered.current.joinToString()}")
-        }
-
     }
 
     /**
@@ -215,12 +207,6 @@ sealed interface ExclusionFilterState: MutableFilterState {
             } else {
                 inner
             }
-        }
-
-        override fun debugInformation(): String = buildString {
-            appendLine("* Exclude graph filter (wide)")
-            append(state.debugInformation())
-            append("blocking all binding variants: ${count > 0}")
         }
 
     }

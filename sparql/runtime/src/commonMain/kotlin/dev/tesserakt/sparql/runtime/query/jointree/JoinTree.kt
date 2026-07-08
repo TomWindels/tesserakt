@@ -33,11 +33,6 @@ interface JoinTree : MutableJoinState {
 
     override fun stats(context: QueryContext): Statistics
 
-    /**
-     * Returns a string containing debug information (runtime statistics)
-     */
-    fun debugInformation(): String = " * Join tree statistics unavailable (implementation: ${this::class.simpleName})\n"
-
     companion object
 
 }
