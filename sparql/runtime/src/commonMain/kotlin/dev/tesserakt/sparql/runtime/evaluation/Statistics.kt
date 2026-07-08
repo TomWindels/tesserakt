@@ -60,7 +60,8 @@ sealed interface Statistics {
      * A description added to a (set of) statistic nodes, used to identify what parts of a query correspond to
      *  certain statistics properties
      */
-    data class DescriptionElement(val inner: Statistics, val description: String) : Statistics {
+    @ConsistentCopyVisibility
+    data class DescriptionElement internal constructor(val inner: Statistics, val description: String) : Statistics {
 
         override fun toString(): String {
             val inner = inner.toString().lines()
@@ -107,7 +108,8 @@ sealed interface Statistics {
      *  matching a single triple pattern), and the change count (e.g. X triples being inserted + Y of those X triples
      *  having been removed matching a triple pattern).
      */
-    data class SingleElement(val cardinality: Cardinality, val changeCount: Long) : Statistics {
+    @ConsistentCopyVisibility
+    data class SingleElement internal constructor(val cardinality: Cardinality, val changeCount: Long) : Statistics {
         override fun toString(): String {
             return "* cardinality: $cardinality\n* change count: $changeCount"
         }
@@ -132,7 +134,7 @@ sealed interface Statistics {
         }
 
         companion object {
-            operator fun invoke(left: Statistics, right: Statistics) = when {
+            internal operator fun invoke(left: Statistics, right: Statistics) = when {
                 left is Empty && right is Empty -> Empty
                 left is Empty -> right
                 right is Empty -> left
@@ -148,7 +150,8 @@ sealed interface Statistics {
      * The [cardinality] can be `null` in cases where the cardinality is not cached / known for a given
      *  element (e.g. a specific `FILTER` expression)
      */
-    data class SelectiveElement(val inner: Statistics, val cardinality: Cardinality?) : Statistics {
+    @ConsistentCopyVisibility
+    data class SelectiveElement internal constructor(val inner: Statistics, val cardinality: Cardinality?) : Statistics {
         override fun toString(): String {
             val cardinalityDescription = if (cardinality != null) {
                 "< cardinality: $cardinality"
