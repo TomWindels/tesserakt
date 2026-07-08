@@ -162,6 +162,52 @@ sealed interface Statistics {
         }
     }
 
+    /**
+     * Creates a new instance of this element compared to the [reference] element (difference in change count).
+     * This method fails if the structure mismatches with the [reference], yielding an [IllegalArgumentException].
+     *
+     * This is mainly intended for scenarios where the impact of data changes is to be observed w.r.t. the query
+     *  structure.
+     */
+    fun diff(reference: Statistics): Statistics {
+        if (!reference::class.isInstance(reference)) {
+            throw IllegalArgumentException("Tree structure mismatch!")
+        }
+        return when (this) {
+            Empty -> Empty
+            is DescriptionElement -> {
+                reference as DescriptionElement
+                // the actual description may mismatch; this is not considered a structural mismatch, so instead we want
+                //  to keep the most up-to-date version of the description (= ours)
+                this.copy(
+                    inner = this.inner.diff(reference.inner)
+                )
+            }
+            is JoinedElement -> {
+                reference as JoinedElement
+                JoinedElement(
+                    left = left.diff(reference.left),
+                    right = right.diff(reference.right),
+                )
+            }
+            is SelectiveElement -> {
+                reference as SelectiveElement
+                this.copy(
+                    inner = inner.diff(reference.inner),
+                    // we do not alter the cardinality; it could become negative otherwise, which is not meaningful
+                )
+            }
+            is SingleElement -> {
+                reference as SingleElement
+                // we do not alter the cardinality; it could become negative otherwise, which is not meaningful
+                this.copy(
+                    // if used properly, the change count should still be >= 0, as changes only increment over time
+                    changeCount = this.changeCount - reference.changeCount,
+                )
+            }
+        }
+    }
+
 }
 
 private class StatsBlock(stats: Statistics) {
