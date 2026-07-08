@@ -5,6 +5,7 @@ import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluation
 import dev.tesserakt.sparql.queryDeferred
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -42,7 +43,7 @@ class IncrementalDeferredUpdateTest(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
             strictOrdering = hasStrictOrdering,
-            debugInformation = ongoing.debugInformation()
+            statistics = ongoing.stats()
         )
         // building it up
         store.forEach { quad ->
@@ -55,7 +56,7 @@ class IncrementalDeferredUpdateTest(
                 self = elapsedTime to current,
                 reference = reference(),
                 strictOrdering = hasStrictOrdering,
-                debugInformation = ongoing.debugInformation()
+                statistics = ongoing.stats()
             )
         }
         // breaking it back down
@@ -69,7 +70,7 @@ class IncrementalDeferredUpdateTest(
                 self = elapsedTime to current,
                 reference = reference(),
                 strictOrdering = hasStrictOrdering,
-                debugInformation = ongoing.debugInformation()
+                statistics = ongoing.stats()
             )
         }
         builder.build()
@@ -92,7 +93,7 @@ class IncrementalDeferredUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
-                debugInformation: String,
+                statistics: Statistics,
                 strictOrdering: Boolean,
             ) {
                 list.add(
@@ -102,7 +103,7 @@ class IncrementalDeferredUpdateTest(
                         expected = reference.second,
                         strictOrdering = strictOrdering,
                         referenceTime = reference.first,
-                        debugInformation = debugInformation
+                        statistics = statistics
                     )
                 )
             }

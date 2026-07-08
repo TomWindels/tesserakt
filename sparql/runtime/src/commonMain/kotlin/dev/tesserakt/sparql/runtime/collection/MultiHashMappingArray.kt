@@ -192,8 +192,10 @@ class MultiHashMappingArray(
     /**
      * Adds all mappings to the backing array and indexes it accordingly.
      */
-    override fun addAll(mappings: Iterable<Mapping>) {
-        mappings.forEach { add(it) }
+    override fun addAll(mappings: Iterable<Mapping>): Int {
+        var i = 0
+        mappings.forEach { add(it); ++i }
+        return i
     }
 
     override fun remove(mapping: Mapping) {
@@ -210,8 +212,10 @@ class MultiHashMappingArray(
         cardinality -= 1
     }
 
-    override fun removeAll(mappings: Iterable<Mapping>) {
-        mappings.forEach { remove(it )}
+    override fun removeAll(mappings: Iterable<Mapping>): Int {
+        var i = 0
+        mappings.forEach { remove(it ); ++i }
+        return i
     }
 
     override fun toString(): String =

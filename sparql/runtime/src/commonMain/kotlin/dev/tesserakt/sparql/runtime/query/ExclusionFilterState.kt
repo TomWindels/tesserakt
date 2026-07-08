@@ -27,7 +27,7 @@ sealed interface ExclusionFilterState: MutableFilterState {
 
     override fun process(delta: DataDelta)
 
-    override fun debugInformation(): String
+    override fun stats(context: QueryContext): Statistics
 
     /**
      * The typical exclude filter, where its internal state affects parts of the results from its parent; those
@@ -119,10 +119,16 @@ sealed interface ExclusionFilterState: MutableFilterState {
             state.process(delta)
         }
 
-        override fun debugInformation(): String = buildString {
-            appendLine("* Exclude graph filter (narrow)")
-            append(state.debugInformation())
-            append("blocking ${filtered.current.size} binding variants: ${filtered.current.joinToString()}")
+        override fun stats(context: QueryContext): Statistics {
+            val inner = state.stats(context)
+            return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = "FILTER NOT EXISTS\nnarrow, bindings ${commonBindingNames.asIntIterable().joinToString { bindingId -> context.resolveBinding(bindingId) }}"
+                )
+            } else {
+                inner
+            }
         }
 
     }
@@ -191,10 +197,16 @@ sealed interface ExclusionFilterState: MutableFilterState {
             check(count >= 0) { "Invalid internal state!" }
         }
 
-        override fun debugInformation(): String = buildString {
-            appendLine("* Exclude graph filter (wide)")
-            append(state.debugInformation())
-            append("blocking all binding variants: ${count > 0}")
+        override fun stats(context: QueryContext): Statistics {
+            val inner = state.stats(context)
+            return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = "FILTER NOT EXISTS\nbroad, active count $count"
+                )
+            } else {
+                inner
+            }
         }
 
     }

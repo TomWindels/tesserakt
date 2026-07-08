@@ -30,10 +30,16 @@ interface MappingArray {
 
     fun add(mapping: Mapping)
 
-    fun addAll(mappings: Iterable<Mapping>)
+    /**
+     * Adds all [mappings] into the backing structure, returning the number of elements that were added
+     */
+    fun addAll(mappings: Iterable<Mapping>): Int
 
     fun remove(mapping: Mapping)
 
-    fun removeAll(mappings: Iterable<Mapping>)
+    /**
+     * Removes all [mappings] from the backing structure, returning the number of elements that were removed
+     */
+    fun removeAll(mappings: Iterable<Mapping>): Int
 
 }

@@ -12,7 +12,6 @@ import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.types.SelectQueryStructure
 import dev.tesserakt.util.printerrln
 import sparql.ExternalQueryExecution
@@ -106,7 +105,7 @@ suspend fun compareIncrementalStoreReplay(benchmarkFilepath: String) {
             val comparison = OutputComparisonTest.Result.from(
                 received = received,
                 expected = solution,
-                debugInformation = "${RuntimeStatistics.report()}${external.report()}",
+                statistics = evaluation.stats(),
                 elapsedTime = time,
                 strictOrdering = compiled.ordering != null,
                 referenceTime = reference

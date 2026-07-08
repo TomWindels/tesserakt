@@ -6,8 +6,8 @@ import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluation
 import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluationImpl
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluationImpl
-import dev.tesserakt.sparql.runtime.RuntimeStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.query.QueryState
 import dev.tesserakt.sparql.types.SelectQueryStructure
 
@@ -37,7 +37,6 @@ fun <RT> Iterable<Quad>.query(
         throw UnsupportedOperationException("The query contains solution sequence modifiers (ORDER BY, LIMIT and/or OFFSET), which is not supported through this API. Use regular `query()` methods instead, which expose the entire result collection at all times, which do adhere to these solution modifiers, or create a new query without these modifiers.")
     }
     val state = query.createState()
-    RuntimeStatistics.reset()
     // setting initial state
     state.results.forEach {
         callback(QueryState.ResultChange.New(it))
@@ -49,7 +48,6 @@ fun <RT> Iterable<Quad>.query(
             .processAndGet(DataAddition(it.next()))
             .forEach { callback(it) }
     }
-    RuntimeStatistics.append(state.debugInformation())
 }
 
 fun <RT> Iterable<Quad>.query(query: Query<RT>): List<RT> {
@@ -57,14 +55,17 @@ fun <RT> Iterable<Quad>.query(query: Query<RT>): List<RT> {
     return query(queryState)
 }
 
+fun <RT> Iterable<Quad>.queryWithStatistics(query: Query<RT>): Pair<List<RT>, Statistics> {
+    val queryState = query.createState()
+    return query(queryState) to queryState.stats()
+}
+
 internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> {
-    RuntimeStatistics.reset()
     // now incrementally evaluating the input
     val it = this@query.iterator()
     while (it.hasNext()) {
         query.process(DataAddition(it.next()))
     }
-    RuntimeStatistics.append(query.debugInformation())
     return query.results.toList()
 }
 

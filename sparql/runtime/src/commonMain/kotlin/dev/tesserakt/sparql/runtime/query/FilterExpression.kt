@@ -17,17 +17,47 @@ import kotlin.jvm.JvmInline
 class FilterExpression(val context: QueryContext, expr: Expression) {
 
     sealed interface OperationValue {
+
         object Unbound: OperationValue {
             override fun equals(other: Any?) = false
         }
+
         @JvmInline
-        value class SingleValue(val term: Quad.Element) : OperationValue
+        value class SingleValue(val term: Quad.Element) : OperationValue {
+
+            override fun toString(): String {
+                return term.toString()
+            }
+
+        }
+
         @JvmInline
-        value class DateValue(val value: DateTime) : OperationValue
+        value class DateValue(val value: DateTime) : OperationValue {
+
+            override fun toString(): String {
+                return value.toString()
+            }
+
+        }
+
         @JvmInline
-        value class SingleValueIdentifier(val term: TermIdentifier) : OperationValue
+        value class SingleValueIdentifier(val term: TermIdentifier) : OperationValue {
+
+            override fun toString(): String {
+                return term.toString()
+            }
+
+        }
+
         @JvmInline
-        value class SingleMapping(val mapping: Mapping) : OperationValue
+        value class SingleMapping(val mapping: Mapping) : OperationValue {
+
+            override fun toString(): String {
+                return mapping.toString()
+            }
+
+        }
+
     }
 
     fun interface Operation {
@@ -42,7 +72,17 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                         ValueLookUpOperation(binding = BindingIdentifier(context, name = expr.name))
 
                     is UriValue ->
-                        Operation { OperationValue.SingleValue(term = expr.uri) }
+                        object: Operation {
+
+                            override fun eval(input: OperationValue): OperationValue {
+                                return OperationValue.SingleValue(term = expr.uri)
+                            }
+
+                            override fun toString(): String {
+                                return expr.uri.toString()
+                            }
+
+                        }
 
                     is Calculation -> when (expr.operator) {
                         Calculation.Operator.SUM -> Sum(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
@@ -80,6 +120,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 return (comparison == 0).asLiteralTerm().into()
             }
 
+            override fun toString(): String {
+                return "($left) == ($right)"
+            }
+
         }
 
         class NEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
@@ -87,6 +131,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison != 0).asLiteralTerm().into()
+            }
+
+            override fun toString(): String {
+                return "($left) != ($right)"
             }
 
         }
@@ -97,6 +145,11 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison < 0).asLiteralTerm().into()
             }
+
+            override fun toString(): String {
+                return "($left) < ($right)"
+            }
+
         }
 
 
@@ -106,6 +159,11 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison > 0).asLiteralTerm().into()
             }
+
+            override fun toString(): String {
+                return "($left) > ($right)"
+            }
+
         }
 
         class LTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
@@ -115,6 +173,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 return (comparison <= 0).asLiteralTerm().into()
             }
 
+            override fun toString(): String {
+                return "($left) <= ($right)"
+            }
+
         }
 
         class GTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
@@ -122,6 +184,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison >= 0).asLiteralTerm().into()
+            }
+
+            override fun toString(): String {
+                return "($left) >= ($right)"
             }
 
         }
@@ -210,6 +276,16 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             return eval(left, right).asLiteralTerm().into()
         }
 
+        override fun toString(): String {
+            val op = when (this) {
+                is Div -> '/'
+                is Mul -> '*'
+                is Sub -> '-'
+                is Sum -> '+'
+            }
+            return "($lhs) $op ($rhs)"
+        }
+
         abstract fun eval(lhs: Double, rhs: Double): Double
 
         class Sum(context: QueryContext, lhs: Operation, rhs: Operation) : MathOpEval(context, lhs, rhs) {
@@ -247,33 +323,55 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     }
 
     class AndEval(val lhs: Operation, val rhs: Operation) : Operation {
+
         override fun eval(input: OperationValue): OperationValue {
             return (lhs.eval(input).isTrue() && rhs.eval(input).isTrue()).asLiteralTerm().into()
         }
+
+        override fun toString(): String {
+            return "($lhs) && ($rhs)"
+        }
+
     }
 
     class OrEval(val lhs: Operation, val rhs: Operation) : Operation {
+
         override fun eval(input: OperationValue): OperationValue {
             return (lhs.eval(input).isTrue() || rhs.eval(input).isTrue()).asLiteralTerm().into()
         }
+
+        override fun toString(): String {
+            return "($lhs) || ($rhs)"
+        }
+
     }
 
     @JvmInline
-    private value class ValueLookUpOperation(private val binding: BindingIdentifier) : Operation {
+    private value class ValueLookUpOperation(val binding: BindingIdentifier) : Operation {
         override fun eval(input: OperationValue): OperationValue {
             return input.mapping.get(binding).into()
         }
+
+        override fun toString(): String {
+            return "?${binding.name}"
+        }
+
     }
 
     @JvmInline
-    private value class ConstantValueOperation<V: OperationValue>(private val constant: V) : Operation {
+    private value class ConstantValueOperation<V: OperationValue>(val constant: V) : Operation {
 
         override fun eval(input: OperationValue): OperationValue {
             return constant
         }
+
+        override fun toString(): String {
+            return constant.toString()
+        }
+
     }
 
-    private class BooleanCoercionOperation(val context: QueryContext, private val parent: Operation) : Operation {
+    private class BooleanCoercionOperation(val context: QueryContext, val parent: Operation) : Operation {
 
         override fun eval(input: OperationValue): OperationValue {
             val result = parent.eval(input).getTerm(context)
@@ -291,12 +389,22 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 }
             }
         }
+
+        override fun toString(): String {
+            return "BOOL(${parent})"
+        }
+
     }
 
     private val root = BooleanCoercionOperation(context, parent = Operation.from(context, expr))
 
     fun test(mapping: Mapping): Boolean {
         return root.eval(mapping.into()).getTerm(context) == true.asLiteralTerm()
+    }
+
+    override fun toString(): String {
+        // we go one operation node deeper as a filter always coerces into a boolean
+        return root.parent.toString()
     }
 
     companion object {
@@ -331,44 +439,68 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
     object BuiltinFunction {
 
-        fun LANG(context: QueryContext, arg: Operation) = Operation {
-            val term = arg.evalToSingleQuadElementOrNull(context, it)
-            if (term !is Quad.LangString) {
-                return@Operation OperationValue.Unbound
+        fun LANG(context: QueryContext, arg: Operation) = object: Operation {
+
+            override fun eval(input: OperationValue): OperationValue {
+                val term = arg.evalToSingleQuadElementOrNull(context, input)
+                if (term !is Quad.LangString) {
+                    return OperationValue.Unbound
+                }
+                return term.language.asLiteralTerm().into()
             }
-            term.language.asLiteralTerm().into()
+
+            override fun toString(): String {
+                return "LANG($arg)"
+            }
+
         }
 
-        fun LANGMATCHES(context: QueryContext, tag: Operation, range: Operation) = Operation {
-            val tagValue = tag.evalToSingleQuadElementOrNull(context, it)
-            // simple literal expected, as we're doing string matching
-            if (tagValue !is Quad.SimpleLiteral) {
-                return@Operation OperationValue.Unbound
+        fun LANGMATCHES(context: QueryContext, tag: Operation, range: Operation) = object: Operation {
+
+            override fun eval(input: OperationValue): OperationValue {
+                val tagValue = tag.evalToSingleQuadElementOrNull(context, input)
+                // simple literal expected, as we're doing string matching
+                if (tagValue !is Quad.SimpleLiteral) {
+                    return OperationValue.Unbound
+                }
+                val tag = tagValue.value
+                // same goes for the tag range
+                val tagRange = range.evalToSingleQuadElementOrNull(context, input)
+                // simple literal expected, as we're doing string matching
+                if (tagRange !is Quad.SimpleLiteral || tagRange.type != XSD.string) {
+                    return OperationValue.Unbound
+                }
+                val range = tagRange.value
+                // now regular matching can be applied
+                // special case first, where "*" matches all (non-empty!) language tags
+                return if (range == "*") {
+                    tag.isNotEmpty().asLiteralTerm().into()
+                } else {
+                    val currentLang = tag.substringBefore('-')
+                    currentLang.contentEquals(range, ignoreCase = true).asLiteralTerm().into()
+                }
             }
-            val tag = tagValue.value
-            // same goes for the tag range
-            val tagRange = range.evalToSingleQuadElementOrNull(context, it)
-            // simple literal expected, as we're doing string matching
-            if (tagRange !is Quad.SimpleLiteral || tagRange.type != XSD.string) {
-                return@Operation OperationValue.Unbound
+
+            override fun toString(): String {
+                return "LANGMATCHES($tag, $range)"
             }
-            val range = tagRange.value
-            // now regular matching can be applied
-            // special case first, where "*" matches all (non-empty!) language tags
-            return@Operation if (range == "*") {
-                 tag.isNotEmpty().asLiteralTerm().into()
-            } else {
-                val currentLang = tag.substringBefore('-')
-                currentLang.contentEquals(range, ignoreCase = true).asLiteralTerm().into()
-            }
+
         }
 
-        fun DATETIME(context: QueryContext, param: Operation) = Operation {
-            val termValue = param.evalToSingleQuadElementOrNull(context, it)
-            if (termValue !is Quad.TypedLiteral || termValue.type != XSD.dateTime) {
-                return@Operation OperationValue.Unbound
+        fun DATETIME(context: QueryContext, param: Operation) = object: Operation {
+
+            override fun eval(input: OperationValue): OperationValue {
+                val termValue = param.evalToSingleQuadElementOrNull(context, input)
+                if (termValue !is Quad.TypedLiteral || termValue.type != XSD.dateTime) {
+                    return OperationValue.Unbound
+                }
+                return OperationValue.DateValue(DateTime.parse(termValue.value))
             }
-            OperationValue.DateValue(DateTime.parse(termValue.value))
+
+            override fun toString(): String {
+                return "DATETIME($param)"
+            }
+
         }
 
         fun from(context: QueryContext, call: FuncCall): Operation {

@@ -39,8 +39,10 @@ value class SimpleMappingArray(
         this.mappings.add(mapping)
     }
 
-    override fun addAll(mappings: Iterable<Mapping>) {
+    override fun addAll(mappings: Iterable<Mapping>): Int {
+        val current = this.mappings.size
         this.mappings.addAll(mappings)
+        return this.mappings.size - current
     }
 
     override fun remove(mapping: Mapping) {
@@ -59,8 +61,10 @@ value class SimpleMappingArray(
         }
     }
 
-    override fun removeAll(mappings: Iterable<Mapping>) {
+    override fun removeAll(mappings: Iterable<Mapping>): Int {
+        val previous = this.mappings.size
         mappings.forEach(::remove)
+        return previous - this.mappings.size
     }
 
     override fun toString() = "SimpleMappingArray (cardinality ${cardinality})"

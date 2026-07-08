@@ -64,11 +64,8 @@ class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions
         unions.reindex(bindings, hint)
     }
 
-    fun debugInformation() = buildString {
-        appendLine("* Patterns")
-        append(patterns.debugInformation())
-        appendLine("* Unions")
-        append(unions.debugInformation())
+    override fun stats(context: QueryContext): Statistics {
+        return Statistics.JoinedElement(left = patterns.stats(context), right = unions.stats(context))
     }
 
 }

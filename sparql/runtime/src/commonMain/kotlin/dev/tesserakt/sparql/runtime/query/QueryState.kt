@@ -45,6 +45,8 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     abstract fun process(data: DataDelta)
 
-    fun debugInformation() = bgpState.debugInformation()
+    fun stats(): Statistics {
+        return bgpState.stats(context)
+    }
 
 }

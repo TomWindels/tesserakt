@@ -11,6 +11,7 @@ import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -63,7 +64,7 @@ class RandomUpdateTest(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
             strictOrdering = hasStrictOrdering,
-            debugInformation = ongoing.debugInformation()
+            statistics = ongoing.stats()
         )
         repeat(iterations) { i ->
             // and processing it
@@ -84,7 +85,7 @@ class RandomUpdateTest(
                 self = elapsedTime to current,
                 reference = reference(),
                 strictOrdering = hasStrictOrdering,
-                debugInformation = ongoing.debugInformation()
+                statistics = ongoing.stats()
             )
         }
         builder.build()
@@ -114,7 +115,7 @@ class RandomUpdateTest(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
                 strictOrdering: Boolean,
-                debugInformation: String,
+                statistics: Statistics,
             ) {
                 list.add(
                     compare(
@@ -123,7 +124,7 @@ class RandomUpdateTest(
                         expected = reference.second,
                         referenceTime = reference.first,
                         strictOrdering = strictOrdering,
-                        debugInformation = debugInformation
+                        statistics = statistics
                     )
                 )
             }
