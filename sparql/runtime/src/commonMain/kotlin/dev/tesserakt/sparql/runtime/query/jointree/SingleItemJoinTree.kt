@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
@@ -43,8 +44,8 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
         return element.join(delta)
     }
 
-    override fun stats(context: QueryContext): Statistics {
-        return element.stats(context)
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+        return element.stats(context, granularity)
     }
 
     override fun reindex(

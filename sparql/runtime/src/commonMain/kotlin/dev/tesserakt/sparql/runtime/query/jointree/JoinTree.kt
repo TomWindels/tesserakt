@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
@@ -31,7 +32,7 @@ interface JoinTree : MutableJoinState {
      */
     override fun join(delta: MappingDelta): Stream<MappingDelta>
 
-    override fun stats(context: QueryContext): Statistics
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
     companion object
 

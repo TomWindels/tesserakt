@@ -6,12 +6,12 @@ import dev.tesserakt.rdf.types.factory.MutableStore
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Query
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.query
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -115,7 +115,7 @@ class RandomUpdateTest(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
                 strictOrdering: Boolean,
-                statistics: Statistics,
+                statistics: QueryStatistics,
             ) {
                 list.add(
                     compare(

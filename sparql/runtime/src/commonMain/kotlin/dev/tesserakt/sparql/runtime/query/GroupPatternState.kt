@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
@@ -64,8 +65,8 @@ class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions
         unions.reindex(bindings, hint)
     }
 
-    override fun stats(context: QueryContext): Statistics {
-        return Statistics.JoinedElement(left = patterns.stats(context), right = unions.stats(context))
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+        return Statistics.JoinedElement(left = patterns.stats(context, granularity), right = unions.stats(context, granularity))
     }
 
 }

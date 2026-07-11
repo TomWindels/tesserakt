@@ -1,51 +1,13 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.util.Cardinality
 
 /**
  * Base statistics type, used to observe query state (e.g. explaining a join plan, behaviour of the state w.r.t. certain
  *  changes, ...).
  */
-sealed interface Statistics {
-
-    enum class Mode {
-        /**
-         * Only retain the logical structure of the query evaluation operators, with no descriptions.
-         */
-        STRUCTURE_ONLY,
-
-        /**
-         * Provide a high level set of query structure descriptions
-         */
-        HIGH_LEVEL,
-
-        /**
-         * Provide more detailed query structure definitions
-         */
-        DETAILED,
-
-        /**
-         * Provide all possible information with the query structure
-         */
-        VERBOSE,
-        ;
-
-        companion object {
-
-            var current: Mode = DETAILED
-                private set
-
-            infix fun isAtLeast(mode: Mode) : Boolean {
-                return current.ordinal >= mode.ordinal
-            }
-
-            fun setMode(mode: Mode) {
-                current = mode
-            }
-
-        }
-
-    }
+sealed interface Statistics: QueryStatistics {
 
     /**
      * The empty case: an empty join tree, empty UNION block, ...
@@ -162,14 +124,7 @@ sealed interface Statistics {
         }
     }
 
-    /**
-     * Creates a new instance of this element compared to the [reference] element (difference in change count).
-     * This method fails if the structure mismatches with the [reference], yielding an [IllegalArgumentException].
-     *
-     * This is mainly intended for scenarios where the impact of data changes is to be observed w.r.t. the query
-     *  structure.
-     */
-    fun diff(reference: Statistics): Statistics {
+    override fun diff(reference: QueryStatistics): Statistics {
         if (!reference::class.isInstance(reference)) {
             throw IllegalArgumentException("Tree structure mismatch!")
         }

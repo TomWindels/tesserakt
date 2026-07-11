@@ -2,7 +2,7 @@ package sparql.types
 
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.TestFilter
 import dev.tesserakt.testing.testEnv
@@ -43,7 +43,7 @@ fun compare(
     elapsedTime: Duration,
     referenceTime: Duration,
     strictOrdering: Boolean,
-    statistics: Statistics
+    statistics: QueryStatistics
 ): OutputComparisonTest.Result {
     val comparison = if (strictOrdering) {
         orderedBindingComparisonOf(expected, received)

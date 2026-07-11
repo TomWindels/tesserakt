@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
@@ -40,7 +41,7 @@ data object EmptyJoinTree: JoinTree {
         // nothing to do
     }
 
-    override fun stats(context: QueryContext): Statistics {
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
         return Statistics.Empty
     }
 

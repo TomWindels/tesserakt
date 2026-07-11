@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.evaluation
 
 import dev.tesserakt.rdf.types.ObservableStore
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
+import dev.tesserakt.sparql.QueryStatistics
 
 /**
  * An ongoing query evaluation, queuing up changes made to attached [ObservableStore]s until [results] are
@@ -21,6 +21,6 @@ interface DeferredOngoingQueryEvaluation<RT> {
 
     fun unsubscribe(store: ObservableStore)
 
-    fun stats(): Statistics
+    fun stats(granularity: QueryStatistics.Granularity = QueryStatistics.Granularity.DETAILED): QueryStatistics
 
 }

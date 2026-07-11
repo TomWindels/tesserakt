@@ -1,9 +1,9 @@
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
@@ -38,7 +38,7 @@ class DynamicJoinTreeBuilderTest {
 
         override fun process(delta: DataDelta) = throw UnsupportedOperationException()
 
-        override fun stats(context: QueryContext) = throw UnsupportedOperationException()
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity) = throw UnsupportedOperationException()
 
         override fun toString() = "Node(bindings=${bindings}, indexes=${indexes})"
 
@@ -248,7 +248,7 @@ class DynamicJoinTreeBuilderTest {
             try {
                 test(tree)
             } catch (t: Throwable) {
-                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}\nTree structure:\n${tree.stats(GlobalQueryContext)}", t)
+                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}\nTree structure:\n${tree.stats(GlobalQueryContext, granularity = QueryStatistics.Granularity.VERBOSE)}", t)
             }
             ++i
         }

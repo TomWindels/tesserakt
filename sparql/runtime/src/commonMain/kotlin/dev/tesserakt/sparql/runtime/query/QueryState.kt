@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.compat.Compat
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
@@ -45,8 +46,8 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     abstract fun process(data: DataDelta)
 
-    fun stats(): Statistics {
-        return bgpState.stats(context)
+    fun stats(granularity: QueryStatistics.Granularity): Statistics {
+        return bgpState.stats(context, granularity)
     }
 
 }

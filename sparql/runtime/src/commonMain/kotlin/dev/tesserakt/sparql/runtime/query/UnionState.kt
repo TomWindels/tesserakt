@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
@@ -37,8 +38,8 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 return state.join(delta)
             }
 
-            override fun stats(context: QueryContext): Statistics {
-                return state.stats(context)
+            override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+                return state.stats(context, granularity)
             }
 
         }
@@ -62,7 +63,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 TODO("Not yet implemented")
             }
 
-            override fun stats(context: QueryContext): Statistics {
+            override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
                 TODO("Not yet implemented")
             }
 
@@ -78,7 +79,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
         abstract fun join(delta: MappingDelta): Stream<MappingDelta>
 
-        abstract fun stats(context: QueryContext): Statistics
+        abstract fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
     }
 
@@ -106,20 +107,30 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
         // TODO: not yet implemented
     }
 
-    override fun stats(context: QueryContext): Statistics {
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+        fun Statistics.describedAsSegment(): Statistics =
+            if (granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
+                Statistics.DescriptionElement(inner = this, description = "Union segment")
+            } else {
+                this
+            }
+
         val inner = when (state.size) {
             0 -> return Statistics.Empty
             1 -> {
-                state[0].stats(context)
+                state[0].stats(context, granularity).describedAsSegment()
             }
             else -> {
-                (1 ..< state.size).fold(state[0].stats(context)) { stats, i ->
+                (1 ..< state.size).fold(state[0].stats(context, granularity).describedAsSegment()) { stats, i ->
                     val state = state[i]
-                    Statistics.JoinedElement(left = stats, right = state.stats(context))
+                    Statistics.JoinedElement(
+                        left = stats,
+                        right = state.stats(context, granularity).describedAsSegment()
+                    )
                 }
             }
         }
-        return if (Statistics.Mode isAtLeast Statistics.Mode.DETAILED) {
+        return if (granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
             Statistics.DescriptionElement(
                 inner = inner,
                 description = "Union"

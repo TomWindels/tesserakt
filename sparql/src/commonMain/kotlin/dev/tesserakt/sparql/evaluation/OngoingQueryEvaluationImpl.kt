@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.evaluation
 
 import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
@@ -33,8 +34,8 @@ internal class OngoingQueryEvaluationImpl<RT>(private val query: QueryState<RT, 
         store.removeListener(listener)
     }
 
-    override fun stats(): Statistics {
-        return query.stats()
+    override fun stats(granularity: QueryStatistics.Granularity): Statistics {
+        return query.stats(granularity)
     }
 
     private fun add(quad: Quad) {

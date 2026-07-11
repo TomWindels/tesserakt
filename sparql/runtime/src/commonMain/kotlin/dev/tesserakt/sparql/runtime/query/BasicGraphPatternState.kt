@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
@@ -46,9 +47,9 @@ class BasicGraphPatternState(val context: QueryContext, ast: GraphPattern) {
         return filters.filter(group.join(delta))
     }
 
-    fun stats(context: QueryContext): Statistics {
-        val base = group.stats(context)
-        return filters.stats(context, base)
+    fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+        val base = group.stats(context, granularity)
+        return filters.stats(context, base, granularity)
     }
 
 }

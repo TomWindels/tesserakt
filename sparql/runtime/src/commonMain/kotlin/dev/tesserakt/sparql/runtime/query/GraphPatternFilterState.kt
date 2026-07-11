@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
@@ -39,40 +40,35 @@ data class GraphPatternFilterState(
         stateful.process(delta)
     }
 
-    fun stats(context: QueryContext, base: Statistics): Statistics {
-        val base = if (stateless !is Stateless.Unfiltered) {
-            val inner = Statistics.SelectiveElement(inner = base, cardinality = null)
-            if (Statistics.Mode isAtLeast Statistics.Mode.DETAILED) {
-                val description = buildString {
-                    when (stateless) {
-                        is Stateless.MultiFilter -> {
-                            append(stateless.filters.size)
-                            append(" expression filters")
-                            stateless.filters.forEach { filter ->
-                                append("\n * ")
-                                append(filter)
-                            }
-                        }
-                        is Stateless.SingleFilter -> {
-                            append("1 expression filter\n * ")
-                            append(stateless.filter)
-                        }
-                        Stateless.Unfiltered -> {
-                            /* cannot happen here */
+    fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
+        val base = stateful.stats(context, base, granularity)
+        return if (stateless !is Stateless.Unfiltered && granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
+            val description = buildString {
+                when (stateless) {
+                    is Stateless.MultiFilter -> {
+                        append(stateless.filters.size)
+                        append(" expression filters")
+                        stateless.filters.forEach { filter ->
+                            append("\n * ")
+                            append(filter)
                         }
                     }
+                    is Stateless.SingleFilter -> {
+                        append("1 expression filter\n * ")
+                        append(stateless.filter)
+                    }
+                    Stateless.Unfiltered -> {
+                        /* cannot happen here */
+                    }
                 }
-                Statistics.DescriptionElement(
-                    inner = inner,
-                    description = description,
-                )
-            } else {
-                inner
             }
+            Statistics.DescriptionElement(
+                inner = base,
+                description = description,
+            )
         } else {
             base
         }
-        return stateful.stats(context, base)
     }
 
     sealed interface Stateful {
@@ -94,7 +90,7 @@ data class GraphPatternFilterState(
 
         fun process(delta: DataDelta)
 
-        fun stats(context: QueryContext, base: Statistics): Statistics
+        fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics
 
         data object Unfiltered: Stateful {
 
@@ -117,7 +113,7 @@ data class GraphPatternFilterState(
                 // nothing to do, no filters applicable
             }
 
-            override fun stats(context: QueryContext, base: Statistics): Statistics {
+            override fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
                 return base
             }
 
@@ -146,11 +142,8 @@ data class GraphPatternFilterState(
                 filter.process(delta)
             }
 
-            override fun stats(context: QueryContext, base: Statistics): Statistics {
-                return Statistics.SelectiveElement(
-                    inner = Statistics.JoinedElement(left = base, right = filter.stats(context)),
-                    cardinality = null,
-                )
+            override fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
+                return Statistics.JoinedElement(left = base, right = filter.stats(context, granularity))
             }
 
         }
@@ -190,12 +183,9 @@ data class GraphPatternFilterState(
                 filters.forEach { it.process(delta) }
             }
 
-            override fun stats(context: QueryContext, base: Statistics): Statistics {
+            override fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
                 return filters.fold(base) { stats, filter ->
-                    Statistics.SelectiveElement(
-                        inner = Statistics.JoinedElement(left = stats, right = filter.stats(context)),
-                        cardinality = null,
-                    )
+                    Statistics.JoinedElement(left = stats, right = filter.stats(context, granularity))
                 }
             }
 

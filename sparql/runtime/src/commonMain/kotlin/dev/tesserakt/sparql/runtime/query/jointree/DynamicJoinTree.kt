@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
@@ -49,7 +50,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
         fun reindex(bindings: BindingIdentifierSet)
 
-        fun stats(context: QueryContext): Statistics
+        fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
         @JvmInline
         value class Leaf<J: MutableJoinState>(val state: J): Node<J> {
@@ -76,8 +77,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 state.reindex(bindings, hint = MappingArrayHint.DEFAULT)
             }
 
-            override fun stats(context: QueryContext): Statistics {
-                return state.stats(context)
+            override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+                return state.stats(context, granularity)
             }
 
         }
@@ -142,11 +143,11 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 buf.reindex(bindings, hint)
             }
 
-            override fun stats(context: QueryContext): Statistics {
+            override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
                 return Statistics.SelectiveElement(
                     inner = Statistics.JoinedElement(
-                        left = left.stats(context),
-                        right = right.stats(context),
+                        left = left.stats(context, granularity),
+                        right = right.stats(context, granularity),
                     ),
                     cardinality = cardinality,
                 )
@@ -192,8 +193,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
                 // nothing to do
             }
 
-            override fun stats(context: QueryContext): Statistics {
-                return Statistics.JoinedElement(left = left.stats(context), right = right.stats(context))
+            override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+                return Statistics.JoinedElement(left = left.stats(context, granularity), right = right.stats(context, granularity))
             }
 
         }
@@ -235,8 +236,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
         }
     }
 
-    override fun stats(context: QueryContext): Statistics {
-        return root.stats(context)
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+        return root.stats(context, granularity)
     }
 
     companion object {

@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
@@ -417,13 +418,13 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
         }.optimisedForReuse() // peek()s are already optimised, and mapping doesn't change that, so this is guaranteed to be a type wrapping
     }
 
-    final override fun stats(context: QueryContext): Statistics {
-        val description = when (Statistics.Mode.current) {
-            Statistics.Mode.STRUCTURE_ONLY,
-            Statistics.Mode.HIGH_LEVEL -> {
+    final override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+        val description = when (granularity) {
+            QueryStatistics.Granularity.STRUCTURE_ONLY,
+            QueryStatistics.Granularity.HIGH_LEVEL -> {
                 return Statistics.SingleElement(cardinality = cardinality, changeCount = changeCount)
             }
-            Statistics.Mode.DETAILED -> {
+            QueryStatistics.Granularity.DETAILED -> {
                 // avoiding 'generated' bindings, which lead with a ` `, to be formatted poorly
                 fun TriplePattern.Binding.description(): String =
                     if (name[0] == ' ') "?_${name.substring(1)}" else "?$name"
@@ -449,7 +450,7 @@ sealed class TriplePatternState<P : TriplePattern.Predicate>(
                 }
                 "$s $p $o"
             }
-            Statistics.Mode.VERBOSE -> {
+            QueryStatistics.Granularity.VERBOSE -> {
                 "$s $p $o"
             }
         }

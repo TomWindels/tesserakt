@@ -3,9 +3,9 @@ package sparql.types
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluation
 import dev.tesserakt.sparql.queryDeferred
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -93,7 +93,7 @@ class IncrementalDeferredUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
-                statistics: Statistics,
+                statistics: QueryStatistics,
                 strictOrdering: Boolean,
             ) {
                 list.add(

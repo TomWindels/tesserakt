@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
@@ -27,7 +28,7 @@ sealed interface ExclusionFilterState: MutableFilterState {
 
     override fun process(delta: DataDelta)
 
-    override fun stats(context: QueryContext): Statistics
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
     /**
      * The typical exclude filter, where its internal state affects parts of the results from its parent; those
@@ -119,9 +120,9 @@ sealed interface ExclusionFilterState: MutableFilterState {
             state.process(delta)
         }
 
-        override fun stats(context: QueryContext): Statistics {
-            val inner = state.stats(context)
-            return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            val inner = state.stats(context, granularity)
+            return if (granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
                 Statistics.DescriptionElement(
                     inner = inner,
                     description = "FILTER NOT EXISTS\nnarrow, bindings ${commonBindingNames.asIntIterable().joinToString { bindingId -> context.resolveBinding(bindingId) }}"
@@ -197,9 +198,9 @@ sealed interface ExclusionFilterState: MutableFilterState {
             check(count >= 0) { "Invalid internal state!" }
         }
 
-        override fun stats(context: QueryContext): Statistics {
-            val inner = state.stats(context)
-            return if (Statistics.Mode isAtLeast Statistics.Mode.VERBOSE) {
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            val inner = state.stats(context, granularity)
+            return if (granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
                 Statistics.DescriptionElement(
                     inner = inner,
                     description = "FILTER NOT EXISTS\nbroad, active count $count"

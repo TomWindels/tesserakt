@@ -2,8 +2,8 @@ package sparql.types
 
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.queryWithStatistics
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import dev.tesserakt.util.toTruncatedString
@@ -19,9 +19,9 @@ class OutputComparisonTest(
 
     override suspend fun test() = runTest {
         val actual: List<Bindings>
-        val statistics: Statistics
+        val statistics: QueryStatistics
         val elapsedTime = measureTime {
-            val result = store.queryWithStatistics(query)
+            val result = store.queryWithStatistics(query, granularity = QueryStatistics.Granularity.DETAILED)
             actual = result.first
             statistics = result.second
         }
@@ -56,7 +56,7 @@ class OutputComparisonTest(
         val missing: List<Bindings>,
         val elapsedTime: Duration,
         val referenceTime: Duration,
-        val statistics: Statistics
+        val statistics: QueryStatistics
     ) : Test.Result {
 
         fun isNotEmpty() = leftOver.isNotEmpty() || missing.isNotEmpty()
@@ -93,7 +93,7 @@ class OutputComparisonTest(
                 elapsedTime: Duration,
                 referenceTime: Duration,
                 strictOrdering: Boolean,
-                statistics: Statistics,
+                statistics: QueryStatistics,
             ): Result = compare(
                 received = received,
                 expected = expected,

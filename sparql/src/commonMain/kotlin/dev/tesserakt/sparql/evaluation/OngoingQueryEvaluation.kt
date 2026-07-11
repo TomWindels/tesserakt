@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.evaluation
 
 import dev.tesserakt.rdf.types.ObservableStore
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
+import dev.tesserakt.sparql.QueryStatistics
 
 interface OngoingQueryEvaluation<RT> {
 
@@ -11,6 +11,6 @@ interface OngoingQueryEvaluation<RT> {
 
     fun unsubscribe(store: ObservableStore)
 
-    fun stats(): Statistics
+    fun stats(granularity: QueryStatistics.Granularity = QueryStatistics.Granularity.DETAILED): QueryStatistics
 
 }

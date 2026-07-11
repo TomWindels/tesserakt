@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
@@ -44,6 +45,6 @@ interface MutableJoinState {
      */
     fun process(delta: DataDelta)
 
-    fun stats(context: QueryContext): Statistics
+    fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
 }

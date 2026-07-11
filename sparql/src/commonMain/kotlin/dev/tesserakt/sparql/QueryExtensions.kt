@@ -55,9 +55,9 @@ fun <RT> Iterable<Quad>.query(query: Query<RT>): List<RT> {
     return query(queryState)
 }
 
-fun <RT> Iterable<Quad>.queryWithStatistics(query: Query<RT>): Pair<List<RT>, Statistics> {
+fun <RT> Iterable<Quad>.queryWithStatistics(query: Query<RT>, granularity: QueryStatistics.Granularity): Pair<List<RT>, Statistics> {
     val queryState = query.createState()
-    return query(queryState) to queryState.stats()
+    return query(queryState) to queryState.stats(granularity)
 }
 
 internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> {
