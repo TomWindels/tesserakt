@@ -1,8 +1,9 @@
 package dev.tesserakt.rdf.types
 
 import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.storeOf
+import dev.tesserakt.rdf.types.factory.indexedStoreOf
 import dev.tesserakt.stream.ldes.IndexedVersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.MutableVersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.StreamTransform
@@ -56,13 +57,16 @@ class SnapshotStore private constructor(
     }
 
     class Builder(
-        start: Store = storeOf(),
+        start: IndexedStore = indexedStoreOf(),
         private val clustering: SnapshotClustering = NaiveSnapshotClustering
     ) {
 
         private val snapshots = mutableListOf(start)
 
         fun addSnapshot(store: Store): Builder {
+            // making it indexed before we do the `!=` check, as that also
+            //  leverages indexes if present
+            val store = IndexedStore(store)
             if (snapshots.last() != store) {
                 snapshots.add(store)
             }

@@ -8,6 +8,7 @@ import dev.tesserakt.rdf.serialization.trig.withPrefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.sparql.benchmark.replay.RBO
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import dev.tesserakt.stream.ldes.ontology.DC
@@ -73,7 +74,7 @@ class ReplayBenchmarkTest {
         }
 
         val snapshotStore = SnapshotStore
-            .Builder(start = first)
+            .Builder(start = IndexedStore(first))
             .addSnapshot(second)
             .addSnapshot(third)
             .build("snapshotStore".asNamedTerm())

@@ -9,6 +9,7 @@ import dev.tesserakt.rdf.serialization.trig.withPrefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 import dev.tesserakt.stream.ldes.ontology.TREE
@@ -33,7 +34,7 @@ class SnapshotStoreImplTest {
         }
 
         val snapshotStore = SnapshotStore
-            .Builder(start = first)
+            .Builder(start = IndexedStore(first))
             .addSnapshot(second)
             .addSnapshot(third)
             .build("snapshotStore".asNamedTerm())
