@@ -109,6 +109,11 @@ inline infix fun IntRange.shifted(shift: Int): IntRange = (first + shift) .. (la
 expect inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform: (V?) -> V?)
 
 /**
+ * A custom version of the `stdlib` [getOrPut], so the lookup is only done once on supported platforms (e.g. JVM).
+ */
+expect inline fun <K, V> MutableMap<K, V>.getOrInsert(key: K, crossinline default: () -> V): V
+
+/**
  * Drops at most one occurrence of every element inside [elements]. Order of the returned list is not guaranteed! If
  *  none of the [elements] are present inside this list, the original instance is returned.
  */

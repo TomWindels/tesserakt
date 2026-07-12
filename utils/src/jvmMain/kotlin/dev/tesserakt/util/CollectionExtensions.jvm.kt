@@ -8,6 +8,13 @@ actual inline fun <K, V> MutableMap<K, V>.replace(key: K, crossinline transform:
 }
 
 /**
+ * A custom version of 'stdlib's `getOrPut`, so the lookup is only done once on supported platforms (e.g. JVM).
+ */
+actual inline fun <K, V> MutableMap<K, V>.getOrInsert(key: K, crossinline default: () -> V): V {
+    return computeIfAbsent(key) { _ -> default() }
+}
+
+/**
  * A custom implementation of the [MutableList.removeFirst] method, implemented to make sure it resolves properly on
  *  Android 14 and below
  */
