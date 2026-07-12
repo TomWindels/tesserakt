@@ -7,6 +7,10 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class TermIdentifier(val id: Int) {
 
+    override fun toString(): String {
+        return "<[$id]>"
+    }
+
     companion object {
         fun QueryContext.get(term: TermIdentifier): Quad.Element = resolveTerm(id = term.id)
     }

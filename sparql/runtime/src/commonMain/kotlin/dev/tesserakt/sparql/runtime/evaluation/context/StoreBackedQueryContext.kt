@@ -1,19 +1,21 @@
 package dev.tesserakt.sparql.runtime.evaluation.context
 
+import dev.tesserakt.rdf.types.EncodingContext
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
 import dev.tesserakt.sparql.types.QueryStructure
 
-class BitsetQueryContext(ast: QueryStructure): QueryContext {
+class StoreBackedQueryContext(
+    ast: QueryStructure,
+    /**
+     * The context used by the data source, used to map between term IDs and term values
+     */
+    private val context: EncodingContext
+) : QueryContext {
 
     private val bindings = BindingsContext(ast)
-
-    private val terms = mutableMapOf<Quad.Element, Int>()
-    // as terms are never removed from an active context, we can keep it as a regular list without risking IDs
-    // shifting over
-    private val termsLut = mutableListOf<Quad.Element>()
 
     override fun newAnonymousBinding(): Int {
         return bindings.newAnonymousBinding()
@@ -23,20 +25,24 @@ class BitsetQueryContext(ast: QueryStructure): QueryContext {
         return bindings.encode(value)
     }
 
-    override fun resolveTerm(value: Quad.Element): Int {
-        return terms.getOrPut(value) {
-            val i = terms.size
-            termsLut.add(value)
-            i
-        }
-    }
-
     override fun resolveBinding(id: Int): String {
         return bindings.decode(id)
     }
 
+    override fun resolveTerm(value: Quad.Element): Int {
+        // NOTE: if we support the creation of new quad elements within the query body (i.e. BIND expr) we should
+        //  expose the creation of such terms through a new dedicated method, which starts counting from Int.MAX_VALUE
+        //  downwards (or negative integers, starting from -1?)
+        //  then, when resolving, we can use bound checks to make sure we use the appropriate
+        //  context (store sourced term vs query generated term)
+        return context.encode(value)
+            ?: throw NoSuchElementException("Failed to encode term `$value`")
+    }
+
     override fun resolveTerm(id: Int): Quad.Element {
-        return termsLut[id]
+        // see note above
+        return context.decode(id)
+            ?: throw NoSuchElementException("Failed to decode term with ID $id")
     }
 
     override fun mappingFromValues(terms: Iterable<Pair<String, Quad.Element>>): BitsetMapping {

@@ -55,12 +55,24 @@ internal class MutableStoreImpl(quads: Collection<Quad> = emptyList()): Abstract
         return quads.add(EncodedQuad(context, element))
     }
 
+    // internal way of directly adding the encoded representation of a quad
+    // it is assumed the context used to encode the quad is the same as the context of this store
+    fun add(element: EncodedQuad): Boolean {
+        return quads.add(element)
+    }
+
     override fun remove(element: Quad): Boolean {
         // we don't want to 'pollute' our context with quad elements not present in our active context; if it's not in
         //  there, the encoded version can't be in there either
         val encoded = EncodedQuad(context.asReadOnlyEncodingContext(), element)
             ?: return false
         return quads.remove(encoded)
+    }
+
+    // internal way of directly removing the encoded representation of a quad
+    // it is assumed the context used to encode the quad is the same as the context of this store
+    fun remove(element: EncodedQuad): Boolean {
+        return quads.remove(element)
     }
 
     override fun addAll(elements: Collection<Quad>): Boolean {

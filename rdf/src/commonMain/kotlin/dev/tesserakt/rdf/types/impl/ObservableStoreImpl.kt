@@ -47,10 +47,13 @@ internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): Abstr
     }
 
     override fun add(element: Quad): Boolean {
-        return if (inner.add(element)) {
+        // we do the lookup here, so we only have to do it once to both add the value and use it in the callback
+        val encoded = EncodedQuad(context, element)
+        return if (inner.add(encoded)) {
             listeners.forEach {
                 try {
                     it.onQuadAdded(element)
+                    it.onQuadAddedEncoded(encoded)
                 } catch (e: Throwable) {
                     // TODO: maybe rollback for local data and other listeners?
                     // TODO: better exception type, or return a result type?
@@ -64,10 +67,16 @@ internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): Abstr
     }
 
     override fun remove(element: Quad): Boolean {
-        return if (inner.remove(element)) {
+        // we do the lookup here for two reasons:
+        // * we only have to do it once (the underlying store does not have to encode it again)
+        // * the representation is not altered because of the removal (in case encoding contexts would support the
+        //  deletion of unused terms in the future)
+        val encoded = EncodedQuad(context, element)
+        return if (inner.remove(encoded)) {
             listeners.forEach {
                 try {
                     it.onQuadRemoved(element)
+                    it.onQuadRemovedEncoded(encoded)
                 } catch (e: Throwable) {
                     // TODO: maybe rollback for local data and other listeners?
                     // TODO: better exception type, or return a result type?
@@ -84,6 +93,8 @@ internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): Abstr
         inner.forEach { quad ->
             listeners.forEach {
                 it.onQuadRemoved(quad)
+                // won't mutate the encoding context as we already contained the entire quad
+                it.onQuadRemovedEncoded(EncodedQuad(context, quad))
             }
         }
         inner.clear()

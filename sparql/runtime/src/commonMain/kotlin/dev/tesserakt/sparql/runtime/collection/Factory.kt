@@ -1,8 +1,9 @@
 package dev.tesserakt.sparql.runtime.collection
 
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint.Companion.PARTIAL_HASH_ACCESS
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
-import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.query.bindingIdentifierSetOf
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -39,41 +40,12 @@ fun MappingArray(
     else -> MultiHashMappingArray(bindings)
 }
 
-fun MappingArray(
-    context: QueryContext,
-    bindings: Collection<String>,
-    hint: MappingArrayHint = MappingArrayHint.DEFAULT,
-) = when {
-    bindings.isEmpty() -> SimpleMappingArray()
-    bindings.size == 1 -> SingleHashMappingArray(context, bindings.first())
-    !hint.requires(PARTIAL_HASH_ACCESS) -> CompleteHashMappingArray(context, bindings = bindings.toSet())
-    else -> MultiHashMappingArray(context, bindings = bindings.toSet())
-}
-
-fun MappingArray(
-    context: QueryContext,
-    vararg bindings: String?,
-    hint: MappingArrayHint = MappingArrayHint.DEFAULT,
-): MappingArray {
-    val set = setOfNotNull(*bindings)
-    return MappingArray(context, set, hint)
-}
-
 fun ReindexableMappingArray(
-    context: QueryContext,
-    vararg bindings: String?,
+    vararg bindings: BindingIdentifier?,
     hint: MappingArrayHint = MappingArrayHint.DEFAULT,
 ): ReindexableMappingArray {
-    val set = setOfNotNull(*bindings)
-    return ReindexableMappingArray(active = MappingArray(context, set, hint))
-}
-
-fun ReindexableMappingArray(
-    context: QueryContext,
-    bindings: Collection<String>,
-    hint: MappingArrayHint = MappingArrayHint.DEFAULT,
-): ReindexableMappingArray {
-    return ReindexableMappingArray(active = MappingArray(context, bindings, hint))
+    val set = bindingIdentifierSetOf(*bindings)
+    return ReindexableMappingArray(active = MappingArray(set, hint))
 }
 
 fun ReindexableMappingArray(

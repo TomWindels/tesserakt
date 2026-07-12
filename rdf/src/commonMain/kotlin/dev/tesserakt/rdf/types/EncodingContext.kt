@@ -3,10 +3,11 @@ package dev.tesserakt.rdf.types
 /**
  * The base encoding context type. Used to convert [Quad] to [EncodedQuad]s and vice versa.
  *
- * Note that the base type is **immutable**, meaning that [Quad]s containing [Quad.Element] not known to
+ * Note that the base type is **immutable**, meaning that [Quad]s containing [Quad.Element]s not known to
  *  this [EncodingContext] instance **cannot** be encoded. For mutable contexts that *can* encode *any* quad,
- *  see [MutableEncodingContext]. Note that most [Store]s do not expose such a context as these are managed by
- *  the [Store] directly.
+ *  see [MutableEncodingContext].
+ *
+ * Note that most [Store]s do not expose their context as mutable as these are managed by the [Store] directly.
  */
 interface EncodingContext {
 

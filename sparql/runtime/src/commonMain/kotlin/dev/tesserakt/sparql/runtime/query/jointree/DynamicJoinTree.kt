@@ -22,7 +22,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
     sealed interface Node<J: MutableJoinState> {
 
-        val bindings: Set<String>
+        val bindings: BindingIdentifierSet
 
         val cardinality: Cardinality
 
@@ -55,7 +55,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
         @JvmInline
         value class Leaf<J: MutableJoinState>(val state: J): Node<J> {
 
-            override val bindings: Set<String>
+            override val bindings: BindingIdentifierSet
                 get() = state.bindings
 
             override val cardinality: Cardinality
@@ -84,18 +84,14 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
         }
 
         class Connected<J: MutableJoinState>(
-            context: QueryContext,
             internal val left: Node<J>,
             internal val right: Node<J>,
-            indexes: Collection<String>
+            indexes: BindingIdentifierSet
         ): Node<J> {
 
             override val bindings = left.bindings + right.bindings
 
-            internal val buf = ReindexableMappingArray(
-                context = context,
-                bindings = indexes
-            )
+            internal val buf = ReindexableMappingArray(indexes)
             private val cache = StreamCache<DataDelta, MappingDelta>()
 
             override val cardinality: Cardinality
@@ -156,7 +152,6 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
         }
 
         class Disconnected<J: MutableJoinState>(
-            internal val context: QueryContext,
             internal val left: Node<J>,
             internal val right: Node<J>,
         ): Node<J> {
@@ -180,8 +175,8 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
-                val leftOverlap = delta.value.keys(context).count { it in left.bindings }
-                val rightOverlap = delta.value.keys(context).count { it in right.bindings }
+                val leftOverlap = delta.value.keys().asIntIterable().count { it in left.bindings }
+                val rightOverlap = delta.value.keys().asIntIterable().count { it in right.bindings }
                 return if (leftOverlap > rightOverlap) {
                     right.join(left.join(delta).optimisedForSingleUse(left.cardinality))
                 } else {
@@ -201,7 +196,7 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
 
     }
 
-    override val bindings: Set<String>
+    override val bindings: BindingIdentifierSet
         get() = root.bindings
 
     override val cardinality: Cardinality
@@ -245,27 +240,33 @@ value class DynamicJoinTree<J: MutableJoinState> private constructor(private val
         @JvmName("forPatterns")
         operator fun invoke(context: QueryContext, patterns: List<TriplePattern>): DynamicJoinTree<TriplePatternState<*>> {
             val states = patterns.map { TriplePatternState.from(context, it) }
-            val root = build(context, states)
+            val root = build(states)
+            return DynamicJoinTree(root)
+        }
+
+        @JvmName("forPatternStates")
+        operator fun invoke(patterns: List<TriplePatternState<*>>): DynamicJoinTree<TriplePatternState<*>> {
+            val root = build(patterns)
             return DynamicJoinTree(root)
         }
 
         @JvmName("forUnions")
         operator fun invoke(context: QueryContext, unions: List<Union>): DynamicJoinTree<UnionState> {
             val states = unions.map { UnionState(context, it) }
-            val root = build(context, states)
+            val root = build(states)
             return DynamicJoinTree(root)
         }
 
         /**
          * Builds a tree, returning the tree's root, using the provided [states]
          */
-        private fun <J: MutableJoinState> build(context: QueryContext, states: List<J>): Node<J> {
+        private fun <J: MutableJoinState> build(states: List<J>): Node<J> {
             check(states.isNotEmpty())
             if (states.size == 1) {
                 // hardly a tree, but what can we do
                 return Node.Leaf(states.single())
             }
-            return DynamicJoinTreeBuilder.build(context, states)
+            return DynamicJoinTreeBuilder.build(states)
         }
     }
 

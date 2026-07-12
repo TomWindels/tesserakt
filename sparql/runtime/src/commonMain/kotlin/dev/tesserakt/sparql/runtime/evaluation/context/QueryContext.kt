@@ -1,9 +1,13 @@
 package dev.tesserakt.sparql.runtime.evaluation.context
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 
 interface QueryContext {
+
+    fun newAnonymousBinding(): Int
 
     fun resolveBinding(value: String): Int
 
@@ -13,7 +17,9 @@ interface QueryContext {
 
     fun resolveTerm(id: Int): Quad.Element
 
-    fun create(terms: Iterable<Pair<String, Quad.Element>>): Mapping
+    fun mappingFromValues(terms: Iterable<Pair<String, Quad.Element>>): Mapping
+
+    fun mappingFromIdentifiers(terms: Iterable<Pair<BindingIdentifier, TermIdentifier>>): Mapping
 
     fun emptyMapping(): Mapping
 

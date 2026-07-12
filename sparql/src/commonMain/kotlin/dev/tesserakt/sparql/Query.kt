@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql
 
-import dev.tesserakt.sparql.runtime.createState
+import dev.tesserakt.rdf.types.EncodingContext
+import dev.tesserakt.sparql.runtime.QueryState
 import dev.tesserakt.sparql.runtime.query.QueryState
 import dev.tesserakt.sparql.types.QueryStructure
 import dev.tesserakt.sparql.types.SelectQueryStructure
@@ -11,7 +12,12 @@ import kotlin.jvm.JvmInline
 value class Query<T> private constructor(internal val compiled: QueryStructure) {
 
     @Suppress("UNCHECKED_CAST")
-    internal fun createState(): QueryState<T, *> = compiled.createState() as QueryState<T, *>
+    internal fun createState(
+        context: EncodingContext?,
+    ): QueryState<T, *> = QueryState(
+        structure = compiled,
+        context = context,
+    ) as QueryState<T, *>
 
     companion object {
 

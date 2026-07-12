@@ -16,9 +16,9 @@ import kotlin.test.*
 
 class DynamicJoinTreeBuilderTest {
 
-    class TestNode(override val bindings: Set<String>): MutableJoinState {
+    class TestNode(override val bindings: BindingIdentifierSet): MutableJoinState {
 
-        constructor(bindings: List<String>): this(bindings = bindings.toSet())
+        constructor(bindings: List<String>): this(bindings = BindingIdentifierSet(GlobalQueryContext, bindings))
 
         var indexes = bindings
             private set
@@ -27,9 +27,7 @@ class DynamicJoinTreeBuilderTest {
             get() = throw UnsupportedOperationException()
 
         override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
-            indexes = bindings.asIntIterable().mapTo(mutableSetOf()) { binding ->
-                GlobalQueryContext.resolveBinding(binding)
-            }
+            indexes = bindings
         }
 
         override fun join(delta: MappingDelta) = throw UnsupportedOperationException()
@@ -86,7 +84,7 @@ class DynamicJoinTreeBuilderTest {
             subtree.assertIsConnected()
             val activeIndex = subtree.buf.indexes.asIntIterable().single()
             val possibleIndexes = sibling.state.bindings
-            assertContains(possibleIndexes, GlobalQueryContext.resolveBinding(activeIndex))
+            assertTrue { activeIndex in possibleIndexes }
             // moving to the next check
             sibling = subtree.single<DynamicJoinTree.Node.Leaf<TestNode>>()
             subtree = subtree.single<DynamicJoinTree.Node.Connected<TestNode>>()
@@ -121,7 +119,7 @@ class DynamicJoinTreeBuilderTest {
                 fail("Expected at least one active index, got none!")
             }
             val possibleIndexes = sibling.state.bindings
-            assertContainsAll(possibleIndexes, activeIndexes.map { GlobalQueryContext.resolveBinding(it) })
+            assertTrue { activeIndexes.all { it in possibleIndexes } }
             // moving to the next check
             sibling = subtree.single<DynamicJoinTree.Node.Leaf<TestNode>>()
             subtree = subtree.single<DynamicJoinTree.Node.Connected<TestNode>>()
@@ -154,7 +152,7 @@ class DynamicJoinTreeBuilderTest {
                 fail("Expected at least one active index, got none!")
             }
             val possibleIndexes = sibling.state.bindings
-            assertContainsAll(possibleIndexes, activeIndexes.map { GlobalQueryContext.resolveBinding(it) })
+            assertTrue { activeIndexes.all { it in possibleIndexes } }
             // moving to the next check
             sibling = subtree.single<DynamicJoinTree.Node.Leaf<TestNode>>()
             subtree = subtree.single<DynamicJoinTree.Node.Connected<TestNode>>()
@@ -170,8 +168,8 @@ class DynamicJoinTreeBuilderTest {
         listOf("1b", "2b"),
         listOf("2b", "3b"),
     ) { root ->
-        val one = setOf("2a")
-        val two = setOf("2b")
+        val one = BindingIdentifierSet(GlobalQueryContext, setOf("2a"))
+        val two = BindingIdentifierSet(GlobalQueryContext, setOf("2b"))
         // we expect two connected segments with its leafs configured for joining on the common binding,
         //  the buffers to have no indexing of its own (as there's no common binding with the structure just outside it),
         //  and these two joined by a disconnected one as its root
@@ -216,10 +214,10 @@ class DynamicJoinTreeBuilderTest {
         assertTrue("The start of the chain is not indexed as expected!") {
             chainStart.buf.indexes.size == 0
         }
-        val common = chainStart.single<DynamicJoinTree.Node.Leaf<TestNode>>().state.indexes.singleOrNull()
+        val common = chainStart.single<DynamicJoinTree.Node.Leaf<TestNode>>().state.indexes.asIntIterable().singleOrNull()
         assertNotNull(common, "No common binding found, while one was expected!")
         val innerChain = chainStart.single<DynamicJoinTree.Node.Connected<TestNode>>()
-        assertContentEquals(setOf(GlobalQueryContext.resolveBinding(common)), innerChain.buf.indexes.asIntIterable())
+        assertContentEquals(listOf(common), innerChain.buf.indexes.asIntIterable())
         innerChain.both<DynamicJoinTree.Node.Leaf<TestNode>>()
     }
 
@@ -248,7 +246,7 @@ class DynamicJoinTreeBuilderTest {
             try {
                 test(tree)
             } catch (t: Throwable) {
-                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}\nTree structure:\n${tree.stats(GlobalQueryContext, granularity = QueryStatistics.Granularity.VERBOSE)}", t)
+                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}", t)
             }
             ++i
         }
@@ -273,7 +271,7 @@ class DynamicJoinTreeBuilderTest {
 
     private fun buildTree(bindings: List<List<String>>): DynamicJoinTree.Node<TestNode> {
         val nodes = bindings.map { TestNode(it) }
-        return DynamicJoinTreeBuilder.build(GlobalQueryContext, nodes)
+        return DynamicJoinTreeBuilder.build(nodes)
     }
 
     /**

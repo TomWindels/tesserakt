@@ -1,6 +1,8 @@
 package dev.tesserakt.sparql.runtime.evaluation.context
 
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.mapping.IntPairMapping
 
 object GlobalQueryContext: QueryContext {
@@ -12,6 +14,15 @@ object GlobalQueryContext: QueryContext {
     // as terms are never removed from an active context, we can keep it as a regular list without risking IDs
     // shifting over
     private val termsLut = mutableListOf<Quad.Element>()
+
+    override fun newAnonymousBinding(): Int {
+        var i = bindingsLut.size
+        var name: String
+        do {
+            name = "gen_${++i}"
+        } while (name in bindingsLut)
+        return resolveBinding(name)
+    }
 
     override fun resolveBinding(value: String): Int {
         return bindingsLut.getOrPut(value) {
@@ -38,8 +49,11 @@ object GlobalQueryContext: QueryContext {
         return termsLut[id]
     }
 
-    override fun create(terms: Iterable<Pair<String, Quad.Element>>): IntPairMapping =
+    override fun mappingFromValues(terms: Iterable<Pair<String, Quad.Element>>): IntPairMapping =
         IntPairMapping(this, terms)
+
+    override fun mappingFromIdentifiers(terms: Iterable<Pair<BindingIdentifier, TermIdentifier>>): IntPairMapping =
+        IntPairMapping(terms)
 
     override fun emptyMapping(): IntPairMapping = IntPairMapping.EMPTY
 

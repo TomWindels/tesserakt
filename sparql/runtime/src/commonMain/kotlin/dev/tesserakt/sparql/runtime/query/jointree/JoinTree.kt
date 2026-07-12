@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
 import dev.tesserakt.sparql.QueryStatistics
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
@@ -14,7 +15,7 @@ import dev.tesserakt.sparql.runtime.stream.Stream
  */
 interface JoinTree : MutableJoinState {
 
-    override val bindings: Set<String>
+    override val bindings: BindingIdentifierSet
 
     /**
      * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in child states part of the tree, without
