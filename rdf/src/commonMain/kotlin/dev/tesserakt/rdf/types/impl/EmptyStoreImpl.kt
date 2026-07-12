@@ -1,9 +1,13 @@
 package dev.tesserakt.rdf.types.impl
 
+import dev.tesserakt.rdf.types.EncodedQuad
+import dev.tesserakt.rdf.types.EncodingContext
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 
 internal object EmptyStoreImpl : Store {
+
+    override val context: EncodingContext = EmptyEncodingContext
 
     override val size: Int
         get() = 0
@@ -14,14 +18,22 @@ internal object EmptyStoreImpl : Store {
 
     override fun isEmpty() = true
 
-    override fun iterator(): Iterator<Quad> = emptyIterator
+    override fun iterator(): Iterator<Quad> = emptyIterator()
 
-    override fun iter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?) = emptyIterator
+    override fun iter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<Quad> =
+        emptyIterator()
+
+    override fun encodedIterator(): Iterator<EncodedQuad> = emptyIterator()
+
+    override fun encodedIter(
+        s: Quad.Subject?,
+        p: Quad.Predicate?,
+        o: Quad.Object?,
+        g: Quad.Graph?
+    ): Iterator<EncodedQuad> = emptyIterator()
 
     override fun toString(): String = "<empty store>"
 
     override fun hashCode() = 0
 
 }
-
-private val emptyIterator = emptyList<Quad>().iterator()

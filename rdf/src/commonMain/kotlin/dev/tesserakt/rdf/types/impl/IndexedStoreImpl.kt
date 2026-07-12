@@ -1,12 +1,21 @@
 package dev.tesserakt.rdf.types.impl
 
+import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.rdf.types.IndexedStore
 import dev.tesserakt.rdf.types.Quad
 
 internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), IndexedStore {
 
-    // list for direct (index) access
-    private val backing = data.distinct()
+    override val context = ImmutableEncodingContextImpl(data)
+
+    private val backing = data
+        // making it distinct whilst mapping it to the encoded representation
+        .mapTo(mutableSetOf()) {
+            // guaranteed to be non-null as the context has been created with the same exact data
+            EncodedQuad(context, it)!!
+        }
+        // list for direct (index) access
+        .toList()
     private val subjects = backing.indices.groupBy { i -> backing[i].s }
     private val predicates = backing.indices.groupBy { i -> backing[i].p }
     private val objects = backing.indices.groupBy { i -> backing[i].o }
@@ -19,29 +28,45 @@ internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), Index
         return backing.isEmpty()
     }
 
-    override fun iterator(): Iterator<Quad> {
+    override fun encodedIterator(): Iterator<EncodedQuad> {
         return backing.iterator()
     }
 
-    override fun iter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<Quad> {
+    override fun encodedIter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<EncodedQuad> {
+        // we can do a little trick: if our filter requires a quad element not known to our encoding context, we know
+        //  there are no quads present with such a quad element as any of its fields, so we can simply return the empty
+        //  iterator
+        val s = s?.let { element ->
+            context.encode(element) ?: return emptyIterator()
+        }
+        val p = p?.let { element ->
+            context.encode(element) ?: return emptyIterator()
+        }
+        val o = o?.let { element ->
+            context.encode(element) ?: return emptyIterator()
+        }
+        val g = g?.let { element ->
+            context.encode(element) ?: return emptyIterator()
+        }
+
         if (s == null && p == null && o == null && g == null) {
             return backing.iterator()
         }
         val indices = mutableListOf<List<Int>>()
         if (s != null) {
-            indices.add(subjects[s] ?: return emptyIterator)
+            indices.add(subjects[s] ?: return emptyIterator())
         }
         if (p != null) {
-            indices.add(predicates[p] ?: return emptyIterator)
+            indices.add(predicates[p] ?: return emptyIterator())
         }
         if (o != null) {
-            indices.add(objects[o] ?: return emptyIterator)
+            indices.add(objects[o] ?: return emptyIterator())
         }
         if (g != null) {
-            indices.add(graphs[g] ?: return emptyIterator)
+            indices.add(graphs[g] ?: return emptyIterator())
         }
         val iter = quickMerge(indices).iterator()
-        return object: Iterator<Quad> {
+        return object: Iterator<EncodedQuad> {
             override fun hasNext() = iter.hasNext()
             override fun next() = backing[iter.next()]
         }
@@ -100,5 +125,3 @@ private fun quickMerge(left: List<Int>, right: List<Int>): List<Int> {
     }
     return result
 }
-
-private val emptyIterator = emptyList<Quad>().iterator()

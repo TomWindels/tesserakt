@@ -1,5 +1,7 @@
 package dev.tesserakt.rdf.types.impl
 
+import dev.tesserakt.rdf.types.EncodedQuad
+import dev.tesserakt.rdf.types.MutableEncodingContext
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.util.fit
@@ -12,20 +14,51 @@ import dev.tesserakt.util.map
  */
 abstract class AbstractStore : Store {
 
+    override fun iterator(): Iterator<Quad> = DecodingIterator(src = encodedIterator(), context = context)
+
     /**
      * Creates an [Iterator] that yields all [Quad]s present inside this [AbstractStore], for which the values [s],
      *  [p] and [o] match the parameters, when provided
      */
     override fun iter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<Quad> {
+        return DecodingIterator(src = encodedIter(s, p, o, g), context = context)
+    }
+
+    /**
+     * Creates an [Iterator] that yields all [Quad]s present inside this [AbstractStore], for which the values [s],
+     *  [p] and [o] match the parameters, when provided
+     */
+    override fun encodedIter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<EncodedQuad> {
+        // we can do a little trick: if our filter requires a quad element not known to our encoding context, we know
+        //  there are no quads present with such a quad element as any of its fields, so we can simply return the empty
+        //  iterator
+        val ctx = when (val ctx = context) {
+            // making sure we end up with a context that does not mutate because we do a simple lookup
+            is MutableEncodingContext -> ctx.asReadOnlyEncodingContext()
+            else -> ctx
+        }
+        val s = s?.let { element ->
+            ctx.encode(element) ?: return emptyIterator()
+        }
+        val p = p?.let { element ->
+            ctx.encode(element) ?: return emptyIterator()
+        }
+        val o = o?.let { element ->
+            ctx.encode(element) ?: return emptyIterator()
+        }
+        val g = g?.let { element ->
+            ctx.encode(element) ?: return emptyIterator()
+        }
+
         return if (s == null && p == null && o == null && g == null) {
-            iterator()
+            encodedIterator()
         } else {
-            FilterIterator(iterator(), s, p, o, g)
+            FilterIterator(encodedIterator(), s, p, o, g)
         }
     }
 
     override fun contains(element: Quad): Boolean {
-        return iter(element.s, element.p, element.o).hasNext()
+        return iter(element.s, element.p, element.o, element.g).hasNext()
     }
 
     override fun containsAll(elements: Collection<Quad>): Boolean {
@@ -82,14 +115,15 @@ abstract class AbstractStore : Store {
 }
 
 private class FilterIterator(
-    private val src: Iterator<Quad>,
-    private val s: Quad.Subject?,
-    private val p: Quad.Predicate?,
-    private val o: Quad.Object?,
-    private val g: Quad.Graph?,
-): Iterator<Quad> {
+    private val src: Iterator<EncodedQuad>,
+    // FIXME(perf): maybe `-1` or some other sentinel value to prevent boxing these?
+    private val s: Int?,
+    private val p: Int?,
+    private val o: Int?,
+    private val g: Int?,
+): Iterator<EncodedQuad> {
 
-    private var next: Quad? = null
+    private var next: EncodedQuad? = null
 
     override fun hasNext(): Boolean {
         if (next != null) {
@@ -99,13 +133,13 @@ private class FilterIterator(
         return next != null
     }
 
-    override fun next(): Quad {
+    override fun next(): EncodedQuad {
         val result = next ?: getNext()
         next = null
         return result ?: throw NoSuchElementException()
     }
 
-    private fun getNext(): Quad? {
+    private fun getNext(): EncodedQuad? {
         while (src.hasNext()) {
             val contender = src.next()
             if (satisfies(contender)) {
@@ -115,7 +149,7 @@ private class FilterIterator(
         return null
     }
 
-    private inline fun satisfies(quad: Quad): Boolean {
+    private inline fun satisfies(quad: EncodedQuad): Boolean {
         return  s.isNullOr { it == quad.s } &&
                 p.isNullOr { it == quad.p } &&
                 o.isNullOr { it == quad.o } &&
