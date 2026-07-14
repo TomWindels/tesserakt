@@ -660,8 +660,8 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         private fun Predicate(context: QueryContext, predicate: TriplePattern.RepeatingPredicate): RepeatingPredicate {
             return when (predicate) {
-                is TriplePattern.OneOrMore -> OneOrMore(element = Predicate(context, predicate))
-                is TriplePattern.ZeroOrMore -> ZeroOrMore(element = Predicate(context, predicate))
+                is TriplePattern.OneOrMore -> OneOrMore(element = Predicate(context, predicate.element))
+                is TriplePattern.ZeroOrMore -> ZeroOrMore(element = Predicate(context, predicate.element))
             }
         }
 
