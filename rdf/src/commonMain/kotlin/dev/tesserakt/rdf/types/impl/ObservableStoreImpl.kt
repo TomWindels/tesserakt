@@ -96,11 +96,10 @@ internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): Abstr
     }
 
     override fun clear() {
-        inner.forEach { quad ->
+        inner.pairIterator().forEach { (encoded, quad) ->
             listeners.forEach {
                 it.onQuadRemoved(quad)
-                // won't mutate the encoding context as we already contained the entire quad
-                it.onQuadRemovedEncoded(EncodedQuad(context, quad))
+                it.onQuadRemovedEncoded(encoded)
             }
         }
         inner.clear()

@@ -29,6 +29,8 @@ internal class MutableStoreImpl(quads: Collection<Quad> = emptyList()): Abstract
 
     override fun encodedIterator(): MutableIterator<EncodedQuad> = quads.iterator()
 
+    internal fun pairIterator() = MutableDecodingPairIterator(src = quads.iterator(), context = context)
+
     override fun isEmpty(): Boolean {
         return quads.isEmpty()
     }
@@ -86,6 +88,7 @@ internal class MutableStoreImpl(quads: Collection<Quad> = emptyList()): Abstract
 
     override fun clear() {
         quads.clear()
+        context.clear()
     }
 
     override fun removeAll(elements: Collection<Quad>): Boolean {

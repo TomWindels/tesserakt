@@ -22,6 +22,11 @@ interface MutableEncodingContext: EncodingContext {
     override fun encode(element: Quad.Element): EncodedQuadElement
 
     /**
+     * Clears all encoded terms, setting the [size] back to 0.
+     */
+    fun clear()
+
+    /**
      * Creates a (shallow) copy of this instance adhering to the [EncodingContext] interface, resulting in immutable
      *  [EncodingContext.encode] semantics.
      */

@@ -34,6 +34,11 @@ internal class MutableEncodingContextImpl private constructor(
         return decoder[encoded]
     }
 
+    override fun clear() {
+        encoder.clear()
+        decoder.clear()
+    }
+
     // internal is technically not required as we're already inside an internal class
     internal fun encoder(): Map<Quad.Element, Int> {
         return encoder
