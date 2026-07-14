@@ -5,7 +5,6 @@ import dev.tesserakt.rdf.types.EncodedQuadElement
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.util.fit
-import dev.tesserakt.util.map
 
 /**
  * A foundation [Store] implementation, offering sane default implementations for [iter], [contains], [containsAll],
@@ -69,10 +68,12 @@ abstract class AbstractStore : Store {
     }
 
     override fun toString() = if (isEmpty()) "<empty store>" else buildString {
-        val s = this@AbstractStore.iterator().map { it.s.toString() }
-        val p = this@AbstractStore.iterator().map { it.p.toString() }
-        val o = this@AbstractStore.iterator().map { it.o.toString() }
-        val g = this@AbstractStore.iterator().map { it.g.toString() }
+        val previewed = this@AbstractStore.take(10)
+
+        val s = previewed.map { it.s.toString() }
+        val p = previewed.map { it.p.toString() }
+        val o = previewed.map { it.o.toString() }
+        val g = previewed.map { it.g.toString() }
 
         val sl = s.maxOf { it.length }
         val pl = p.maxOf { it.length }
@@ -87,7 +88,7 @@ abstract class AbstractStore : Store {
         append(" | ")
         appendLine("Graph".fit(gl))
 
-        repeat(this@AbstractStore.size) { i ->
+        repeat(previewed.size) { i ->
             append(s[i].padEnd(sl))
             append(" | ")
             append(p[i].padEnd(pl))
@@ -96,13 +97,14 @@ abstract class AbstractStore : Store {
             append(" | ")
             appendLine(g[i].padEnd(gl))
         }
+        append("... ${this@AbstractStore.size} elements")
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) {
             return true
         }
-        if (other !is AbstractStore) {
+        if (other !is Set<*>) {
             return false
         }
         return this.size == other.size && containsAll(other)

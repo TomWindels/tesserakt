@@ -2,8 +2,9 @@ package dev.tesserakt.rdf.types.impl
 
 import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
 
+// not required here: we optimized hash code as we're readonly, but the equals check stays in place
+@Suppress("EqualsOrHashCode")
 internal class StoreImpl(data: Collection<Quad>): AbstractStore() {
 
     // we first create our encoding context
@@ -26,11 +27,7 @@ internal class StoreImpl(data: Collection<Quad>): AbstractStore() {
     }
 
     // considering the contents don't change, we can cache the collection's hash code
-    private val hashCode by lazy {
-        var result = 0
-        quads.forEach { quad -> result += quad.hashCode() }
-        result
-    }
+    private val hashCode by lazy { super.hashCode() }
 
     override val size: Int
         get() = quads.size
@@ -61,16 +58,6 @@ internal class StoreImpl(data: Collection<Quad>): AbstractStore() {
 
     override fun hashCode(): Int {
         return hashCode
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) {
-            return true
-        }
-        if (other !is Store) {
-            return false
-        }
-        return this.size == other.size && containsAll(other)
     }
 
 }
