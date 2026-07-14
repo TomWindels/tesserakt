@@ -1,9 +1,6 @@
 package dev.tesserakt.rdf.types.impl
 
-import dev.tesserakt.rdf.types.EncodedQuad
-import dev.tesserakt.rdf.types.MutableEncodingContext
-import dev.tesserakt.rdf.types.ObservableStore
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.*
 
 internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): AbstractStore(), ObservableStore {
 
@@ -23,6 +20,15 @@ internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): Abstr
 
     override fun iter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<Quad> {
         return inner.iter(s, p, o, g)
+    }
+
+    override fun encodedIter(
+        s: EncodedQuadElement,
+        p: EncodedQuadElement,
+        o: EncodedQuadElement,
+        g: EncodedQuadElement
+    ): Iterator<EncodedQuad> {
+        return inner.encodedIter(s, p, o, g)
     }
 
     override fun encodedIter(

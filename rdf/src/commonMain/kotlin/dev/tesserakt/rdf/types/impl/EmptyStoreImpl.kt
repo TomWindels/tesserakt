@@ -1,9 +1,6 @@
 package dev.tesserakt.rdf.types.impl
 
-import dev.tesserakt.rdf.types.EncodedQuad
-import dev.tesserakt.rdf.types.EncodingContext
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.*
 
 internal object EmptyStoreImpl : Store {
 
@@ -24,6 +21,13 @@ internal object EmptyStoreImpl : Store {
         emptyIterator()
 
     override fun encodedIterator(): Iterator<EncodedQuad> = emptyIterator()
+
+    override fun encodedIter(
+        s: EncodedQuadElement,
+        p: EncodedQuadElement,
+        o: EncodedQuadElement,
+        g: EncodedQuadElement
+    ): Iterator<EncodedQuad> = emptyIterator()
 
     override fun encodedIter(
         s: Quad.Subject?,

@@ -12,6 +12,9 @@ internal class ImmutableEncodingContextImpl private constructor(
     private val decoder: List<Quad.Element>,
 ): EncodingContext {
 
+    override val size: Int
+        get() = decoder.size
+
     override fun encode(element: Quad.Element): Int? {
         return encoder[element]
     }

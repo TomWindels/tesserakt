@@ -16,9 +16,8 @@ internal class MutableEncodingContextImpl private constructor(
         decoder = mutableListOf(),
     )
 
-    init {
-        check(encoder.size == decoder.size)
-    }
+    override val size: Int
+        get() = decoder.size
 
     override fun encode(element: Quad.Element): Int {
         return encoder.getOrInsert(element) {

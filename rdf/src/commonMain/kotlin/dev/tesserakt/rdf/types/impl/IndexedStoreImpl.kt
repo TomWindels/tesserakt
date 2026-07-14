@@ -1,6 +1,7 @@
 package dev.tesserakt.rdf.types.impl
 
 import dev.tesserakt.rdf.types.EncodedQuad
+import dev.tesserakt.rdf.types.EncodedQuadElement
 import dev.tesserakt.rdf.types.IndexedStore
 import dev.tesserakt.rdf.types.Quad
 
@@ -32,37 +33,26 @@ internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), Index
         return backing.iterator()
     }
 
-    override fun encodedIter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<EncodedQuad> {
-        // we can do a little trick: if our filter requires a quad element not known to our encoding context, we know
-        //  there are no quads present with such a quad element as any of its fields, so we can simply return the empty
-        //  iterator
-        val s = s?.let { element ->
-            context.encode(element) ?: return emptyIterator()
-        }
-        val p = p?.let { element ->
-            context.encode(element) ?: return emptyIterator()
-        }
-        val o = o?.let { element ->
-            context.encode(element) ?: return emptyIterator()
-        }
-        val g = g?.let { element ->
-            context.encode(element) ?: return emptyIterator()
-        }
-
-        if (s == null && p == null && o == null && g == null) {
+    override fun encodedIter(
+        s: EncodedQuadElement,
+        p: EncodedQuadElement,
+        o: EncodedQuadElement,
+        g: EncodedQuadElement
+    ): Iterator<EncodedQuad> {
+        if (s == Int.MIN_VALUE && p == Int.MIN_VALUE && o == Int.MIN_VALUE && g == Int.MIN_VALUE) {
             return backing.iterator()
         }
         val indices = mutableListOf<List<Int>>()
-        if (s != null) {
+        if (s != Int.MIN_VALUE) {
             indices.add(subjects[s] ?: return emptyIterator())
         }
-        if (p != null) {
+        if (p != Int.MIN_VALUE) {
             indices.add(predicates[p] ?: return emptyIterator())
         }
-        if (o != null) {
+        if (o != Int.MIN_VALUE) {
             indices.add(objects[o] ?: return emptyIterator())
         }
-        if (g != null) {
+        if (g != Int.MIN_VALUE) {
             indices.add(graphs[g] ?: return emptyIterator())
         }
         val iter = quickMerge(indices).iterator()

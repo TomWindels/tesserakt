@@ -1,11 +1,10 @@
 package dev.tesserakt.rdf.types.impl
 
 import dev.tesserakt.rdf.types.EncodedQuad
-import dev.tesserakt.rdf.types.MutableEncodingContext
+import dev.tesserakt.rdf.types.EncodedQuadElement
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.util.fit
-import dev.tesserakt.util.isNullOr
 import dev.tesserakt.util.map
 
 /**
@@ -25,43 +24,47 @@ abstract class AbstractStore : Store {
     }
 
     /**
-     * Creates an [Iterator] that yields all [Quad]s present inside this [AbstractStore], for which the values [s],
-     *  [p] and [o] match the parameters, when provided
+     * Creates an [Iterator] that yields all [EncodedQuad]s present inside this [Store], for which the values [s],
+     *  [p], [o] and [g] match the parameters, or any if [Int.MIN_VALUE] is passed.
      */
-    override fun encodedIter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<EncodedQuad> {
-        // we can do a little trick: if our filter requires a quad element not known to our encoding context, we know
-        //  there are no quads present with such a quad element as any of its fields, so we can simply return the empty
-        //  iterator
-        val ctx = when (val ctx = context) {
-            // making sure we end up with a context that does not mutate because we do a simple lookup
-            is MutableEncodingContext -> ctx.asReadOnlyEncodingContext()
-            else -> ctx
-        }
-        val s = s?.let { element ->
-            ctx.encode(element) ?: return emptyIterator()
-        }
-        val p = p?.let { element ->
-            ctx.encode(element) ?: return emptyIterator()
-        }
-        val o = o?.let { element ->
-            ctx.encode(element) ?: return emptyIterator()
-        }
-        val g = g?.let { element ->
-            ctx.encode(element) ?: return emptyIterator()
-        }
-
-        return if (s == null && p == null && o == null && g == null) {
+    override fun encodedIter(
+        s: EncodedQuadElement,
+        p: EncodedQuadElement,
+        o: EncodedQuadElement,
+        g: EncodedQuadElement
+    ): Iterator<EncodedQuad> {
+        return if (s == Int.MIN_VALUE && p == Int.MIN_VALUE && o == Int.MIN_VALUE && g == Int.MIN_VALUE) {
             encodedIterator()
         } else {
             FilterIterator(encodedIterator(), s, p, o, g)
         }
     }
 
-    override fun contains(element: Quad): Boolean {
-        return iter(element.s, element.p, element.o, element.g).hasNext()
-    }
-
     override fun containsAll(elements: Collection<Quad>): Boolean {
+        if (elements is Store) {
+            // as this is a store, it uses set semantics;
+            //  if, after set semantics, it contains more quads than we do, we cannot possibly contain all of them
+            if (size < elements.size) {
+                return false
+            }
+            // we construct a mapping context between us and the other store, but only if the elements we need to look
+            //  up count-wise 'is worth it' (as the mapper looks up the entire context immediately)
+            if (this.context.size > elements.size * 3) {
+                // our context is too large w.r.t. the amount of lookups we need to do;
+                //  we do the lookups as is needed instead
+                return elements.all { it in this }
+            }
+            val mapper = ContextMapper(source = elements.context, target = this.context)
+            elements.encodedIterator().forEach { encodedQuad ->
+                val reencoded = mapper.reencode(encodedQuad) ?: return false
+                if (reencoded !in this) {
+                    return false
+                }
+            }
+            // all elements matched after reencoding, so we contain all elements from the other store
+            return true
+        }
+
         return elements.all { it in this }
     }
 
@@ -116,11 +119,10 @@ abstract class AbstractStore : Store {
 
 private class FilterIterator(
     private val src: Iterator<EncodedQuad>,
-    // FIXME(perf): maybe `-1` or some other sentinel value to prevent boxing these?
-    private val s: Int?,
-    private val p: Int?,
-    private val o: Int?,
-    private val g: Int?,
+    private val s: EncodedQuadElement = Int.MIN_VALUE,
+    private val p: EncodedQuadElement = Int.MIN_VALUE,
+    private val o: EncodedQuadElement = Int.MIN_VALUE,
+    private val g: EncodedQuadElement = Int.MIN_VALUE,
 ): Iterator<EncodedQuad> {
 
     private var next: EncodedQuad? = null
@@ -150,9 +152,9 @@ private class FilterIterator(
     }
 
     private inline fun satisfies(quad: EncodedQuad): Boolean {
-        return  s.isNullOr { it == quad.s } &&
-                p.isNullOr { it == quad.p } &&
-                o.isNullOr { it == quad.o } &&
-                g.isNullOr { it == quad.g }
+        return  (s == Int.MIN_VALUE || s == quad.s) &&
+                (p == Int.MIN_VALUE || p == quad.p) &&
+                (o == Int.MIN_VALUE || o == quad.o) &&
+                (g == Int.MIN_VALUE || g == quad.g)
     }
 }

@@ -5,6 +5,8 @@ import dev.tesserakt.rdf.types.Quad
 
 internal object EmptyEncodingContext: EncodingContext {
 
+    override val size: Int = 0
+
     override fun encode(element: Quad.Element): Int? {
         return null
     }
