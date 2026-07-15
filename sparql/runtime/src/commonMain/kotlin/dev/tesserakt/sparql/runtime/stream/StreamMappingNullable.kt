@@ -37,12 +37,13 @@ class StreamMappingNullable<I: Any, O: Any>(
 
     }
 
-    override val description: String
-        get() = "Mapping?[${source.description}]"
-
     // worst case, no nulls at all
     override val cardinality: Cardinality
         get() = source.cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        return source.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return false

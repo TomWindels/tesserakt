@@ -46,12 +46,13 @@ class StreamReduction<E: Any>(
 
     private val counter = Counter(removed)
 
-    override val description: String
-        get() = "Reduction[${source.description}]"
-
     override val cardinality: Cardinality
         // not removing the dropped ones from the cardinality, as it's not guaranteed they're present in the first place
         get() = source.cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        return source.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return false

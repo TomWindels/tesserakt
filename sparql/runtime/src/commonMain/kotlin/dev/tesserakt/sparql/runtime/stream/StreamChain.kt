@@ -1,17 +1,18 @@
 package dev.tesserakt.sparql.runtime.stream
 
 import dev.tesserakt.sparql.util.Cardinality
+import dev.tesserakt.sparql.util.ZeroCardinality
 
 class StreamChain<E: Any>(
-    val source1: Stream<E>,
-    val source2: Stream<E>,
+    // mutable as the chain can be altered/combined during/after construction
+    val sources: MutableList<Stream<E>>
 ): Stream<E> {
 
     private class Iter<E: Any>(
-        private val source1: Iterator<E>,
-        private val source2: Iterator<E>
+        private val sources: Iterator<Stream<E>>
     ): Iterator<E> {
 
+        private var src: Iterator<E>? = if (sources.hasNext()) sources.next().iterator() else null
         private var next = getNext()
 
         override fun hasNext(): Boolean {
@@ -29,33 +30,36 @@ class StreamChain<E: Any>(
         }
 
         private fun getNext(): E? {
-            if (source1.hasNext()) {
-                return source1.next()
+            var src = src ?: return null
+            while (!src.hasNext()) {
+                if (!sources.hasNext()) {
+                    this.src = null
+                    return null
+                }
+                src = sources.next().iterator()
+                this.src = src
             }
-            if (source2.hasNext()) {
-                return source2.next()
-            }
-            return null
+            return src.next()
         }
 
     }
 
-    override val description: String
-        get() = "${source1.description}, ${source2.description}"
-
     override val cardinality: Cardinality
-        get() = source1.cardinality + source2.cardinality
+        // we don't cache it as it's possible the list of sources grow
+        get() = sources.fold(ZeroCardinality) { total, item -> total + item.cardinality }
+
+    override fun hasZeroCardinality() = sources.all { it.hasZeroCardinality() }
 
     override fun supportsEfficientIteration(): Boolean {
-        return source1.supportsEfficientIteration() && source2.supportsEfficientIteration()
+        return sources.all { it.supportsEfficientIteration() }
     }
 
     override fun iterator(): Iterator<E> {
-        return Iter(source1 = source1.iterator(), source2 = source2.iterator())
+        return Iter(sources.iterator())
     }
 
     override fun supportsReuse(): Boolean {
-        return source1.supportsReuse() && source2.supportsReuse()
+        return sources.all { it.supportsReuse() }
     }
 
 }

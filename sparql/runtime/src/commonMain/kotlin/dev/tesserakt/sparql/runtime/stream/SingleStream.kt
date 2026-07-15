@@ -7,11 +7,12 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class SingleStream<E: Any>(private val element: E): Stream<E>, OptimisedStream<E> {
 
-    override val description: String
-        get() = "Single element stream"
-
     override val cardinality: Cardinality
         get() = OneCardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        return false
+    }
 
     private class Iter<E: Any>(private var item: E?): Iterator<E> {
 

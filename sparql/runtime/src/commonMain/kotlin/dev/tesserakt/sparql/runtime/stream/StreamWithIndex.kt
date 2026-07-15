@@ -37,8 +37,9 @@ value class StreamWithIndex<I : Any>(private val parent: Stream<I>): Stream<Pair
     override val cardinality: Cardinality
         get() = parent.cardinality
 
-    override val description: String
-        get() = "WithIndex[${parent.description}]"
+    override fun hasZeroCardinality(): Boolean {
+        return parent.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean = parent.supportsEfficientIteration()
 
