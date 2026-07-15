@@ -29,7 +29,7 @@ class BindingIdentifier private constructor(
     }
 
     override fun toString(): String {
-        return name ?: "?"
+        return name ?: "[$id]"
     }
 
     companion object {

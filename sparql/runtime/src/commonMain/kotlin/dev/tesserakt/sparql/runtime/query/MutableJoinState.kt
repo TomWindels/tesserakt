@@ -17,7 +17,7 @@ import dev.tesserakt.sparql.util.Cardinality
  */
 interface MutableJoinState {
 
-    val bindings: Set<String>
+    val bindings: BindingIdentifierSet
 
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state

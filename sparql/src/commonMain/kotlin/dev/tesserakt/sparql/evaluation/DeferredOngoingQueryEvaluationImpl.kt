@@ -1,7 +1,7 @@
 package dev.tesserakt.sparql.evaluation
 
+import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.rdf.types.ObservableStore
-import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
@@ -15,10 +15,10 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(private val query: QuerySt
 
     private sealed interface Change {
         @JvmInline
-        value class Addition(val quad: Quad) : Change
+        value class Addition(val quad: EncodedQuad) : Change
 
         @JvmInline
-        value class Deletion(val quad: Quad) : Change
+        value class Deletion(val quad: EncodedQuad) : Change
 
         fun into(): DataDelta = when (this) {
             is Addition -> DataAddition(quad)
@@ -42,18 +42,18 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(private val query: QuerySt
     private val queue = mutableSetOf<Change>()
 
     private val listener = object: ObservableStore.Listener {
-        override fun onQuadAdded(quad: Quad) {
+        override fun onQuadAddedEncoded(quad: EncodedQuad) {
             process(Change.Addition(quad))
         }
 
-        override fun onQuadRemoved(quad: Quad) {
+        override fun onQuadRemovedEncoded(quad: EncodedQuad) {
             process(Change.Deletion(quad))
         }
     }
 
     override fun subscribe(store: ObservableStore) {
         // adding the existing store contents to the queue
-        store.forEach {
+        store.encodedIterator().forEach {
             process(Change.Addition(it))
         }
         // we can now queue up additional changes

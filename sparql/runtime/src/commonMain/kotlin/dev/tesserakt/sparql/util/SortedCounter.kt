@@ -158,7 +158,8 @@ class SortedCounter<T>(
     /**
      * The number of distinct elements in the counter
      */
-    private var size: Int = 0
+    var size: Int = 0
+        private set
 
     /**
      * The total number of inserted items (= sum of all node counts)

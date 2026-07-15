@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.QueryStatistics
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
@@ -21,7 +22,7 @@ class BasicGraphPatternState(val context: QueryContext, ast: GraphPattern) {
      * A collection of all bindings found inside this query body; it is not guaranteed that all solutions generated
      *  through [insert]ion have a value for all of these bindings, as this depends on the query itself
      */
-    val bindings: Set<String> = ast.getAllNamedBindings().map { it.name }.toSet()
+    val bindings = BindingIdentifierSet(context, ast.getAllNamedBindings().map { it.name })
 
     val cardinality: Cardinality
         get() = group.cardinality

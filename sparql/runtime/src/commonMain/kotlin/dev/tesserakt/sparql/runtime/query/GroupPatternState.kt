@@ -22,7 +22,7 @@ class GroupPatternState(context: QueryContext, pattern: TriplePatternSet, unions
     override val bindings = this.patterns.bindings + this.unions.bindings
 
     init {
-        val common = BindingIdentifierSet(context, this.unions.bindings.intersect(this.patterns.bindings))
+        val common = this.unions.bindings.intersect(this.patterns.bindings)
         val hint = if (pattern.isNotEmpty() && unions.isNotEmpty()) {
             MappingArrayHint(partialHashAccess = true)
         } else {

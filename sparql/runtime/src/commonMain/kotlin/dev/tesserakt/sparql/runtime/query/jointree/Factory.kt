@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.query.TriplePatternState
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.Union
 import kotlin.jvm.JvmName
@@ -11,6 +12,13 @@ fun JoinTree.Companion.from(context: QueryContext, patterns: List<TriplePattern>
     patterns.size >= 2 -> DynamicJoinTree(context, patterns)
     patterns.isEmpty() -> EmptyJoinTree
     else -> SingleItemJoinTree(context, patterns)
+}
+
+@JvmName("fromPatterns")
+fun JoinTree.Companion.from(patterns: List<TriplePatternState<*>>) = when {
+    patterns.size >= 2 -> DynamicJoinTree(patterns)
+    patterns.isEmpty() -> EmptyJoinTree
+    else -> SingleItemJoinTree(patterns)
 }
 
 @JvmName("fromUnions")

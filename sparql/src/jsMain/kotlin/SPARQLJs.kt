@@ -1,10 +1,8 @@
 
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.Compiler
+import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.runtime.createState
-import dev.tesserakt.sparql.runtime.query.SelectQueryState
 import dev.tesserakt.util.jsExpect
 import dev.tesserakt.util.mapToArray
 import kotlin.js.collections.JsMap
@@ -21,7 +19,7 @@ object SPARQLJs {
     }
 
     @JsName("SelectQuery")
-    class SelectQueryJs internal constructor(internal val query: SelectQueryState)
+    class SelectQueryJs internal constructor(internal val query: Query<Bindings>)
 
     @JsName("SelectQueryEvaluation")
     class SelectQueryEvaluationJs internal constructor(private val evaluation: OngoingQueryEvaluation<Bindings>) {
@@ -32,7 +30,7 @@ object SPARQLJs {
 
     }
 
-    fun Select(input: String? = undefined) = SelectQueryJs(Compiler().compile(input.jsExpect()).structure.createState() as SelectQueryState)
+    fun Select(input: String? = undefined) = SelectQueryJs(Query.Select(input.jsExpect()))
 
     fun query(
         query: SelectQueryJs? = undefined,

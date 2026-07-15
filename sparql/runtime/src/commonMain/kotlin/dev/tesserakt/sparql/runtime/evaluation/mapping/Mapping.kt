@@ -16,6 +16,8 @@ interface Mapping {
 
     fun join(other: Mapping): Mapping?
 
+    fun keys(): BindingIdentifierSet
+
     fun keys(context: QueryContext): Iterable<String>
 
     fun asIterable(context: QueryContext): Iterable<Pair<String, Quad.Element>>

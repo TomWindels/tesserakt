@@ -21,7 +21,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
             private val state = BasicGraphPatternState(context, parent.pattern)
 
-            override val bindings: Set<String> get() = state.bindings
+            override val bindings get() = state.bindings
 
             override val cardinality: Cardinality
                 get() = state.cardinality
@@ -44,9 +44,9 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
         }
 
-        class SubqueryState(parent: SelectQuerySegment): Segment() {
+        class SubqueryState(context: QueryContext, parent: SelectQuerySegment): Segment() {
 
-            override val bindings: Set<String> = parent.query.bindings
+            override val bindings = BindingIdentifierSet(context, parent.query.bindings)
 
             override val cardinality: Cardinality
                 get() = TODO("Not yet implemented")
@@ -69,7 +69,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
         }
 
-        abstract val bindings: Set<String>
+        abstract val bindings: BindingIdentifierSet
 
         abstract val cardinality: Cardinality
 
@@ -85,7 +85,13 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
     private val state = union.map { it.createIncrementalSegmentState(context = context) }
 
-    override val bindings: Set<String> = buildSet { state.forEach { addAll(it.bindings) } }
+    override val bindings: BindingIdentifierSet = when {
+        state.isEmpty() -> BindingIdentifierSet.EMPTY
+        state.size == 1 -> state[0].bindings
+        else -> {
+            (1 ..< state.size).fold(state[0].bindings) { bindings, i -> bindings + state[i].bindings }
+        }
+    }
 
     override val cardinality: Cardinality
         get() = Cardinality(state.sumOf { it.cardinality.toDouble() })
@@ -145,7 +151,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
         /* helpers */
 
         private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState(context: QueryContext) = when (this) {
-            is SelectQuerySegment -> Segment.SubqueryState(this)
+            is SelectQuerySegment -> Segment.SubqueryState(context, this)
             is GraphPatternSegment -> Segment.GraphPatternSegmentState(context, this)
         }
     }

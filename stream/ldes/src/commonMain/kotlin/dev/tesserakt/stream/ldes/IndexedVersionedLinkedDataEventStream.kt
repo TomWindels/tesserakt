@@ -1,9 +1,7 @@
 package dev.tesserakt.stream.ldes
 
 import dev.tesserakt.rdf.ontology.RDF
-import dev.tesserakt.rdf.types.IndexedStore
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.rdf.types.factory.indexedStoreOf
 import dev.tesserakt.stream.ldes.ontology.DC
@@ -50,7 +48,21 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
 
     override fun isEmpty(): Boolean = store.isEmpty()
 
-    override fun iterator(): Iterator<Quad> = store.iterator()
+    override val context: EncodingContext
+        get() = store.context
+
+    override fun encodedIterator(): Iterator<EncodedQuad> {
+        return store.encodedIterator()
+    }
+
+    override fun encodedIter(
+        s: Quad.Subject?,
+        p: Quad.Predicate?,
+        o: Quad.Object?,
+        g: Quad.Graph?
+    ): Iterator<EncodedQuad> {
+        return store.encodedIter(s, p, o, g)
+    }
 
     override fun read(until: Quad.TypedLiteral): Store = transform.decode(
         source = store,

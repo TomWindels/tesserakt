@@ -36,8 +36,7 @@ sealed interface ExclusionFilterState: MutableFilterState {
      *  collection (which may not be empty!)
      */
     class Narrow(
-        context: QueryContext,
-        commonBindingNames: Set<String>,
+        private val commonBindingNames: BindingIdentifierSet,
         private val state: BasicGraphPatternState,
     ) : ExclusionFilterState {
 
@@ -45,7 +44,6 @@ sealed interface ExclusionFilterState: MutableFilterState {
             require(commonBindingNames.isNotEmpty()) { "Invalid filter use detected!" }
         }
 
-        private val commonBindingNames = BindingIdentifierSet(context, commonBindingNames)
         // tracking what binding groups are "invalid" (= should be filtered out)
         private val filtered = Counter<Mapping>()
 
@@ -221,7 +219,6 @@ sealed interface ExclusionFilterState: MutableFilterState {
                 Broad(state = state)
             } else {
                 Narrow(
-                    context = context,
                     commonBindingNames = externalBindings,
                     state = state
                 )

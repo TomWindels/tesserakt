@@ -21,7 +21,7 @@ import kotlin.jvm.JvmName
 @JvmInline
 value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): JoinTree {
 
-    override val bindings: Set<String>
+    override val bindings: BindingIdentifierSet
         get() = element.bindings
 
     override val cardinality: Cardinality
@@ -62,6 +62,11 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
         @JvmName("forPatterns")
         operator fun invoke(context: QueryContext, patterns: List<TriplePattern>) = SingleItemJoinTree(
             element = patterns.single().let { TriplePatternState.from(context, it) }
+        )
+
+        @JvmName("forPatternStates")
+        operator fun invoke(patterns: List<TriplePatternState<*>>) = SingleItemJoinTree(
+            element = patterns.single()
         )
 
         @JvmName("forUnions")

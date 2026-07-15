@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import kotlin.jvm.JvmInline
 
@@ -11,7 +11,7 @@ sealed interface AdditionDelta: Delta
 sealed interface DeletionDelta: Delta
 
 sealed interface DataDelta: Delta {
-    val value: Quad
+    val value: EncodedQuad
 }
 
 sealed interface MappingDelta: Delta {
@@ -20,7 +20,7 @@ sealed interface MappingDelta: Delta {
 }
 
 @JvmInline
-value class DataAddition(override val value: Quad): AdditionDelta,
+value class DataAddition(override val value: EncodedQuad): AdditionDelta,
     DataDelta {
     override fun toString() = "[+] $value"
 }
@@ -33,7 +33,7 @@ data class MappingAddition(
 }
 
 @JvmInline
-value class DataDeletion(override val value: Quad): DeletionDelta,
+value class DataDeletion(override val value: EncodedQuad): DeletionDelta,
     DataDelta {
     override fun toString() = "[-] $value"
 }

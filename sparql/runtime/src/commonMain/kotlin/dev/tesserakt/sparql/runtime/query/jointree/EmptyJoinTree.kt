@@ -19,8 +19,8 @@ import dev.tesserakt.sparql.util.OneCardinality
  */
 data object EmptyJoinTree: JoinTree {
 
-    override val bindings: Set<String>
-        get() = emptySet()
+    override val bindings: BindingIdentifierSet
+        get() = BindingIdentifierSet.EMPTY
 
     override val cardinality: Cardinality
         get() = OneCardinality // always matches

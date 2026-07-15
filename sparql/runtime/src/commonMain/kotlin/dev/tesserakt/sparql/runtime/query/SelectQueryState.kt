@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.rdf.types.EncodingContext
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
@@ -9,7 +10,10 @@ import dev.tesserakt.sparql.runtime.query.select.OutputState
 import dev.tesserakt.sparql.types.SelectQueryStructure
 import dev.tesserakt.sparql.util.MappedCollection.Companion.mapLazily
 
-class SelectQueryState(ast: SelectQueryStructure): QueryState<Bindings, SelectQueryStructure>(ast) {
+class SelectQueryState(
+    ast: SelectQueryStructure,
+    encodingContext: EncodingContext? = null,
+): QueryState<Bindings, SelectQueryStructure>(ast, encodingContext) {
 
     private val projectionSet = BindingIdentifierSet(context, ast.bindings)
 

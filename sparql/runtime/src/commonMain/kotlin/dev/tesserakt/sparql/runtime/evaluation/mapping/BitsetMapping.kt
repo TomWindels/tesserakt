@@ -22,8 +22,13 @@ class BitsetMapping private constructor(
     )
 
     constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Element>>): this(
-        bindings = source.asIterable().fold(initial = 0) { acc, entry -> acc or (1 shl context.resolveBinding(entry.first)) },
-        terms = source.asIterable().sortedBy { context.resolveBinding(it.first) }.map { context.resolveTerm(it.second) }.toIntArray(),
+        bindings = source.fold(initial = 0) { acc, entry -> acc or (1 shl context.resolveBinding(entry.first)) },
+        terms = source.sortedBy { context.resolveBinding(it.first) }.map { context.resolveTerm(it.second) }.toIntArray(),
+    )
+
+    constructor(source: Iterable<Pair<BindingIdentifier, TermIdentifier>>): this(
+        bindings = source.fold(initial = 0) { acc, entry -> acc or (1 shl entry.first.id) },
+        terms = source.sortedBy { it.first.id }.map { it.second.id }.toIntArray(),
     )
 
     private val hashCode = bindings + terms.contentHashCode()
@@ -44,7 +49,7 @@ class BitsetMapping private constructor(
         val remaining = bindings.asIntIterable().fold(0) { acc, i -> acc or (1 shl i) }
         val common = this.bindings and remaining
         val iter = common.bitIterator()
-        val terms = IntArray(common.countOneBits()) { terms[bindingIndex(iter.next())] }
+        val terms = IntArray(common.countOneBits()) { terms[bindingIndex(iter.nextInt())] }
         return BitsetMapping(
             bindings = common,
             terms = terms,
@@ -87,14 +92,14 @@ class BitsetMapping private constructor(
         var i = 0
         val a = this.bindings.bitIterator()
         val b = other.bindings.bitIterator()
-        var left = a.next()
-        var right = b.next()
+        var left = a.nextInt()
+        var right = b.nextInt()
         while (true) {
             when {
                 left < right -> {
                     terms[i++] = this.get(left)
                     left = if (a.hasNext()) {
-                        a.next()
+                        a.nextInt()
                     } else {
                         // all other elements to the right can get added right away
                         val remaining = b.remaining() + 1
@@ -110,7 +115,7 @@ class BitsetMapping private constructor(
                 right < left -> {
                     terms[i++] = other.get(right)
                     right = if (b.hasNext()) {
-                        b.next()
+                        b.nextInt()
                     } else {
                         // all other elements to the right can get added right away
                         val remaining = a.remaining() + 1
@@ -127,7 +132,7 @@ class BitsetMapping private constructor(
                     // no equality check required; `count` took care of that
                     terms[i++] = this.get(left)
                     left = if (a.hasNext()) {
-                        a.next()
+                        a.nextInt()
                     } else {
                         // all other elements to the right can get added right away
                         // this first step, `terms[i++] = other.get(right)`, is not required, as here, left == right
@@ -141,7 +146,7 @@ class BitsetMapping private constructor(
                         break
                     }
                     right = if (b.hasNext()) {
-                        b.next()
+                        b.nextInt()
                     } else {
                         // all other elements to the right can get added right away
                         val remaining = a.remaining() + 1
@@ -162,6 +167,16 @@ class BitsetMapping private constructor(
         )
     }
 
+    override fun keys(): BindingIdentifierSet {
+        val bindingCount = this.terms.size // = this.bindings pop count
+        if (bindingCount == 0) {
+            return BindingIdentifierSet.EMPTY
+        }
+        // is automatically sorted
+        val iter = this.bindings.bitIterator()
+        return BindingIdentifierSet(ids = IntArray(bindingCount) { iter.nextInt() })
+    }
+
     override fun keys(context: QueryContext) = object: Iterable<String> {
         override fun iterator() = object: Iterator<String> {
             private val iter = bindings.bitIterator()
@@ -171,7 +186,7 @@ class BitsetMapping private constructor(
             }
 
             override fun next(): String {
-                return context.resolveBinding(iter.next())
+                return context.resolveBinding(iter.nextInt())
             }
         }
     }
@@ -201,7 +216,7 @@ class BitsetMapping private constructor(
             }
 
             override fun next(): Pair<BindingIdentifier, TermIdentifier> {
-                val binding = iter.next()
+                val binding = iter.nextInt()
                 val term = i++
                 return BindingIdentifier(binding) to TermIdentifier(terms[term])
             }
@@ -228,7 +243,9 @@ class BitsetMapping private constructor(
     private fun count(other: BitsetMapping): Int {
         val common = bindings and other.bindings
         // ensuring all those that are in common, are in fact identical; if there aren't any, no checks are required
-        common.bitIterator().forEach { bindingId ->
+        val iter = common.bitIterator()
+        while (iter.hasNext()) {
+            val bindingId = iter.nextInt()
             if (get(bindingId) != other.get(bindingId)) {
                 return -1
             }

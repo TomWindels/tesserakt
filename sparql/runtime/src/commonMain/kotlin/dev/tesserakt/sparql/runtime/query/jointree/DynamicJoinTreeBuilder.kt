@@ -1,13 +1,12 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
-import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree.Node
 
 internal object DynamicJoinTreeBuilder {
 
-    fun <J: MutableJoinState> build(context: QueryContext, states: List<J>): Node<J> {
+    fun <J: MutableJoinState> build(states: List<J>): Node<J> {
         // creating a set of groups, starting with every state set as a leaf node
         val groups = states.mapTo(ArrayList(states.size)) { TreeSegment.leaf(it) }
         // as long as not all groups have been merged into one, we find the best match pair to join together
@@ -22,12 +21,12 @@ internal object DynamicJoinTreeBuilder {
             val segment = if (a.getCommonBindingsCount(b) > 0) {
                 // getting all bindings found in the other groups, and intersecting these with the individual bindings
                 //  found in this group
-                val indexes = groups.flatMapTo(mutableSetOf()) { it.bindings }.apply {
-                    retainAll(a.bindings + b.bindings)
-                }
-                TreeSegment.connected(context, a, b, indexes)
+                val indexes = (1 ..< groups.size)
+                    .fold(groups[0].bindings) { bindings, i -> bindings + groups[i].bindings }
+                    .intersect(a.bindings + b.bindings)
+                TreeSegment.connected(a, b, indexes)
             } else {
-                TreeSegment.disconnected(context, a, b)
+                TreeSegment.disconnected(a, b)
             }
 
             groups.add(segment)
@@ -35,7 +34,7 @@ internal object DynamicJoinTreeBuilder {
         return if (groups.size == 2) {
             // creating a temporary TreeSegment instance, so the two final groups are also properly configured
             //  indexing-wise
-            TreeSegment.disconnected(context, groups[0], groups[1]).node
+            TreeSegment.disconnected(groups[0], groups[1]).node
         } else {
             groups.single().node
         }
@@ -54,18 +53,18 @@ internal object DynamicJoinTreeBuilder {
         private val length: Int,
     ) {
 
-        val bindings: Set<String> get() = node.bindings
+        val bindings: BindingIdentifierSet get() = node.bindings
 
         fun getTotalBindingsCount(other: TreeSegment<*>) =
             unionSize(bindings, other.bindings)
 
         fun getCommonBindingsCount(other: TreeSegment<*>) =
-            intersectionSize(bindings, other.bindings)
+            bindings.intersectSize(other.bindings)
 
         fun getTotalLength(other: TreeSegment<*>) =
             length + other.length
 
-        override fun toString(): String = "TreeNode(${bindings.joinToString()}, length=${length})"
+        override fun toString(): String = "TreeNode(${bindings.size} binding(s), length=${length})"
 
         companion object {
 
@@ -75,49 +74,39 @@ internal object DynamicJoinTreeBuilder {
             )
 
             fun <J: MutableJoinState> connected(
-                context: QueryContext,
                 first: TreeSegment<J>,
                 second: TreeSegment<J>,
-                bindings: Collection<String>
+                bindings: BindingIdentifierSet,
             ) = TreeSegment(
-                node = Node.Connected(context, first.node, second.node, bindings),
+                node = Node.Connected(first.node, second.node, bindings),
                 length = first.length + second.length,
             ).also {
                 // requesting the child nodes to rehash themselves based on common bindings
-                val common = BindingIdentifierSet(context, first.node.bindings.intersect(second.node.bindings))
+                val common = first.node.bindings.intersect(second.node.bindings)
                 first.node.reindex(common)
                 second.node.reindex(common)
             }
 
             fun <J: MutableJoinState> disconnected(
-                context: QueryContext,
                 first: TreeSegment<J>,
                 second: TreeSegment<J>,
             ) = TreeSegment(
-                node = Node.Disconnected(context, first.node, second.node),
+                node = Node.Disconnected(first.node, second.node),
                 length = first.length + second.length,
             ).also {
                 // requesting the child nodes to rehash themselves based on common bindings
-                val common = BindingIdentifierSet(context, first.node.bindings.intersect(second.node.bindings))
+                val common = first.node.bindings.intersect(second.node.bindings)
                 first.node.reindex(common)
                 second.node.reindex(common)
             }
 
             /* helpers */
 
-            private inline fun unionSize(left: Set<*>, right: Set<*>): Int {
+            private inline fun unionSize(left: BindingIdentifierSet, right: BindingIdentifierSet): Int {
                 return if (left.size < right.size) {
-                    right.size + left.count { it !in right }
+                    right.size + left.asIntIterable().count { it !in right }
                 } else {
-                    left.size + right.count { it !in left }
-                }
-            }
-
-            private inline fun intersectionSize(left: Set<*>, right: Set<*>): Int {
-                return if (left.size < right.size) {
-                    left.count { it in right }
-                } else {
-                    right.count { it in left }
+                    left.size + right.asIntIterable().count { it !in left }
                 }
             }
 

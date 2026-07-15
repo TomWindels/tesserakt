@@ -1,15 +1,19 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.rdf.types.EncodingContext
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.compat.Compat
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.context.encode
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.types.QueryStructure
 import kotlin.jvm.JvmInline
 
 sealed class QueryState<ResultType, Q: QueryStructure>(
-    protected val ast: Q
+    protected val ast: Q,
+    encodingContext: EncodingContext? = null,
 ) {
 
     sealed interface ResultChange<out T> {
@@ -37,10 +41,26 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     }
 
-    protected val context = QueryContext(ast)
+    protected val context = QueryContext(encodingContext, ast)
     protected val bgpState = BasicGraphPatternState(context, ast = Compat.apply(ast.body))
 
     abstract val results: Collection<ResultType>
+
+    /**
+     * A convenience method to use [processAndGet] without having access to
+     *  the underlying [QueryContext] / [EncodingContext]
+     */
+    fun processAndGetAddition(quad: Quad): List<ResultChange<ResultType>> {
+        return processAndGet(DataAddition(context.encode(quad)))
+    }
+
+    /**
+     * A convenience method to use [process] without having access to
+     *  the underlying [QueryContext] / [EncodingContext]
+     */
+    fun processAddition(quad: Quad) {
+        return process(DataAddition(context.encode(quad)))
+    }
 
     abstract fun processAndGet(data: DataDelta): List<ResultChange<ResultType>>
 
