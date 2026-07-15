@@ -28,8 +28,6 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
             }
         }
 
-    override val members: List<Member> get() = _members
-
     /**
      * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
      *  implementation.

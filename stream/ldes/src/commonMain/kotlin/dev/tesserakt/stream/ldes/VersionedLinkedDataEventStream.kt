@@ -34,13 +34,11 @@ abstract class VersionedLinkedDataEventStream<StreamElement>(
     protected val versionOfPath = store.iter(s = identifier, p = LDES.versionOfPath).singleOrNull()?.o
         as? Quad.NamedTerm ?: streamFormatError("Expected exactly one `versionOfPath`!")
 
-    abstract val members: List<Member>
-
     /**
      * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
      *  implementation.
      */
-    abstract val timestamps: List<Quad.TypedLiteral>
+    abstract val timestamps: Collection<Quad.TypedLiteral>
 
     init {
         if (!store.iter(s = identifier, p = RDF.type, o = LDES.EventStream).hasNext()) {
