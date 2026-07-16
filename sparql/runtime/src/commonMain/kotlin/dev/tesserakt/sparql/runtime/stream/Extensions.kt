@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.util.Cardinality
+import dev.tesserakt.sparql.util.ZeroCardinality
 
 /* simple extensions, aliases of the various builders */
 
@@ -297,6 +298,13 @@ inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Cardinality = 
 
 inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Number): OptimisedStream<E> =
     optimisedForSingleUse(cardinality = Cardinality(cardinality))
+
+inline fun <E: Any> Iterable<Iterable<E>>.flatMapStream(cardinality: Cardinality): OptimisedStream<E> {
+    if (cardinality == ZeroCardinality) {
+        return emptyStream()
+    }
+    return FlatMapStream(source = this, cardinality = cardinality)
+}
 
 /* typical usage pattern chains */
 

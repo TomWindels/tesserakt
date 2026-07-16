@@ -5,8 +5,8 @@ import dev.tesserakt.sparql.runtime.evaluation.TermIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
-import dev.tesserakt.sparql.runtime.stream.chain
 import dev.tesserakt.sparql.runtime.stream.emptyStream
+import dev.tesserakt.sparql.runtime.stream.flatMapStream
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.util.replace
 
@@ -39,15 +39,7 @@ class CompleteHashMappingArray(
     }
 
     override fun iter(): OptimisedStream<Mapping> {
-        val iter = backing.iterator()
-        if (!iter.hasNext()) {
-            return emptyStream()
-        }
-        var result: OptimisedStream<Mapping> = iter.next().value.iter()
-        while (iter.hasNext()) {
-            result = result.chain(iter.next().value.iter())
-        }
-        return result
+        return backing.values.flatMapStream(cardinality)
     }
 
     override fun iter(mapping: Mapping): OptimisedStream<Mapping> {
