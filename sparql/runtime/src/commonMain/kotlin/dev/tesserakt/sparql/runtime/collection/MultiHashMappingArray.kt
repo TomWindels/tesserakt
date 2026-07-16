@@ -71,7 +71,7 @@ class MultiHashMappingArray(
     private class BucketIterator(private var bucket: Bucket?): Iterator<Bucket> {
 
         override fun hasNext(): Boolean {
-            return bucket?.previous != null
+            return bucket != null
         }
 
         override fun next(): Bucket {
