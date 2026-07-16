@@ -57,11 +57,12 @@ class StreamSingleJoin(
 
     }
 
-    override val description: String
-        get() = "(${right.description}) ⨝ ($left)"
-
     override val cardinality: Cardinality
         get() = right.cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        return right.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return false

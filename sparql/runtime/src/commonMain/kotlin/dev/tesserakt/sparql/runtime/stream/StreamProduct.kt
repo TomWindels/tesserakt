@@ -65,10 +65,12 @@ class StreamProduct<A: Any, B: Any>(
 
     }
 
-    override val description: String
-        get() = "(${left.description}) ⨉ (${right.description})"
-
     override val cardinality: Cardinality = left.cardinality * right.cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        // right is of the optimized variety, so it shouldn't be empty, and should report that fact the quickest
+        return right.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return left.supportsEfficientIteration() && right.supportsEfficientIteration()

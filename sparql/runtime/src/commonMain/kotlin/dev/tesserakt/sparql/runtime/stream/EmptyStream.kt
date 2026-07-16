@@ -17,11 +17,12 @@ object EmptyStream: Stream<Nothing>, OptimisedStream<Nothing> {
 
     }
 
-    override val description: String
-        get() = "Empty"
-
     override val cardinality: Cardinality
         get() = ZeroCardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        return true
+    }
 
     override fun iterator() = Iterator
 

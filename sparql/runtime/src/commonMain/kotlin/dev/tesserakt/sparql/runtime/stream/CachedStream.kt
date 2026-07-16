@@ -14,8 +14,9 @@ value class CachedStream<E: Any> private constructor(private val buffer: ArrayLi
 
     override val cardinality: Cardinality get() = Cardinality(buffer.size)
 
-    override val description: String
-        get() = "Cached(size = ${buffer.size})"
+    override fun hasZeroCardinality(): Boolean {
+        return buffer.isEmpty()
+    }
 
     override fun supportsReuse(): Boolean {
         return true

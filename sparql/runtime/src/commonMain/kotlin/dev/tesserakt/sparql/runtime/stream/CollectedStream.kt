@@ -8,8 +8,9 @@ value class CollectedStream<E: Any>(private val data: List<E>): Stream<E>, Optim
 
     override val cardinality: Cardinality get() = Cardinality(data.size)
 
-    override val description: String
-        get() = "Collected(size = ${data.size})"
+    override fun hasZeroCardinality(): Boolean {
+        return data.isEmpty()
+    }
 
     override fun supportsReuse(): Boolean {
         return true

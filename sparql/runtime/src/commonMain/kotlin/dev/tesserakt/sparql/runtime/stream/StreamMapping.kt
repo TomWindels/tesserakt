@@ -37,11 +37,12 @@ class StreamMapping<I: Any, O: Any>(
 
     }
 
-    override val description: String
-        get() = "Mapping[${source.description}]"
-
     override val cardinality: Cardinality
         get() = source.cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        return source.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return source.supportsEfficientIteration()

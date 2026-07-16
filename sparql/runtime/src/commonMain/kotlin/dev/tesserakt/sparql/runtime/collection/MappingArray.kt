@@ -5,7 +5,7 @@ import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.util.Cardinality
 
-interface MappingArray {
+interface MappingArray : Iterable<Mapping> {
 
     val cardinality: Cardinality
 
@@ -41,5 +41,9 @@ interface MappingArray {
      * Removes all [mappings] from the backing structure, returning the number of elements that were removed
      */
     fun removeAll(mappings: Iterable<Mapping>): Int
+
+    override fun iterator(): Iterator<Mapping> {
+        return iter().iterator()
+    }
 
 }

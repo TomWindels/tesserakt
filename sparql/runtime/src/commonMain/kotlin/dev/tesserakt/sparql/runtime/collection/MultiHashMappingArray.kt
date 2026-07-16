@@ -8,6 +8,7 @@ import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.chain
 import dev.tesserakt.sparql.runtime.stream.emptyStream
+import dev.tesserakt.sparql.runtime.stream.flatMapStream
 import dev.tesserakt.sparql.util.Cardinality
 import kotlin.jvm.JvmInline
 
@@ -50,7 +51,7 @@ class MultiHashMappingArray(
          * All mappings with identical values for the [indexBindingSet]
          */
         val mappings: SimpleMappingArray,
-    ) {
+    ) : Iterable<Mapping> {
         override fun toString() = "Bucket(id:$id, previous: ${match.joinToString(prefix = "[", postfix = "]")}, cardinality ${mappings.cardinality}, ${mappings.iter().firstOrNull()})"
 
         override fun equals(other: Any?): Boolean {
@@ -59,6 +60,31 @@ class MultiHashMappingArray(
 
         override fun hashCode(): Int {
             return id
+        }
+
+        override fun iterator(): Iterator<Mapping> {
+            return mappings.iterator()
+        }
+
+    }
+
+    private class BucketIterator(private var bucket: Bucket?): Iterator<Bucket> {
+
+        override fun hasNext(): Boolean {
+            return bucket?.previous != null
+        }
+
+        override fun next(): Bucket {
+            val next = bucket ?: throw NoSuchElementException()
+            bucket = next.previous
+            return next
+        }
+
+    }
+
+    private inline fun asBucketIterable(): Iterable<Bucket> = object : Iterable<Bucket> {
+        override fun iterator(): Iterator<Bucket> {
+            return BucketIterator(last)
         }
     }
 
@@ -167,13 +193,7 @@ class MultiHashMappingArray(
     }
 
     override fun iter(): OptimisedStream<Mapping> {
-        var result: OptimisedStream<Mapping> = emptyStream()
-        var currentBucket = last
-        while (currentBucket != null) {
-            result = result.chain(currentBucket.mappings.iter())
-            currentBucket = currentBucket.previous
-        }
-        return result
+        return asBucketIterable().flatMapStream(cardinality)
     }
 
     /**

@@ -66,11 +66,13 @@ class StreamMultiJoin(
 
     }
 
-    override val description: String
-        get() = "(${right.description}) ⨝ (${left.description})"
-
     override val cardinality: Cardinality
         get() = right.cardinality * left.cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        // right is of the optimized variety, so it shouldn't be empty, and should report that fact the quickest
+        return right.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return false

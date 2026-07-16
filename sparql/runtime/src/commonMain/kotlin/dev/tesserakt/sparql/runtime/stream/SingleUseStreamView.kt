@@ -10,7 +10,6 @@ import dev.tesserakt.sparql.util.Cardinality
  */
 class SingleUseStreamView<E: Any> private constructor(
     private var source: Iterator<E>?,
-    private val sourceDescription: String,
     override val cardinality: Cardinality,
 ): OptimisedStream<E> {
 
@@ -19,17 +18,17 @@ class SingleUseStreamView<E: Any> private constructor(
         cardinality: Cardinality
     ): this(
         source = source.iterator(),
-        sourceDescription = source.description,
         cardinality = cardinality
     )
 
-    override val description: String
-        get() = "SingleUseStream[${sourceDescription}; consumed=${source == null}]"
+    override fun hasZeroCardinality(): Boolean {
+        return false
+    }
 
     override fun iterator(): Iterator<E> {
         val iter = source
         source = null
-        return iter ?: throw NoSuchElementException("$sourceDescription has already been consumed!")
+        return iter ?: throw NoSuchElementException("Stream has already been consumed!")
     }
 
     override fun supportsReuse(): Boolean {

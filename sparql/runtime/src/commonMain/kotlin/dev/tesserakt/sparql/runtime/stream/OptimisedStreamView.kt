@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.stream
 
+import dev.tesserakt.sparql.util.Cardinality
 import kotlin.jvm.JvmInline
 
 
@@ -12,10 +13,22 @@ import kotlin.jvm.JvmInline
  *    raw performance obtained by buffering it
  */
 @JvmInline
-value class OptimisedStreamView<E: Any>(val input: Stream<E>): Stream<E> by input, OptimisedStream<E> {
+value class OptimisedStreamView<E: Any>(val input: Stream<E>): Stream<E>, OptimisedStream<E> {
 
-    override val description: String
-        get() = "OptimisedView[${input.description}]"
+    override val cardinality: Cardinality
+        get() = input.cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        return input.hasZeroCardinality()
+    }
+
+    override fun supportsReuse(): Boolean {
+        return input.supportsReuse()
+    }
+
+    override fun iterator(): Iterator<E> {
+        return input.iterator()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return true
