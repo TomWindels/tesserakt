@@ -30,6 +30,7 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
     override val timestamps: Collection<Quad.TypedLiteral> by lazy {
         members
             .flatMapTo(mutableSetOf()) { it.value.keys }
+            .sortedWith(compareBy(comparator) { key -> key })
     }
 
     init {

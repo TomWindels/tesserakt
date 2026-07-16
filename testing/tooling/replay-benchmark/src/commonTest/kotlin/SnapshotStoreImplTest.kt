@@ -6,6 +6,7 @@ import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.serialization.trig.usePrettyFormatting
 import dev.tesserakt.rdf.serialization.trig.withPrefixes
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
@@ -44,7 +45,25 @@ class SnapshotStoreImplTest {
                 withPrefixes(XSD, TREE, LDES, DC, RDF)
             }
         }
-        println(serializer.serialize(snapshotStore.toStore()))
+        println(serializer.serialize(snapshotStore.toStore()).let { buildString { while (it.hasNext()) append(it.next()) }})
+
+        val diffs = snapshotStore.diffs.iterator()
+
+        assertDiffContentEqual(
+            expectedInsertions = setOf(Quad("s1".asNamedTerm(), RDF.type, "Test".asNamedTerm())),
+            expectedDeletions = emptySet(),
+            actual = diffs.next(),
+        )
+        assertDiffContentEqual(
+            expectedInsertions = setOf(Quad("s2".asNamedTerm(), RDF.type, "Test".asNamedTerm())),
+            expectedDeletions = emptySet(),
+            actual = diffs.next(),
+        )
+        assertDiffContentEqual(
+            expectedInsertions = emptySet(),
+            expectedDeletions = setOf(Quad("s1".asNamedTerm(), RDF.type, "Test".asNamedTerm())),
+            actual = diffs.next(),
+        )
 
         val snapshots = snapshotStore.snapshots.iterator()
 
@@ -63,6 +82,16 @@ class SnapshotStoreImplTest {
         val superfluous = actual - expected
         if (missing.isNotEmpty() || superfluous.isNotEmpty()) {
             fail("Store content mismatch!\nMissing quads: ${missing.toTruncatedString(200)}\nUnexpected quads: ${superfluous.toTruncatedString(200)}")
+        }
+    }
+
+    private fun assertDiffContentEqual(expectedInsertions: Set<Quad>, expectedDeletions: Set<Quad>, actual: SnapshotStore.Diff) {
+        val missing1 = expectedInsertions - actual.insertions
+        val missing2 = expectedDeletions - actual.deletions
+        val superfluous1 = actual.insertions - expectedInsertions
+        val superfluous2 = actual.deletions - expectedDeletions
+        if (missing1.isNotEmpty() || missing2.isNotEmpty() || superfluous1.isNotEmpty() || superfluous2.isNotEmpty()) {
+            fail("Store content mismatch!\nMissing insertion quads: ${missing1.toTruncatedString(200)}\nMissing deletion quads: ${missing2.toTruncatedString(200)}\nUnexpected insertion quads: ${superfluous1.toTruncatedString(200)}\nUnexpected deletion quads: ${superfluous2.toTruncatedString(200)}")
         }
     }
 
