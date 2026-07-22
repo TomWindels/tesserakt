@@ -1,9 +1,7 @@
 
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
-import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
-import dev.tesserakt.sparql.runtime.evaluation.DataDelta
-import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.FilterExpression
@@ -11,15 +9,20 @@ import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTreeBuilder
 import dev.tesserakt.sparql.util.Cardinality
+import dev.tesserakt.sparql.util.ZeroCardinality
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.test.*
 
 class DynamicJoinTreeBuilderTest {
 
-    class TestNode(override val bindings: BindingIdentifierSet): MutableJoinState {
+    class TestNode(
+        override val bindings: BindingIdentifierSet,
+    ): MutableJoinState {
 
-        constructor(bindings: List<String>): this(bindings = BindingIdentifierSet(GlobalQueryContext, bindings))
+        constructor(bindings: List<String>): this(
+            bindings = BindingIdentifierSet(GlobalQueryContext, bindings),
+        )
 
         var indexes = bindings
             private set
@@ -37,7 +40,13 @@ class DynamicJoinTreeBuilderTest {
 
         override fun process(delta: DataDelta) = throw UnsupportedOperationException()
 
-        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity) = throw UnsupportedOperationException()
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity) =
+            Statistics.DescriptionElement(
+                inner = Statistics.SingleElement(
+                    cardinality = ZeroCardinality,
+                    changeCount = 0L
+                ),
+                description = "Test node, bindings:\n${bindings.asIntIterable().joinToString { GlobalQueryContext.resolveBinding(it) }}")
 
         override fun filtered(filter: FilterExpression) = throw UnsupportedOperationException()
 
@@ -240,12 +249,84 @@ class DynamicJoinTreeBuilderTest {
         assertTrue("Got unexpected indexes!") { subtree.right.state.indexes.isEmpty() }
     }
 
+    // we simulate a filter that compares `?a` with `?f`, so these bindings are prioritized
+    // the remaining structure of the patterns would otherwise not lead to such a hierarchy naturally
+    @Test
+    fun priority() = testWithPriorityBindings(
+        priority = BindingIdentifierSet(GlobalQueryContext, listOf("a", "f")),
+        listOf("a", "b"),
+        listOf("a"),
+        listOf("b"),
+        listOf("a", "c"),
+        listOf("c"),
+        listOf("g", "c"),
+        listOf("g"),
+        listOf("g", "d"),
+        listOf("d"),
+        listOf("d", "e"),
+        listOf("e"),
+        listOf("f", "e"),
+    ) { root ->
+        root.assertIsDisconnected()
+        // 8 TPs have to be put 'higher' in the tree so that all `f` and `a` referencing TPs are as deep as possible
+        val a = BindingIdentifier(GlobalQueryContext, "a")
+        val f = BindingIdentifier(GlobalQueryContext, "f")
+
+        // we first expect none to contain either `a` or `f` in the leaf nodes that are part of the subtree
+        var treeDepth = 0
+        var subtree = root
+        while (
+            a.id !in subtree.single<DynamicJoinTree.Node.Leaf>().bindings &&
+            f.id !in subtree.single<DynamicJoinTree.Node.Leaf>().bindings
+        ) {
+            // we go deeper, away from the leaf we just checked
+            subtree = subtree.singleNot<DynamicJoinTree.Node.Leaf>()
+            ++treeDepth
+        }
+        // we need to be a few levels deep
+        assertTrue { treeDepth > 2 }
+        var maxDepth = treeDepth
+        while (
+            (a.id in subtree.bindings || f.id in subtree.bindings) &&
+            !subtree.hasBoth<DynamicJoinTree.Node.Leaf>()
+        ) {
+            assertTrue {
+                // the single leaf part of this deeper section should have at least one of the prioritized bindings
+                a.id in subtree.single<DynamicJoinTree.Node.Leaf>().bindings ||
+                f.id in subtree.single<DynamicJoinTree.Node.Leaf>().bindings
+            }
+            // we go deeper, away from the leaf
+            subtree = subtree.singleNot<DynamicJoinTree.Node.Leaf>()
+            ++maxDepth
+        }
+        // we need to be somewhat deeper
+        assertTrue { maxDepth > treeDepth }
+        // and we shouldn't have encountered another segment with different bindings inside
+        assertTrue { a.id in subtree.bindings || f.id in subtree.bindings }
+    }
+
     /* test helpers */
 
     private fun test(vararg bindings: List<String>, test: (DynamicJoinTree.Node) -> Unit) {
         var i = 0
         bindings.toList().permutations().forEach { bindings ->
             val tree = buildTree(bindings)
+            try {
+                test(tree)
+            } catch (t: Throwable) {
+                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}", t)
+            }
+            ++i
+        }
+    }
+
+    private fun testWithPriorityBindings(
+        priority: BindingIdentifierSet,
+        vararg bindings: List<String>, test: (DynamicJoinTree.Node) -> Unit
+    ) {
+        var i = 0
+        bindings.toList().permutations().forEach { bindings ->
+            val tree = buildTree(bindings, priority)
             try {
                 test(tree)
             } catch (t: Throwable) {
@@ -269,12 +350,16 @@ class DynamicJoinTreeBuilderTest {
                 }
             }
         }
-        return generate(this)
+        // making sure the # of permutations don't explode; we only test the first 1000 in that case
+        return generate(this).take(1_000)
     }
 
-    private fun buildTree(bindings: List<List<String>>): DynamicJoinTree.Node {
+    private fun buildTree(
+        bindings: List<List<String>>,
+        prioritizedBindings: BindingIdentifierSet = BindingIdentifierSet.EMPTY,
+    ): DynamicJoinTree.Node {
         val nodes = bindings.map { TestNode(it) }
-        return DynamicJoinTreeBuilder.build(nodes)
+        return DynamicJoinTreeBuilder.build(nodes, prioritizedBindings)
     }
 
     /**
@@ -309,6 +394,38 @@ class DynamicJoinTreeBuilderTest {
     }
 
     /**
+     * Returns the other child of mismatching type [N], or fails the test if not exactly one child is of the provided
+     *  type
+     */
+    private inline fun <reified N: DynamicJoinTree.Node> DynamicJoinTree.Node.singleNot(): DynamicJoinTree.Node = when (this) {
+        is DynamicJoinTree.Node.Leaf -> {
+            fail("A node child ${N::class.simpleName} was expected, but parent is a leaf node!")
+        }
+        is DynamicJoinTree.Node.Connected -> {
+            if (left is N && right is N) {
+                fail("Both children are of type ${N::class.simpleName}, while exactly one such instance was expected!")
+            } else if (left is N) {
+                right
+            } else if (right is N) {
+                left
+            } else {
+                fail("No children of type ${N::class.simpleName} present, got ${left::class.simpleName} and ${right::class.simpleName} instead!")
+            }
+        }
+        is DynamicJoinTree.Node.Disconnected -> {
+            if (left is N && right is N) {
+                fail("Both children are of type ${N::class.simpleName}, while exactly one such instance was expected!")
+            } else if (left is N) {
+                right
+            } else if (right is N) {
+                left
+            } else {
+                fail("No children of type ${N::class.simpleName} present, got ${left::class.simpleName} and ${right::class.simpleName} instead!")
+            }
+        }
+    }
+
+    /**
      * Asserts both children are of type [N]
      */
     private inline fun <reified N: DynamicJoinTree.Node> DynamicJoinTree.Node.both() {
@@ -334,6 +451,41 @@ class DynamicJoinTreeBuilderTest {
                     fail("First child is of type ${left::class.simpleName}, expected ${N::class.simpleName}")
                 } else if (right !is N) {
                     fail("Second child is of type ${right::class.simpleName}, expected ${N::class.simpleName}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Tests whether both children are of type [N]
+     */
+    private inline fun <reified N: DynamicJoinTree.Node> DynamicJoinTree.Node.hasBoth(): Boolean {
+        return when (this) {
+            is DynamicJoinTree.Node.Leaf -> {
+                false
+            }
+
+            is DynamicJoinTree.Node.Connected -> {
+                if (left !is N && right !is N) {
+                    false
+                } else if (left !is N) {
+                    false
+                } else if (right !is N) {
+                    false
+                } else {
+                    true
+                }
+            }
+
+            is DynamicJoinTree.Node.Disconnected -> {
+                if (left !is N && right !is N) {
+                    false
+                } else if (left !is N) {
+                    false
+                } else if (right !is N) {
+                    false
+                } else {
+                    true
                 }
             }
         }

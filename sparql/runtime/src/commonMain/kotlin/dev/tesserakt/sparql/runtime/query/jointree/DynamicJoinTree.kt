@@ -385,7 +385,15 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             filters: List<FilterExpression>,
         ): DynamicJoinTree {
             val states = patterns.map { TriplePatternState.from(context, it) }
-            val root = filters.fold(initial = build(states)) { tree, filter -> tree.filtered(filter) }
+            val root = filters.fold(
+                initial = build(
+                    states = states,
+                    prioritizedBindings = filters
+                        .fold(BindingIdentifierSet.EMPTY) { set, filter -> set + filter.bindings }
+                )
+            ) { tree, filter ->
+                tree.filtered(filter)
+            }
             return DynamicJoinTree(root)
         }
 
@@ -394,7 +402,15 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             patterns: List<TriplePatternState<*>>,
             filters: List<FilterExpression>,
         ): DynamicJoinTree {
-            val root = filters.fold(initial = build(patterns)) { tree, filter -> tree.filtered(filter) }
+            val root = filters.fold(
+                initial = build(
+                    states = patterns,
+                    prioritizedBindings = filters
+                        .fold(BindingIdentifierSet.EMPTY) { set, filter -> set + filter.bindings }
+                )
+            ) { tree, filter ->
+                tree.filtered(filter)
+            }
             return DynamicJoinTree(root)
         }
 
@@ -413,20 +429,28 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                     filters = emptyList()
                 )
             }
-            val root = filters.fold(initial = build(states)) { tree, filter -> tree.filtered(filter) }
+            val root = filters.fold(
+                initial = build(
+                    states = states,
+                    prioritizedBindings = filters
+                        .fold(BindingIdentifierSet.EMPTY) { set, filter -> set + filter.bindings }
+                )
+            ) { tree, filter ->
+                tree.filtered(filter)
+            }
             return DynamicJoinTree(root)
         }
 
         /**
          * Builds a tree, returning the tree's root, using the provided [states]
          */
-        private fun build(states: List<MutableJoinState>): Node {
+        private fun build(states: List<MutableJoinState>, prioritizedBindings: BindingIdentifierSet): Node {
             check(states.isNotEmpty())
             if (states.size == 1) {
                 // hardly a tree, but what can we do
                 return Node.Leaf(states.single())
             }
-            return DynamicJoinTreeBuilder.build(states)
+            return DynamicJoinTreeBuilder.build(states, prioritizedBindings)
         }
     }
 

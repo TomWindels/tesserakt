@@ -10,12 +10,15 @@ internal object DynamicJoinTreeBuilder {
      * Produces a tree structure, returning its root node, that contains all provided [states] joined together using
      *  properties of the individual join states in the collection.
      */
-    fun build(states: List<MutableJoinState>): Node {
+    fun build(
+        states: List<MutableJoinState>,
+        prioritizedBindings: BindingIdentifierSet = BindingIdentifierSet.EMPTY,
+    ): Node {
         // creating a set of groups, starting with every state set as a leaf node
         val groups = states.mapTo(ArrayList(states.size)) { TreeSegment.leaf(it) }
         // as long as not all groups have been merged into one, we find the best match pair to join together
         while (groups.size > 2) {
-            val matches = findGroupMatch(groups)
+            val matches = findGroupMatch(groups, prioritizedBindings)
             val a = groups.removeAt(matches.group2)
             val b = groups.removeAt(matches.group1)
 
@@ -133,14 +136,23 @@ internal object DynamicJoinTreeBuilder {
         val common: Int,
         val total: Int,
         val length: Int,
+        val prioritizedCount: Int,
     ) : Comparable<IntermediateMatchResult> {
-        constructor(a: TreeSegment, b: TreeSegment): this(
+
+        constructor(a: TreeSegment, b: TreeSegment, prioritizedBindings: BindingIdentifierSet): this(
             common = a.getCommonBindingsCount(b),
             total = a.getTotalBindingsCount(b),
             length = a.getTotalLength(b),
+            prioritizedCount = a.bindings.intersectSize(prioritizedBindings) + b.bindings.intersectSize(prioritizedBindings)
         )
 
         override fun compareTo(other: IntermediateMatchResult): Int {
+            // if there's a mismatch in the number of prioritized bindings, the largest one takes priority
+            if (prioritizedCount > other.prioritizedCount) {
+                return 1
+            } else if (prioritizedCount < other.prioritizedCount) {
+                return -1
+            }
             // we prefer common bindings first
             if (common > other.common) {
                 return 1
@@ -161,17 +173,18 @@ internal object DynamicJoinTreeBuilder {
     }
 
     private fun findGroupMatch(
-        groups: List<TreeSegment>
+        groups: List<TreeSegment>,
+        prioritizedBindings: BindingIdentifierSet,
     ): MatchResult {
         require(groups.size > 1)
 
         val allResults = (0 ..< groups.size - 1).map { i ->
             val left = groups[i]
             var j = i + 1
-            var bestMatchResult = IntermediateMatchResult(left, groups[j])
+            var bestMatchResult = IntermediateMatchResult(left, groups[j], prioritizedBindings)
             for (k in i + 2 ..< groups.size) {
                 val right = groups[k]
-                val current = IntermediateMatchResult(left, right)
+                val current = IntermediateMatchResult(left, right, prioritizedBindings)
                 if (current > bestMatchResult) {
                     bestMatchResult = current
                     j = k
