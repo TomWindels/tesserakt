@@ -6,6 +6,7 @@ import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTreeBuilder
@@ -38,6 +39,8 @@ class DynamicJoinTreeBuilderTest {
 
         override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity) = throw UnsupportedOperationException()
 
+        override fun filtered(filter: FilterExpression) = throw UnsupportedOperationException()
+
         override fun toString() = "Node(bindings=${bindings}, indexes=${indexes})"
 
     }
@@ -60,8 +63,8 @@ class DynamicJoinTreeBuilderTest {
         // ensuring correct root node type
         root.assertIsDisconnected()
         assertTrue {
-            root.left is DynamicJoinTree.Node.Connected<TestNode> ||
-            root.right is DynamicJoinTree.Node.Connected<TestNode>
+            root.left is DynamicJoinTree.Node.Connected ||
+            root.right is DynamicJoinTree.Node.Connected
         }
     }
 
@@ -77,8 +80,8 @@ class DynamicJoinTreeBuilderTest {
         root.assertIsDisconnected()
         // a deep-left/right join tree should be constructed; all nodes should have one leaf and one connected node,
         // until reaching the end
-        var sibling = root.single<DynamicJoinTree.Node.Leaf<TestNode>>()
-        var subtree = root.single<DynamicJoinTree.Node.Connected<TestNode>>()
+        var sibling = root.single<DynamicJoinTree.Node.Leaf>()
+        var subtree = root.single<DynamicJoinTree.Node.Connected>()
         repeat(2) {
             // making sure its indexed on its common pair
             subtree.assertIsConnected()
@@ -86,11 +89,11 @@ class DynamicJoinTreeBuilderTest {
             val possibleIndexes = sibling.state.bindings
             assertTrue { activeIndex in possibleIndexes }
             // moving to the next check
-            sibling = subtree.single<DynamicJoinTree.Node.Leaf<TestNode>>()
-            subtree = subtree.single<DynamicJoinTree.Node.Connected<TestNode>>()
+            sibling = subtree.single<DynamicJoinTree.Node.Leaf>()
+            subtree = subtree.single<DynamicJoinTree.Node.Connected>()
         }
         // the last subtree should have both children as leaf nodes
-        subtree.both<DynamicJoinTree.Node.Leaf<TestNode>>()
+        subtree.both<DynamicJoinTree.Node.Leaf>()
     }
 
     @Test
@@ -109,8 +112,8 @@ class DynamicJoinTreeBuilderTest {
         // ensuring correct root node type
         root.assertIsDisconnected()
         // there is always at least one binding overlap between segments, so no cartesian joins are expected
-        var sibling = root.single<DynamicJoinTree.Node.Leaf<TestNode>>()
-        var subtree = root.single<DynamicJoinTree.Node.Connected<TestNode>>()
+        var sibling = root.single<DynamicJoinTree.Node.Leaf>()
+        var subtree = root.single<DynamicJoinTree.Node.Connected>()
         repeat(4) {
             // making sure its indexed on its common pair
             subtree.assertIsConnected()
@@ -121,8 +124,8 @@ class DynamicJoinTreeBuilderTest {
             val possibleIndexes = sibling.state.bindings
             assertTrue { activeIndexes.all { it in possibleIndexes } }
             // moving to the next check
-            sibling = subtree.single<DynamicJoinTree.Node.Leaf<TestNode>>()
-            subtree = subtree.single<DynamicJoinTree.Node.Connected<TestNode>>()
+            sibling = subtree.single<DynamicJoinTree.Node.Leaf>()
+            subtree = subtree.single<DynamicJoinTree.Node.Connected>()
         }
     }
 
@@ -142,8 +145,8 @@ class DynamicJoinTreeBuilderTest {
         // ensuring correct root node type
         root.assertIsDisconnected()
         // there is always at least one binding overlap between segments, so no cartesian joins are expected
-        var sibling = root.single<DynamicJoinTree.Node.Leaf<TestNode>>()
-        var subtree = root.single<DynamicJoinTree.Node.Connected<TestNode>>()
+        var sibling = root.single<DynamicJoinTree.Node.Leaf>()
+        var subtree = root.single<DynamicJoinTree.Node.Connected>()
         repeat(4) {
             // making sure its indexed on its common pair
             subtree.assertIsConnected()
@@ -154,8 +157,8 @@ class DynamicJoinTreeBuilderTest {
             val possibleIndexes = sibling.state.bindings
             assertTrue { activeIndexes.all { it in possibleIndexes } }
             // moving to the next check
-            sibling = subtree.single<DynamicJoinTree.Node.Leaf<TestNode>>()
-            subtree = subtree.single<DynamicJoinTree.Node.Connected<TestNode>>()
+            sibling = subtree.single<DynamicJoinTree.Node.Leaf>()
+            subtree = subtree.single<DynamicJoinTree.Node.Connected>()
         }
     }
 
@@ -203,22 +206,22 @@ class DynamicJoinTreeBuilderTest {
         //  segment deep into the tree using a connected structure
         root.assertIsDisconnected()
         assertTrue("The tree structure (root level) has non-empty indexes for its leaf!") {
-            root.single<DynamicJoinTree.Node.Leaf<TestNode>>().state.indexes.isEmpty()
+            root.single<DynamicJoinTree.Node.Leaf>().state.indexes.isEmpty()
         }
-        val subtree = root.single<DynamicJoinTree.Node.Disconnected<TestNode>>()
+        val subtree = root.single<DynamicJoinTree.Node.Disconnected>()
         assertTrue("The tree structure (one level deep) has non-empty indexes for its leaf!") {
-            subtree.single<DynamicJoinTree.Node.Leaf<TestNode>>().state.indexes.isEmpty()
+            subtree.single<DynamicJoinTree.Node.Leaf>().state.indexes.isEmpty()
         }
         // start of the chain, with the first element being connected and no indexes of its own
-        val chainStart = subtree.single<DynamicJoinTree.Node.Connected<TestNode>>()
+        val chainStart = subtree.single<DynamicJoinTree.Node.Connected>()
         assertTrue("The start of the chain is not indexed as expected!") {
             chainStart.buf.indexes.size == 0
         }
-        val common = chainStart.single<DynamicJoinTree.Node.Leaf<TestNode>>().state.indexes.asIntIterable().singleOrNull()
+        val common = chainStart.single<DynamicJoinTree.Node.Leaf>().state.indexes.asIntIterable().singleOrNull()
         assertNotNull(common, "No common binding found, while one was expected!")
-        val innerChain = chainStart.single<DynamicJoinTree.Node.Connected<TestNode>>()
+        val innerChain = chainStart.single<DynamicJoinTree.Node.Connected>()
         assertContentEquals(listOf(common), innerChain.buf.indexes.asIntIterable())
-        innerChain.both<DynamicJoinTree.Node.Leaf<TestNode>>()
+        innerChain.both<DynamicJoinTree.Node.Leaf>()
     }
 
     @Test
@@ -229,8 +232,8 @@ class DynamicJoinTreeBuilderTest {
     ) { root ->
         // the tree should be completely made up of disconnected nodes and no indexes for any of its leafs
         root.assertIsDisconnected()
-        assertTrue("Got unexpected indexes!") { root.single<DynamicJoinTree.Node.Leaf<TestNode>>().state.indexes.isEmpty() }
-        val subtree = root.single<DynamicJoinTree.Node.Disconnected<TestNode>>()
+        assertTrue("Got unexpected indexes!") { root.single<DynamicJoinTree.Node.Leaf>().state.indexes.isEmpty() }
+        val subtree = root.single<DynamicJoinTree.Node.Disconnected>()
         subtree.left.assertIsLeaf()
         assertTrue("Got unexpected indexes!") { subtree.left.state.indexes.isEmpty() }
         subtree.right.assertIsLeaf()
@@ -239,7 +242,7 @@ class DynamicJoinTreeBuilderTest {
 
     /* test helpers */
 
-    private fun test(vararg bindings: List<String>, test: (DynamicJoinTree.Node<TestNode>) -> Unit) {
+    private fun test(vararg bindings: List<String>, test: (DynamicJoinTree.Node) -> Unit) {
         var i = 0
         bindings.toList().permutations().forEach { bindings ->
             val tree = buildTree(bindings)
@@ -269,7 +272,7 @@ class DynamicJoinTreeBuilderTest {
         return generate(this)
     }
 
-    private fun buildTree(bindings: List<List<String>>): DynamicJoinTree.Node<TestNode> {
+    private fun buildTree(bindings: List<List<String>>): DynamicJoinTree.Node {
         val nodes = bindings.map { TestNode(it) }
         return DynamicJoinTreeBuilder.build(nodes)
     }
@@ -277,11 +280,11 @@ class DynamicJoinTreeBuilderTest {
     /**
      * Returns the only child of matching type [N], or fails the test if not exactly one child is of the provided type
      */
-    private inline fun <reified N: DynamicJoinTree.Node<TestNode>> DynamicJoinTree.Node<TestNode>.single(): N = when (this) {
-        is DynamicJoinTree.Node.Leaf<*> -> {
+    private inline fun <reified N: DynamicJoinTree.Node> DynamicJoinTree.Node.single(): N = when (this) {
+        is DynamicJoinTree.Node.Leaf -> {
             fail("A node child ${N::class.simpleName} was expected, but parent is a leaf node!")
         }
-        is DynamicJoinTree.Node.Connected<TestNode> -> {
+        is DynamicJoinTree.Node.Connected -> {
             if (left is N && right is N) {
                 fail("Both children are of type ${N::class.simpleName}, while exactly one such instance was expected!")
             } else if (left is N) {
@@ -292,7 +295,7 @@ class DynamicJoinTreeBuilderTest {
                 fail("No children of type ${N::class.simpleName} present, got ${left::class.simpleName} and ${right::class.simpleName} instead!")
             }
         }
-        is DynamicJoinTree.Node.Disconnected<TestNode> -> {
+        is DynamicJoinTree.Node.Disconnected -> {
             if (left is N && right is N) {
                 fail("Both children are of type ${N::class.simpleName}, while exactly one such instance was expected!")
             } else if (left is N) {
@@ -308,13 +311,13 @@ class DynamicJoinTreeBuilderTest {
     /**
      * Asserts both children are of type [N]
      */
-    private inline fun <reified N: DynamicJoinTree.Node<TestNode>> DynamicJoinTree.Node<TestNode>.both() {
+    private inline fun <reified N: DynamicJoinTree.Node> DynamicJoinTree.Node.both() {
         when (this) {
-            is DynamicJoinTree.Node.Leaf<*> -> {
+            is DynamicJoinTree.Node.Leaf -> {
                 fail("A node child ${N::class.simpleName} was expected, but parent is a leaf node!")
             }
 
-            is DynamicJoinTree.Node.Connected<TestNode> -> {
+            is DynamicJoinTree.Node.Connected -> {
                 if (left !is N && right !is N) {
                     fail("Neither children are ${N::class.simpleName}, got ${left::class.simpleName} and ${right::class.simpleName} instead!")
                 } else if (left !is N) {
@@ -324,7 +327,7 @@ class DynamicJoinTreeBuilderTest {
                 }
             }
 
-            is DynamicJoinTree.Node.Disconnected<TestNode> -> {
+            is DynamicJoinTree.Node.Disconnected -> {
                 if (left !is N && right !is N) {
                     fail("Neither children are ${N::class.simpleName}, got ${left::class.simpleName} and ${right::class.simpleName} instead!")
                 } else if (left !is N) {
@@ -337,27 +340,27 @@ class DynamicJoinTreeBuilderTest {
     }
 
     @OptIn(ExperimentalContracts::class)
-    private fun DynamicJoinTree.Node<TestNode>.assertIsLeaf() {
+    private fun DynamicJoinTree.Node.assertIsLeaf() {
         contract {
-            returns() implies (this@assertIsLeaf is DynamicJoinTree.Node.Leaf<TestNode>)
+            returns() implies (this@assertIsLeaf is DynamicJoinTree.Node.Leaf)
         }
-        assertIs<DynamicJoinTree.Node.Leaf<TestNode>>(this)
+        assertIs<DynamicJoinTree.Node.Leaf>(this)
     }
 
     @OptIn(ExperimentalContracts::class)
-    private fun DynamicJoinTree.Node<TestNode>.assertIsConnected() {
+    private fun DynamicJoinTree.Node.assertIsConnected() {
         contract {
-            returns() implies (this@assertIsConnected is DynamicJoinTree.Node.Connected<TestNode>)
+            returns() implies (this@assertIsConnected is DynamicJoinTree.Node.Connected)
         }
-        assertIs<DynamicJoinTree.Node.Connected<*>>(this)
+        assertIs<DynamicJoinTree.Node.Connected>(this)
     }
 
     @OptIn(ExperimentalContracts::class)
-    private fun DynamicJoinTree.Node<TestNode>.assertIsDisconnected() {
+    private fun DynamicJoinTree.Node.assertIsDisconnected() {
         contract {
-            returns() implies (this@assertIsDisconnected is DynamicJoinTree.Node.Disconnected<TestNode>)
+            returns() implies (this@assertIsDisconnected is DynamicJoinTree.Node.Disconnected)
         }
-        assertIs<DynamicJoinTree.Node.Disconnected<TestNode>>(this)
+        assertIs<DynamicJoinTree.Node.Disconnected>(this)
     }
 
     private fun <T> assertContainsAll(collection: Collection<T>, elements: Iterable<T>) {
@@ -367,5 +370,8 @@ class DynamicJoinTreeBuilderTest {
             }
         }
     }
+
+    private val MutableJoinState.indexes: BindingIdentifierSet
+        get() = (this as TestNode).indexes
 
 }

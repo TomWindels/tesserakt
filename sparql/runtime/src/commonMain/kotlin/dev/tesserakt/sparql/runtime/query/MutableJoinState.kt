@@ -47,4 +47,12 @@ interface MutableJoinState {
 
     fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
+    /**
+     * Returns a self-instance that has the [filter] applied internally to process its state.
+     *
+     * NOTE: this (typically) creates a shallow copy of `this` state instance. Continued usage of the original
+     *  state is therefore not allowed!
+     */
+    fun filtered(filter: FilterExpression): MutableJoinState
+
 }

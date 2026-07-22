@@ -114,6 +114,13 @@ constructor(
         return false
     }
 
+    operator fun contains(elements: BindingIdentifierSet): Boolean {
+        if (elements.size > this.size) {
+            return false
+        }
+        return elements.asIntIterable().all { it in this }
+    }
+
     operator fun plus(other: BindingIdentifierSet): BindingIdentifierSet {
         // using the sorted counter type as that is a sorted map for the individual keys, meaning that we get
         // * the sorted ID order we require

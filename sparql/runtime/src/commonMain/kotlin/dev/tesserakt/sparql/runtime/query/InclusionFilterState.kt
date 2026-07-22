@@ -252,7 +252,7 @@ sealed interface InclusionFilterState: MutableFilterState {
 
     companion object {
 
-        operator fun invoke(context: QueryContext, parent: GroupPatternState, filter: Filter.Exists): InclusionFilterState {
+        operator fun invoke(context: QueryContext, parent: MutableJoinState, filter: Filter.Exists): InclusionFilterState {
             val state = BasicGraphPatternState(context, filter.pattern)
             val externalBindings = parent.bindings.intersect(state.bindings)
             return if (externalBindings.isEmpty()) {

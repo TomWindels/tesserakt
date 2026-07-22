@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier.Companion.get
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
@@ -60,7 +61,9 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
     }
 
-    fun interface Operation {
+    interface Operation {
+
+        fun bindings(): BindingIdentifierSet
 
         fun eval(input: OperationValue): OperationValue
 
@@ -73,6 +76,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
                     is UriValue ->
                         object: Operation {
+
+                            override fun bindings(): BindingIdentifierSet {
+                                return BindingIdentifierSet.EMPTY
+                            }
 
                             override fun eval(input: OperationValue): OperationValue {
                                 return OperationValue.SingleValue(term = expr.uri)
@@ -115,6 +122,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
         class EQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison == 0).asLiteralTerm().into()
@@ -128,6 +139,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
         class NEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison != 0).asLiteralTerm().into()
@@ -140,6 +155,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         }
 
         class LT(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
+
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
 
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
@@ -155,6 +174,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
         class GT(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison > 0).asLiteralTerm().into()
@@ -168,6 +191,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
         class LTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison <= 0).asLiteralTerm().into()
@@ -180,6 +207,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         }
 
         class GTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
+
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
 
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
@@ -276,6 +307,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             return eval(left, right).asLiteralTerm().into()
         }
 
+        final override fun bindings(): BindingIdentifierSet {
+            return lhs.bindings() + rhs.bindings()
+        }
+
         override fun toString(): String {
             val op = when (this) {
                 is Div -> '/'
@@ -324,6 +359,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
     class AndEval(val lhs: Operation, val rhs: Operation) : Operation {
 
+        override fun bindings(): BindingIdentifierSet {
+            return lhs.bindings() + rhs.bindings()
+        }
+
         override fun eval(input: OperationValue): OperationValue {
             return (lhs.eval(input).isTrue() && rhs.eval(input).isTrue()).asLiteralTerm().into()
         }
@@ -335,6 +374,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     }
 
     class OrEval(val lhs: Operation, val rhs: Operation) : Operation {
+
+        override fun bindings(): BindingIdentifierSet {
+            return lhs.bindings() + rhs.bindings()
+        }
 
         override fun eval(input: OperationValue): OperationValue {
             return (lhs.eval(input).isTrue() || rhs.eval(input).isTrue()).asLiteralTerm().into()
@@ -348,6 +391,11 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
     @JvmInline
     private value class ValueLookUpOperation(val binding: BindingIdentifier) : Operation {
+
+        override fun bindings(): BindingIdentifierSet {
+            return bindingIdentifierSetOf(binding)
+        }
+
         override fun eval(input: OperationValue): OperationValue {
             return input.mapping.get(binding).into()
         }
@@ -361,6 +409,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     @JvmInline
     private value class ConstantValueOperation<V: OperationValue>(val constant: V) : Operation {
 
+        override fun bindings(): BindingIdentifierSet {
+            return BindingIdentifierSet.EMPTY
+        }
+
         override fun eval(input: OperationValue): OperationValue {
             return constant
         }
@@ -372,6 +424,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     }
 
     private class BooleanCoercionOperation(val context: QueryContext, val parent: Operation) : Operation {
+
+        override fun bindings(): BindingIdentifierSet {
+            return parent.bindings()
+        }
 
         override fun eval(input: OperationValue): OperationValue {
             val result = parent.eval(input).getTerm(context)
@@ -397,6 +453,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     }
 
     private val root = BooleanCoercionOperation(context, parent = Operation.from(context, expr))
+    val bindings = root.parent.bindings()
 
     fun test(mapping: Mapping): Boolean {
         return root.eval(mapping.into()).getTerm(context) == true.asLiteralTerm()
@@ -441,6 +498,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
         fun LANG(context: QueryContext, arg: Operation) = object: Operation {
 
+            override fun bindings(): BindingIdentifierSet {
+                return arg.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val term = arg.evalToSingleQuadElementOrNull(context, input)
                 if (term !is Quad.LangString) {
@@ -456,6 +517,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         }
 
         fun LANGMATCHES(context: QueryContext, tag: Operation, range: Operation) = object: Operation {
+
+            override fun bindings(): BindingIdentifierSet {
+                return tag.bindings() + range.bindings()
+            }
 
             override fun eval(input: OperationValue): OperationValue {
                 val tagValue = tag.evalToSingleQuadElementOrNull(context, input)
@@ -488,6 +553,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         }
 
         fun DATETIME(context: QueryContext, param: Operation) = object: Operation {
+
+            override fun bindings(): BindingIdentifierSet {
+                return param.bindings()
+            }
 
             override fun eval(input: OperationValue): OperationValue {
                 val termValue = param.evalToSingleQuadElementOrNull(context, input)

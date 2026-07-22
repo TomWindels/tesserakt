@@ -127,12 +127,14 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         obj: Object
     ) : TriplePatternState<P>(context, subj, pred, obj) {
 
-        private val data = ReindexableMappingArray(bindingIdentifierSetOf(subj, pred, obj))
+        /**
+         * The backing structure used to store all intermediate matches with this specific triple pattern instance.
+         */
+        open val data = ReindexableMappingArray(bindingIdentifierSetOf(subj, pred, obj))
 
         override val cardinality get() = data.cardinality
 
-        final override var changeCount = 0L
-            private set
+        override var changeCount = 0L
 
         final override fun process(delta: DataDelta) {
             when (delta) {
@@ -375,7 +377,9 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         o: Object
     ) : TriplePatternState<Sequence>(context, s, p, o) {
 
-        private val tree = JoinTree.from(p.unfold(context, start = s, end = o))
+        // we don't apply any filters here - we use anonymous bindings during the unfolding, so none could possibly
+        //  match in the inner state
+        private val tree = JoinTree.from(p.unfold(context, start = s, end = o), filters = emptyList())
 
         override val cardinality: Cardinality
             get() = tree.cardinality
@@ -420,7 +424,9 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         obj: Object
     ) : TriplePatternState<UnboundSequence>(context, subj, pred, obj) {
 
-        private val tree = JoinTree.from(pred.unfold(context, start = subj, end = obj))
+        // we don't apply any filters here - we use anonymous bindings during the unfolding, so none could possibly
+        //  match in the inner state
+        private val tree = JoinTree.from(pred.unfold(context, start = subj, end = obj), filters = emptyList())
 
         override val cardinality: Cardinality
             get() = tree.cardinality
@@ -459,10 +465,114 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
     }
 
+    /* special triple pattern wrappers */
+
+    /**
+     * A special, optimized variant to filter specific types of triple patterns:
+     *  knowing that the array backed variants directly store the result of what was [TriplePatternState.peek]ed
+     *  upon [TriplePatternState.process]ing a data change, we only have to alter that peeked result stream by applying
+     *  the [expr] filter once; at join time, the altered backing structure is used, so no additional filtering is
+     *  required.
+     */
+    class FilteredArrayBackedTriplePatternState<P : Predicate>(
+        context: QueryContext,
+        private val inner: ArrayBackedPatternState<P>,
+        private val expr: FilterExpression,
+    ): ArrayBackedPatternState<P>(context, inner.s, inner.p, inner.o) {
+
+        override val cardinality: Cardinality
+            get() = inner.cardinality
+
+        override var changeCount: Long
+            get() = inner.changeCount
+            set(value) { inner.changeCount = value }
+
+        // we don't store the data ourselves; instead, we piggyback of our wrapped type's data instance
+        override val data: ReindexableMappingArray = inner.data
+
+        override fun peek(quad: EncodedQuad): Stream<Mapping> {
+            // array-backed implementations use this adapted result stream to alter the data state, so we don't
+            //  need to adapt the backing array any further; no additional filtering is required at `join()` time
+            //  either (see description above)
+            return inner.peek(quad).filtered { mapping -> expr.test(mapping) }
+        }
+
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            val inner = inner.stats(context, granularity)
+            return if (granularity isAtLeast QueryStatistics.Granularity.HIGH_LEVEL) {
+                Statistics.DescriptionElement(
+                    description = "Filtered\n${expr}",
+                    inner = inner,
+                )
+            } else {
+                inner
+            }
+        }
+
+    }
+
+    /**
+     * General variant of the [TriplePatternState] post [expr] filter. Should only be used to
+     *  filter [TriplePatternState]s that cannot be filtered using the [FilteredArrayBackedTriplePatternState]
+     */
+    class FilteredTriplePatternState<P : Predicate>(
+        context: QueryContext,
+        private val inner: TriplePatternState<P>,
+        private val expr: FilterExpression,
+    ): TriplePatternState<P>(context, inner.s, inner.p, inner.o) {
+
+        override val changeCount: Long
+            get() = inner.changeCount
+
+        init {
+            // making sure we're not wrapping a type of triple pattern that can be filtered out more effectively
+            check(inner !is ArrayBackedPatternState && inner !is FilteredArrayBackedTriplePatternState)
+        }
+
+        override fun peek(delta: DataAddition): Stream<Mapping> {
+            return inner.peek(delta).filtered { mapping -> expr.test(mapping) }
+        }
+
+        override val cardinality: Cardinality
+            get() = inner.cardinality
+
+        override fun join(delta: MappingDelta): Stream<MappingDelta> {
+            // we have to re-apply our filter as there is no direct (linear) relation between `peek` and `join` results
+            //  in the general case
+            return inner.join(delta).filtered { mapping -> expr.test(mapping.value) }
+        }
+
+        override fun reindex(
+            bindings: BindingIdentifierSet,
+            hint: MappingArrayHint
+        ) {
+            inner.reindex(bindings, hint)
+        }
+
+        override fun process(delta: DataDelta) {
+            inner.process(delta)
+        }
+
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            val inner = inner.stats(context, granularity)
+            return if (granularity isAtLeast QueryStatistics.Granularity.HIGH_LEVEL) {
+                Statistics.DescriptionElement(
+                    description = "Filtered\n${expr}",
+                    inner = inner,
+                )
+            } else {
+                inner
+            }
+        }
+
+    }
+
+    /* triple pattern API */
+
     /**
      * The sum of all insertions and deletions, used to track the 'stress' put on this specific triple pattern
      */
-    protected abstract val changeCount: Long
+    abstract val changeCount: Long
 
     final override val bindings = bindingIdentifierSetOf(s, p, o)
 
@@ -515,7 +625,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         }.optimisedForReuse() // peek()s are already optimised, and mapping doesn't change that, so this is guaranteed to be a type wrapping
     }
 
-    final override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
         // avoiding 'generated' bindings, which lead with a ` `, to be formatted poorly
         fun Binding.bindingName(): String {
             val name = context.resolveBinding(id = this.id.id)
@@ -588,6 +698,26 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
     }
 
     final override fun toString() = "$s $p $o - cardinality $cardinality"
+
+    final override fun filtered(filter: FilterExpression): TriplePatternState<*> {
+        // we choose the most optimal filter wrapper based on the type we're wrapping
+        return when (this) {
+            is ArrayBackedPatternState<*> -> {
+                FilteredArrayBackedTriplePatternState(
+                    context = context,
+                    inner = this,
+                    expr = filter,
+                )
+            }
+            else -> {
+                FilteredTriplePatternState(
+                    context = context,
+                    inner = this,
+                    expr = filter,
+                )
+            }
+        }
+    }
 
     @Suppress("FunctionName")
     companion object {

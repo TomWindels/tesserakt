@@ -6,7 +6,11 @@ import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree.Node
 
 internal object DynamicJoinTreeBuilder {
 
-    fun <J: MutableJoinState> build(states: List<J>): Node<J> {
+    /**
+     * Produces a tree structure, returning its root node, that contains all provided [states] joined together using
+     *  properties of the individual join states in the collection.
+     */
+    fun build(states: List<MutableJoinState>): Node {
         // creating a set of groups, starting with every state set as a leaf node
         val groups = states.mapTo(ArrayList(states.size)) { TreeSegment.leaf(it) }
         // as long as not all groups have been merged into one, we find the best match pair to join together
@@ -40,11 +44,11 @@ internal object DynamicJoinTreeBuilder {
         }
     }
 
-    class TreeSegment<J : MutableJoinState> private constructor(
+    class TreeSegment private constructor(
         /**
          * The underlying node representing this segment of the tree
          */
-        val node: Node<J>,
+        val node: Node,
         /**
          * The node "length". Leaf nodes have length 1, a (dis)connected node with two leaf nodes have length 2, etc.
          *  Used in calculating the selectivity, so longer chains of leaf nodes are preferred, as these are expected to
@@ -55,27 +59,27 @@ internal object DynamicJoinTreeBuilder {
 
         val bindings: BindingIdentifierSet get() = node.bindings
 
-        fun getTotalBindingsCount(other: TreeSegment<*>) =
+        fun getTotalBindingsCount(other: TreeSegment) =
             unionSize(bindings, other.bindings)
 
-        fun getCommonBindingsCount(other: TreeSegment<*>) =
+        fun getCommonBindingsCount(other: TreeSegment) =
             bindings.intersectSize(other.bindings)
 
-        fun getTotalLength(other: TreeSegment<*>) =
+        fun getTotalLength(other: TreeSegment) =
             length + other.length
 
         override fun toString(): String = "TreeNode(${bindings.size} binding(s), length=${length})"
 
         companion object {
 
-            fun <J: MutableJoinState> leaf(leaf: J) = TreeSegment(
+            fun leaf(leaf: MutableJoinState) = TreeSegment(
                 node = Node.Leaf(leaf),
                 length = 1,
             )
 
-            fun <J: MutableJoinState> connected(
-                first: TreeSegment<J>,
-                second: TreeSegment<J>,
+            fun connected(
+                first: TreeSegment,
+                second: TreeSegment,
                 bindings: BindingIdentifierSet,
             ) = TreeSegment(
                 node = Node.Connected(first.node, second.node, bindings),
@@ -87,9 +91,9 @@ internal object DynamicJoinTreeBuilder {
                 second.node.reindex(common)
             }
 
-            fun <J: MutableJoinState> disconnected(
-                first: TreeSegment<J>,
-                second: TreeSegment<J>,
+            fun disconnected(
+                first: TreeSegment,
+                second: TreeSegment,
             ) = TreeSegment(
                 node = Node.Disconnected(first.node, second.node),
                 length = first.length + second.length,
@@ -130,7 +134,7 @@ internal object DynamicJoinTreeBuilder {
         val total: Int,
         val length: Int,
     ) : Comparable<IntermediateMatchResult> {
-        constructor(a: TreeSegment<*>, b: TreeSegment<*>): this(
+        constructor(a: TreeSegment, b: TreeSegment): this(
             common = a.getCommonBindingsCount(b),
             total = a.getTotalBindingsCount(b),
             length = a.getTotalLength(b),
@@ -156,8 +160,8 @@ internal object DynamicJoinTreeBuilder {
         }
     }
 
-    private fun <J: MutableJoinState> findGroupMatch(
-        groups: List<TreeSegment<J>>
+    private fun findGroupMatch(
+        groups: List<TreeSegment>
     ): MatchResult {
         require(groups.size > 1)
 

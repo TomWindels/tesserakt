@@ -7,6 +7,7 @@ import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.TriplePatternState
 import dev.tesserakt.sparql.runtime.query.UnionState
@@ -57,21 +58,64 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
         element.reindex(bindings, hint)
     }
 
+    override fun filtered(filter: FilterExpression): MutableJoinState {
+        check(filter.bindings in element.bindings)
+        return SingleItemJoinTree(
+            element = element.filtered(filter),
+        )
+    }
+
     companion object {
 
         @JvmName("forPatterns")
-        operator fun invoke(context: QueryContext, patterns: List<TriplePattern>) = SingleItemJoinTree(
-            element = patterns.single().let { TriplePatternState.from(context, it) }
+        operator fun invoke(
+            context: QueryContext,
+            patterns: List<TriplePattern>,
+            filters: List<FilterExpression>,
+        ) = SingleItemJoinTree(
+            element = patterns.single().let {
+                var root = TriplePatternState.from(context, it)
+                // there is no in-between state: either our only node is affected by the filter, or it isn't;
+                //  we apply the filter directly if it is
+                val bindings = root.bindings
+                filters.forEach { expression ->
+                    if (expression.bindings in bindings) {
+                        root = root.filtered(expression)
+                    }
+                }
+                root
+            }
         )
 
         @JvmName("forPatternStates")
-        operator fun invoke(patterns: List<TriplePatternState<*>>) = SingleItemJoinTree(
-            element = patterns.single()
+        operator fun invoke(
+            patterns: List<TriplePatternState<*>>,
+            filters: List<FilterExpression>,
+        ) = SingleItemJoinTree(
+            element = patterns.single().let {
+                var root = it
+                // there is no in-between state: either our only node is affected by the filter, or it isn't;
+                //  we apply the filter directly if it is
+                val bindings = root.bindings
+                filters.forEach { expression ->
+                    if (expression.bindings in bindings) {
+                        root = root.filtered(expression)
+                    }
+                }
+                root
+            }
         )
 
         @JvmName("forUnions")
-        operator fun invoke(context: QueryContext, unions: List<Union>) = SingleItemJoinTree(
-            element = unions.single().let { UnionState(context, it) }
+        operator fun invoke(
+            context: QueryContext,
+            unions: List<Union>,
+            filters: List<FilterExpression>,
+        ) = SingleItemJoinTree(
+            element = unions.single().let {
+                // we immediately propagate the filter expressions downwards
+                UnionState(context = context, union = it, filters = filters)
+            }
         )
 
     }

@@ -13,13 +13,20 @@ import dev.tesserakt.sparql.types.SelectQuerySegment
 import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
 
-class UnionState(context: QueryContext, union: Union): MutableJoinState {
+class UnionState private constructor(private val state: List<Segment>): MutableJoinState {
 
     private sealed class Segment {
 
-        class GraphPatternSegmentState(context: QueryContext, parent: GraphPatternSegment): Segment() {
+        class GraphPatternSegmentState private constructor(
+            private val state: BasicGraphPatternState,
+        ): Segment() {
 
-            private val state = BasicGraphPatternState(context, parent.pattern)
+            constructor(
+                context: QueryContext,
+                parent: GraphPatternSegment,
+            ): this(
+                state = BasicGraphPatternState(context, parent.pattern),
+            )
 
             override val bindings get() = state.bindings
 
@@ -42,6 +49,11 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 return state.stats(context, granularity)
             }
 
+            override fun filtered(expression: FilterExpression): Segment {
+                return GraphPatternSegmentState(
+                    state = state.filtered(expression)
+                )
+            }
         }
 
         class SubqueryState(context: QueryContext, parent: SelectQuerySegment): Segment() {
@@ -67,6 +79,10 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 TODO("Not yet implemented")
             }
 
+            override fun filtered(expression: FilterExpression): Segment {
+                TODO("Not yet implemented")
+            }
+
         }
 
         abstract val bindings: BindingIdentifierSet
@@ -81,9 +97,21 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
         abstract fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
+        abstract fun filtered(expression: FilterExpression): Segment
+
     }
 
-    private val state = union.map { it.createIncrementalSegmentState(context = context) }
+    constructor(
+        context: QueryContext,
+        union: Union,
+        filters: List<FilterExpression>,
+    ): this(
+        state = union.map {
+            var segment = it.createIncrementalSegmentState(context = context)
+            filters.forEach { filter -> segment = segment.filtered(filter) }
+            segment
+        },
+    )
 
     override val bindings: BindingIdentifierSet = when {
         state.isEmpty() -> BindingIdentifierSet.EMPTY
@@ -144,6 +172,12 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
         } else {
             inner
         }
+    }
+
+    override fun filtered(filter: FilterExpression): MutableJoinState {
+        return UnionState(
+            state = state.map { it.filtered(filter) }
+        )
     }
 
     companion object {
