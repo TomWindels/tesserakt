@@ -81,6 +81,12 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             }
 
             override fun filtered(expression: FilterExpression): Node {
+                // we have to make sure the filter expression fits in at least the combination of both nodes, as
+                //  otherwise the expression could not be properly processed within this sub-tree, and we cannot
+                //  apply the filter
+                if (expression.bindings !in this.bindings) {
+                    return this
+                }
                 return Leaf(state = state.filtered(expression))
             }
 
@@ -176,8 +182,11 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
 
             override fun filtered(expression: FilterExpression): Node {
                 // we have to make sure the filter expression fits in at least the combination of both nodes, as
-                //  otherwise the expression could not be properly processed within this sub-tree
-                check(expression.bindings in this.bindings)
+                //  otherwise the expression could not be properly processed within this sub-tree, and we cannot
+                //  apply the filter
+                if (expression.bindings !in this.bindings) {
+                    return this
+                }
                 return when {
                     expression.bindings in left.bindings && expression.bindings in right.bindings -> {
                         // affects both sides, individually, so we don't need to globally filter after the fact
@@ -224,19 +233,14 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
         class Disconnected(
             internal val left: Node,
             internal val right: Node,
-            // filters are applied (pushed down) after tree construction, so this is often empty until the tree is
-            //  formed
-            internal val filters: List<FilterExpression> = emptyList(),
+            // we don't support filters here; if a filter expression is applied on the result of both our nodes,
+            //  we transform ourselves into a connected node, so that filter evaluation is limited
         ): Node {
 
             override val bindings = left.bindings + right.bindings
 
             override val cardinality: Cardinality
                 get() = left.cardinality * right.cardinality
-
-            init {
-                check(filters.all { expression -> expression.bindings in bindings })
-            }
 
             override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
                 // peeking in every substate, which will be joined multiple times, so has to be optimised for such
@@ -247,7 +251,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                     .join(one)
                     .chain(left.join(two))
                     .chain(join(one, two))
-                    .filtered { filters.all { expression -> expression.test(it.value) } }
                     .optimisedForSingleUse()
             }
 
@@ -264,10 +267,8 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 //  together (so we have all required binding values to evaluate the filter expression(s))
                 return if (leftOverlap > rightOverlap) {
                     right.join(left.join(delta).optimisedForSingleUse(left.cardinality))
-                        .filtered { filters.all { expression -> expression.test(it.value) } }
                 } else {
                     left.join(right.join(delta).optimisedForSingleUse(right.cardinality))
-                        .filtered { filters.all { expression -> expression.test(it.value) } }
                 }
             }
 
@@ -276,28 +277,22 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             }
 
             override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
-                val inner = Statistics.JoinedElement(left = left.stats(context, granularity), right = right.stats(context, granularity))
-                return if (granularity isAtLeast QueryStatistics.Granularity.DETAILED && filters.isNotEmpty()) {
-                    Statistics.DescriptionElement(
-                        description = "Filtered\n${filters.joinToString("\n")}",
-                        inner = inner,
-                    )
-                } else {
-                    inner
-                }
+                return Statistics.JoinedElement(left = left.stats(context, granularity), right = right.stats(context, granularity))
             }
 
             override fun filtered(expression: FilterExpression): Node {
                 // we have to make sure the filter expression fits in at least the combination of both nodes, as
-                //  otherwise the expression could not be properly processed within this sub-tree
-                check(expression.bindings in this.bindings)
+                //  otherwise the expression could not be properly processed within this sub-tree, and we cannot
+                //  apply the filter
+                if (expression.bindings !in this.bindings) {
+                    return this
+                }
                 return when {
                     expression.bindings in left.bindings && expression.bindings in right.bindings -> {
                         // affects both sides, individually, so we don't need to globally filter after the fact
                         Disconnected(
                             left = left.filtered(expression),
                             right = right.filtered(expression),
-                            filters = filters,
                         )
                     }
                     expression.bindings in left.bindings && expression.bindings.asIntIterable().none { binding -> binding in right.bindings } -> {
@@ -305,7 +300,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                         Disconnected(
                             left = left.filtered(expression),
                             right = right,
-                            filters = filters,
                         )
                     }
                     expression.bindings.asIntIterable().none { binding -> binding in left.bindings } && expression.bindings in right.bindings -> {
@@ -313,16 +307,16 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                         Disconnected(
                             left = left,
                             right = right.filtered(expression),
-                            filters = filters,
                         )
                     }
                     else -> {
                         // can only be applied after joining both sides together, so we put the filter as part of this
                         //  node (see check above)
-                        Disconnected(
+                        Connected(
                             left = left,
                             right = right,
-                            filters = filters + expression,
+                            filters = listOf(expression),
+                            indexes = BindingIdentifierSet.EMPTY,
                         )
                     }
                 }

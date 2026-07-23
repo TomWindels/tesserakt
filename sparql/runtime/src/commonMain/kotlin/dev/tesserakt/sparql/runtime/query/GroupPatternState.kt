@@ -89,8 +89,11 @@ class GroupPatternState private constructor(
     }
 
     override fun filtered(filter: FilterExpression): MutableJoinState {
-        check(filter.bindings in this.bindings) {
-            "Cannot apply filter with bindings ${filter.bindings} to a group pattern state that only contains a subset ${this.bindings}"
+        // we have to make sure the filter expression fits in the combined state we contain, as
+        //  otherwise the expression could not be properly processed within this state, and we cannot
+        //  apply the filter
+        if (filter.bindings !in this.bindings) {
+            return this
         }
         return when {
             filter.bindings in patterns.bindings && filter.bindings in unions.bindings -> {
@@ -137,15 +140,24 @@ class GroupPatternState private constructor(
             unions: List<Union>,
             filters: List<FilterExpression>,
         ): MutableJoinState {
-            // beginning with an unfiltered group pattern state
-            val patterns = JoinTree.from(context, pattern, filters = emptyList())
-            val unions = JoinTree.from(context, unions, filters = emptyList())
-            // we then apply all filters on top of it
-            return filters.fold<_, MutableJoinState>(
-                initial = GroupPatternState(patterns, unions, emptyList())
-            ) { group, filter ->
-                group.filtered(filter)
+            // we create both parts separately
+            val patterns = JoinTree.from(context, pattern, filters = filters)
+            val unions = JoinTree.from(context, unions, filters = filters)
+            // we then apply all filters that can only be combined on the entire group on top of it
+            val topLevelFilters = filters.filter { expression ->
+                // we retain those that have overlap with both the patterns and the union query segments
+                val patternOverlap = expression.bindings.intersectSize(patterns.bindings)
+                val unionOverlap = expression.bindings.intersectSize(unions.bindings)
+                // both should have at least one of the expression bindings, and at least one of them should be
+                //  incomplete without the other's bindings in scope
+                patternOverlap != 0 && unionOverlap != 0 &&
+                (patternOverlap != expression.bindings.size || unionOverlap != expression.bindings.size)
             }
+            return GroupPatternState(
+                patterns = patterns,
+                unions = unions,
+                filters = topLevelFilters,
+            )
         }
 
     }

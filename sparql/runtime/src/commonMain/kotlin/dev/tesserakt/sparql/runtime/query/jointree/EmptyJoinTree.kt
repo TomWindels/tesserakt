@@ -48,10 +48,8 @@ data object EmptyJoinTree: JoinTree {
     }
 
     override fun filtered(filter: FilterExpression): MutableJoinState {
-        // the dynamic join tree raises an exception when it cannot fully satisfy a filter expression based on
-        //  the required bindings;
-        // we don't contain any bindings whatsoever, so we fail every time
-        throw UnsupportedOperationException("Cannot apply a filter to an empty join tree!")
+        // we cannot apply the filter to this join state as we don't contain any bindings
+        return this
     }
 
     override fun toString(): String = "Empty join tree"
