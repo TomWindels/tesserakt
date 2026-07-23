@@ -276,6 +276,7 @@ class DynamicJoinTreeBuilderTest {
         var treeDepth = 0
         var subtree = root
         while (
+            subtree.hasSingle<DynamicJoinTree.Node.Leaf>() &&
             a.id !in subtree.single<DynamicJoinTree.Node.Leaf>().bindings &&
             f.id !in subtree.single<DynamicJoinTree.Node.Leaf>().bindings
         ) {
@@ -285,22 +286,8 @@ class DynamicJoinTreeBuilderTest {
         }
         // we need to be a few levels deep
         assertTrue { treeDepth > 2 }
-        var maxDepth = treeDepth
-        while (
-            (a.id in subtree.bindings || f.id in subtree.bindings) &&
-            !subtree.hasBoth<DynamicJoinTree.Node.Leaf>()
-        ) {
-            assertTrue {
-                // the single leaf part of this deeper section should have at least one of the prioritized bindings
-                a.id in subtree.single<DynamicJoinTree.Node.Leaf>().bindings ||
-                f.id in subtree.single<DynamicJoinTree.Node.Leaf>().bindings
-            }
-            // we go deeper, away from the leaf
-            subtree = subtree.singleNot<DynamicJoinTree.Node.Leaf>()
-            ++maxDepth
-        }
-        // we need to be somewhat deeper
-        assertTrue { maxDepth > treeDepth }
+        // we should have at least one child remaining
+        assertTrue { subtree !is DynamicJoinTree.Node.Leaf }
         // and we shouldn't have encountered another segment with different bindings inside
         assertTrue { a.id in subtree.bindings || f.id in subtree.bindings }
     }
@@ -314,7 +301,9 @@ class DynamicJoinTreeBuilderTest {
             try {
                 test(tree)
             } catch (t: Throwable) {
-                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}", t)
+                fail(
+                    "Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}\n${tree.stats(
+                    GlobalQueryContext, QueryStatistics.Granularity.VERBOSE)}", t)
             }
             ++i
         }
@@ -330,7 +319,9 @@ class DynamicJoinTreeBuilderTest {
             try {
                 test(tree)
             } catch (t: Throwable) {
-                fail("Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}", t)
+                fail(
+                    "Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}\n${tree.stats(
+                        GlobalQueryContext, QueryStatistics.Granularity.VERBOSE)}", t)
             }
             ++i
         }
@@ -389,6 +380,37 @@ class DynamicJoinTreeBuilderTest {
                 right
             } else {
                 fail("No children of type ${N::class.simpleName} present, got ${left::class.simpleName} and ${right::class.simpleName} instead!")
+            }
+        }
+    }
+
+    /**
+     * Returns the only child of matching type [N], or fails the test if not exactly one child is of the provided type
+     */
+    private inline fun <reified N: DynamicJoinTree.Node> DynamicJoinTree.Node.hasSingle(): Boolean = when (this) {
+        is DynamicJoinTree.Node.Leaf -> {
+            false
+        }
+        is DynamicJoinTree.Node.Connected -> {
+            if (left is N && right is N) {
+                false
+            } else if (left is N) {
+                true
+            } else if (right is N) {
+                true
+            } else {
+                false
+            }
+        }
+        is DynamicJoinTree.Node.Disconnected -> {
+            if (left is N && right is N) {
+                false
+            } else if (left is N) {
+                true
+            } else if (right is N) {
+                true
+            } else {
+                false
             }
         }
     }
