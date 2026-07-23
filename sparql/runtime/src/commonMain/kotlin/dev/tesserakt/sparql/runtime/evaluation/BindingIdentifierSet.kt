@@ -68,6 +68,11 @@ constructor(
         return smallest.asIntIterable().count { largest.contains(it) }
     }
 
+    fun unionSize(other: BindingIdentifierSet): Int {
+        // we counted our intersection double
+        return this.size + other.size - this.intersectSize(other)
+    }
+
     fun intersect(other: BindingIdentifierSet): BindingIdentifierSet {
         if (this.size == 0 || other.size == 0) {
             return EMPTY
@@ -112,6 +117,13 @@ constructor(
             }
         }
         return false
+    }
+
+    operator fun contains(elements: BindingIdentifierSet): Boolean {
+        if (elements.size > this.size) {
+            return false
+        }
+        return elements.asIntIterable().all { it in this }
     }
 
     operator fun plus(other: BindingIdentifierSet): BindingIdentifierSet {

@@ -11,9 +11,10 @@ class Counter<T : Any> private constructor(private val map: MutableMap<T, Int>):
     // various state-related properties; they're private as they make more sense when used in their respective
     //  collections, i.e. `current.size` and `flattened.size`
     /**
-     * The total number of inserted items (= sum of all node counts)
+     * The total number of inserted items (= sum of all individual counts)
      */
-    private var count = 0
+    var count = 0
+        private set
 
     val current: Set<T> get() = map.keys
 
@@ -55,8 +56,7 @@ class Counter<T : Any> private constructor(private val map: MutableMap<T, Int>):
     }
 
     fun clear(value: T) {
-        count = 0
-        map.remove(value)
+        count -= map.remove(value) ?: 0
     }
 
     fun clone() = Counter(map.toMutableMap())

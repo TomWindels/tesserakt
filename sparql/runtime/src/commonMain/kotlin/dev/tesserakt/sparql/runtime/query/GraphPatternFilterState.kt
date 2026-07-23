@@ -10,30 +10,30 @@ import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.util.Bitmask
 import kotlin.jvm.JvmInline
 
-data class GraphPatternFilterState(
+@JvmInline
+value class GraphPatternFilterState(
     private val stateful: Stateful,
-    private val stateless: Stateless
 ) {
 
     /**
      * Peeks the total impact all filters have when applying the [delta] in this state
      */
     fun peek(parent: MutableJoinState, delta: DataDelta): Stream<MappingDelta> {
-        return stateless.filter(stateful.peek(parent, delta))
+        return stateful.peek(parent, delta)
     }
 
     /**
      * Filters the [input] stream, using only its processed internal state
      */
     fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
-        return stateless.filter(stateful.filter(input))
+        return stateful.filter(input)
     }
 
     /**
      * Filters the [input] stream, using its processed internal state after applying the [delta]
      */
     fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
-        return stateless.filter(stateful.filter(input, delta))
+        return stateful.filter(input, delta)
     }
 
     fun process(delta: DataDelta) {
@@ -41,34 +41,7 @@ data class GraphPatternFilterState(
     }
 
     fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
-        val base = stateful.stats(context, base, granularity)
-        return if (stateless !is Stateless.Unfiltered && granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
-            val description = buildString {
-                when (stateless) {
-                    is Stateless.MultiFilter -> {
-                        append(stateless.filters.size)
-                        append(" expression filters")
-                        stateless.filters.forEach { filter ->
-                            append("\n * ")
-                            append(filter)
-                        }
-                    }
-                    is Stateless.SingleFilter -> {
-                        append("1 expression filter\n * ")
-                        append(stateless.filter)
-                    }
-                    Stateless.Unfiltered -> {
-                        /* cannot happen here */
-                    }
-                }
-            }
-            Statistics.DescriptionElement(
-                inner = base,
-                description = description,
-            )
-        } else {
-            base
-        }
+        return stateful.stats(context, base, granularity)
     }
 
     sealed interface Stateful {
@@ -245,19 +218,26 @@ data class GraphPatternFilterState(
 
     companion object {
 
-        operator fun invoke(context: QueryContext, parent: GroupPatternState, filters: List<Filter>): GraphPatternFilterState {
+        /**
+         * Constructs a [GraphPatternFilterState], responsible for filtering changes encountered by a [parent]
+         *  [MutableJoinState] instance (typically a [GroupPatternState]) through the use of an internal state.
+         * The types of filters supported by this type are **only** the **stateful** types:
+         *  * `FILTER EXISTS` ('inclusion filters')
+         *  * `FILTER NOT EXISTS` ('exclusion filters')
+         */
+        operator fun invoke(context: QueryContext, parent: MutableJoinState, filters: List<Filter>): GraphPatternFilterState {
             val stateful = mutableListOf<MutableFilterState>()
-            val stateless = mutableListOf<StatelessFilter>()
             filters.forEach { filter ->
                 when (filter) {
                     is Filter.Exists -> stateful.add(InclusionFilterState(context, parent, filter))
                     is Filter.NotExists -> stateful.add(ExclusionFilterState(context, parent, filter))
-                    is Filter.Predicate -> stateless.add(ExpressionFilter(context, filter.expression))
+                    is Filter.Predicate -> {
+                        // nothing to do - not our responsibility
+                    }
                 }
             }
             return GraphPatternFilterState(
                 stateful = Stateful(stateful),
-                stateless = Stateless(stateless)
             )
         }
 

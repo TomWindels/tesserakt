@@ -82,39 +82,54 @@ sealed interface ExclusionFilterState: MutableFilterState {
          * Filters the [input] stream, using its processed internal state after applying the [delta]
          */
         override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
-            // starting from the active state
-            val total = filtered.clone()
-            // applying the impact of the new delta to it
-            state
-                .peek(delta)
-                .mapped { it.map { it.retain(commonBindingNames) } }
-                .forEach { mappingDelta ->
-                    when (mappingDelta) {
-                        is MappingAddition -> total.increment(mappingDelta.value)
-                        is MappingDeletion -> total.decrement(mappingDelta.value)
+            // we track the impact of the delta here directly
+            peekStateChange(delta)
+            // using that to filter the incoming result
+            return when {
+                lastChanges.isEmpty() && filtered.count == 0 -> {
+                    input
+                }
+                filtered.count == 0 -> {
+                    input.filtered { mapping ->
+                        val retained = mapping.value.retain(commonBindingNames)
+                        // the changes should not be negative as we're not filtering anything
+                        (lastChanges[retained] ?: 0) <= 0
                     }
                 }
-            // using that to filter the incoming result
-            return input.filtered { mapping -> total.current.none { it.compatibleWith(mapping.value) } }
+                lastChanges.isEmpty() -> {
+                    input.filtered { mapping ->
+                        val retained = mapping.value.retain(commonBindingNames)
+                        filtered[retained] <= 0
+                    }
+                }
+                else -> {
+                    input.filtered { mapping ->
+                        val retained = mapping.value.retain(commonBindingNames)
+                        (lastChanges[retained] ?: 0) + (filtered[retained]) <= 0
+                    }
+                }
+            }
         }
 
         /**
          * Filters the [input] stream, using only its processed internal state
          */
         override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
-            return input.filtered { mapping -> filtered.current.none { it.compatibleWith(mapping.value) } }
+            return input.filtered { mapping ->
+                // filtered is strictly positive, not retaining 0-valued instances, so it being present
+                //  means that it is being blocked by us
+                mapping.value.retain(commonBindingNames) !in filtered
+            }
         }
 
         override fun process(delta: DataDelta) {
-            state
-                .peek(delta)
-                .mapped { it.map { it.retain(commonBindingNames) } }
-                .forEach { mappingDelta ->
-                    when (mappingDelta) {
-                        is MappingAddition -> filtered.increment(mappingDelta.value)
-                        is MappingDeletion -> filtered.decrement(mappingDelta.value)
-                    }
-                }
+            // preparing the state change here, as it's likely it was already calculated before and can thus
+            //  be obtained from the cache
+            peekStateChange(delta)
+            filtered.increment(lastChanges)
+            // we now clear the change again
+            lastDelta = null
+            // and propagate the change to our inner state
             state.process(delta)
         }
 
@@ -128,6 +143,31 @@ sealed interface ExclusionFilterState: MutableFilterState {
             } else {
                 inner
             }
+        }
+
+        private var lastDelta: DataDelta? = null
+        private val lastChanges = mutableMapOf<Mapping, Int>()
+
+        /**
+         * Peeks the impact of the [delta], putting the changes in the cached map [lastChanges]
+         */
+        private fun peekStateChange(delta: DataDelta) {
+            if (lastDelta == delta) {
+                // changes were already processed
+                return
+            }
+            // we're overwriting the cache
+            lastDelta = delta
+            lastChanges.clear()
+            state
+                .peek(delta)
+                .mapped { it.map { it.retain(commonBindingNames) } }
+                .forEach { mappingDelta ->
+                    when (mappingDelta) {
+                        is MappingAddition -> lastChanges.replace(mappingDelta.value) { existing -> (existing ?: 0) + 1 }
+                        is MappingDeletion -> lastChanges.replace(mappingDelta.value) { existing -> (existing ?: 0) - 1 }
+                    }
+                }
         }
 
     }
@@ -212,7 +252,7 @@ sealed interface ExclusionFilterState: MutableFilterState {
 
     companion object {
 
-        operator fun invoke(context: QueryContext, parent: GroupPatternState, filter: Filter.NotExists): ExclusionFilterState {
+        operator fun invoke(context: QueryContext, parent: MutableJoinState, filter: Filter.NotExists): ExclusionFilterState {
             val state = BasicGraphPatternState(context, filter.pattern)
             val externalBindings = parent.bindings.intersect(state.bindings)
             return if (externalBindings.isEmpty()) {
