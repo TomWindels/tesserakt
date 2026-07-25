@@ -1,0 +1,210 @@
+$dokka.format:html-v1
+$dokka.linkExtension:html
+$dokka.location:////PointingToDeclaration/testing.tooling.replay-benchmark/[root]/index.html
+$dokka.location://QuadJs/#dev.tesserakt.rdf.types.Quad/PointingToDeclaration/rdf/[root]/-quad-js.html
+$dokka.location://StoreJs/#kotlin.collections.Collection[dev.tesserakt.rdf.types.Quad]/PointingToDeclaration/rdf/[root]/-store-js.html
+$dokka.location://main/#/PointingToDeclaration/js-build/[root]/main.html
+$dokka.location://main/#kotlin.Array[kotlin.String]/PointingToDeclaration/sparql.validator/[root]/[jvm]main.html
+$dokka.location://orderedBindingComparisonOf/#kotlin.collections.Iterable[dev.tesserakt.sparql.Bindings]#kotlin.collections.Iterable[dev.tesserakt.sparql.Bindings]/PointingToDeclaration/sparql.validator/[root]/ordered-binding-comparison-of.html
+$dokka.location://parse/#kotlin.String#kotlin.Any/PointingToDeclaration/testing.rdf-test-suite-js/[root]/parse.html
+$dokka.location://process/#/PointingToDeclaration/sparql.validator/[root]/process.html
+$dokka.location://query/#kotlin.Array[dev.tesserakt.interop.rdfjs.n3.N3Quad]#kotlin.String#[dynamic]/PointingToDeclaration/testing.rdf-test-suite-js/[root]/query.html
+$dokka.location://run/#kotlin.Array[kotlin.String]/PointingToDeclaration/sparql.validator/[root]/run.html
+$dokka.location://toTermJs/dev.tesserakt.rdf.types.Quad.BlankTerm#/PointingToDeclaration/rdf/[root]/to-term-js.html
+$dokka.location://toTermJs/dev.tesserakt.rdf.types.Quad.Element#/PointingToDeclaration/rdf/[root]/to-term-js.html
+$dokka.location://toTermJs/dev.tesserakt.rdf.types.Quad.Graph#/PointingToDeclaration/rdf/[root]/to-term-js.html
+$dokka.location://toTermJs/dev.tesserakt.rdf.types.Quad.Literal#/PointingToDeclaration/rdf/[root]/to-term-js.html
+$dokka.location://toTermJs/dev.tesserakt.rdf.types.Quad.NamedTerm#/PointingToDeclaration/rdf/[root]/to-term-js.html
+$dokka.location://toTermJs/dev.tesserakt.rdf.types.Quad.Object#/PointingToDeclaration/rdf/[root]/to-term-js.html
+$dokka.location://toTermJs/dev.tesserakt.rdf.types.Quad.Predicate#/PointingToDeclaration/rdf/[root]/to-term-js.html
+$dokka.location://toTermJs/dev.tesserakt.rdf.types.Quad.Subject#/PointingToDeclaration/rdf/[root]/to-term-js.html
+$dokka.location://unorderedBindingComparisonOf/#kotlin.collections.Iterable[dev.tesserakt.sparql.Bindings]#kotlin.collections.Iterable[dev.tesserakt.sparql.Bindings]/PointingToDeclaration/sparql.validator/[root]/unordered-binding-comparison-of.html
+$dokka.location://unwrap/QuadJs#/PointingToDeclaration/rdf/[root]/unwrap.html
+$dokka.location://unwrap/StoreJs#/PointingToDeclaration/rdf/[root]/unwrap.html
+$dokka.location:/BindingsFactoryJs///PointingToDeclaration/interop.comunica/[root]/-bindings-factory-js/index.html
+$dokka.location:/BindingsFactoryJs/BindingsFactoryJs/#DataFactoryJs/PointingToDeclaration/interop.comunica/[root]/-bindings-factory-js/-bindings-factory-js.html
+$dokka.location:/BindingsFactoryJs/bindings/#kotlin.Array[kotlin.Array[kotlin.Any]]/PointingToDeclaration/interop.comunica/[root]/-bindings-factory-js/bindings.html
+$dokka.location:/BindingsJs///PointingToDeclaration/interop.comunica/[root]/-bindings-js/index.html
+$dokka.location:/BindingsJs/BindingsJs/#/PointingToDeclaration/interop.comunica/[root]/-bindings-js/-bindings-js.html
+$dokka.location:/BindingsStream///PointingToDeclaration/interop.comunica/[root]/-bindings-stream/index.html
+$dokka.location:/BindingsStream/read/#/PointingToDeclaration/interop.comunica/[root]/-bindings-stream/read.html
+$dokka.location:/BindingsStream/toArray/#/PointingToDeclaration/interop.comunica/[root]/-bindings-stream/to-array.html
+$dokka.location:/BlankTerm///PointingToDeclaration/rdf/[root]/-blank-term/index.html
+$dokka.location:/BlankTerm/BlankTerm/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-blank-term/-blank-term.html
+$dokka.location:/BlankTerm/id/#/PointingToDeclaration/rdf/[root]/-blank-term/id.html
+$dokka.location:/ComunicaApiEngine///PointingToDeclaration/interop.comunica/[root]/-comunica-api-engine/index.html
+$dokka.location:/ComunicaApiEngine/ComunicaApiEngine/#/PointingToDeclaration/interop.comunica/[root]/-comunica-api-engine/-comunica-api-engine.html
+$dokka.location:/ComunicaApiEngine/queryBindings/#kotlin.String?#[dynamic]/PointingToDeclaration/interop.comunica/[root]/-comunica-api-engine/query-bindings.html
+$dokka.location:/DataFactoryJs///PointingToDeclaration/interop.comunica/[root]/-data-factory-js/index.html
+$dokka.location:/DataFactoryJs/DataFactoryJs/#/PointingToDeclaration/interop.comunica/[root]/-data-factory-js/-data-factory-js.html
+$dokka.location:/DataFactoryJs/blankNode/#kotlin.String/PointingToDeclaration/interop.comunica/[root]/-data-factory-js/blank-node.html
+$dokka.location:/DataFactoryJs/defaultGraph/#/PointingToDeclaration/interop.comunica/[root]/-data-factory-js/default-graph.html
+$dokka.location:/DataFactoryJs/literal/#kotlin.String#kotlin.Any?/PointingToDeclaration/interop.comunica/[root]/-data-factory-js/literal.html
+$dokka.location:/DataFactoryJs/namedNode/#kotlin.String/PointingToDeclaration/interop.comunica/[root]/-data-factory-js/named-node.html
+$dokka.location:/DataFactoryJs/variable/#kotlin.String/PointingToDeclaration/interop.comunica/[root]/-data-factory-js/variable.html
+$dokka.location:/GraphTerm///PointingToDeclaration/rdf/[root]/-graph-term/index.html
+$dokka.location:/GraphTerm/GraphTerm/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-graph-term/-graph-term.html
+$dokka.location:/GraphTerm/id/#/PointingToDeclaration/rdf/[root]/-graph-term/id.html
+$dokka.location:/GraphTerm/isDefaultGraph/#/PointingToDeclaration/rdf/[root]/-graph-term/is-default-graph.html
+$dokka.location:/GraphTerm/value/#/PointingToDeclaration/rdf/[root]/-graph-term/value.html
+$dokka.location:/IQueryResultBoolean///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-i-query-result-boolean/index.html
+$dokka.location:/LiteralTerm///PointingToDeclaration/rdf/[root]/-literal-term/index.html
+$dokka.location:/LiteralTerm/LiteralTerm/#kotlin.Any?#kotlin.Any?#kotlin.Any?/PointingToDeclaration/rdf/[root]/-literal-term/-literal-term.html
+$dokka.location:/LiteralTerm/language/#/PointingToDeclaration/rdf/[root]/-literal-term/language.html
+$dokka.location:/LiteralTerm/type/#/PointingToDeclaration/rdf/[root]/-literal-term/type.html
+$dokka.location:/LiteralTerm/value/#/PointingToDeclaration/rdf/[root]/-literal-term/value.html
+$dokka.location:/NamedTerm///PointingToDeclaration/rdf/[root]/-named-term/index.html
+$dokka.location:/NamedTerm/NamedTerm/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-named-term/-named-term.html
+$dokka.location:/NamedTerm/value/#/PointingToDeclaration/rdf/[root]/-named-term/value.html
+$dokka.location:/QuadJs///PointingToDeclaration/rdf/[root]/-quad-js/index.html
+$dokka.location:/QuadJs/QuadJs/#TermJs?#TermJs?#TermJs?#GraphTerm?/PointingToDeclaration/rdf/[root]/-quad-js/-quad-js.html
+$dokka.location:/QuadJs/g/#/PointingToDeclaration/rdf/[root]/-quad-js/g.html
+$dokka.location:/QuadJs/o/#/PointingToDeclaration/rdf/[root]/-quad-js/o.html
+$dokka.location:/QuadJs/p/#/PointingToDeclaration/rdf/[root]/-quad-js/p.html
+$dokka.location:/QuadJs/s/#/PointingToDeclaration/rdf/[root]/-quad-js/s.html
+$dokka.location:/QuadJs/toString/#/PointingToDeclaration/rdf/[root]/-quad-js/to-string.html
+$dokka.location:/QueryEngine///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-engine/index.html
+$dokka.location:/QueryEngine/parse/#kotlin.String#kotlin.collections.Map[kotlin.String,[dynamic]]/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-engine/parse.html
+$dokka.location:/QueryEngine/query/#kotlin.Array[dev.tesserakt.interop.rdfjs.n3.N3Quad]#kotlin.String#kotlin.collections.Map[kotlin.String,[dynamic]]/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-engine/query.html
+$dokka.location:/QueryResult///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result/index.html
+$dokka.location:/QueryResultBindings///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/index.html
+$dokka.location:/QueryResultBindings/QueryResultBindings/#kotlin.Array[kotlin.String]#kotlin.Array[[dynamic]]/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/-query-result-bindings.html
+$dokka.location:/QueryResultBindings/checkOrder/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/check-order.html
+$dokka.location:/QueryResultBindings/equals/#kotlin.Any?/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/equals.html
+$dokka.location:/QueryResultBindings/hashCode/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/hash-code.html
+$dokka.location:/QueryResultBindings/toString/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/to-string.html
+$dokka.location:/QueryResultBindings/type/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/type.html
+$dokka.location:/QueryResultBindings/value/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/value.html
+$dokka.location:/QueryResultBindings/variables/#/PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-bindings/variables.html
+$dokka.location:/QueryResultQuads///PointingToDeclaration/testing.rdf-test-suite-js/[root]/-query-result-quads/index.html
+$dokka.location:/RDFJS///PointingToDeclaration/interop.rdfjs/[root]/-r-d-f-j-s/index.html
+$dokka.location:/RDFJS/fromArray/#kotlin.Array[QuadJs]/PointingToDeclaration/interop.rdfjs/[root]/-r-d-f-j-s/from-array.html
+$dokka.location:/RDFJS/fromSet/#kotlin.js.collections.JsSet[QuadJs]/PointingToDeclaration/interop.rdfjs/[root]/-r-d-f-j-s/from-set.html
+$dokka.location:/RDFJS/fromStore/#StoreJs/PointingToDeclaration/interop.rdfjs/[root]/-r-d-f-j-s/from-store.html
+$dokka.location:/ReadableJs///PointingToDeclaration/interop.comunica/[root]/-readable-js/index.html
+$dokka.location:/ReadableJs/ReadableJs/#[dynamic]/PointingToDeclaration/interop.comunica/[root]/-readable-js/-readable-js.html
+$dokka.location:/ReadableJs/read/#/PointingToDeclaration/interop.comunica/[root]/-readable-js/read.html
+$dokka.location:/ReplayBenchmarkBuilder///PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/index.html
+$dokka.location:/ReplayBenchmarkBuilder/ReplayBenchmarkBuilder/#dev.tesserakt.interop.rdfjs.n3.N3NamedNode#dev.tesserakt.interop.rdfjs.n3.N3Store/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/-replay-benchmark-builder.html
+$dokka.location:/ReplayBenchmarkBuilder/addQuery/#kotlin.String/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/add-query.html
+$dokka.location:/ReplayBenchmarkBuilder/addSnapshot/#dev.tesserakt.interop.rdfjs.n3.N3Store/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/add-snapshot.html
+$dokka.location:/ReplayBenchmarkBuilder/build/#/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/build.html
+$dokka.location:/ReplayBenchmarkBuilder/buildToFile/#kotlin.String#[dynamic]/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-builder/build-to-file.html
+$dokka.location:/ReplayBenchmarkReplayer.Companion///PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-companion/index.html
+$dokka.location:/ReplayBenchmarkReplayer.Companion/fromFile/#kotlin.String/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-companion/from-file.html
+$dokka.location:/ReplayBenchmarkReplayer.DiffJs///PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-diff-js/index.html
+$dokka.location:/ReplayBenchmarkReplayer.DiffJs/deletions/#/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-diff-js/deletions.html
+$dokka.location:/ReplayBenchmarkReplayer.DiffJs/insertions/#/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/-diff-js/insertions.html
+$dokka.location:/ReplayBenchmarkReplayer///PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/index.html
+$dokka.location:/ReplayBenchmarkReplayer/forEachSnapshot/#kotlin.Function2[StoreJs,ReplayBenchmarkReplayer.DiffJs,kotlin.Unit]/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/for-each-snapshot.html
+$dokka.location:/ReplayBenchmarkReplayer/queries/#/PointingToDeclaration/testing.tooling.replay-benchmark/[root]/-replay-benchmark-replayer/queries.html
+$dokka.location:/SPARQLJs.BindingsJs///PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-bindings-js/index.html
+$dokka.location:/SPARQLJs.SelectQueryEvaluationJs///PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-select-query-evaluation-js/index.html
+$dokka.location:/SPARQLJs.SelectQueryEvaluationJs/bindings/#/PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-select-query-evaluation-js/bindings.html
+$dokka.location:/SPARQLJs.SelectQueryJs///PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-select-query-js/index.html
+$dokka.location:/SPARQLJs///PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/index.html
+$dokka.location:/SPARQLJs/Select/#kotlin.String?/PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/-select.html
+$dokka.location:/SPARQLJs/query/#kotlin.Any?#StoreJs?/PointingToDeclaration/sparql/[root]/-s-p-a-r-q-l-js/query.html
+$dokka.location:/StoreJs///PointingToDeclaration/rdf/[root]/-store-js/index.html
+$dokka.location:/StoreJs/StoreJs/#kotlin.Array[QuadJs]?/PointingToDeclaration/rdf/[root]/-store-js/-store-js.html
+$dokka.location:/StoreJs/contains/#QuadJs/PointingToDeclaration/rdf/[root]/-store-js/contains.html
+$dokka.location:/StoreJs/equals/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-store-js/equals.html
+$dokka.location:/StoreJs/hashCode/#/PointingToDeclaration/rdf/[root]/-store-js/hash-code.html
+$dokka.location:/StoreJs/insert/#QuadJs?/PointingToDeclaration/rdf/[root]/-store-js/insert.html
+$dokka.location:/StoreJs/insertQuad/#TermJs?#TermJs?#TermJs?#GraphTerm?/PointingToDeclaration/rdf/[root]/-store-js/insert-quad.html
+$dokka.location:/StoreJs/isEmpty/#/PointingToDeclaration/rdf/[root]/-store-js/is-empty.html
+$dokka.location:/StoreJs/remove/#QuadJs?/PointingToDeclaration/rdf/[root]/-store-js/remove.html
+$dokka.location:/StoreJs/size/#/PointingToDeclaration/rdf/[root]/-store-js/size.html
+$dokka.location:/StoreJs/toArray/#/PointingToDeclaration/rdf/[root]/-store-js/to-array.html
+$dokka.location:/StoreJs/toString/#/PointingToDeclaration/rdf/[root]/-store-js/to-string.html
+$dokka.location:/TermJs///PointingToDeclaration/rdf/[root]/-term-js/index.html
+$dokka.location:/TermJs/equals/#kotlin.Any?/PointingToDeclaration/rdf/[root]/-term-js/equals.html
+$dokka.location:/TermJs/hashCode/#/PointingToDeclaration/rdf/[root]/-term-js/hash-code.html
+$dokka.location:/TermJs/toString/#/PointingToDeclaration/rdf/[root]/-term-js/to-string.html
+$dokka.location:dev.tesserakt.rdf.serialization.common/FileDataSource/filepath/#/PointingToDeclaration/serialization.common/dev.tesserakt.rdf.serialization.common/-file-data-source/[wasm-js]filepath.html
+module:interop.jena
+dev.tesserakt.interop.jena
+module:interop.rdfjs
+dev.tesserakt.interop.rdfjs
+dev.tesserakt.interop.rdfjs.n3
+module:n3
+dev.tesserakt.rdf.n3
+module:n3.dsl
+dev.tesserakt.rdf.n3.dsl
+module:rdf
+dev.tesserakt
+dev.tesserakt.rdf.ontology
+dev.tesserakt.rdf.types
+dev.tesserakt.rdf.types.factory
+dev.tesserakt.rdf.types.impl
+module:rdf.dsl
+dev.tesserakt.rdf.dsl
+module:rdf.snapshot-store
+dev.tesserakt.rdf.types
+module:serialization.common
+dev.tesserakt.rdf.serialization
+dev.tesserakt.rdf.serialization.common
+dev.tesserakt.rdf.serialization.core
+dev.tesserakt.rdf.types
+module:serialization.core
+dev.tesserakt.rdf.serialization.util
+module:serialization.n-triples
+dev.tesserakt.rdf.serialization.ntriples
+module:serialization.n3
+dev.tesserakt.rdf.n3.serialization
+module:serialization.trig
+dev.tesserakt.rdf.serialization.trig
+module:serialization.turtle
+dev.tesserakt.rdf.serialization.turtle
+module:sparql
+dev.tesserakt.sparql
+dev.tesserakt.sparql.evaluation
+module:sparql.common
+dev.tesserakt.sparql
+module:sparql.compiler
+dev.tesserakt.sparql.compiler
+dev.tesserakt.sparql.compiler.analyser
+dev.tesserakt.sparql.compiler.lexer
+module:sparql.core
+dev.tesserakt.sparql
+dev.tesserakt.sparql.types
+module:sparql.debugging
+dev.tesserakt.sparql.debug
+module:sparql.endpoint.cli
+dev.tesserakt.sparql.endpoint.server
+module:sparql.endpoint.ktor.client
+dev.tesserakt.sparql.endpoint.client
+module:sparql.endpoint.ktor.core
+dev.tesserakt.sparql.endpoint.core
+dev.tesserakt.sparql.endpoint.core.data
+module:sparql.endpoint.ktor.server
+dev.tesserakt.sparql.endpoint.server
+dev.tesserakt.sparql.endpoint.server.factory
+module:sparql.runtime
+dev.tesserakt.sparql.runtime
+dev.tesserakt.sparql.runtime.collection
+dev.tesserakt.sparql.runtime.compat
+dev.tesserakt.sparql.runtime.evaluation
+dev.tesserakt.sparql.runtime.evaluation.context
+dev.tesserakt.sparql.runtime.evaluation.mapping
+dev.tesserakt.sparql.runtime.query
+dev.tesserakt.sparql.runtime.query.jointree
+dev.tesserakt.sparql.runtime.query.select
+dev.tesserakt.sparql.runtime.stream
+dev.tesserakt.sparql.util
+module:sparql.validator
+comunica
+sparql
+sparql.tests
+sparql.types
+module:stream.ldes
+dev.tesserakt.stream.ldes
+dev.tesserakt.stream.ldes.ontology
+module:testing.bench.microbench
+dev.tesserakt
+module:testing.tooling.environment
+dev.tesserakt.testing
+module:testing.tooling.replay-benchmark
+dev.tesserakt.sparql.benchmark.replay
+module:utils
+dev.tesserakt.util

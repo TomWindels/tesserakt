@@ -1,0 +1,390 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>BindingPatternState</title>
+<link href="../../../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../../../index.html" tabindex="1">
+                    tesserakt
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":sparql:runtime/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":sparql:runtime/commonMain" data-filter=":sparql:runtime/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    tesserakt
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="sparql.runtime::dev.tesserakt.sparql.runtime.query/TriplePatternState.BindingPatternState///PointingToDeclaration//956792402">
+  <div class="breadcrumbs"><a href="../../../index.html">sparql.runtime</a><span class="delimiter">/</span><a href="../../index.html">dev.tesserakt.sparql.runtime.query</a><span class="delimiter">/</span><a href="../index.html">TriplePatternState</a><span class="delimiter">/</span><span class="current">BindingPatternState</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Binding</span><wbr><span>Pattern</span><wbr><span><span>State</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">BindingPatternState</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation.context/-query-context/index.html">QueryContext</a><span class="token punctuation">, </span></span><span class="parameter ">subj<span class="token operator">: </span><a href="../-subject/index.html">TriplePatternState.Subject</a><span class="token punctuation">, </span></span><span class="parameter ">pred<span class="token operator">: </span><a href="../-binding/index.html">TriplePatternState.Binding</a><span class="token punctuation">, </span></span><span class="parameter ">obj<span class="token operator">: </span><a href="../-object/index.html">TriplePatternState.Object</a></span></span><span class="token punctuation">)</span> : <a href="../-array-backed-pattern-state/index.html">TriplePatternState.ArrayBackedPatternState</a><span class="token operator">&lt;</span><a href="../-binding/index.html">TriplePatternState.Binding</a><span class="token operator">&gt; </span></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION,EXTENSION_PROPERTY,EXTENSION_FUNCTION">Members &amp; Extensions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="1087794208%2FConstructors%2F956792402" anchor-label="BindingPatternState" id="1087794208%2FConstructors%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-binding-pattern-state.html"><span>Binding</span><wbr><span>Pattern</span><wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1087794208%2FConstructors%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation.context/-query-context/index.html">QueryContext</a><span class="token punctuation">, </span></span><span class="parameter ">subj<span class="token operator">: </span><a href="../-subject/index.html">TriplePatternState.Subject</a><span class="token punctuation">, </span></span><span class="parameter ">pred<span class="token operator">: </span><a href="../-binding/index.html">TriplePatternState.Binding</a><span class="token punctuation">, </span></span><span class="parameter ">obj<span class="token operator">: </span><a href="../-object/index.html">TriplePatternState.Object</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="1469067078%2FProperties%2F956792402" anchor-label="bindings" id="1469067078%2FProperties%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../bindings.html"><span><span>bindings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1469067078%2FProperties%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">override </span><span class="token keyword">val </span><a href="../bindings.html">bindings</a><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-binding-identifier-set/index.html">BindingIdentifierSet</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1904276090%2FProperties%2F956792402" anchor-label="cardinality" id="-1904276090%2FProperties%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-array-backed-pattern-state/cardinality.html"><span><span>cardinality</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1904276090%2FProperties%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="../-array-backed-pattern-state/cardinality.html">cardinality</a><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.util/-cardinality/index.html">Cardinality</a></div><div class="brief "><p class="paragraph">Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state on an empty solution results in <a href="../../-mutable-join-state/cardinality.html">cardinality</a> results, or a size of 0 guarantees no results will get generated)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1115096843%2FProperties%2F956792402" anchor-label="changeCount" id="-1115096843%2FProperties%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-array-backed-pattern-state/change-count.html"><span>change</span><wbr><span><span>Count</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1115096843%2FProperties%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">var </span><a href="../-array-backed-pattern-state/change-count.html">changeCount</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">The sum of all insertions and deletions, used to track the 'stress' put on this specific triple pattern</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1298884535%2FProperties%2F956792402" anchor-label="context" id="1298884535%2FProperties%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../context.html"><span><span>context</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1298884535%2FProperties%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="../context.html">context</a><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation.context/-query-context/index.html">QueryContext</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2106787940%2FProperties%2F956792402" anchor-label="data" id="-2106787940%2FProperties%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-array-backed-pattern-state/data.html"><span><span>data</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2106787940%2FProperties%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">val </span><a href="../-array-backed-pattern-state/data.html">data</a><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.collection/-reindexable-mapping-array/index.html">ReindexableMappingArray</a></div><div class="brief "><p class="paragraph">The backing structure used to store all intermediate matches with this specific triple pattern instance.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1458782135%2FProperties%2F956792402" anchor-label="o" id="1458782135%2FProperties%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../o.html"><span><span>o</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1458782135%2FProperties%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="../o.html">o</a><span class="token operator">: </span><a href="../-object/index.html">TriplePatternState.Object</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1489801942%2FProperties%2F956792402" anchor-label="p" id="1489801942%2FProperties%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../p.html"><span><span>p</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1489801942%2FProperties%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="../p.html">p</a><span class="token operator">: </span><a href="../-binding/index.html">TriplePatternState.Binding</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1582861363%2FProperties%2F956792402" anchor-label="s" id="1582861363%2FProperties%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../s.html"><span><span>s</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1582861363%2FProperties%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">val </span><a href="../s.html">s</a><span class="token operator">: </span><a href="../-subject/index.html">TriplePatternState.Subject</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-1925753777%2FFunctions%2F956792402" anchor-label="filtered" id="-1925753777%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../filtered.html"><span><span>filtered</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1925753777%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../filtered.html"><span class="token function">filtered</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">filter<span class="token operator">: </span><a href="../../-filter-expression/index.html">FilterExpression</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">TriplePatternState</a><span class="token operator">&lt;</span><span class="token operator">*</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns a self-instance that has the <a href="../../-mutable-join-state/filtered.html">filter</a> applied internally to process its state.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="910647552%2FFunctions%2F956792402" anchor-label="join" id="910647552%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-array-backed-pattern-state/join.html"><span><span>join</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="910647552%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../-array-backed-pattern-state/join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">delta<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-mapping-delta/index.html">MappingDelta</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.stream/-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-mapping-delta/index.html">MappingDelta</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1117658938%2FFunctions%2F956792402" anchor-label="join" id="1117658938%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-togglable="EXTENSION_FUNCTION" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../dev.tesserakt.sparql.runtime.stream/join.html"><span><span>join</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1117658938%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../../-mutable-join-state/index.html">MutableJoinState</a><span class="token punctuation">.</span><a href="../../../dev.tesserakt.sparql.runtime.stream/join.html"><span class="token function">join</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">other<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.stream/-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-mapping-delta/index.html">MappingDelta</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.stream/-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-mapping-delta/index.html">MappingDelta</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1831305201%2FFunctions%2F956792402" anchor-label="peek" id="-1831305201%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../peek.html"><span><span>peek</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1831305201%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../peek.html"><span class="token function">peek</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">delta<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-data-deletion/index.html">DataDeletion</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.stream/-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../../../dev.tesserakt.sparql.runtime.evaluation.mapping/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../-array-backed-pattern-state/peek.html"><span class="token function">peek</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">delta<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-data-addition/index.html">DataAddition</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.stream/-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../../../dev.tesserakt.sparql.runtime.evaluation.mapping/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="peek.html"><span class="token function">peek</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">quad<span class="token operator">: </span><a href="../../../../../rdf/dev.tesserakt.rdf.types/-encoded-quad/index.html">EncodedQuad</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.stream/-stream/index.html">Stream</a><span class="token operator">&lt;</span><a href="../../../dev.tesserakt.sparql.runtime.evaluation.mapping/-mapping/index.html">Mapping</a><span class="token operator">&gt;</span></div><br><div class="symbol monospace"><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../peek.html"><span class="token function">peek</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">delta<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-data-delta/index.html">DataDelta</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.stream/-optimised-stream/index.html">OptimisedStream</a><span class="token operator">&lt;</span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-mapping-delta/index.html">MappingDelta</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns the <a href="../../../dev.tesserakt.sparql.runtime.evaluation/-mapping-delta/index.html">MappingDelta</a> changes that occur when <a href="../../-mutable-join-state/process.html">process</a>ing the <a href="../../-mutable-join-state/peek.html">delta</a> in this state, without actually modifying it (see <a href="../../-mutable-join-state/process.html">process</a> for mutating the state)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1563094785%2FFunctions%2F956792402" anchor-label="process" id="1563094785%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-array-backed-pattern-state/process.html"><span><span>process</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1563094785%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../-array-backed-pattern-state/process.html"><span class="token function">process</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">delta<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-data-delta/index.html">DataDelta</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Updates the state according to the <a href="../../-mutable-join-state/process.html">delta</a> change.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-527465490%2FFunctions%2F956792402" anchor-label="reindex" id="-527465490%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../-array-backed-pattern-state/reindex.html"><span><span>reindex</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-527465490%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../-array-backed-pattern-state/reindex.html"><span class="token function">reindex</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">bindings<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-binding-identifier-set/index.html">BindingIdentifierSet</a><span class="token punctuation">, </span></span><span class="parameter ">hint<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.collection/-mapping-array-hint/index.html">MappingArrayHint</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Passes a hint down the underlying memory structure to optimise subsequent <a href="../../-mutable-join-state/join.html">join</a> executions. Depending on the underlying type, this hint may be ignored. Requesting a rehash on bindings not found in the <a href="../../-mutable-join-state/reindex.html">bindings</a> collection for this state is not useful.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1405578577%2FFunctions%2F956792402" anchor-label="stats" id="-1405578577%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../stats.html"><span><span>stats</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1405578577%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../stats.html"><span class="token function">stats</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation.context/-query-context/index.html">QueryContext</a><span class="token punctuation">, </span></span><span class="parameter ">granularity<span class="token operator">: </span><a href="../../../../../sparql/common/dev.tesserakt.sparql/-query-statistics/-granularity/index.html">QueryStatistics.Granularity</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../dev.tesserakt.sparql.runtime.evaluation/-statistics/index.html">Statistics</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1927017768%2FFunctions%2F956792402" anchor-label="toString" id="1927017768%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../to-string.html"><span>to</span><wbr><span><span>String</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1927017768%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

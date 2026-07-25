@@ -1,0 +1,221 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Statistics</title>
+<link href="../../../../images/logo-icon.svg" rel="icon" type="image/svg"><script>var pathToRoot = "../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../../../ui-kit/ui-kit.min.js" defer></script></head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+<a class="library-name--link" href="../../../../index.html" tabindex="1">
+                    tesserakt
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector common-like" data-active="" aria-pressed="true" data-filter=":sparql:runtime/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":sparql:runtime/commonMain" data-filter=":sparql:runtime/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config="{&quot;defaultSize&quot;: 280, &quot;minSize&quot;: 200, &quot;maxSize&quot;: 400}">
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    tesserakt
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageids="sparql.runtime::dev.tesserakt.sparql.runtime.evaluation/Statistics///PointingToDeclaration//956792402">
+  <div class="breadcrumbs"><a href="../../index.html">sparql.runtime</a><span class="delimiter">/</span><a href="../index.html">dev.tesserakt.sparql.runtime.evaluation</a><span class="delimiter">/</span><span class="current">Statistics</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Statistics</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">sealed </span><span class="token keyword">interface </span><a href="index.html">Statistics</a> : <a href="../../../../sparql/common/dev.tesserakt.sparql/-query-statistics/index.html">QueryStatistics</a></div><p class="paragraph">Base statistics type, used to observe query state (e.g. explaining a join plan, behaviour of the state w.r.t. certain changes, ...).</p><h4 class="tableheader">Inheritors</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-empty/index.html">Empty</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-description-element/index.html">DescriptionElement</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-single-element/index.html">SingleElement</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-joined-element/index.html">JoinedElement</a></div></span></div><div></div></div></div><div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="-selective-element/index.html">SelectiveElement</a></div></span></div><div></div></div></div></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-1164765255%2FClasslikes%2F956792402" anchor-label="DescriptionElement" id="-1164765255%2FClasslikes%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-description-element/index.html"><span>Description</span><wbr><span><span>Element</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1164765255%2FClasslikes%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-description-element/index.html">DescriptionElement</a> : <a href="index.html">Statistics</a></div><div class="brief "><p class="paragraph">A description added to a (set of) statistic nodes, used to identify what parts of a query correspond to certain statistics properties</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-49814628%2FClasslikes%2F956792402" anchor-label="Empty" id="-49814628%2FClasslikes%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-empty/index.html"><span><span>Empty</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-49814628%2FClasslikes%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">object </span><a href="-empty/index.html">Empty</a> : <a href="index.html">Statistics</a></div><div class="brief "><p class="paragraph">The empty case: an empty join tree, empty UNION block, ...</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-288519114%2FClasslikes%2F956792402" anchor-label="JoinedElement" id="-288519114%2FClasslikes%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-joined-element/index.html"><span>Joined</span><wbr><span><span>Element</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-288519114%2FClasslikes%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-joined-element/index.html">JoinedElement</a> : <a href="index.html">Statistics</a></div><div class="brief "><p class="paragraph">A combination of two elements being joined into one, e.g. two triple patterns or a union (cartesian join). Can be the <a href="-selective-element/inner.html">SelectiveElement.inner</a> element of a <a href="-selective-element/index.html">SelectiveElement</a> if this join happens on a common (set of) binding(s).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1274847257%2FClasslikes%2F956792402" anchor-label="SelectiveElement" id="1274847257%2FClasslikes%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-selective-element/index.html"><span>Selective</span><wbr><span><span>Element</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1274847257%2FClasslikes%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-selective-element/index.html">SelectiveElement</a> : <a href="index.html">Statistics</a></div><div class="brief "><p class="paragraph">A query element 'transforming' the incoming results, reducing to a subset. Examples include a join on a (set of) common binding(s), a <code class="lang-kotlin">FILTER</code> expression, <code class="lang-kotlin">LIMIT</code> clause, ... The <a href="../../../../sparql/runtime/dev.tesserakt.sparql.runtime.evaluation/-statistics/-selective-element/--root--.html">cardinality</a> can be <code class="lang-kotlin">null</code> in cases where the cardinality is not cached / known for a given element (e.g. a specific <code class="lang-kotlin">FILTER</code> expression)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2083844811%2FClasslikes%2F956792402" anchor-label="SingleElement" id="-2083844811%2FClasslikes%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-single-element/index.html"><span>Single</span><wbr><span><span>Element</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2083844811%2FClasslikes%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-single-element/index.html">SingleElement</a> : <a href="index.html">Statistics</a></div><div class="brief "><p class="paragraph">A single query element, simply holding a set of elements, resulting in a given cardinality (e.g. X bindings matching a single triple pattern), and the change count (e.g. X triples being inserted + Y of those X triples having been removed matching a triple pattern).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-1858521890%2FFunctions%2F956792402" anchor-label="diff" id="-1858521890%2FFunctions%2F956792402" data-filterable-set=":sparql:runtime/commonMain"></a>
+          <div class="table-row table-row_content" data-filterable-current=":sparql:runtime/commonMain" data-filterable-set=":sparql:runtime/commonMain">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="diff.html"><span><span>diff</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1858521890%2FFunctions%2F956792402"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":sparql:runtime/commonMain"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="diff.html"><span class="token function">diff</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">reference<span class="token operator">: </span><a href="../../../../sparql/common/dev.tesserakt.sparql/-query-statistics/index.html">QueryStatistics</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">Statistics</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
