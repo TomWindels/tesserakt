@@ -9,11 +9,11 @@ import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.util.bitIterator
 import dev.tesserakt.util.cloneTo
 
-class BitsetMapping private constructor(
+class BitsetMapping(
     // self-managed bitmask
-    private val bindings: Int,
+    val bindings: Int,
     // all term values associated with the various bindings above
-    private val terms: IntArray,
+    val terms: IntArray,
 ) : Mapping {
 
     constructor(context: QueryContext, source: Map<String, Quad.Element>): this(
