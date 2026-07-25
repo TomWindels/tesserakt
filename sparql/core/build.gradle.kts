@@ -6,13 +6,13 @@ group = "sparql"
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 api(project(":rdf"))
                 api(project(":sparql:common"))
             }
         }
-        val commonTest by getting {
+        getByName("commonTest") {
             dependencies {
                 implementation(kotlin("test"))
             }

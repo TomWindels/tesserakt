@@ -13,7 +13,7 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 // to deserialize and evaluate datasets
                 implementation(project(":utils"))
@@ -29,12 +29,12 @@ kotlin {
                 implementation(project(":testing:tooling:replay-benchmark"))
             }
         }
-        val jvmMain by getting {
+        getByName("jvmMain") {
             dependencies {
                 implementation(project(":interop:jena"))
             }
         }
-        val jsMain by getting {
+        getByName("jsMain") {
             dependencies {
                 implementation(project(":interop:rdfjs"))
                 // awaiting promises
@@ -45,8 +45,8 @@ kotlin {
 }
 
 // src: https://slack-chats.kotlinlang.org/t/486856/anyone-knows-how-to-create-gradle-javaexec-configuration-for#20242df1-da93-4272-8f2e-168a8891a398
-val jvmJar by tasks.existing
-val jvmRuntimeClasspath by configurations.existing
+val jvmJar = tasks.named("jvmJar")
+val jvmRuntimeClasspath = configurations.named("jvmRuntimeClasspath")
 
 val validatorJvm = tasks.register("runValidatorJvm", JavaExec::class) {
     group = "verification"
