@@ -13,6 +13,7 @@ repositories {
 kotlin {
     androidLibrary {
         val libs = versionCatalogs.named("libs")
+        minSdk = libs.get("minSdk").toInt()
         compileSdk = libs.get("compileSdk").toInt()
         namespace = getNamespace()
         compilations.configureEach {
