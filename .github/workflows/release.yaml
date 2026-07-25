@@ -5,8 +5,8 @@ on:
 env:
   TARGET: release
 jobs:
-  test:
-    name: "Testing"
+  check:
+    name: "Checks"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,12 +27,29 @@ jobs:
       - name: Validating Android Lint
         run: ./gradlew lint
 
+  test:
+    name: "Testing"
+    runs-on: macos-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 'wrapper'
+
       - name: Executing tests
         run: ./gradlew allTests
 
   publish-release-maven:
     name: "Publish to Maven Central"
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs: test
     steps:
       - uses: actions/checkout@v4
