@@ -14,8 +14,8 @@ object SPARQLJs {
 
     @OptIn(ExperimentalJsCollectionsApi::class)
     @JsName("Bindings")
-    class BindingsJs internal constructor(private val src: MutableMap<String, QuadJs.TermJs>): JsMap<String, QuadJs.TermJs>() {
-        internal constructor(original: Bindings): this(src = original.associateTo(mutableMapOf()) { it.first to it.second.toJsTerm() })
+    class BindingsJs internal constructor(private val src: MutableMap<String, TermJs>): JsMap<String, TermJs>() {
+        internal constructor(original: Bindings): this(src = original.associateTo(mutableMapOf()) { it.first to it.second.toTermJs() })
     }
 
     @JsName("SelectQuery")
@@ -24,18 +24,24 @@ object SPARQLJs {
     @JsName("SelectQueryEvaluation")
     class SelectQueryEvaluationJs internal constructor(private val evaluation: OngoingQueryEvaluation<Bindings>) {
 
-        @OptIn(ExperimentalJsCollectionsApi::class)
-        val bindings: Array<JsMap<String, QuadJs.TermJs>>
-            get() = evaluation.results.mapToArray { it.associateTo(mutableMapOf()) { it.first to it.second.toJsTerm() }.asJsMapView() }
+        @OptIn(ExperimentalJsCollectionsApi::class, ExperimentalWasmJsInterop::class)
+        val bindings: Array<JsMap<String, TermJs>>
+            get() = evaluation.results.mapToArray { it.associateTo(mutableMapOf()) { it.first to it.second.toTermJs() }.asJsMapView() }
 
     }
 
     fun Select(input: String? = undefined) = SelectQueryJs(Query.Select(input.jsExpect()))
 
     fun query(
-        query: SelectQueryJs? = undefined,
-        store: ObservableStoreJs? = undefined
+        query: Any? = undefined,
+        store: StoreJs? = undefined
     ): SelectQueryEvaluationJs {
+        val query = when (query) {
+            null -> throw Error("No query provided!")
+            is String -> Select(query)
+            is SelectQueryJs -> query
+            else -> throw Error("Invalid query provided: `$query`")
+        }
         return SelectQueryEvaluationJs(store.jsExpect().unwrap().query(query.jsExpect().query))
     }
 

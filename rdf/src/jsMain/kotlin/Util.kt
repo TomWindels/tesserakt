@@ -1,23 +1,46 @@
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.util.mapToArray
 
-/* A series of helpers to work with internal types inside of Kotlin codebases, so the JS API does not expose them directly */
-
-fun ObservableStoreJs.unwrap() = this.store
-
-fun Collection<Quad>.toJsMutableStore() = ObservableStoreJs(
-    quads = mapToArray { it.toJsQuad() }
-)
+fun StoreJs.unwrap() = this.store
 
 fun QuadJs.unwrap() = this.value
 
-fun Quad.Element.toJsTerm() = QuadJs.TermJs(this)
+fun Quad.Element.toTermJs() = when (this) {
+    Quad.DefaultGraph -> DefaultGraphTerm
+    is Quad.BlankTerm -> toTermJs()
+    is Quad.NamedTerm -> toTermJs()
+    is Quad.LangString -> toTermJs()
+    is Quad.SimpleLiteral -> toTermJs()
+    is Quad.TypedLiteral -> toTermJs()
+}
 
-fun Quad.Graph.toJsGraph() = QuadJs.GraphJs(this)
+fun Quad.NamedTerm.toTermJs() = NamedTerm(value)
 
-fun Quad.toJsQuad() = QuadJs(
-    s = s.toJsTerm(),
-    p = p.toJsTerm(),
-    o = o.toJsTerm(),
-    g = g.toJsGraph(),
-)
+fun Quad.BlankTerm.toTermJs() = BlankTerm(id)
+
+fun Quad.Literal.toTermJs() = when (this) {
+    is Quad.LangString -> LiteralTerm(value, null, language)
+    is Quad.SimpleLiteral -> LiteralTerm(value)
+    // Kotlin's `Quad.NamedTerm` is not supported by the JS API
+    is Quad.TypedLiteral -> LiteralTerm(value, type.value)
+}
+
+fun Quad.Subject.toTermJs(): TermJs = when (this) {
+    is Quad.BlankTerm -> toTermJs()
+    is Quad.NamedTerm -> toTermJs()
+}
+
+fun Quad.Predicate.toTermJs(): TermJs = when (this) {
+    is Quad.NamedTerm -> toTermJs()
+}
+
+fun Quad.Object.toTermJs(): TermJs = when (this) {
+    is Quad.BlankTerm -> toTermJs()
+    is Quad.NamedTerm -> toTermJs()
+    is Quad.Literal -> toTermJs()
+}
+
+fun Quad.Graph.toTermJs(): GraphTerm = when (this) {
+    Quad.DefaultGraph -> DefaultGraphTerm
+    is Quad.BlankTerm -> GraphTerm(id)
+    is Quad.NamedTerm -> GraphTerm(value)
+}

@@ -1,84 +1,43 @@
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.util.jsCastOrBail
 import dev.tesserakt.util.jsExpect
 
 /**
- * A thin wrapper for the [Quad] type. This is not a data class, as the copy method cannot be exposed
+ * A thin wrapper for the [QuadJs] type. This is not a data class, as the copy method cannot be exposed
  */
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 @JsName("Quad")
 class QuadJs(
-    s: TermJs? = undefined,
-    p: TermJs? = undefined,
-    o: TermJs? = undefined,
-    g: GraphJs = graph(),
+    s: TermJs?,
+    p: TermJs?,
+    o: TermJs?,
+    g: GraphTerm? = DefaultGraphTerm,
 ) {
 
-    @JsName("Term")
-    class TermJs internal constructor(internal val value: Quad.Element) {
-
-        override fun hashCode(): Int {
-            return value.hashCode()
-        }
-
-        override fun equals(other: Any?): Boolean {
-            return value.equals(other)
-        }
-
-        override fun toString(): String {
-            return value.toString()
-        }
-
-    }
-
-    @JsName("Graph")
-    class GraphJs internal constructor(internal val value: Quad.Graph) {
-
-        override fun hashCode(): Int {
-            return value.hashCode()
-        }
-
-        override fun equals(other: Any?): Boolean {
-            return value.equals(other)
-        }
-
-        override fun toString(): String {
-            return value.toString()
-        }
-
-    }
-
     internal val value = Quad(
-        s = s.jsExpect().value.jsCastOrBail(),
-        p = p.jsExpect().value.jsCastOrBail(),
-        o = o.jsExpect().value.jsCastOrBail(),
-        g = g.value
+        s = s.jsExpect().repr.jsCastOrBail(),
+        p = p.jsExpect().repr.jsCastOrBail(),
+        o = o.jsExpect().repr.jsCastOrBail(),
+        g = (g ?: DefaultGraphTerm).repr
     )
 
-    val s: TermJs get() = TermJs(value.s)
-    val p: TermJs get() = TermJs(value.p)
-    val o: TermJs get() = TermJs(value.o)
-    val g: GraphJs get() = GraphJs(value.g)
+    override fun toString() = "$s $p $o $g"
 
-    companion object Builder {
+    val s: TermJs get() = value.s.toTermJs()
+    val p: TermJs get() = value.p.toTermJs()
+    val o: TermJs get() = value.o.toTermJs()
+    val g: GraphTerm get() = value.g.toTermJs()
 
-        // using JsStatic, as `Builder` can be omitted
-        @OptIn(ExperimentalJsStatic::class)
-        @JsStatic
-        fun iri(value: String? = undefined) = TermJs(value.jsExpect().asNamedTerm())
+}
 
-        @OptIn(ExperimentalJsStatic::class)
-        @JsStatic
-        fun literal(value: Any? = undefined) = TermJs(value.jsExpect().asLiteralTerm())
-
-        @OptIn(ExperimentalJsStatic::class)
-        @JsStatic
-        fun graph(value: String? = undefined) = GraphJs(value?.asNamedTerm() ?: Quad.DefaultGraph)
-
-    }
-
+// not exported as it references a KT-only type
+fun QuadJs(quad: Quad): QuadJs {
+    return QuadJs(
+        s = quad.s.toTermJs(),
+        p = quad.p.toTermJs(),
+        o = quad.o.toTermJs(),
+        g = quad.g.toTermJs(),
+    )
 }
