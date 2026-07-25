@@ -10,7 +10,8 @@ inline fun <T: Any> T?.jsExpect(): T {
     return this ?: throw Error("Expected a valid value, got `null` instead!")
 }
 
-inline fun <I, reified O> Collection<I>.mapToArray(transform: (I) -> O): Array<O> {
+@OptIn(ExperimentalWasmJsInterop::class)
+inline fun <I, reified O> Collection<I>.mapToArray(transform: (I) -> O): JsArray<O> {
     val iter = iterator()
-    return Array(size) { transform(iter.next()) }
+    return JsArray(size) { transform(iter.next()) }
 }

@@ -15,22 +15,22 @@ class ReplayBenchmarkReplayer private constructor(private val benchmark: ReplayB
         @OptIn(ExperimentalJsCollectionsApi::class)
         val insertions = diff
             .insertions
-            .mapTo(mutableSetOf()) { it.toJsQuad() }
+            .mapTo(mutableSetOf()) { QuadJs(it) }
                 .asJsSetView()
 
         @OptIn(ExperimentalJsCollectionsApi::class)
         val deletions = diff
             .deletions
-            .mapTo(mutableSetOf()) { it.toJsQuad() }
+            .mapTo(mutableSetOf()) { QuadJs(it) }
             .asJsSetView()
 
     }
 
     val queries: Array<String> = benchmark.queries.toTypedArray()
 
-    fun forEachSnapshot(callback: (ObservableStoreJs, DiffJs) -> Unit) {
+    fun forEachSnapshot(callback: (StoreJs, DiffJs) -> Unit) {
         benchmark.eval { store, diff ->
-            callback(store.toJsMutableStore(), DiffJs(diff))
+            callback(StoreJs(store), DiffJs(diff))
         }
     }
 

@@ -39,6 +39,7 @@ include("stream:ldes")
 
 include("interop:jena")
 include("interop:rdfjs")
+include("interop:comunica")
 
 /* internal modules (distributed) */
 
