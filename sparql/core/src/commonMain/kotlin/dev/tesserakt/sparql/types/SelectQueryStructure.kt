@@ -9,8 +9,12 @@ data class SelectQueryStructure(
     val grouping: Expression?,
     /** HAVING (filter) **/
     val groupingFilter: Expression?,
-    /** ORDER BY <expr> **/
-    val ordering: Expression?
+    /** ORDER BY [ASC/DESC]?binding [[ASC/DESC]?binding [...]] **/
+    val ordering: Ordering?,
+    /** LIMIT N (=[Int.MAX_VALUE] if not provided) */
+    val limit: Int,
+    /** OFFSET N (=`0` if not provided) */
+    val offset: Int,
 ): QueryStructure() {
 
     val bindings: Set<String> = output

@@ -226,8 +226,8 @@ data class DateTime internal constructor(
             /* date segment */
             val year = xsdDateTime.substring(0, delimiter).toInt()
             // subsequent numbers are a fixed offset from this delimiter, and can be obtained from it directly
-            check(xsdDateTime[delimiter +  3] == '-')
-            check(xsdDateTime[delimiter +  6] == 'T')
+            xsdDateTime.expectChar('-', delimiter + 3)
+            xsdDateTime.expectChar('T', delimiter + 6)
             // subsequent segments are optional, so are checked later
             val month = xsdDateTime.substring(delimiter + 1, delimiter + 3).toInt()
             val day = xsdDateTime.substring(delimiter + 4, delimiter + 6).toInt()
@@ -238,8 +238,8 @@ data class DateTime internal constructor(
             )
 
             /* time segment */
-            check(xsdDateTime[delimiter +  9] == ':')
-            check(xsdDateTime[delimiter + 12] == ':')
+            xsdDateTime.expectChar(':', delimiter + 9)
+            xsdDateTime.expectChar(':', delimiter + 12)
             val hours = xsdDateTime.substring(delimiter + 7, delimiter + 9).toInt()
             val minutes = xsdDateTime.substring(delimiter + 10, delimiter + 12).toInt()
             val seconds = xsdDateTime.substring(delimiter + 13, delimiter + 15).toInt()
@@ -286,7 +286,8 @@ data class DateTime internal constructor(
         private fun daysInMonth(month: Int, year: Int): Int {
             return when (month) {
                 2 -> {
-                    28 + year % 4 - year % 100 + year % 400
+                    val isLeap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+                    if (isLeap) 29 else 28
                 }
                 1, 3, 5, 7, 8, 10, 12 -> {
                     31
@@ -299,4 +300,8 @@ data class DateTime internal constructor(
 
     }
 
+}
+
+private inline fun String.expectChar(expected: Char, pos: Int) {
+    check(this[pos] == expected) { "Expected `$expected` at ${pos}, got `${this[pos]}` instead!" }
 }

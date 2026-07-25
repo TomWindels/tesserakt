@@ -2,8 +2,8 @@ package sparql.types
 
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.runtime.RuntimeStatistics
+import dev.tesserakt.sparql.QueryStatistics
+import dev.tesserakt.sparql.queryWithStatistics
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import dev.tesserakt.util.toTruncatedString
@@ -19,8 +19,11 @@ class OutputComparisonTest(
 
     override suspend fun test() = runTest {
         val actual: List<Bindings>
+        val statistics: QueryStatistics
         val elapsedTime = measureTime {
-            actual = store.query(query)
+            val result = store.queryWithStatistics(query, granularity = QueryStatistics.Granularity.DETAILED)
+            actual = result.first
+            statistics = result.second
         }
         val external = ExternalQueryExecution(queryString, store)
         val expected: List<Bindings>
@@ -36,7 +39,8 @@ class OutputComparisonTest(
             expected = expected,
             elapsedTime = elapsedTime,
             referenceTime = referenceTime,
-            debugInformation = "${RuntimeStatistics.report()}${external.report()}"
+            strictOrdering = hasStrictOrdering,
+            statistics = statistics,
         )
     }
 
@@ -52,7 +56,7 @@ class OutputComparisonTest(
         val missing: List<Bindings>,
         val elapsedTime: Duration,
         val referenceTime: Duration,
-        val debugInformation: String
+        val statistics: QueryStatistics
     ) : Test.Result {
 
         fun isNotEmpty() = leftOver.isNotEmpty() || missing.isNotEmpty()
@@ -77,11 +81,8 @@ class OutputComparisonTest(
             append(" binding(s) (")
             append(referenceTime)
             append("):\n\t")
-            append(expected.toTruncatedString(500))
-            if (debugInformation.isNotBlank()) {
-                append("\n * ")
-                append(debugInformation)
-            }
+            appendLine(expected.toTruncatedString(500))
+            append(statistics)
         }
 
         companion object {
@@ -91,13 +92,15 @@ class OutputComparisonTest(
                 expected: List<Bindings>,
                 elapsedTime: Duration,
                 referenceTime: Duration,
-                debugInformation: String
+                strictOrdering: Boolean,
+                statistics: QueryStatistics,
             ): Result = compare(
                 received = received,
                 expected = expected,
                 elapsedTime = elapsedTime,
                 referenceTime = referenceTime,
-                debugInformation = debugInformation
+                strictOrdering = strictOrdering,
+                statistics = statistics
             )
         }
 

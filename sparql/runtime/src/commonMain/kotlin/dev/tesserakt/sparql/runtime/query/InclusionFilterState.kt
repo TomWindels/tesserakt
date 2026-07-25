@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
@@ -27,7 +28,7 @@ sealed interface InclusionFilterState: MutableFilterState {
 
     override fun process(delta: DataDelta)
 
-    override fun debugInformation(): String
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
     /**
      * The typical exclude filter, where its internal state affects parts of the results from its parent; those
@@ -35,8 +36,7 @@ sealed interface InclusionFilterState: MutableFilterState {
      *  collection (which may not be empty!)
      */
     class Narrow(
-        context: QueryContext,
-        commonBindingNames: Set<String>,
+        private val commonBindingNames: BindingIdentifierSet,
         private val state: BasicGraphPatternState,
     ) : InclusionFilterState {
 
@@ -44,7 +44,6 @@ sealed interface InclusionFilterState: MutableFilterState {
             require(commonBindingNames.isNotEmpty()) { "Invalid filter use detected!" }
         }
 
-        private val commonBindingNames = BindingIdentifierSet(context, commonBindingNames)
         // tracking what binding groups are "invalid" (= should be filtered out)
         private val filtered = Counter<Mapping>()
 
@@ -83,46 +82,92 @@ sealed interface InclusionFilterState: MutableFilterState {
          * Filters the [input] stream, using its processed internal state after applying the [delta]
          */
         override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
-            // starting from the active state
-            val total = filtered.clone()
-            // applying the impact of the new delta to it
-            state
-                .peek(delta)
-                .mapped { it.map { it.retain(commonBindingNames) } }
-                .forEach { mappingDelta ->
-                    when (mappingDelta) {
-                        is MappingAddition -> total.increment(mappingDelta.value)
-                        is MappingDeletion -> total.decrement(mappingDelta.value)
+            // we track the impact of the delta here directly
+            peekStateChange(delta)
+            // using that to filter the incoming result
+            return when {
+                lastChanges.isEmpty() && filtered.count == 0 -> {
+                    emptyStream()
+                }
+                filtered.count == 0 -> {
+                    input.filtered { mapping ->
+                        val retained = mapping.value.retain(commonBindingNames)
+                        // the changes should not be negative as we're not filtering anything
+                        (lastChanges[retained] ?: 0) > 0
                     }
                 }
-            // using that to filter the incoming result
-            return input.filtered { mapping -> total.current.any { it.compatibleWith(mapping.value) } }
+                lastChanges.isEmpty() -> {
+                    input.filtered { mapping ->
+                        val retained = mapping.value.retain(commonBindingNames)
+                        filtered[retained] > 0
+                    }
+                }
+                else -> {
+                    input.filtered { mapping ->
+                        val retained = mapping.value.retain(commonBindingNames)
+                        (lastChanges[retained] ?: 0) + (filtered[retained]) > 0
+                    }
+                }
+            }
         }
 
         /**
          * Filters the [input] stream, using only its processed internal state
          */
         override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
-            return input.filtered { mapping -> filtered.current.any { it.compatibleWith(mapping.value) } }
+            return input.filtered { mapping ->
+                // filtered is strictly positive, not retaining 0-valued instances, so it being present
+                //  means that it is being let through by us
+                mapping.value.retain(commonBindingNames) in filtered
+            }
         }
 
         override fun process(delta: DataDelta) {
+            // preparing the state change here, as it's likely it was already calculated before and can thus
+            //  be obtained from the cache
+            peekStateChange(delta)
+            filtered.increment(lastChanges)
+            // we now clear the change again
+            lastDelta = null
+            // and propagate the change to our inner state
+            state.process(delta)
+        }
+
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            val inner = state.stats(context, granularity)
+            return if (granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = "FILTER EXISTS\nnarrow, bindings ${commonBindingNames.asIntIterable().joinToString { bindingId -> context.resolveBinding(bindingId) }}"
+                )
+            } else {
+                inner
+            }
+        }
+
+        private var lastDelta: DataDelta? = null
+        private val lastChanges = mutableMapOf<Mapping, Int>()
+
+        /**
+         * Peeks the impact of the [delta], putting the changes in the cached map [lastChanges]
+         */
+        private fun peekStateChange(delta: DataDelta) {
+            if (lastDelta == delta) {
+                // changes were already processed
+                return
+            }
+            // we're overwriting the cache
+            lastDelta = delta
+            lastChanges.clear()
             state
                 .peek(delta)
                 .mapped { it.map { it.retain(commonBindingNames) } }
                 .forEach { mappingDelta ->
                     when (mappingDelta) {
-                        is MappingAddition -> filtered.increment(mappingDelta.value)
-                        is MappingDeletion -> filtered.decrement(mappingDelta.value)
+                        is MappingAddition -> lastChanges.replace(mappingDelta.value) { existing -> (existing ?: 0) + 1 }
+                        is MappingDeletion -> lastChanges.replace(mappingDelta.value) { existing -> (existing ?: 0) - 1 }
                     }
                 }
-            state.process(delta)
-        }
-
-        override fun debugInformation(): String = buildString {
-            appendLine("* Include graph filter (narrow)")
-            append(state.debugInformation())
-            append("allowing ${filtered.current.size} binding variants: ${filtered.current.joinToString()}")
         }
 
     }
@@ -165,6 +210,18 @@ sealed interface InclusionFilterState: MutableFilterState {
             }
         }
 
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            val inner = state.stats(context, granularity)
+            return if (granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
+                Statistics.DescriptionElement(
+                    inner = inner,
+                    description = "FILTER EXISTS\nbroad, active count $count"
+                )
+            } else {
+                inner
+            }
+        }
+
         override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
             val change = state.peek(delta).fold(0) { acc, mappingDelta ->
                 when (mappingDelta) {
@@ -191,24 +248,17 @@ sealed interface InclusionFilterState: MutableFilterState {
             check(count >= 0) { "Invalid internal state!" }
         }
 
-        override fun debugInformation(): String = buildString {
-            appendLine("* Include graph filter (wide)")
-            append(state.debugInformation())
-            append("blocking all binding variants: ${count > 0}")
-        }
-
     }
 
     companion object {
 
-        operator fun invoke(context: QueryContext, parent: GroupPatternState, filter: Filter.Exists): InclusionFilterState {
+        operator fun invoke(context: QueryContext, parent: MutableJoinState, filter: Filter.Exists): InclusionFilterState {
             val state = BasicGraphPatternState(context, filter.pattern)
             val externalBindings = parent.bindings.intersect(state.bindings)
             return if (externalBindings.isEmpty()) {
                 Broad(state = state)
             } else {
                 Narrow(
-                    context = context,
                     commonBindingNames = externalBindings,
                     state = state
                 )

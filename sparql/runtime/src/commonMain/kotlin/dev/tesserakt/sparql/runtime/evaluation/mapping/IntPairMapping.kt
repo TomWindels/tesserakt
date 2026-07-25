@@ -16,12 +16,22 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
 
     constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Element>>): this(data = convert(context, source))
 
+    constructor(source: Iterable<Pair<BindingIdentifier, TermIdentifier>>): this(data = convert(source))
+
     init {
         require(data.isNullOr { it.count > 0 })
     }
 
     override val count: Int
         get() = data?.count ?: 0
+
+    override fun keys(): BindingIdentifierSet {
+        val iter = this.data?.value?.iterator() ?: return BindingIdentifierSet.EMPTY
+        return BindingIdentifierSet(ids = IntArray(count) {
+            // taking the key, dropping the value
+            iter.nextInt().also { iter.nextInt() }
+        })
+    }
 
     override fun keys(context: QueryContext) = object: Iterable<String> {
         override fun iterator(): Iterator<String> = object: Iterator<String> {
@@ -161,6 +171,10 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
 
         private fun convert(context: QueryContext, input: Iterable<Pair<String, Quad.Element>>): IntIntPair? {
             return if (!input.iterator().hasNext()) null else input.map { context.resolveBinding(it.first) to context.resolveTerm(it.second) }.sortedBy { it.first }.flatten().into()
+        }
+
+        private fun convert(input: Iterable<Pair<BindingIdentifier, TermIdentifier>>): IntIntPair? {
+            return if (!input.iterator().hasNext()) null else input.sortedBy { it.first.id }.map { it.first.id to it.second.id }.flatten().into()
         }
 
         private fun List<Pair<Int, Int>>.flatten(): IntArray {
@@ -303,7 +317,7 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
 
     }
 
-    private class IntIntPair(private val value: IntArray) {
+    private class IntIntPair(val value: IntArray) {
 
         val count = value.size / 2
         private val hashCode = value.contentHashCode()

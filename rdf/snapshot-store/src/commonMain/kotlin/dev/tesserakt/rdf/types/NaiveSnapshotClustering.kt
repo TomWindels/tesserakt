@@ -7,7 +7,7 @@ object NaiveSnapshotClustering: SnapshotClustering {
     @JvmInline
     value class SubjectCluster(override val identifier: Quad.NamedTerm): SnapshotCluster {
         override fun extractClusterContent(source: Store): Store {
-            return source.iter(s = identifier).consume()
+            return source.iter(s = identifier).toStore()
         }
     }
 

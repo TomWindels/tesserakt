@@ -9,15 +9,6 @@ import dev.tesserakt.sparql.util.ZeroCardinality
 
 /* simple extensions, aliases of the various builders */
 
-/**
- * Serves as a quick `isEmpty` check. If it has zero cardinality, no elements are guaranteed to be returned, and the
- *  stream can be replaced with an empty one.
- *
- * IMPORTANT: the opposite does NOT hold, as it is not identical to an `isEmpty` check! Having a non-zero cardinality
- *  does not mean elements are guaranteed!
- */
-fun <E : Any> Stream<E>.hasZeroCardinality(): Boolean = cardinality == ZeroCardinality
-
 fun OptimisedStream<Mapping>.join(other: Stream<Mapping>): Stream<Mapping> =
     if (other.hasZeroCardinality() || this.hasZeroCardinality()) emptyStream() else StreamMultiJoin(
         other,
@@ -45,18 +36,35 @@ fun Mapping.join(other: Stream<Mapping>): Stream<Mapping> =
 fun <E : Any> Stream<E>.remove(elements: Iterable<E>): Stream<E> =
     StreamReduction(this, removed = elements)
 
+fun <E : Any> Stream<E>.remove(elements: Stream<E>): Stream<E> = when {
+    elements.hasZeroCardinality() -> this
+    else -> StreamReduction(this, removed = elements)
+}
+
 fun <E : Any> Stream<E>.chain(other: Stream<E>): Stream<E> = when {
     hasZeroCardinality() && other.hasZeroCardinality() -> emptyStream()
     hasZeroCardinality() -> other
     other.hasZeroCardinality() -> this
-    else -> StreamChain(this, other)
+    this is StreamChain<E> -> {
+        this.sources.add(other)
+        this
+    }
+    this is OptimisedStreamView<E> && this.input is StreamChain<E> -> {
+        this.input.sources.add(other)
+        this
+    }
+    else -> StreamChain(mutableListOf(this, other))
 }
 
 fun <E : Any> OptimisedStream<E>.chain(other: OptimisedStream<E>): OptimisedStream<E> = when {
     hasZeroCardinality() && other.hasZeroCardinality() -> emptyStream()
     hasZeroCardinality() -> other
     other.hasZeroCardinality() -> this
-    else -> OptimisedStreamView(StreamChain(this, other))
+    this is OptimisedStreamView<E> && this.input is StreamChain<E> -> {
+        this.input.sources.add(other)
+        this
+    }
+    else -> OptimisedStreamView(StreamChain(mutableListOf(this, other)))
 }
 
 // it's more common to use product's between same-type streams than it is to use different-type streams, whilst
@@ -265,19 +273,15 @@ fun <E : Any> Stream<E>.optimisedForReuse(): OptimisedStream<E> = when {
     this is OptimisedStream -> this
     supportsEfficientIteration() -> OptimisedStreamView(this)
     this is StreamChain<E> -> {
-        val s1 = if (!source1.supportsEfficientIteration()) {
-            source1.optimisedForReuse()
-        } else {
-            OptimisedStreamView(source1)
-        }
-        val s2 = if (!source2.supportsEfficientIteration()) {
-            source2.optimisedForReuse()
-        } else {
-            OptimisedStreamView(source2)
+        repeat(this.sources.size) { i ->
+            val src = this.sources[i]
+            if (!src.supportsEfficientIteration()) {
+                this.sources[i] = src.optimisedForReuse()
+            }
         }
         // as the chain is now made up of optimised streams, the iteration chain are now also automatically optimised
         // so it can be wrapped without consequences
-        OptimisedStreamView(StreamChain(s1, s2))
+        OptimisedStreamView(this)
     }
     // TODO: check for memory preference: buffering or wrapping depending on whether array use is allowed
     else -> BufferedStream(this)
@@ -294,6 +298,13 @@ inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Cardinality = 
 
 inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Number): OptimisedStream<E> =
     optimisedForSingleUse(cardinality = Cardinality(cardinality))
+
+inline fun <E: Any> Iterable<Iterable<E>>.flatMapStream(cardinality: Cardinality): OptimisedStream<E> {
+    if (cardinality == ZeroCardinality) {
+        return emptyStream()
+    }
+    return FlatMapStream(source = this, cardinality = cardinality)
+}
 
 /* typical usage pattern chains */
 

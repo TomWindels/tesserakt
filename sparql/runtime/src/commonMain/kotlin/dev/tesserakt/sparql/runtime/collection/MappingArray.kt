@@ -1,12 +1,15 @@
 package dev.tesserakt.sparql.runtime.collection
 
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.util.Cardinality
 
-interface MappingArray {
+interface MappingArray : Iterable<Mapping> {
 
     val cardinality: Cardinality
+
+    val indexes: BindingIdentifierSet
 
     /**
      * Returns an [OptimisedStream] of [Mapping]s that are present inside this structure
@@ -27,10 +30,20 @@ interface MappingArray {
 
     fun add(mapping: Mapping)
 
-    fun addAll(mappings: Iterable<Mapping>)
+    /**
+     * Adds all [mappings] into the backing structure, returning the number of elements that were added
+     */
+    fun addAll(mappings: Iterable<Mapping>): Int
 
     fun remove(mapping: Mapping)
 
-    fun removeAll(mappings: Iterable<Mapping>)
+    /**
+     * Removes all [mappings] from the backing structure, returning the number of elements that were removed
+     */
+    fun removeAll(mappings: Iterable<Mapping>): Int
+
+    override fun iterator(): Iterator<Mapping> {
+        return iter().iterator()
+    }
 
 }

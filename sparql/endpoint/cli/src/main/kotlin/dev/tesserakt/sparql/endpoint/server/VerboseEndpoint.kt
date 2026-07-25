@@ -1,7 +1,8 @@
 package dev.tesserakt.sparql.endpoint.server
 
-import dev.tesserakt.rdf.serialization.common.FileDataSource
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
@@ -20,9 +21,9 @@ class VerboseEndpoint(config: EndpointConfig) : SparqlEndpoint {
     // whilst we don't use the store for anything here, it's useful for logging
     private val store = run {
         val base = if (config.start != null) {
-            TriGSerializer
+            serializer(TriG)
                 .also { println("Setting up the initial data...") }
-                .deserialize(FileDataSource(config.start))
+                .deserialize(config.start)
                 .consumeVerbose()
                 .also { println(" done!") }
         } else {

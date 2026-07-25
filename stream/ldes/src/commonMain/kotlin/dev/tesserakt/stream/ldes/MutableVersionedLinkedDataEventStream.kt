@@ -1,9 +1,7 @@
 package dev.tesserakt.stream.ldes
 
 import dev.tesserakt.rdf.ontology.RDF
-import dev.tesserakt.rdf.types.MutableStore
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.rdf.types.factory.MutableStore
 import dev.tesserakt.stream.ldes.ontology.DC
@@ -13,7 +11,7 @@ import dev.tesserakt.util.single
 class MutableVersionedLinkedDataEventStream<StreamElement>(
     identifier: Quad.NamedTerm,
     private val store: MutableStore,
-    internal val comparator: Comparator<Quad.Literal> = DateComparator,
+    internal val comparator: Comparator<Quad.TypedLiteral> = DateComparator,
     internal val transform: StreamTransform<StreamElement>,
 ): VersionedLinkedDataEventStream<StreamElement>(identifier, store) {
 
@@ -28,13 +26,11 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
             }
         }
 
-    override val members: List<Member> get() = _members
-
     /**
      * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
      *  implementation.
      */
-    override val timestamps: List<Quad.Literal>
+    override val timestamps: List<Quad.TypedLiteral>
         get() = _members
             .mapTo(mutableSetOf()) { it.timestampValue }
             .sortedWith(comparator)
@@ -49,11 +45,25 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
 
     override val size: Int get() = store.size
 
+    override val context: EncodingContext
+        get() = store.context
+
     override fun isEmpty(): Boolean = store.isEmpty()
 
-    override fun iterator(): Iterator<Quad> = store.iterator()
+    override fun encodedIterator(): Iterator<EncodedQuad> {
+        return store.encodedIterator()
+    }
 
-    override fun read(until: Quad.Literal): Store = transform.decode(
+    override fun encodedIter(
+        s: Quad.Subject?,
+        p: Quad.Predicate?,
+        o: Quad.Object?,
+        g: Quad.Graph?
+    ): Iterator<EncodedQuad> {
+        return store.encodedIter(s, p, o, g)
+    }
+
+    override fun read(until: Quad.TypedLiteral): Store = transform.decode(
         source = store,
         identifiers = _members
             // only allowing members that have been added before (including) the provided parameter
@@ -69,7 +79,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
      *  to [timestampValue]). The additional [inclusive] flag dictates whether versions with a [timestampValue]
      *  identical to the one provided are allowed.
      */
-    override fun read(base: Quad.NamedTerm, timestampValue: Quad.Literal, inclusive: Boolean): StreamElement? {
+    override fun read(base: Quad.NamedTerm, timestampValue: Quad.TypedLiteral, inclusive: Boolean): StreamElement? {
         val version = _members
             .filter {
                 if (it.base != base)
@@ -83,7 +93,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
 
     fun add(
         baseVersion: Quad.NamedTerm,
-        timestamp: Quad.Literal,
+        timestamp: Quad.TypedLiteral,
         data: StreamElement,
     ) {
         // it's discouraged to use a `#`, as most serialization formats cannot use a prefixed representation of the
@@ -109,7 +119,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
             timestampPath: Quad.NamedTerm = DC.modified,
             versionOfPath: Quad.NamedTerm = DC.isVersionOf,
             transform: StreamTransform<StreamUnit>,
-            comparator: Comparator<Quad.Literal> = DateComparator
+            comparator: Comparator<Quad.TypedLiteral> = DateComparator
         ): MutableVersionedLinkedDataEventStream<StreamUnit> = MutableVersionedLinkedDataEventStream(
             identifier = identifier,
             transform = transform,
@@ -128,7 +138,7 @@ class MutableVersionedLinkedDataEventStream<StreamElement>(
             transform: StreamTransform<StreamUnit>,
             identifier: Quad.NamedTerm =
                 store.iter(p = RDF.type, o = LDES.EventStream).single().s as Quad.NamedTerm,
-            comparator: Comparator<Quad.Literal> = DateComparator
+            comparator: Comparator<Quad.TypedLiteral> = DateComparator
         ): MutableVersionedLinkedDataEventStream<StreamUnit> = MutableVersionedLinkedDataEventStream(
             identifier = identifier,
             store = MutableStore(store),

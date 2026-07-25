@@ -1,18 +1,24 @@
-
 import dev.tesserakt.rdf.dsl.RDF
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
-import dev.tesserakt.rdf.serialization.common.collect
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.turtle.Turtle
+import dev.tesserakt.rdf.serialization.turtle.TurtleDeserializer
+import dev.tesserakt.rdf.serialization.turtle.TurtleSerializer
+import dev.tesserakt.rdf.serialization.turtle.TurtleTokenDecoder
+import dev.tesserakt.rdf.serialization.turtle.TurtleTokenEncoder
+import dev.tesserakt.rdf.serialization.turtle.usePrettyFormatting
+import dev.tesserakt.rdf.serialization.turtle.withDynamicIndent
+import dev.tesserakt.rdf.serialization.turtle.withPrefixes
 import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.turtle.serialization.*
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.toStore
-import dev.tesserakt.testing.comparisonOf
+import dev.tesserakt.testing.unorderedComparisonOf
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertTrue
@@ -78,7 +84,7 @@ class TurtleSerialization {
     @OptIn(DelicateSerializationApi::class, InternalSerializationApi::class)
     private fun serialize(block: RDF.() -> Unit) {
         val reference = buildStore(block = block)
-        val serializer = turtle {
+        val serializer = serializer(Turtle) {
             usePrettyFormatting {
                 withPrefixes(block.extractPrefixes())
                 withDynamicIndent()
@@ -89,18 +95,18 @@ class TurtleSerialization {
         // also checking the result by decoding it and comparing iterators, without prefixes as these are not added by
         //  the reference token encoder (the formatter does this)
         assertContentEquals(
-            expected = TokenEncoder(reference.iterator()).asIterable(),
-            actual = TokenDecoder(
+            expected = TurtleTokenEncoder(reference.iterator()).asIterable(),
+            actual = TurtleTokenDecoder(
                 BufferedString(
                     TextDataSource(TurtleSerializer.serialize(reference.iterator()).collect()).open()
                 )
             ).asIterable()
         )
-        val complete = Deserializer(TokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
+        val complete = TurtleDeserializer(TurtleTokenDecoder(BufferedString(TextDataSource(prettyPrinted).open())))
             .asIterable().toStore()
         // as turtle doesn't contain graphs, every read-in quad should have the default graph
         val r = reference.map { it.copy(g = Quad.DefaultGraph) }.toStore()
-        var comparison = comparisonOf(
+        var comparison = unorderedComparisonOf(
             a = r,
             b = complete
         )
@@ -113,9 +119,9 @@ class TurtleSerialization {
             // making sure we're not cutting in the middle of a statement
             .dropLastWhile { it.isNotBlank() }
             .joinToString("\n")
-        val incomplete = Deserializer(TokenDecoder(BufferedString(TextDataSource(subset).open())))
+        val incomplete = TurtleDeserializer(TurtleTokenDecoder(BufferedString(TextDataSource(subset).open())))
             .asIterable().toStore()
-        comparison = comparisonOf(
+        comparison = unorderedComparisonOf(
             a = r,
             b = incomplete
         )
@@ -131,6 +137,10 @@ class TurtleSerialization {
                 yield(iter.next().also { if (verbose) println("${this@asIterable::class.simpleName} yields $it") })
             }
         }
+    }
+
+    private fun Iterator<String>.collect(): String = buildString {
+        this@collect.forEach { segment -> append(segment) }
     }
 
 }

@@ -2,7 +2,6 @@ package dev.tesserakt.sparql.benchmark.replay
 
 import dev.tesserakt.rdf.dsl.insert
 import dev.tesserakt.rdf.ontology.RDF
-import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
@@ -61,7 +60,7 @@ class ReplayBenchmark(
         }
 
         private fun extractQueryOrBail(term: Quad.Element): String {
-            check(term is Quad.Literal && term.type == XSD.string)
+            check(term is Quad.SimpleLiteral)
             return term.value
         }
 

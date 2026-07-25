@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier.Companion.get
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
@@ -17,20 +18,52 @@ import kotlin.jvm.JvmInline
 class FilterExpression(val context: QueryContext, expr: Expression) {
 
     sealed interface OperationValue {
+
         object Unbound: OperationValue {
             override fun equals(other: Any?) = false
         }
+
         @JvmInline
-        value class SingleValue(val term: Quad.Element) : OperationValue
+        value class SingleValue(val term: Quad.Element) : OperationValue {
+
+            override fun toString(): String {
+                return term.toString()
+            }
+
+        }
+
         @JvmInline
-        value class DateValue(val value: DateTime) : OperationValue
+        value class DateValue(val value: DateTime) : OperationValue {
+
+            override fun toString(): String {
+                return value.toString()
+            }
+
+        }
+
         @JvmInline
-        value class SingleValueIdentifier(val term: TermIdentifier) : OperationValue
+        value class SingleValueIdentifier(val term: TermIdentifier) : OperationValue {
+
+            override fun toString(): String {
+                return term.toString()
+            }
+
+        }
+
         @JvmInline
-        value class SingleMapping(val mapping: Mapping) : OperationValue
+        value class SingleMapping(val mapping: Mapping) : OperationValue {
+
+            override fun toString(): String {
+                return mapping.toString()
+            }
+
+        }
+
     }
 
-    fun interface Operation {
+    interface Operation {
+
+        fun bindings(): BindingIdentifierSet
 
         fun eval(input: OperationValue): OperationValue
 
@@ -42,7 +75,21 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                         ValueLookUpOperation(binding = BindingIdentifier(context, name = expr.name))
 
                     is UriValue ->
-                        Operation { OperationValue.SingleValue(term = expr.uri) }
+                        object: Operation {
+
+                            override fun bindings(): BindingIdentifierSet {
+                                return BindingIdentifierSet.EMPTY
+                            }
+
+                            override fun eval(input: OperationValue): OperationValue {
+                                return OperationValue.SingleValue(term = expr.uri)
+                            }
+
+                            override fun toString(): String {
+                                return expr.uri.toString()
+                            }
+
+                        }
 
                     is Calculation -> when (expr.operator) {
                         Calculation.Operator.SUM -> Sum(context = context, lhs = from(context, expr.lhs), rhs = from(context, expr.rhs))
@@ -75,53 +122,103 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
         class EQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison == 0).asLiteralTerm().into()
+            }
+
+            override fun toString(): String {
+                return "($left) == ($right)"
             }
 
         }
 
         class NEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison != 0).asLiteralTerm().into()
+            }
+
+            override fun toString(): String {
+                return "($left) != ($right)"
             }
 
         }
 
         class LT(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison < 0).asLiteralTerm().into()
             }
+
+            override fun toString(): String {
+                return "($left) < ($right)"
+            }
+
         }
 
 
         class GT(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison > 0).asLiteralTerm().into()
             }
+
+            override fun toString(): String {
+                return "($left) > ($right)"
+            }
+
         }
 
         class LTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
+
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
 
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison <= 0).asLiteralTerm().into()
             }
 
+            override fun toString(): String {
+                return "($left) <= ($right)"
+            }
+
         }
 
         class GTEQ(val context: QueryContext, private val left: Operation, private val right: Operation) : ComparisonEval {
 
+            override fun bindings(): BindingIdentifierSet {
+                return left.bindings() + right.bindings()
+            }
+
             override fun eval(input: OperationValue): OperationValue {
                 val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
                 return (comparison >= 0).asLiteralTerm().into()
+            }
+
+            override fun toString(): String {
+                return "($left) >= ($right)"
             }
 
         }
@@ -144,7 +241,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                     left is OperationValue.DateValue -> {
                         // assuming `right` produces a literal that can be interpreted as a date time
                         val r = right.getTerm(context) ?: return null
-                        if (r !is Quad.Literal || !r.isDateTimeValue()) {
+                        if (r !is Quad.TypedLiteral || !r.isDateTimeValue()) {
                             return null
                         }
                         // TODO: check why this one doesn't seem to work
@@ -164,10 +261,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                                 return 0
                             }
                             // we can't compare when one of them is not a literal
-                            if (a !is Quad.Literal || b !is Quad.Literal) {
+                            if (a !is Quad.TypedLiteral || b !is Quad.TypedLiteral) {
                                 return 1
                             }
-                            return compare(a.literal, b.literal)
+                            return compare(a.typedLiteral, b.typedLiteral)
                         } catch (_: UnsupportedOperationException) {
                             // incompatible types
                             null
@@ -181,7 +278,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
              *  specified [right] value, a negative number if it's less than [right], or a positive number if it's
              *  greater than [right].
              */
-            private fun compare(left: Quad.Literal, right: Quad.Literal): Int {
+            private fun compare(left: Quad.TypedLiteral, right: Quad.TypedLiteral): Int {
                 return when {
                     left.isNumericalValue() && right.isNumericalValue() ->
                         left.numericalValue.compareTo(right.numericalValue)
@@ -205,9 +302,23 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     ): Operation {
 
         final override fun eval(input: OperationValue): OperationValue {
-            val left = lhs.eval(input).getTerm(context)?.literal?.numericalValue ?: return OperationValue.Unbound
-            val right = rhs.eval(input).getTerm(context)?.literal?.numericalValue ?: return OperationValue.Unbound
+            val left = lhs.eval(input).getTerm(context)?.typedLiteral?.numericalValue ?: return OperationValue.Unbound
+            val right = rhs.eval(input).getTerm(context)?.typedLiteral?.numericalValue ?: return OperationValue.Unbound
             return eval(left, right).asLiteralTerm().into()
+        }
+
+        final override fun bindings(): BindingIdentifierSet {
+            return lhs.bindings() + rhs.bindings()
+        }
+
+        override fun toString(): String {
+            val op = when (this) {
+                is Div -> '/'
+                is Mul -> '*'
+                is Sub -> '-'
+                is Sum -> '+'
+            }
+            return "($lhs) $op ($rhs)"
         }
 
         abstract fun eval(lhs: Double, rhs: Double): Double
@@ -247,38 +358,81 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     }
 
     class AndEval(val lhs: Operation, val rhs: Operation) : Operation {
+
+        override fun bindings(): BindingIdentifierSet {
+            return lhs.bindings() + rhs.bindings()
+        }
+
         override fun eval(input: OperationValue): OperationValue {
             return (lhs.eval(input).isTrue() && rhs.eval(input).isTrue()).asLiteralTerm().into()
         }
+
+        override fun toString(): String {
+            return "($lhs) && ($rhs)"
+        }
+
     }
 
     class OrEval(val lhs: Operation, val rhs: Operation) : Operation {
+
+        override fun bindings(): BindingIdentifierSet {
+            return lhs.bindings() + rhs.bindings()
+        }
+
         override fun eval(input: OperationValue): OperationValue {
             return (lhs.eval(input).isTrue() || rhs.eval(input).isTrue()).asLiteralTerm().into()
         }
+
+        override fun toString(): String {
+            return "($lhs) || ($rhs)"
+        }
+
     }
 
     @JvmInline
-    private value class ValueLookUpOperation(private val binding: BindingIdentifier) : Operation {
+    private value class ValueLookUpOperation(val binding: BindingIdentifier) : Operation {
+
+        override fun bindings(): BindingIdentifierSet {
+            return bindingIdentifierSetOf(binding)
+        }
+
         override fun eval(input: OperationValue): OperationValue {
             return input.mapping.get(binding).into()
         }
+
+        override fun toString(): String {
+            return "?${binding.name}"
+        }
+
     }
 
     @JvmInline
-    private value class ConstantValueOperation<V: OperationValue>(private val constant: V) : Operation {
+    private value class ConstantValueOperation<V: OperationValue>(val constant: V) : Operation {
+
+        override fun bindings(): BindingIdentifierSet {
+            return BindingIdentifierSet.EMPTY
+        }
 
         override fun eval(input: OperationValue): OperationValue {
             return constant
         }
+
+        override fun toString(): String {
+            return constant.toString()
+        }
+
     }
 
-    private class BooleanCoercionOperation(val context: QueryContext, private val parent: Operation) : Operation {
+    private class BooleanCoercionOperation(val context: QueryContext, val parent: Operation) : Operation {
+
+        override fun bindings(): BindingIdentifierSet {
+            return parent.bindings()
+        }
 
         override fun eval(input: OperationValue): OperationValue {
             val result = parent.eval(input).getTerm(context)
             return when {
-                result !is Quad.Literal -> {
+                result !is Quad.TypedLiteral -> {
                     throw IllegalStateException("Unexpected non-literal `$result` received!")
                 }
 
@@ -291,12 +445,23 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 }
             }
         }
+
+        override fun toString(): String {
+            return "BOOL(${parent})"
+        }
+
     }
 
     private val root = BooleanCoercionOperation(context, parent = Operation.from(context, expr))
+    val bindings = root.parent.bindings()
 
     fun test(mapping: Mapping): Boolean {
         return root.eval(mapping.into()).getTerm(context) == true.asLiteralTerm()
+    }
+
+    override fun toString(): String {
+        // we go one operation node deeper as a filter always coerces into a boolean
+        return root.parent.toString()
     }
 
     companion object {
@@ -323,44 +488,88 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             get() = (this as? OperationValue.SingleMapping)?.mapping
                 ?: throw IllegalStateException("Single mapping value expected, but received a `${this::class.simpleName}` instead!")
 
-        private val Quad.Element.literal
-            get() = (this as? Quad.Literal)
+        private val Quad.Element.typedLiteral
+            get() = (this as? Quad.TypedLiteral)
                 ?: throw IllegalStateException("Literal term value expected, but received $this instead!")
 
     }
 
     object BuiltinFunction {
 
-        fun LANG(context: QueryContext, arg: Operation) = Operation {
-            val term = arg.evalToSingleQuadElementOrNull(context, it)
-            if (term !is Quad.LangString) {
-                return@Operation OperationValue.Unbound
+        fun LANG(context: QueryContext, arg: Operation) = object: Operation {
+
+            override fun bindings(): BindingIdentifierSet {
+                return arg.bindings()
             }
-            term.language.asLiteralTerm().into()
+
+            override fun eval(input: OperationValue): OperationValue {
+                val term = arg.evalToSingleQuadElementOrNull(context, input)
+                if (term !is Quad.LangString) {
+                    return OperationValue.Unbound
+                }
+                return term.language.asLiteralTerm().into()
+            }
+
+            override fun toString(): String {
+                return "LANG($arg)"
+            }
+
         }
 
-        fun LANGMATCHES(context: QueryContext, tag: Operation, range: Operation) = Operation {
-            val tagValue = tag.evalToSingleQuadElementOrNull(context, it)
-            // simple literal expected, as we're doing string matching
-            if (tagValue !is Quad.Literal || tagValue.type != XSD.string) {
-                return@Operation OperationValue.Unbound
+        fun LANGMATCHES(context: QueryContext, tag: Operation, range: Operation) = object: Operation {
+
+            override fun bindings(): BindingIdentifierSet {
+                return tag.bindings() + range.bindings()
             }
-            val tag = tagValue.value
-            // same goes for the tag range
-            val tagRange = range.evalToSingleQuadElementOrNull(context, it)
-            // simple literal expected, as we're doing string matching
-            if (tagRange !is Quad.Literal || tagRange.type != XSD.string) {
-                return@Operation OperationValue.Unbound
+
+            override fun eval(input: OperationValue): OperationValue {
+                val tagValue = tag.evalToSingleQuadElementOrNull(context, input)
+                // simple literal expected, as we're doing string matching
+                if (tagValue !is Quad.SimpleLiteral) {
+                    return OperationValue.Unbound
+                }
+                val tag = tagValue.value
+                // same goes for the tag range
+                val tagRange = range.evalToSingleQuadElementOrNull(context, input)
+                // simple literal expected, as we're doing string matching
+                if (tagRange !is Quad.SimpleLiteral || tagRange.type != XSD.string) {
+                    return OperationValue.Unbound
+                }
+                val range = tagRange.value
+                // now regular matching can be applied
+                // special case first, where "*" matches all (non-empty!) language tags
+                return if (range == "*") {
+                    tag.isNotEmpty().asLiteralTerm().into()
+                } else {
+                    val currentLang = tag.substringBefore('-')
+                    currentLang.contentEquals(range, ignoreCase = true).asLiteralTerm().into()
+                }
             }
-            val range = tagRange.value
-            // now regular matching can be applied
-            // special case first, where "*" matches all (non-empty!) language tags
-            return@Operation if (range == "*") {
-                 tag.isNotEmpty().asLiteralTerm().into()
-            } else {
-                val currentLang = tag.substringBefore('-')
-                currentLang.contentEquals(range, ignoreCase = true).asLiteralTerm().into()
+
+            override fun toString(): String {
+                return "LANGMATCHES($tag, $range)"
             }
+
+        }
+
+        fun DATETIME(context: QueryContext, param: Operation) = object: Operation {
+
+            override fun bindings(): BindingIdentifierSet {
+                return param.bindings()
+            }
+
+            override fun eval(input: OperationValue): OperationValue {
+                val termValue = param.evalToSingleQuadElementOrNull(context, input)
+                if (termValue !is Quad.TypedLiteral || termValue.type != XSD.dateTime) {
+                    return OperationValue.Unbound
+                }
+                return OperationValue.DateValue(DateTime.parse(termValue.value))
+            }
+
+            override fun toString(): String {
+                return "DATETIME($param)"
+            }
+
         }
 
         fun from(context: QueryContext, call: FuncCall): Operation {
@@ -373,6 +582,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 matches("langmatches") -> {
                     check(call.args.size == 2)
                     LANGMATCHES(context, Operation.from(context, call.args[0]), Operation.from(context, call.args[1]))
+                }
+                matches(XSD.dateTime.value) -> {
+                    check(call.args.size == 1)
+                    DATETIME(context, Operation.from(context, call.args[0]))
                 }
                 else -> throw IllegalArgumentException("Unknown function identifier: `${call.name}`")
             }
@@ -399,15 +612,15 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
 private val numerals = setOf(XSD.long, XSD.int, XSD.double, XSD.float, XSD.integer)
 
-private fun Quad.Literal.isNumericalValue(): Boolean {
+private fun Quad.TypedLiteral.isNumericalValue(): Boolean {
     return type in numerals
 }
 
-private fun Quad.Literal.isDateTimeValue(): Boolean {
+private fun Quad.TypedLiteral.isDateTimeValue(): Boolean {
     return type == XSD.dateTime
 }
 
-private val Quad.Literal.numericalValue: Double
+private val Quad.TypedLiteral.numericalValue: Double
     get() = this.value.toDouble()
 
 private fun FilterExpression.OperationValue.isTrue(): Boolean = when (this) {

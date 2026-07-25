@@ -1,19 +1,19 @@
 package sparql.types
 
 import dev.tesserakt.rdf.types.MutableStore
+import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.MutableStore
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.Query
-import dev.tesserakt.sparql.queryDebug
-import dev.tesserakt.sparql.runtime.evaluation.DataAddition
-import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
-import dev.tesserakt.sparql.runtime.evaluation.DataDelta
+import dev.tesserakt.sparql.QueryStatistics
+import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
+import dev.tesserakt.sparql.query
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
+import kotlin.jvm.JvmInline
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
@@ -25,6 +25,16 @@ class RandomUpdateTest(
     val seed: Int = 1,
     val iterations: Int = store.size * 200
 ) : QueryExecutionTest(query, store) {
+
+    sealed interface SimulatedDelta {
+        val value: Quad
+    }
+
+    @JvmInline
+    value class SimulatedAddition(override val value: Quad) : SimulatedDelta
+
+    @JvmInline
+    value class SimulatedDeletion(override val value: Quad) : SimulatedDelta
 
     private val deltas = buildList {
         // getting all delta's by simulating the changes to a hypothetical input store
@@ -56,13 +66,14 @@ class RandomUpdateTest(
 
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime = measureTime {
-            ongoing = input.queryDebug(query)
+            ongoing = input.query(query)
         }
         // checking the initial state (no data)
         builder.add(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
-            debugInformation = ongoing.debugInformation()
+            strictOrdering = hasStrictOrdering,
+            statistics = ongoing.stats()
         )
         repeat(iterations) { i ->
             // and processing it
@@ -82,7 +93,8 @@ class RandomUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
-                debugInformation = ongoing.debugInformation()
+                strictOrdering = hasStrictOrdering,
+                statistics = ongoing.stats()
             )
         }
         builder.build()
@@ -97,13 +109,13 @@ class RandomUpdateTest(
         val store: Store,
         val query: Query<Bindings>,
         val outputs: List<OutputComparisonTest.Result>,
-        val deltas: List<DataDelta>
+        val deltas: List<SimulatedDelta>
     ) : Test.Result {
 
         class Builder(
             private val query: Query<Bindings>,
             private val store: Store,
-            private val deltas: List<DataDelta>
+            private val deltas: List<SimulatedDelta>
         ) {
 
             private val list = ArrayList<OutputComparisonTest.Result>(store.size * 2)
@@ -111,7 +123,8 @@ class RandomUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
-                debugInformation: String,
+                strictOrdering: Boolean,
+                statistics: QueryStatistics,
             ) {
                 list.add(
                     compare(
@@ -119,7 +132,8 @@ class RandomUpdateTest(
                         elapsedTime = self.first,
                         expected = reference.second,
                         referenceTime = reference.first,
-                        debugInformation = debugInformation
+                        strictOrdering = strictOrdering,
+                        statistics = statistics
                     )
                 )
             }
@@ -195,7 +209,7 @@ class RandomUpdateTest(
 private fun OutputComparisonTest.Result.summary() =
     "${received.size} received, ${expected.size} expected, ${missing.size} missing, ${leftOver.size} superfluous"
 
-private fun getNextDelta(current: Store, source: Store, random: Random): DataDelta {
+private fun getNextDelta(current: Store, source: Store, random: Random): RandomUpdateTest.SimulatedDelta {
     require(source.isNotEmpty()) { "Empty input data is not allowed!" }
     // biasing the type of delta based on the amount of triples currently present compared to the number of triples
     //  possible: if there aren't any triples currently present, then we guarantee an addition happening now, the
@@ -204,13 +218,13 @@ private fun getNextDelta(current: Store, source: Store, random: Random): DataDel
     // based on the type, we sample the next `random` item from what we have or what we can still get
     return if (isAddition) {
         val available = source - current
-        DataAddition(available.random(random))
+        RandomUpdateTest.SimulatedAddition(available.random(random))
     } else {
-        DataDeletion(current.random(random))
+        RandomUpdateTest.SimulatedDeletion(current.random(random))
     }
 }
 
-private fun deltaSummary(deltas: List<DataDelta>): String = buildString {
+private fun deltaSummary(deltas: List<RandomUpdateTest.SimulatedDelta>): String = buildString {
     repeat(deltas.size - 1) { i ->
         append("     ")
         appendLine(deltaSummary(i, deltas[i]))
@@ -219,12 +233,12 @@ private fun deltaSummary(deltas: List<DataDelta>): String = buildString {
     appendLine(deltaSummary(deltas.size - 1, deltas.last()))
 }
 
-private fun deltaSummary(index: Int, delta: DataDelta): String =
-    "#${(index + 1).toString().padEnd(3)} [${if (delta is DataAddition) '+' else '-'}] ${delta.value}"
+private fun deltaSummary(index: Int, delta: RandomUpdateTest.SimulatedDelta): String =
+    "#${(index + 1).toString().padEnd(3)} [${if (delta is RandomUpdateTest.SimulatedAddition) '+' else '-'}] ${delta.value}"
 
-private fun MutableStore.process(delta: DataDelta) {
+private fun MutableStore.process(delta: RandomUpdateTest.SimulatedDelta) {
     when (delta) {
-        is DataAddition -> add(delta.value)
-        is DataDeletion -> remove(delta.value)
+        is RandomUpdateTest.SimulatedAddition -> add(delta.value)
+        is RandomUpdateTest.SimulatedDeletion -> remove(delta.value)
     }
 }

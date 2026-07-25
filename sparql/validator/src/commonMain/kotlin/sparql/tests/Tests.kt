@@ -74,9 +74,15 @@ fun builtinTests() = tests {
 
     val counts = buildStore {
         val example = prefix("", "http://example/")
-        repeat(10) {
-            example("subj_${it}") has type being example("Example")
-            example("subj_${it}") has example("count") being it.asLiteralTerm()
+        repeat(10) { i ->
+            example("subj_${i}") has type being example("Example")
+            example("subj_${i}") has example("count") being i.asLiteralTerm()
+            if (i < 10) {
+                example("subj_${i}") has example("next") being example("subj_${i + 1}")
+            }
+            if (i > 0) {
+                example("subj_${i}") has example("prev") being example("subj_${i - 1}")
+            }
         }
     }
 
@@ -136,6 +142,122 @@ fun builtinTests() = tests {
         }
     """
 
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            # getting enough subject - count pairs to get a more complex join tree hierarchy
+            # we have no filter going across a connected node; this solely checks disconnected nodes with filters
+            ?s1 a :Example ; :count ?c1 .
+            ?s2 a :Example ; :count ?c2 .
+            ?s3 a :Example ; :count ?c3 .
+            ?s4 a :Example ; :count ?c4 .
+            FILTER(?c1 >= ?c2) .
+            FILTER(?c2 >= ?c3) .
+            FILTER(?c3 >= ?c4) .
+            FILTER(?s1 != ?s2) .
+            FILTER(?s2 != ?s3) .
+            FILTER(?s3 != ?s4) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            # getting enough subject - count pairs to get a more complex join tree hierarchy
+            # we have no filter going across a disconnected node; this solely checks connected nodes with filters
+            ?s1 a :Example ; :count ?c1 ; :next ?s2 .
+            ?s2 a :Example ; :count ?c2 ; :next ?s3 .
+            ?s3 a :Example ; :count ?c3 .
+            
+            FILTER(?c1 != ?c2) .
+            FILTER(?c2 != ?c3) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            # getting enough subject - count pairs to get a more complex join tree hierarchy
+            # we have no filter going across a disconnected node; this solely checks connected nodes with filters
+            ?s1 a :Example ; :count ?c1 ; :next ?s2 .
+            ?s2 a :Example ; :count ?c2 ; :next ?s3 .
+            ?s3 a :Example ; :count ?c3 .
+            
+            FILTER(?s1 != ?s2) .
+            FILTER(?c1 != ?c2) .
+            FILTER(?c2 != ?c3) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s (:next/:next)|(:prev/:prev) ?s_next .
+            ?s_next :count ?c .
+            FILTER(?c != 2) .
+            FILTER(?s != ?s_next) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s (:next/:prev)|(:prev/:next) ?self .
+            # should yield no results
+            FILTER(?s != ?self) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s :next ?s_next .
+            {
+                ?s :count ?c1 .
+            }
+            # should only affect the single union segment
+            FILTER(?c1 != 2) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+        } ORDER BY ASC(?c)
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+        } ORDER BY ASC(?c) LIMIT 2
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+        } ORDER BY DESC(?c)
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
+        } ORDER BY DESC(?c) LIMIT 1
+    """
+
     val timestamps = buildStore {
         val root = prefix("", "http://example.com/")
         val user = root("user")
@@ -157,12 +279,48 @@ fun builtinTests() = tests {
         }
     """
 
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+        } ORDER BY ?dob
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+        } ORDER BY ?dob LIMIT 1
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+        } ORDER BY DESC(?dob)
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            ?s a :User .
+            ?s :dob ?dob .
+        } ORDER BY DESC(?dob) LIMIT 2 OFFSET 1
+    """
+
     val languages = buildStore {
         val root = prefix("", "http://example.com/")
         val user = root("user")
         user has type being root("User")
-        user has root("name") being Quad.LangString("Name", "en")
-        user has root("name") being Quad.LangString("Naam", "nl")
+        user has root("name") being Quad.Literal("Name", "en")
+        user has root("name") being Quad.Literal("Naam", "nl")
     }
 
     using(languages) test """
@@ -291,6 +449,41 @@ fun builtinTests() = tests {
             ?n :q ?c2 .
             FILTER(?c1 < ?c2 - 1.5)
         }
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY ?v DESC(?s) ?p
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY DESC(?v) DESC(?s) ?p
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY DESC(?v) DESC(?s) ?p LIMIT 3
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY ?v ?s DESC(?p)
+    """
+
+    using(numbers) test """
+        SELECT * {
+            ?s ?p ?v
+        }
+        ORDER BY ?v ?s DESC(?p) OFFSET 1
     """
 
     val filtered = buildStore {

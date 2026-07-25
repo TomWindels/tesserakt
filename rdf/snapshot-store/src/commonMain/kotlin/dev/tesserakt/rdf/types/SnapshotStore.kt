@@ -1,12 +1,10 @@
 package dev.tesserakt.rdf.types
 
 import dev.tesserakt.rdf.ontology.XSD
+import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.storeOf
-import dev.tesserakt.stream.ldes.IndexedVersionedLinkedDataEventStream
-import dev.tesserakt.stream.ldes.MutableVersionedLinkedDataEventStream
-import dev.tesserakt.stream.ldes.StreamTransform
-import dev.tesserakt.stream.ldes.toReadOnlyIndexedStream
+import dev.tesserakt.rdf.types.factory.indexedStoreOf
+import dev.tesserakt.stream.ldes.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.minutes
@@ -56,13 +54,16 @@ class SnapshotStore private constructor(
     }
 
     class Builder(
-        start: Store = storeOf(),
+        start: IndexedStore = indexedStoreOf(),
         private val clustering: SnapshotClustering = NaiveSnapshotClustering
     ) {
 
         private val snapshots = mutableListOf(start)
 
         fun addSnapshot(store: Store): Builder {
+            // making it indexed before we do the `!=` check, as that also
+            //  leverages indexes if present
+            val store = IndexedStore(store)
             if (snapshots.last() != store) {
                 snapshots.add(store)
             }
@@ -87,7 +88,7 @@ class SnapshotStore private constructor(
                 val timestamp = Quad.Literal(
                     value = date.plus(i.minutes).toString(),
                     type = XSD.date
-                )
+                ) as Quad.TypedLiteral
                 val current = clusters.associateWith { cluster -> cluster.extractClusterContent(store) }
                 // all cluster versions worth updating are those that have different values compared to the previous iteration
                 val remaining = current.filter { it.value != previous[it.key] }
@@ -124,7 +125,7 @@ class SnapshotStore private constructor(
     val diffs = object: Iterable<Diff> {
         override fun iterator(): Iterator<Diff> = iterator {
             val timestamps = stream.timestamps.iterator()
-            val members = mutableSetOf<Quad.NamedTerm>()
+            val members = mutableSetOf<VersionedLinkedDataEventStream.Member>()
             val old = mutableSetOf<Quad>()
             val new = mutableSetOf<Quad>()
             while (timestamps.hasNext()) {
@@ -134,17 +135,16 @@ class SnapshotStore private constructor(
                 old.clear()
                 new.clear()
                 // getting all members affected by this increment in timestampValue
-                stream.members
-                    .mapNotNullTo(members) { member -> member.base.takeIf { member.timestampValue == timestamp } }
+                stream.membersWithVersionOnTimestamp(timestamp, members)
                 // it shouldn't be possible for the
                 require(members.isNotEmpty())
                 // collecting all original versions
-                members.flatMapTo(old) { base ->
-                    stream.read(base = base, timestampValue = timestamp, inclusive = false) ?: emptySet()
+                members.flatMapTo(old) { member ->
+                    stream.read(base = member.base, timestampValue = timestamp, inclusive = false) ?: emptySet()
                 }
                 // collecting all updated versions
-                members.flatMapTo(new) { base ->
-                    stream.read(base = base, timestampValue = timestamp, inclusive = true) ?: emptySet()
+                members.flatMapTo(new) { member ->
+                    stream.read(base = member.base, timestampValue = timestamp, inclusive = true) ?: emptySet()
                 }
                 // calculating & yielding the combined diff
                 yield(Diff.between(old, new))

@@ -3,6 +3,7 @@ package sparql.types
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluation
 import dev.tesserakt.sparql.queryDeferred
 import dev.tesserakt.testing.Test
@@ -41,7 +42,8 @@ class IncrementalDeferredUpdateTest(
         builder.add(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
-            debugInformation = ongoing.debugInformation()
+            strictOrdering = hasStrictOrdering,
+            statistics = ongoing.stats()
         )
         // building it up
         store.forEach { quad ->
@@ -53,7 +55,8 @@ class IncrementalDeferredUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
-                debugInformation = ongoing.debugInformation()
+                strictOrdering = hasStrictOrdering,
+                statistics = ongoing.stats()
             )
         }
         // breaking it back down
@@ -66,7 +69,8 @@ class IncrementalDeferredUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
-                debugInformation = ongoing.debugInformation()
+                strictOrdering = hasStrictOrdering,
+                statistics = ongoing.stats()
             )
         }
         builder.build()
@@ -89,15 +93,17 @@ class IncrementalDeferredUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
-                debugInformation: String,
+                statistics: QueryStatistics,
+                strictOrdering: Boolean,
             ) {
                 list.add(
                     compare(
                         received = self.second,
                         elapsedTime = self.first,
                         expected = reference.second,
+                        strictOrdering = strictOrdering,
                         referenceTime = reference.first,
-                        debugInformation = debugInformation
+                        statistics = statistics
                     )
                 )
             }

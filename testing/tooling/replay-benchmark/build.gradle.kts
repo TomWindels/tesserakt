@@ -1,5 +1,3 @@
-import com.android.build.gradle.internal.tasks.factory.dependsOn
-
 plugins {
     id("kmp-package")
 }
@@ -7,11 +5,6 @@ plugins {
 group = "testing"
 
 kotlin {
-    js {
-        generateTypeScriptDefinitions()
-        binaries.library()
-    }
-
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -35,6 +28,3 @@ kotlin {
         }
     }
 }
-
-tasks.named("jsNodeProductionLibraryDistribution").dependsOn("jsTestTestDevelopmentExecutableCompileSync")
-tasks.named("jsNodeTest").dependsOn("jsProductionLibraryCompileSync")

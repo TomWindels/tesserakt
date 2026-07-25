@@ -42,8 +42,11 @@ class StreamTransformNullable<I: Any, O: Any>(
 
     }
 
-    override val description: String
-        get() = "Transform?[${source.description}]"
+    override fun hasZeroCardinality(): Boolean {
+        // not worth it to check what the transforms give us, as this method merely estimates the possibility of
+        //  being replaceable with a zero-sized stream
+        return source.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return false

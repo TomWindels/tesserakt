@@ -9,8 +9,14 @@ kotlin {
             dependencies {
                 api(project(":rdf"))
                 // contains DatasetFactory
-                api("org.apache.jena:jena-arq:5.0.0")
+                api(libs.apache.jena)
             }
         }
     }
+}
+
+java {
+    // jena requires Java 17 and up
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }

@@ -33,6 +33,7 @@ actual class ExternalQueryExecution actual constructor(
                 }
                 results.add(current.toBindings())
             }
+            solutions.close()
         }
         return results
     }

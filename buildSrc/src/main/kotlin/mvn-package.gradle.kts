@@ -1,6 +1,5 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     id("base-config")
@@ -11,13 +10,13 @@ mavenPublishing {
     val artifactId = getArtifactId()
     coordinates(project.property("MAVEN_CENTRAL_GROUP_ID") as String, "tesserakt-$artifactId", version = project.version as String)
 
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
 
     // src: https://vanniktech.github.io/gradle-maven-publish-plugin/what/
     configure(KotlinMultiplatform(
         // configures the -javadoc artifact, possible values:
         // - `JavadocJar.None()` don't publish this artifact
-        // - `JavadocJar.Empty()` publish an emprt jar
+        // - `JavadocJar.Empty()` publish an empty jar
         // - `JavadocJar.Javadoc()` to publish standard javadocs
         javadocJar = JavadocJar.Empty(),
         // whether to publish a sources jar

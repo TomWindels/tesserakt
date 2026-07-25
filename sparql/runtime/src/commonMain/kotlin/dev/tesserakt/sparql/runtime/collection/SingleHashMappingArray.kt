@@ -1,12 +1,13 @@
 package dev.tesserakt.sparql.runtime.collection
 
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
-import dev.tesserakt.sparql.runtime.stream.chain
 import dev.tesserakt.sparql.runtime.stream.emptyStream
+import dev.tesserakt.sparql.runtime.stream.flatMapStream
 import dev.tesserakt.sparql.util.Cardinality
 
 /**
@@ -29,6 +30,9 @@ class SingleHashMappingArray(
     override var cardinality = Cardinality(0)
         private set
 
+    override val indexes: BindingIdentifierSet
+        get() = BindingIdentifierSet(ids = intArrayOf(key.id))
+
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
      *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
@@ -49,14 +53,7 @@ class SingleHashMappingArray(
     }
 
     override fun iter(): OptimisedStream<Mapping> {
-        // a series of chains are required for all available mappings as there's no index that can
-        //  be used
-        var result: OptimisedStream<Mapping> = emptyStream()
-        val iter = backing.values.iterator()
-        while (iter.hasNext()) {
-            result = result.chain(iter.next().iter())
-        }
-        return result
+        return backing.values.flatMapStream(cardinality)
     }
 
     /**
@@ -74,8 +71,10 @@ class SingleHashMappingArray(
     /**
      * Adds all mappings to the backing array and indexes it accordingly.
      */
-    override fun addAll(mappings: Iterable<Mapping>) {
-        mappings.forEach { add(it) }
+    override fun addAll(mappings: Iterable<Mapping>): Int {
+        var i = 0
+        mappings.forEach { add(it); ++i }
+        return i
     }
 
     override fun remove(mapping: Mapping) {
@@ -85,8 +84,10 @@ class SingleHashMappingArray(
         cardinality -= 1
     }
 
-    override fun removeAll(mappings: Iterable<Mapping>) {
-        mappings.forEach { remove(it) }
+    override fun removeAll(mappings: Iterable<Mapping>): Int {
+        var i = 0
+        mappings.forEach { remove(it); ++i }
+        return i
     }
 
     override fun toString(): String =

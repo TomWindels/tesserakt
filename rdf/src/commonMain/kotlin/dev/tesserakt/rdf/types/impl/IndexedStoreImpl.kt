@@ -1,12 +1,22 @@
 package dev.tesserakt.rdf.types.impl
 
+import dev.tesserakt.rdf.types.EncodedQuad
+import dev.tesserakt.rdf.types.EncodedQuadElement
 import dev.tesserakt.rdf.types.IndexedStore
 import dev.tesserakt.rdf.types.Quad
 
 internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), IndexedStore {
 
-    // list for direct (index) access
-    private val backing = data.distinct()
+    override val context = ImmutableEncodingContextImpl(data)
+
+    private val backing = data
+        // making it distinct whilst mapping it to the encoded representation
+        .mapTo(mutableSetOf()) {
+            // guaranteed to be non-null as the context has been created with the same exact data
+            EncodedQuad(context, it)!!
+        }
+        // list for direct (index) access
+        .toList()
     private val subjects = backing.indices.groupBy { i -> backing[i].s }
     private val predicates = backing.indices.groupBy { i -> backing[i].p }
     private val objects = backing.indices.groupBy { i -> backing[i].o }
@@ -19,29 +29,34 @@ internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), Index
         return backing.isEmpty()
     }
 
-    override fun iterator(): Iterator<Quad> {
+    override fun encodedIterator(): Iterator<EncodedQuad> {
         return backing.iterator()
     }
 
-    override fun iter(s: Quad.Subject?, p: Quad.Predicate?, o: Quad.Object?, g: Quad.Graph?): Iterator<Quad> {
-        if (s == null && p == null && o == null && g == null) {
+    override fun encodedIter(
+        s: EncodedQuadElement,
+        p: EncodedQuadElement,
+        o: EncodedQuadElement,
+        g: EncodedQuadElement
+    ): Iterator<EncodedQuad> {
+        if (s == Int.MIN_VALUE && p == Int.MIN_VALUE && o == Int.MIN_VALUE && g == Int.MIN_VALUE) {
             return backing.iterator()
         }
         val indices = mutableListOf<List<Int>>()
-        if (s != null) {
-            indices.add(subjects[s] ?: return emptyIterator)
+        if (s != Int.MIN_VALUE) {
+            indices.add(subjects[s] ?: return emptyIterator())
         }
-        if (p != null) {
-            indices.add(predicates[p] ?: return emptyIterator)
+        if (p != Int.MIN_VALUE) {
+            indices.add(predicates[p] ?: return emptyIterator())
         }
-        if (o != null) {
-            indices.add(objects[o] ?: return emptyIterator)
+        if (o != Int.MIN_VALUE) {
+            indices.add(objects[o] ?: return emptyIterator())
         }
-        if (g != null) {
-            indices.add(graphs[g] ?: return emptyIterator)
+        if (g != Int.MIN_VALUE) {
+            indices.add(graphs[g] ?: return emptyIterator())
         }
         val iter = quickMerge(indices).iterator()
-        return object: Iterator<Quad> {
+        return object: Iterator<EncodedQuad> {
             override fun hasNext() = iter.hasNext()
             override fun next() = backing[iter.next()]
         }
@@ -100,5 +115,3 @@ private fun quickMerge(left: List<Int>, right: List<Int>): List<Int> {
     }
     return result
 }
-
-private val emptyIterator = emptyList<Quad>().iterator()

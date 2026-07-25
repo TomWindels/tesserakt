@@ -1,44 +1,48 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.util.Bitmask
 import kotlin.jvm.JvmInline
 
-data class GraphPatternFilterState(
+@JvmInline
+value class GraphPatternFilterState(
     private val stateful: Stateful,
-    private val stateless: Stateless
 ) {
 
     /**
      * Peeks the total impact all filters have when applying the [delta] in this state
      */
     fun peek(parent: MutableJoinState, delta: DataDelta): Stream<MappingDelta> {
-        return stateless.filter(stateful.peek(parent, delta))
+        return stateful.peek(parent, delta)
     }
 
     /**
      * Filters the [input] stream, using only its processed internal state
      */
     fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
-        return stateless.filter(stateful.filter(input))
+        return stateful.filter(input)
     }
 
     /**
      * Filters the [input] stream, using its processed internal state after applying the [delta]
      */
     fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
-        return stateless.filter(stateful.filter(input, delta))
+        return stateful.filter(input, delta)
     }
 
     fun process(delta: DataDelta) {
         stateful.process(delta)
     }
 
-    fun debugInformation(): String = stateful.debugInformation()
+    fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
+        return stateful.stats(context, base, granularity)
+    }
 
     sealed interface Stateful {
 
@@ -59,7 +63,7 @@ data class GraphPatternFilterState(
 
         fun process(delta: DataDelta)
 
-        fun debugInformation(): String
+        fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics
 
         data object Unfiltered: Stateful {
 
@@ -82,7 +86,9 @@ data class GraphPatternFilterState(
                 // nothing to do, no filters applicable
             }
 
-            override fun debugInformation(): String = "Not filtered"
+            override fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
+                return base
+            }
 
         }
 
@@ -94,7 +100,7 @@ data class GraphPatternFilterState(
                 val one = filter.filter(parent.peek(delta), delta)
                 // getting the new results from the filter, affecting the pattern group
                 val two = filter.peek(delta).transform(parent.cardinality) { parent.join(it) }
-                return one.chain(two)
+                return two.chain(one)
             }
 
             override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
@@ -109,7 +115,9 @@ data class GraphPatternFilterState(
                 filter.process(delta)
             }
 
-            override fun debugInformation(): String = filter.debugInformation()
+            override fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
+                return Statistics.JoinedElement(left = base, right = filter.stats(context, granularity))
+            }
 
         }
 
@@ -148,12 +156,11 @@ data class GraphPatternFilterState(
                 filters.forEach { it.process(delta) }
             }
 
-            override fun debugInformation(): String =
-                filters
-                    .withIndex()
-                    .joinToString("\n") {
-                        "* Filter #${it.index + 1}\n\t${it.value.debugInformation()}"
-                    }
+            override fun stats(context: QueryContext, base: Statistics, granularity: QueryStatistics.Granularity): Statistics {
+                return filters.fold(base) { stats, filter ->
+                    Statistics.JoinedElement(left = stats, right = filter.stats(context, granularity))
+                }
+            }
 
         }
 
@@ -180,18 +187,21 @@ data class GraphPatternFilterState(
         }
 
         @JvmInline
-        value class SingleFilter(private val filter: StatelessFilter): Stateless {
+        value class SingleFilter(internal val filter: StatelessFilter): Stateless {
+
             override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
                 return filter.filter(input)
             }
+
         }
 
         @JvmInline
-        value class MultiFilter(private val filters: CollectedStream<StatelessFilter>): Stateless {
+        value class MultiFilter(internal val filters: CollectedStream<StatelessFilter>): Stateless {
 
             override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
                 return filters.folded(input) { acc, element -> element.filter(acc) }
             }
+
         }
 
         companion object {
@@ -208,19 +218,26 @@ data class GraphPatternFilterState(
 
     companion object {
 
-        operator fun invoke(context: QueryContext, parent: GroupPatternState, filters: List<Filter>): GraphPatternFilterState {
+        /**
+         * Constructs a [GraphPatternFilterState], responsible for filtering changes encountered by a [parent]
+         *  [MutableJoinState] instance (typically a [GroupPatternState]) through the use of an internal state.
+         * The types of filters supported by this type are **only** the **stateful** types:
+         *  * `FILTER EXISTS` ('inclusion filters')
+         *  * `FILTER NOT EXISTS` ('exclusion filters')
+         */
+        operator fun invoke(context: QueryContext, parent: MutableJoinState, filters: List<Filter>): GraphPatternFilterState {
             val stateful = mutableListOf<MutableFilterState>()
-            val stateless = mutableListOf<StatelessFilter>()
             filters.forEach { filter ->
                 when (filter) {
                     is Filter.Exists -> stateful.add(InclusionFilterState(context, parent, filter))
                     is Filter.NotExists -> stateful.add(ExclusionFilterState(context, parent, filter))
-                    is Filter.Predicate -> stateless.add(ExpressionFilter(context, filter.expression))
+                    is Filter.Predicate -> {
+                        // nothing to do - not our responsibility
+                    }
                 }
             }
             return GraphPatternFilterState(
                 stateful = Stateful(stateful),
-                stateless = Stateless(stateless)
             )
         }
 

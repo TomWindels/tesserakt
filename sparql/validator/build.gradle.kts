@@ -38,7 +38,7 @@ kotlin {
             dependencies {
                 implementation(project(":interop:rdfjs"))
                 // awaiting promises
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
     }

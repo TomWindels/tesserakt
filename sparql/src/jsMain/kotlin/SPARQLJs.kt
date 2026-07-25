@@ -1,11 +1,8 @@
 
 import dev.tesserakt.sparql.Bindings
-import dev.tesserakt.sparql.Compiler
+import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.query
-import dev.tesserakt.sparql.runtime.createState
-import dev.tesserakt.sparql.runtime.evaluation.BindingsImpl
-import dev.tesserakt.sparql.runtime.query.SelectQueryState
 import dev.tesserakt.util.jsExpect
 import dev.tesserakt.util.mapToArray
 import kotlin.js.collections.JsMap
@@ -17,28 +14,34 @@ object SPARQLJs {
 
     @OptIn(ExperimentalJsCollectionsApi::class)
     @JsName("Bindings")
-    class BindingsJs internal constructor(private val src: MutableMap<String, QuadJs.TermJs>): JsMap<String, QuadJs.TermJs>() {
-        internal constructor(original: Bindings): this(src = original.associateTo(mutableMapOf()) { it.first to it.second.toJsTerm() })
+    class BindingsJs internal constructor(private val src: MutableMap<String, TermJs>): JsMap<String, TermJs>() {
+        internal constructor(original: Bindings): this(src = original.associateTo(mutableMapOf()) { it.first to it.second.toTermJs() })
     }
 
     @JsName("SelectQuery")
-    class SelectQueryJs internal constructor(internal val query: SelectQueryState)
+    class SelectQueryJs internal constructor(internal val query: Query<Bindings>)
 
     @JsName("SelectQueryEvaluation")
-    class SelectQueryEvaluationJs internal constructor(private val evaluation: OngoingQueryEvaluation<BindingsImpl>) {
+    class SelectQueryEvaluationJs internal constructor(private val evaluation: OngoingQueryEvaluation<Bindings>) {
 
-        @OptIn(ExperimentalJsCollectionsApi::class)
-        val bindings: Array<JsMap<String, QuadJs.TermJs>>
-            get() = evaluation.results.mapToArray { it.associateTo(mutableMapOf()) { it.first to it.second.toJsTerm() }.asJsMapView() }
+        @OptIn(ExperimentalJsCollectionsApi::class, ExperimentalWasmJsInterop::class)
+        val bindings: Array<JsMap<String, TermJs>>
+            get() = evaluation.results.mapToArray { it.associateTo(mutableMapOf()) { it.first to it.second.toTermJs() }.asJsMapView() }
 
     }
 
-    fun Select(input: String? = undefined) = SelectQueryJs(Compiler().compile(input.jsExpect()).structure.createState() as SelectQueryState)
+    fun Select(input: String? = undefined) = SelectQueryJs(Query.Select(input.jsExpect()))
 
     fun query(
-        query: SelectQueryJs? = undefined,
-        store: ObservableStoreJs? = undefined
+        query: Any? = undefined,
+        store: StoreJs? = undefined
     ): SelectQueryEvaluationJs {
+        val query = when (query) {
+            null -> throw Error("No query provided!")
+            is String -> Select(query)
+            is SelectQueryJs -> query
+            else -> throw Error("Invalid query provided: `$query`")
+        }
         return SelectQueryEvaluationJs(store.jsExpect().unwrap().query(query.jsExpect().query))
     }
 

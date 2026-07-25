@@ -3,8 +3,9 @@ package sparql.types
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
+import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
-import dev.tesserakt.sparql.queryDebug
+import dev.tesserakt.sparql.query
 import dev.tesserakt.testing.Test
 import dev.tesserakt.testing.runTest
 import sparql.ExternalQueryExecution
@@ -34,13 +35,14 @@ class IncrementalUpdateTest(
         }
         val ongoing: OngoingQueryEvaluation<Bindings>
         val setupTime= measureTime {
-            ongoing = input.queryDebug(query)
+            ongoing = input.query(query)
         }
         // checking the initial state (no data)
         builder.add(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
-            debugInformation = ongoing.debugInformation()
+            strictOrdering = hasStrictOrdering,
+            statistics = ongoing.stats()
         )
         // building it up
         store.forEach { quad ->
@@ -52,7 +54,8 @@ class IncrementalUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
-                debugInformation = ongoing.debugInformation()
+                strictOrdering = hasStrictOrdering,
+                statistics = ongoing.stats()
             )
         }
         // breaking it back down
@@ -65,7 +68,8 @@ class IncrementalUpdateTest(
             builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
-                debugInformation = ongoing.debugInformation()
+                strictOrdering = hasStrictOrdering,
+                statistics = ongoing.stats()
             )
         }
         builder.build()
@@ -88,7 +92,8 @@ class IncrementalUpdateTest(
             fun add(
                 self: Pair<Duration, List<Bindings>>,
                 reference: Pair<Duration, List<Bindings>>,
-                debugInformation: String,
+                strictOrdering: Boolean,
+                statistics: QueryStatistics,
             ) {
                 list.add(
                     compare(
@@ -96,7 +101,8 @@ class IncrementalUpdateTest(
                         elapsedTime = self.first,
                         expected = reference.second,
                         referenceTime = reference.first,
-                        debugInformation = debugInformation
+                        strictOrdering = strictOrdering,
+                        statistics = statistics
                     )
                 )
             }

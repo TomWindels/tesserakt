@@ -1,8 +1,10 @@
 package sparql.tests
 
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
-import dev.tesserakt.rdf.turtle.serialization.TurtleSerializer.Companion.parseTurtleString
-import dev.tesserakt.rdf.types.consume
+import dev.tesserakt.rdf.serialization.common.deserialize
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.turtle.Turtle
+import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.util.printerrln
 import sparql.readFile
 import sparql.types.tests
@@ -13,7 +15,9 @@ fun compareIncrementalBasicGraphPatternOutput(datasetFilepath: String, queryFile
         printerrln("Failed to read triples at `$datasetFilepath`! Caught ${it::class.simpleName}")
         it.printStackTrace()
         return@tests
-    }.parseTurtleString().consume()
+    }.let { text ->
+        serializer(Turtle).deserialize(text).toStore()
+    }
     val querySource = readFile(queryFilepath).getOrElse {
         printerrln("Failed to read query at `$queryFilepath`! Caught ${it::class.simpleName}")
         it.printStackTrace()

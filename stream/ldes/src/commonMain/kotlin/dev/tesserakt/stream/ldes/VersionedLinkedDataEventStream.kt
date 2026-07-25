@@ -25,7 +25,7 @@ abstract class VersionedLinkedDataEventStream<StreamElement>(
         /**
          * This version's timestamp value
          */
-        val timestampValue: Quad.Literal
+        val timestampValue: Quad.TypedLiteral
     )
 
     protected val timestampPath = store.iter(s = identifier, p = LDES.timestampPath).singleOrNull()?.o
@@ -34,13 +34,11 @@ abstract class VersionedLinkedDataEventStream<StreamElement>(
     protected val versionOfPath = store.iter(s = identifier, p = LDES.versionOfPath).singleOrNull()?.o
         as? Quad.NamedTerm ?: streamFormatError("Expected exactly one `versionOfPath`!")
 
-    abstract val members: List<Member>
-
     /**
      * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
      *  implementation.
      */
-    abstract val timestamps: List<Quad.Literal>
+    abstract val timestamps: Collection<Quad.TypedLiteral>
 
     init {
         if (!store.iter(s = identifier, p = RDF.type, o = LDES.EventStream).hasNext()) {
@@ -50,14 +48,14 @@ abstract class VersionedLinkedDataEventStream<StreamElement>(
 
     /* public api */
 
-    abstract fun read(until: Quad.Literal): Store
+    abstract fun read(until: Quad.TypedLiteral): Store
 
     /**
      * Read a specific version of a member (identified using [base]) at a given point in time (according
      *  to [timestampValue]). The additional [inclusive] flag dictates whether versions with a [timestampValue]
      *  identical to the one provided are allowed.
      */
-    abstract fun read(base: Quad.NamedTerm, timestampValue: Quad.Literal, inclusive: Boolean = true): StreamElement?
+    abstract fun read(base: Quad.NamedTerm, timestampValue: Quad.TypedLiteral, inclusive: Boolean = true): StreamElement?
 
     /* build up methods */
 
@@ -78,7 +76,7 @@ abstract class VersionedLinkedDataEventStream<StreamElement>(
             identifier = identifier,
             base = store.iter(s = identifier, p = versionOfPath).singleOrNull()?.o as? Quad.NamedTerm
                 ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $versionOfPath associated, or is not an IRI"),
-            timestampValue = store.iter(s = identifier, p = timestampPath).singleOrNull()?.o as? Quad.Literal
+            timestampValue = store.iter(s = identifier, p = timestampPath).singleOrNull()?.o as? Quad.TypedLiteral
                 ?: streamFormatError("Member $identifier has an incorrect amount of triples with predicate $timestampPath associated, or is not a literal term"),
         )
     }

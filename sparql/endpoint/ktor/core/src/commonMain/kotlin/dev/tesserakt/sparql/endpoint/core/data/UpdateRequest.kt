@@ -2,10 +2,11 @@ package dev.tesserakt.sparql.endpoint.core.data
 
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
-import dev.tesserakt.rdf.trig.serialization.TriGSerializer
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.consume
 import dev.tesserakt.rdf.types.factory.mutableStoreOf
+import dev.tesserakt.rdf.types.toStore
 
 data class UpdateRequest(
     val additions: Store,
@@ -25,12 +26,12 @@ data class UpdateRequest(
             val additions = mutableStoreOf()
             InsertStructure.findAll(query).forEach {
                 val data = prefixes + it.groupValues[1]
-                TriGSerializer.deserialize(data).consume(additions)
+                serializer(TriG).deserialize(data).toStore(additions)
             }
             val deletions = mutableStoreOf()
             DeleteStructure.findAll(query).forEach {
                 val data = prefixes + it.groupValues[1]
-                TriGSerializer.deserialize(data).consume(deletions)
+                serializer(TriG).deserialize(data).toStore(deletions)
             }
             return UpdateRequest(
                 additions = additions,

@@ -1,8 +1,14 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.QueryStatistics
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.query.FilterExpression
+import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.emptyStream
@@ -15,8 +21,8 @@ import dev.tesserakt.sparql.util.OneCardinality
  */
 data object EmptyJoinTree: JoinTree {
 
-    override val bindings: Set<String>
-        get() = emptySet()
+    override val bindings: BindingIdentifierSet
+        get() = BindingIdentifierSet.EMPTY
 
     override val cardinality: Cardinality
         get() = OneCardinality // always matches
@@ -33,8 +39,17 @@ data object EmptyJoinTree: JoinTree {
         return streamOf(delta)
     }
 
-    override fun rehash(bindings: BindingIdentifierSet) {
+    override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
         // nothing to do
+    }
+
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+        return Statistics.Empty
+    }
+
+    override fun filtered(filter: FilterExpression): MutableJoinState {
+        // we cannot apply the filter to this join state as we don't contain any bindings
+        return this
     }
 
     override fun toString(): String = "Empty join tree"

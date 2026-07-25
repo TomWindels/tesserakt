@@ -33,7 +33,13 @@ data class SelectResponse(
                     "value" to value
                 )
 
-                is Quad.Literal -> mapOf(
+                is Quad.SimpleLiteral -> mapOf(
+                    "type" to "literal",
+                    "value" to value,
+                    "datatype" to type.value
+                )
+
+                is Quad.TypedLiteral -> mapOf(
                     "type" to "literal",
                     "value" to value,
                     "datatype" to type.value
@@ -68,7 +74,7 @@ data class SelectResponse(
 
                 "literal" -> {
                     this["xml:lang"]
-                        ?.let { lang -> Quad.LangString(value = this["value"]!!, language = lang) }
+                        ?.let { lang -> Quad.Literal(value = this["value"]!!, language = lang) }
                         ?: Quad.Literal(
                             value = this["value"]!!,
                             type = this["datatype"]?.let { Quad.NamedTerm(it) } ?: XSD.string

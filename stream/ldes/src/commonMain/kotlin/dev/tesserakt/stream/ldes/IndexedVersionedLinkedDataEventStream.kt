@@ -1,9 +1,7 @@
 package dev.tesserakt.stream.ldes
 
 import dev.tesserakt.rdf.ontology.RDF
-import dev.tesserakt.rdf.types.IndexedStore
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.rdf.types.factory.indexedStoreOf
 import dev.tesserakt.stream.ldes.ontology.DC
@@ -13,32 +11,26 @@ import dev.tesserakt.util.single
 class IndexedVersionedLinkedDataEventStream<StreamElement>(
     identifier: Quad.NamedTerm,
     private val store: IndexedStore,
-    private val comparator: Comparator<Quad.Literal> = DateComparator,
+    private val comparator: Comparator<Quad.TypedLiteral> = DateComparator,
     private val transform: StreamTransform<StreamElement>,
 ): VersionedLinkedDataEventStream<StreamElement>(identifier, store) {
 
-    private val _members = materializeVersionedMembers(store)
-        .also { members ->
-            if (members.isEmpty()) {
-                return@also
-            }
-            val type = members.first().timestampValue.type
-            if (members.any { it.timestampValue.type != type }) {
-                streamFormatError("Inconsistent timestamp value types detected. Used timestamp values are ${members.mapTo(mutableSetOf()) { it.timestampValue.type }.joinToString()}")
-            }
+    private val members = materializeVersionedMembers(store)
+        .groupBy { member ->
+            member.base
         }
-        .sortedWith(compareBy(comparator) { it.timestampValue })
-
-    override val members: List<Member> get() = _members
+        .mapValues { (_, versions) ->
+            versions.associateBy { it.timestampValue }
+        }
 
     /**
      * All various (distinct) [timestampPath] values of the individual members, sorted according to the used comparator
      *  implementation.
      */
-    override val timestamps: List<Quad.Literal> by lazy {
-        _members
-            .map { it.timestampValue }
-            .distinct()
+    override val timestamps: Collection<Quad.TypedLiteral> by lazy {
+        members
+            .flatMapTo(mutableSetOf()) { it.value.keys }
+            .sortedWith(compareBy(comparator) { key -> key })
     }
 
     init {
@@ -51,21 +43,41 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
 
     override val size: Int get() = store.size
 
+    fun membersWithVersionOnTimestamp(timestampValue: Quad.TypedLiteral, target: MutableSet<Member> = mutableSetOf()): Set<Member> {
+        return members.values.flatMapTo(target) { if (timestampValue in it) it.values else emptyList() }
+    }
+
     override fun isEmpty(): Boolean = store.isEmpty()
 
-    override fun iterator(): Iterator<Quad> = store.iterator()
+    override val context: EncodingContext
+        get() = store.context
 
-    override fun read(until: Quad.Literal): Store = transform.decode(
+    override fun encodedIterator(): Iterator<EncodedQuad> {
+        return store.encodedIterator()
+    }
+
+    override fun encodedIter(
+        s: Quad.Subject?,
+        p: Quad.Predicate?,
+        o: Quad.Object?,
+        g: Quad.Graph?
+    ): Iterator<EncodedQuad> {
+        return store.encodedIter(s, p, o, g)
+    }
+
+    override fun read(until: Quad.TypedLiteral): Store = transform.decode(
         source = store,
-        identifiers = _members
-            // only allowing members that have been added before (including) the provided parameter;
-            //  we can use takeWhile as the `_members` collection is sorted
-            .takeWhile { comparator.compare(it.timestampValue, until) <= 0 }
-            // taking the most recent ones since only; order affects which variants of the base versions are kept;
-            //  as the newest ones are in the back, we have to reverse it before getting the distinct names
-            .asReversed()
-            .distinctBy { it.base }
-            .mapTo(mutableSetOf()) { it.identifier }
+        identifiers = members
+            // because of distinct member values, only selecting one of the values collection below makes it
+            //  automatically distinct
+            .values
+            // we only care for the most recent timestamp entry satisfying our requirement (`<= 0`)
+            .mapNotNull { map ->
+                map
+                    .filterKeys { timestamp -> comparator.compare(timestamp, until) <= 0 }
+                    .maxWithOrNull(compareBy(comparator) { (key, _) -> key })
+            }
+            .mapTo(mutableSetOf()) { (_, member) -> member.identifier }
     )
 
     /**
@@ -73,16 +85,16 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
      *  to [timestampValue]). The additional [inclusive] flag dictates whether versions with a [timestampValue]
      *  identical to the one provided are allowed.
      */
-    override fun read(base: Quad.NamedTerm, timestampValue: Quad.Literal, inclusive: Boolean): StreamElement? {
-        val version = _members
-            .filter {
-                if (it.base != base)
-                    return@filter false
-                val comparison = comparator.compare(it.timestampValue, timestampValue)
+    override fun read(base: Quad.NamedTerm, timestampValue: Quad.TypedLiteral, inclusive: Boolean): StreamElement? {
+        val entries = members[base] ?: return null
+        val entry = entries
+            .filterKeys { timestamp ->
+                val comparison = comparator.compare(timestamp, timestampValue)
                 comparison < 0 || inclusive && comparison == 0
-            }.maxWithOrNull(compareBy(comparator) { it.timestampValue })
+            }
+            .maxWithOrNull(compareBy(comparator) { (key, _) -> key })
             ?: return null
-        return transform.decode(source = store, identifier = version.identifier)
+        return transform.decode(source = store, identifier = entry.value.identifier)
     }
 
     companion object {
@@ -92,7 +104,7 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
             timestampPath: Quad.NamedTerm = DC.modified,
             versionOfPath: Quad.NamedTerm = DC.isVersionOf,
             transform: StreamTransform<StreamUnit>,
-            comparator: Comparator<Quad.Literal> = DateComparator
+            comparator: Comparator<Quad.TypedLiteral> = DateComparator
         ): IndexedVersionedLinkedDataEventStream<StreamUnit> = IndexedVersionedLinkedDataEventStream(
             identifier = identifier,
             transform = transform,
@@ -110,7 +122,7 @@ class IndexedVersionedLinkedDataEventStream<StreamElement>(
             transform: StreamTransform<StreamUnit>,
             identifier: Quad.NamedTerm =
                 store.iter(p = RDF.type, o = LDES.EventStream).single().s as Quad.NamedTerm,
-            comparator: Comparator<Quad.Literal> = DateComparator
+            comparator: Comparator<Quad.TypedLiteral> = DateComparator
         ): IndexedVersionedLinkedDataEventStream<StreamUnit> = IndexedVersionedLinkedDataEventStream(
             identifier = identifier,
             store = IndexedStore(store),

@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.collection
 
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.CollectedStream
 import dev.tesserakt.sparql.util.Cardinality
@@ -15,6 +16,11 @@ value class SimpleMappingArray(
 
     override val cardinality: Cardinality
         get() = Cardinality(mappings.size)
+
+    override val indexes: BindingIdentifierSet
+        get() = BindingIdentifierSet.EMPTY
+
+    val size get() = mappings.size
 
     override fun iter(mappings: List<Mapping>): List<CollectedStream<Mapping>> {
         // the parameter is unused as we're not indexed
@@ -33,15 +39,17 @@ value class SimpleMappingArray(
         this.mappings.add(mapping)
     }
 
-    override fun addAll(mappings: Iterable<Mapping>) {
+    override fun addAll(mappings: Iterable<Mapping>): Int {
+        val current = this.mappings.size
         this.mappings.addAll(mappings)
+        return this.mappings.size - current
     }
 
     override fun remove(mapping: Mapping) {
         val i = this.mappings.indexOfLast { it == mapping }
         when (i) {
             -1 -> {
-                throw IllegalStateException("$mapping cannot be removed from SimpleMappingArray - not found!")
+                throw NoSuchElementException("$mapping cannot be removed from SimpleMappingArray - not found!")
             }
             this.mappings.size - 1 -> {
                 this.mappings.removeLastElement()
@@ -53,8 +61,10 @@ value class SimpleMappingArray(
         }
     }
 
-    override fun removeAll(mappings: Iterable<Mapping>) {
+    override fun removeAll(mappings: Iterable<Mapping>): Int {
+        val previous = this.mappings.size
         mappings.forEach(::remove)
+        return previous - this.mappings.size
     }
 
     override fun toString() = "SimpleMappingArray (cardinality ${cardinality})"

@@ -1,6 +1,7 @@
 package dev.tesserakt.sparql.runtime.stream
 
 import dev.tesserakt.sparql.util.Cardinality
+import dev.tesserakt.sparql.util.ZeroCardinality
 
 inline fun <T> emptyIterator(): Iterator<T> = EmptyStream.Iterator
 
@@ -21,10 +22,11 @@ inline fun <E: Any> Iterable<E>.toStream(cardinality: Number) = toStream(Cardina
 
 inline fun <E: Any> Iterable<E>.toStream(cardinality: Cardinality) = object: OptimisedStream<E> {
 
-    override val description: String
-        get() = "Iterable from ${this@toStream}"
-
     override val cardinality = cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        return if (this@toStream is Collection<*>) this@toStream.isEmpty() else cardinality == ZeroCardinality
+    }
 
     override fun iterator(): Iterator<E> {
         return this@toStream.iterator()

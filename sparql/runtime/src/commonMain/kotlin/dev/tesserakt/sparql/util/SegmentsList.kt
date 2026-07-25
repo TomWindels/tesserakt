@@ -1,11 +1,12 @@
 package dev.tesserakt.sparql.util
 
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 
 class SegmentsList {
 
     data class Segment(
-        val start: Quad.Element, val end: Quad.Element
+        val start: TermIdentifier,
+        val end: TermIdentifier,
     ) {
         override fun toString() = "$start -> $end"
     }
@@ -175,14 +176,14 @@ class SegmentsList {
     }
 
     // TODO remove
-    fun newReachableStartNodesOnAdding(segment: Segment): Set<Quad.Element> {
+    fun newReachableStartNodesOnAdding(segment: Segment): Set<TermIdentifier> {
         val before = _paths.mapTo(mutableSetOf()) { it.start }
         val after = newPathsOnAdding(segment).mapTo(mutableSetOf()) { it.start }
         return after - before
     }
 
     // TODO remove
-    fun newReachableEndNodesOnAdding(segment: Segment): Set<Quad.Element> {
+    fun newReachableEndNodesOnAdding(segment: Segment): Set<TermIdentifier> {
         val before = _paths.mapTo(mutableSetOf()) { it.end }
         val after = newPathsOnAdding(segment).mapTo(mutableSetOf()) { it.end }
         return after - before
@@ -237,7 +238,7 @@ class SegmentsList {
 
         private fun pathsStartingWithUsingSegments(
             segment: Segment, source: Set<Segment>
-        ): Set<Quad.Element> {
+        ): Set<TermIdentifier> {
             val result = directlyConnectedEndTermsOf(
                 start = segment.end,
                 source = source
@@ -263,7 +264,7 @@ class SegmentsList {
 
         private fun pathsEndingWithUsingSegments(
             segment: Segment, source: Set<Segment>
-        ): Set<Quad.Element> {
+        ): Set<TermIdentifier> {
             val result = directlyConnectedStartTermsOf(
                 end = segment.start,
                 source = source
@@ -288,12 +289,12 @@ class SegmentsList {
         }
 
         private fun directlyConnectedStartTermsOf(
-            end: Quad.Element, source: Set<Segment>
-        ): List<Quad.Element> = source.mapNotNull { segment -> segment.start.takeIf { segment.end == end } }
+            end: TermIdentifier, source: Set<Segment>
+        ): List<TermIdentifier> = source.mapNotNull { segment -> segment.start.takeIf { segment.end == end } }
 
         private fun directlyConnectedEndTermsOf(
-            start: Quad.Element, source: Set<Segment>
-        ): List<Quad.Element> = source.mapNotNull { segment -> segment.end.takeIf { segment.start == start } }
+            start: TermIdentifier, source: Set<Segment>
+        ): List<TermIdentifier> = source.mapNotNull { segment -> segment.end.takeIf { segment.start == start } }
 
     }
 

@@ -24,7 +24,7 @@ kotlin {
                 implementation(project(":interop:rdfjs"))
                 implementation(npm("@comunica/query-sparql", "3.1.2"))
                 // awaiting promises
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
     }
@@ -73,14 +73,12 @@ val trigTests = tasks.register("rdf-test-suite-js-trig", Exec::class.java) {
     )
 }
 
-turtleTests.dependsOn("jsRun")
+turtleTests.dependsOn("jsNodeDevelopmentRun")
 
-trigTests.dependsOn("jsRun")
+trigTests.dependsOn("jsNodeDevelopmentRun")
 
 // required for `jsRun` to behave; does cause constant recompiles, but worth the test correctness
 tasks.named("jsNodeDevelopmentRun").dependsOn("jsProductionExecutableCompileSync")
 tasks.named("jsNodeDevelopmentRun").dependsOn("jsDevelopmentExecutableCompileSync")
 tasks.named("jsNodeProductionRun").dependsOn("jsProductionExecutableCompileSync")
 tasks.named("jsNodeProductionRun").dependsOn("jsDevelopmentExecutableCompileSync")
-tasks.named("jsNodeRun").dependsOn("jsProductionExecutableCompileSync")
-tasks.named("jsNodeRun").dependsOn("jsDevelopmentExecutableCompileSync")

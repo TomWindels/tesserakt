@@ -1,8 +1,11 @@
 package dev.tesserakt.sparql.runtime.query
 
+import dev.tesserakt.sparql.QueryStatistics
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.GraphPatternSegment
@@ -10,15 +13,22 @@ import dev.tesserakt.sparql.types.SelectQuerySegment
 import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
 
-class UnionState(context: QueryContext, union: Union): MutableJoinState {
+class UnionState private constructor(private val state: List<Segment>): MutableJoinState {
 
     private sealed class Segment {
 
-        class GraphPatternSegmentState(context: QueryContext, parent: GraphPatternSegment): Segment() {
+        class GraphPatternSegmentState private constructor(
+            private val state: BasicGraphPatternState,
+        ): Segment() {
 
-            private val state = BasicGraphPatternState(context, parent.pattern)
+            constructor(
+                context: QueryContext,
+                parent: GraphPatternSegment,
+            ): this(
+                state = BasicGraphPatternState(context, parent.pattern),
+            )
 
-            override val bindings: Set<String> get() = state.bindings
+            override val bindings get() = state.bindings
 
             override val cardinality: Cardinality
                 get() = state.cardinality
@@ -35,11 +45,20 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 return state.join(delta)
             }
 
+            override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+                return state.stats(context, granularity)
+            }
+
+            override fun filtered(expression: FilterExpression): Segment {
+                return GraphPatternSegmentState(
+                    state = state.filtered(expression)
+                )
+            }
         }
 
-        class SubqueryState(parent: SelectQuerySegment): Segment() {
+        class SubqueryState(context: QueryContext, parent: SelectQuerySegment): Segment() {
 
-            override val bindings: Set<String> = parent.query.bindings
+            override val bindings = BindingIdentifierSet(context, parent.query.bindings)
 
             override val cardinality: Cardinality
                 get() = TODO("Not yet implemented")
@@ -56,9 +75,17 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
                 TODO("Not yet implemented")
             }
 
+            override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+                TODO("Not yet implemented")
+            }
+
+            override fun filtered(expression: FilterExpression): Segment {
+                TODO("Not yet implemented")
+            }
+
         }
 
-        abstract val bindings: Set<String>
+        abstract val bindings: BindingIdentifierSet
 
         abstract val cardinality: Cardinality
 
@@ -68,11 +95,31 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
 
         abstract fun join(delta: MappingDelta): Stream<MappingDelta>
 
+        abstract fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
+
+        abstract fun filtered(expression: FilterExpression): Segment
+
     }
 
-    private val state = union.map { it.createIncrementalSegmentState(context = context) }
+    constructor(
+        context: QueryContext,
+        union: Union,
+        filters: List<FilterExpression>,
+    ): this(
+        state = union.map {
+            var segment = it.createIncrementalSegmentState(context = context)
+            filters.forEach { filter -> segment = segment.filtered(filter) }
+            segment
+        },
+    )
 
-    override val bindings: Set<String> = buildSet { state.forEach { addAll(it.bindings) } }
+    override val bindings: BindingIdentifierSet = when {
+        state.isEmpty() -> BindingIdentifierSet.EMPTY
+        state.size == 1 -> state[0].bindings
+        else -> {
+            (1 ..< state.size).fold(state[0].bindings) { bindings, i -> bindings + state[i].bindings }
+        }
+    }
 
     override val cardinality: Cardinality
         get() = Cardinality(state.sumOf { it.cardinality.toDouble() })
@@ -90,8 +137,47 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
         return state.toStream().transform(maxCardinality = state.maxOf { it.cardinality }) { s -> s.join(delta) }
     }
 
-    override fun rehash(bindings: BindingIdentifierSet) {
+    override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
         // TODO: not yet implemented
+    }
+
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+        fun Statistics.describedAsSegment(): Statistics =
+            if (granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
+                Statistics.DescriptionElement(inner = this, description = "Union segment")
+            } else {
+                this
+            }
+
+        val inner = when (state.size) {
+            0 -> return Statistics.Empty
+            1 -> {
+                state[0].stats(context, granularity).describedAsSegment()
+            }
+            else -> {
+                (1 ..< state.size).fold(state[0].stats(context, granularity).describedAsSegment()) { stats, i ->
+                    val state = state[i]
+                    Statistics.JoinedElement(
+                        left = stats,
+                        right = state.stats(context, granularity).describedAsSegment()
+                    )
+                }
+            }
+        }
+        return if (granularity isAtLeast QueryStatistics.Granularity.DETAILED) {
+            Statistics.DescriptionElement(
+                inner = inner,
+                description = "Union"
+            )
+        } else {
+            inner
+        }
+    }
+
+    override fun filtered(filter: FilterExpression): MutableJoinState {
+        return UnionState(
+            state = state.map { it.filtered(filter) }
+        )
     }
 
     companion object {
@@ -99,7 +185,7 @@ class UnionState(context: QueryContext, union: Union): MutableJoinState {
         /* helpers */
 
         private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState(context: QueryContext) = when (this) {
-            is SelectQuerySegment -> Segment.SubqueryState(this)
+            is SelectQuerySegment -> Segment.SubqueryState(context, this)
             is GraphPatternSegment -> Segment.GraphPatternSegmentState(context, this)
         }
     }

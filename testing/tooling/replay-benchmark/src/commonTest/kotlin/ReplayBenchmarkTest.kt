@@ -1,14 +1,14 @@
-
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.serialization.common.collect
-import dev.tesserakt.rdf.trig.serialization.trig
-import dev.tesserakt.rdf.trig.serialization.usePrettyFormatting
-import dev.tesserakt.rdf.trig.serialization.withPrefixes
+import dev.tesserakt.rdf.serialization.common.serializer
+import dev.tesserakt.rdf.serialization.trig.TriG
+import dev.tesserakt.rdf.serialization.trig.usePrettyFormatting
+import dev.tesserakt.rdf.serialization.trig.withPrefixes
 import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.sparql.benchmark.replay.RBO
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 import dev.tesserakt.stream.ldes.ontology.DC
@@ -24,12 +24,12 @@ class ReplayBenchmarkTest {
     @Test
     fun evaluation() {
         val benchmark = buildBenchmark()
-        val serializer = trig {
+        val serializer = serializer(TriG) {
             usePrettyFormatting {
                 withPrefixes(XSD, TREE, LDES, DC, RDF, RBO)
             }
         }
-        println(serializer.serialize(data = benchmark.toStore()).collect())
+        println(serializer.serialize(benchmark.toStore()).collect())
         var i = 0
         benchmark.eval { current: Store, diff: SnapshotStore.Diff ->
             println(current)
@@ -74,7 +74,7 @@ class ReplayBenchmarkTest {
         }
 
         val snapshotStore = SnapshotStore
-            .Builder(start = first)
+            .Builder(start = IndexedStore(first))
             .addSnapshot(second)
             .addSnapshot(third)
             .build("snapshotStore".asNamedTerm())
@@ -88,6 +88,10 @@ class ReplayBenchmarkTest {
         if (missing.isNotEmpty() || superfluous.isNotEmpty()) {
             fail("Store content mismatch!\nMissing quads: ${missing.toTruncatedString(200)}\nUnexpected quads: ${superfluous.toTruncatedString(200)}")
         }
+    }
+
+    private fun Iterator<String>.collect(): String = buildString {
+        this@collect.forEach { segment -> append(segment) }
     }
 
 }

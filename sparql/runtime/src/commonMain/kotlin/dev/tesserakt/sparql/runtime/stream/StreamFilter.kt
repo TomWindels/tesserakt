@@ -39,12 +39,15 @@ class StreamFilter<I: Any>(
 
     }
 
-    override val description: String
-        get() = "Filter[${source.description}]"
-
     // worst case, none filtered out at all
     override val cardinality: Cardinality
         get() = source.cardinality
+
+    override fun hasZeroCardinality(): Boolean {
+        // it is only an approximation; we approximate the filter would let at least 1 element through if we
+        //  have an element to offer from the source
+        return source.hasZeroCardinality()
+    }
 
     override fun supportsEfficientIteration(): Boolean {
         return false
