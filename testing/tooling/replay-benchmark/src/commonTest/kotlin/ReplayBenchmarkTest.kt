@@ -5,7 +5,7 @@ import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.serialization.trig.usePrettyFormatting
 import dev.tesserakt.rdf.serialization.trig.withPrefixes
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.IndexedStore
@@ -63,23 +63,23 @@ class ReplayBenchmarkTest {
 
     private fun buildBenchmark(): ReplayBenchmark {
         val first = buildStore {
-            "s1".asNamedTerm() has RDF.type being "Test".asNamedTerm()
+            NamedTerm("s1") has RDF.type being NamedTerm("Test")
         }
         val second = buildStore {
-            "s1".asNamedTerm() has RDF.type being "Test".asNamedTerm()
-            "s2".asNamedTerm() has RDF.type being "Test".asNamedTerm()
+            NamedTerm("s1") has RDF.type being NamedTerm("Test")
+            NamedTerm("s2") has RDF.type being NamedTerm("Test")
         }
         val third = buildStore {
-            "s2".asNamedTerm() has RDF.type being "Test".asNamedTerm()
+            NamedTerm("s2") has RDF.type being NamedTerm("Test")
         }
 
         val snapshotStore = SnapshotStore
             .Builder(start = IndexedStore(first))
             .addSnapshot(second)
             .addSnapshot(third)
-            .build("snapshotStore".asNamedTerm())
+            .build(NamedTerm("snapshotStore"))
 
-        return ReplayBenchmark(identifier = "benchmark".asNamedTerm(), snapshotStore, listOf("SELECT * WHERE { ?s ?p ?o }"))
+        return ReplayBenchmark(identifier = NamedTerm("benchmark"), snapshotStore, listOf("SELECT * WHERE { ?s ?p ?o }"))
     }
 
     private fun assertStoreContentEqual(expected: Store, actual: Store) {

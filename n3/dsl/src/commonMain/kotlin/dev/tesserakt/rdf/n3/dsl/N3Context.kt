@@ -4,7 +4,6 @@ import dev.tesserakt.rdf.n3.ExperimentalN3Api
 import dev.tesserakt.rdf.n3.Quad
 import dev.tesserakt.rdf.n3.Store
 import dev.tesserakt.rdf.ontology.RDF
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import kotlin.jvm.JvmInline
 import dev.tesserakt.rdf.types.Quad as RdfQuad
 
@@ -69,13 +68,13 @@ class N3Context internal constructor(
 
     inner class Statement(val _s: Quad.Term, val _p: Quad.Term) {
 
-        inline infix fun being(literal: Int) = consumer.process(_s, _p, literal.asLiteralTerm().toN3Term())
+        inline infix fun being(literal: Int) = consumer.process(_s, _p, RdfQuad.Literal(literal).toN3Term())
 
-        inline infix fun being(literal: Long) = consumer.process(_s, _p, literal.asLiteralTerm().toN3Term())
+        inline infix fun being(literal: Long) = consumer.process(_s, _p, RdfQuad.Literal(literal).toN3Term())
 
-        inline infix fun being(literal: Float) = consumer.process(_s, _p, literal.asLiteralTerm().toN3Term())
+        inline infix fun being(literal: Float) = consumer.process(_s, _p, RdfQuad.Literal(literal).toN3Term())
 
-        inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteralTerm().toN3Term())
+        inline infix fun being(literal: Double) = consumer.process(_s, _p, RdfQuad.Literal(literal).toN3Term())
 
         inline infix fun being(value: Quad.Term) = consumer.process(_s, _p, value)
 
@@ -94,19 +93,19 @@ class N3Context internal constructor(
     inner class Blank(val _name: Quad.Term) {
 
         inline infix fun Quad.Term.being(literal: Int) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm().toN3Term())
+            consumer.process(subject = _name, predicate = this, `object`= RdfQuad.Literal(literal).toN3Term())
         }
 
         inline infix fun Quad.Term.being(literal: Long) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm().toN3Term())
+            consumer.process(subject = _name, predicate = this, `object`= RdfQuad.Literal(literal).toN3Term())
         }
 
         inline infix fun Quad.Term.being(literal: Float) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm().toN3Term())
+            consumer.process(subject = _name, predicate = this, `object`= RdfQuad.Literal(literal).toN3Term())
         }
 
         inline infix fun Quad.Term.being(literal: Double) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm().toN3Term())
+            consumer.process(subject = _name, predicate = this, `object`= RdfQuad.Literal(literal).toN3Term())
         }
 
         inline infix fun Quad.Term.being(term: Quad.Term) {
@@ -153,11 +152,11 @@ class N3Context internal constructor(
 
     fun multiple(vararg data: Quad.Term) = Multiple(data)
 
-    fun String.asNamedTerm(): Quad.Term = with(dev.tesserakt.rdf.types.Quad) { asNamedTerm() }.toN3Term()
+    fun String.asNamedTerm(): Quad.Term = RdfQuad.NamedTerm(this).toN3Term()
 
-    fun String.asLiteralTerm(type: String): Quad.Term = with(dev.tesserakt.rdf.types.Quad) { dev.tesserakt.rdf.types.Quad.Literal(value = this@asLiteralTerm, type = type.asNamedTerm()) }.toN3Term()
+    fun String.asLiteralTerm(type: String): Quad.Term = RdfQuad.Literal(value = this@asLiteralTerm, type = RdfQuad.NamedTerm(type)).toN3Term()
 
-    fun String.asLiteralTerm(type: RdfQuad.NamedTerm): Quad.Term = dev.tesserakt.rdf.types.Quad.Literal(value = this@asLiteralTerm, type = type).toN3Term()
+    fun String.asLiteralTerm(type: RdfQuad.NamedTerm): Quad.Term = RdfQuad.Literal(value = this@asLiteralTerm, type = type).toN3Term()
 
     companion object
 

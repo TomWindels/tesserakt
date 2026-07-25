@@ -4,7 +4,6 @@ import dev.tesserakt.rdf.dsl.insert
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.MutableStore
@@ -35,7 +34,7 @@ class ReplayBenchmark(
 
     fun toStore(target: MutableStore = MutableStore()): MutableStore = target.insert {
         identifier has type being RBO.ReplayBenchmark
-        identifier has RBO.usesQuery being multiple(queries.map { it.toCleanedUpQuery().asLiteralTerm() })
+        identifier has RBO.usesQuery being multiple(queries.map { Quad.Literal(it.toCleanedUpQuery()) })
         identifier has RBO.usesDataset being store.identifier
         +store.toStore()
     }

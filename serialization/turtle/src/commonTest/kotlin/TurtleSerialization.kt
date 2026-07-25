@@ -5,18 +5,10 @@ import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.common.TextDataSource
 import dev.tesserakt.rdf.serialization.common.serializer
-import dev.tesserakt.rdf.serialization.turtle.Turtle
-import dev.tesserakt.rdf.serialization.turtle.TurtleDeserializer
-import dev.tesserakt.rdf.serialization.turtle.TurtleSerializer
-import dev.tesserakt.rdf.serialization.turtle.TurtleTokenDecoder
-import dev.tesserakt.rdf.serialization.turtle.TurtleTokenEncoder
-import dev.tesserakt.rdf.serialization.turtle.usePrettyFormatting
-import dev.tesserakt.rdf.serialization.turtle.withDynamicIndent
-import dev.tesserakt.rdf.serialization.turtle.withPrefixes
+import dev.tesserakt.rdf.serialization.turtle.*
 import dev.tesserakt.rdf.serialization.util.BufferedString
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.testing.unorderedComparisonOf
 import kotlin.test.Test
@@ -33,9 +25,9 @@ class TurtleSerialization {
         graph(document("G1")) {
             val monica = document("Monica")
             monica has type being ex("Person")
-            monica has ex("name") being "Monica Murphy".asLiteralTerm()
-            monica has ex("homepage") being "http://www.monicamurphy.org".asNamedTerm()
-            monica has ex("email") being "mailto:monica@monicamurphy.org".asNamedTerm()
+            monica has ex("name") being Quad.Literal("Monica Murphy")
+            monica has ex("homepage") being NamedTerm("http://www.monicamurphy.org")
+            monica has ex("email") being NamedTerm("mailto:monica@monicamurphy.org")
             monica has ex("hasSkill") being multiple(
                 ex("management"),
                 ex("programming")
@@ -63,7 +55,7 @@ class TurtleSerialization {
             stream has ex("properties") being blank {
                 type being ex("Properties")
                 ex("value") being 10
-                ex("name") being "Test".asLiteralTerm()
+                ex("name") being Quad.Literal("Test")
             }
         }
     }
@@ -75,7 +67,7 @@ class TurtleSerialization {
         graph(ex("t#st")) {
             val stream = ex("my_stream")
             stream has type being ex("Stream")
-            stream has ex("value") being """This\should_not#be+escaped""".asLiteralTerm()
+            stream has ex("value") being Quad.Literal("""This\should_not#be+escaped""")
             // should be a valid prefix term w/o any escaping for the % sign, see https://www.w3.org/TR/turtle/#h_note_5
             stream has ex("encoded_sequence") being ex("%AB-test")
         }

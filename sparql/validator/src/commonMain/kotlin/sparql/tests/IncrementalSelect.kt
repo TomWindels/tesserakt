@@ -2,7 +2,7 @@ package sparql.tests
 
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.Store
 import sparql.types.tests
 import kotlin.random.Random
@@ -18,7 +18,7 @@ import kotlin.time.measureTime
  */
 fun compareIncrementalChainSelectOutput(size: Int = 500, depth: Int = 7, entropy: Float = 3f, seed: Int = Random.nextInt()) = tests {
     val store: Store
-    val predicates = (0 ..< depth).map { "http://example.org/p_$it".asNamedTerm() }
+    val predicates = (0 ..< depth).map { NamedTerm("http://example.org/p_$it") }
     val rng = Random(seed)
     val prepTime = measureTime {
         store = buildStore {
@@ -64,7 +64,7 @@ fun compareIncrementalStarSelectOutput(size: Int = 200, depth: Int = 5, entropy:
     val prepTime = measureTime {
         store = buildStore {
             val subjects = (0..< (entropy * size).toInt()).map { local("s_$it") }
-            predicates = (0 ..< depth).map { "http://example.org/p_$it".asNamedTerm() }
+            predicates = (0 ..< depth).map { NamedTerm("http://example.org/p_$it") }
             val objects = (0..< (entropy * size * depth).toInt()).map { local("o_$it") }
             repeat(size) {
                 // whether to generate a guaranteed full set

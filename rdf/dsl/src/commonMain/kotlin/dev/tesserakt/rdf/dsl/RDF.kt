@@ -2,8 +2,7 @@ package dev.tesserakt.rdf.dsl
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import kotlin.jvm.JvmInline
 
 @Suppress("NOTHING_TO_INLINE", "PropertyName", "unused")
@@ -81,7 +80,7 @@ class RDF internal constructor(
         .also { prefixes[prefix] = base }
 
     /** Creates an environment-aware `NamedTerm`, e.g. "shape" on "localhost:3000/" becomes `http://localhost:3000/shape` **/
-    fun local(name: String) = "${environment.path}$name".asNamedTerm()
+    fun local(name: String) = NamedTerm("${environment.path}$name")
 
     infix fun Quad.NamedTerm.has(predicate: Quad.NamedTerm) = Statement(this, predicate)
 
@@ -89,13 +88,13 @@ class RDF internal constructor(
 
     inner class Statement(val _s: Quad.Subject, val _p: Quad.Predicate) {
 
-        inline infix fun being(literal: Int) = consumer.process(_s, _p, literal.asLiteralTerm())
+        inline infix fun being(literal: Int) = consumer.process(_s, _p, Quad.Literal(literal))
 
-        inline infix fun being(literal: Long) = consumer.process(_s, _p, literal.asLiteralTerm())
+        inline infix fun being(literal: Long) = consumer.process(_s, _p, Quad.Literal(literal))
 
-        inline infix fun being(literal: Float) = consumer.process(_s, _p, literal.asLiteralTerm())
+        inline infix fun being(literal: Float) = consumer.process(_s, _p, Quad.Literal(literal))
 
-        inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteralTerm())
+        inline infix fun being(literal: Double) = consumer.process(_s, _p, Quad.Literal(literal))
 
         inline infix fun being(value: Quad.Object) = consumer.process(_s, _p, value)
 
@@ -116,7 +115,7 @@ class RDF internal constructor(
     }
 
     fun graph(iri: String, producer: dev.tesserakt.rdf.dsl.RDF.() -> Unit) {
-        graph(iri.asNamedTerm(), producer)
+        graph(NamedTerm(iri), producer)
     }
 
     fun graph(identifier: Quad.BlankTerm, producer: dev.tesserakt.rdf.dsl.RDF.() -> Unit) {
@@ -137,13 +136,13 @@ class RDF internal constructor(
 
     inner class BlankStatement(val _s: Quad.BlankTerm, val _p: Quad.NamedTerm) {
 
-        inline infix fun being(literal: Int) = consumer.process(_s, _p, literal.asLiteralTerm())
+        inline infix fun being(literal: Int) = consumer.process(_s, _p, Quad.Literal(literal))
 
-        inline infix fun being(literal: Long) = consumer.process(_s, _p, literal.asLiteralTerm())
+        inline infix fun being(literal: Long) = consumer.process(_s, _p, Quad.Literal(literal))
 
-        inline infix fun being(literal: Float) = consumer.process(_s, _p, literal.asLiteralTerm())
+        inline infix fun being(literal: Float) = consumer.process(_s, _p, Quad.Literal(literal))
 
-        inline infix fun being(literal: Double) = consumer.process(_s, _p, literal.asLiteralTerm())
+        inline infix fun being(literal: Double) = consumer.process(_s, _p, Quad.Literal(literal))
 
         inline infix fun being(value: Quad.Object) = consumer.process(_s, _p, value)
 
@@ -162,20 +161,20 @@ class RDF internal constructor(
     inner class Blank(val _name: Quad.BlankTerm) {
 
         inline infix fun Quad.NamedTerm.being(literal: Int) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
+            consumer.process(subject = _name, predicate = this, `object` = Quad.Literal(literal))
         }
 
 
         inline infix fun Quad.NamedTerm.being(literal: Long) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
+            consumer.process(subject = _name, predicate = this, `object` = Quad.Literal(literal))
         }
 
         inline infix fun Quad.NamedTerm.being(literal: Float) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
+            consumer.process(subject = _name, predicate = this, `object`= Quad.Literal(literal))
         }
 
         inline infix fun Quad.NamedTerm.being(literal: Double) {
-            consumer.process(subject = _name, predicate = this, `object`= literal.asLiteralTerm())
+            consumer.process(subject = _name, predicate = this, `object` = Quad.Literal(literal))
         }
 
         inline infix fun Quad.NamedTerm.being(term: Quad.Object) {

@@ -1,6 +1,5 @@
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.rdf.types.factory.MutableStore
@@ -33,10 +32,10 @@ class StoreTest {
             }
             val literals = buildList {
                 repeat(100) { number ->
-                    add(number.asLiteralTerm())
-                    add(random.nextInt().asLiteralTerm())
-                    add(random.nextFloat().asLiteralTerm())
-                    add(random.nextDouble().asLiteralTerm())
+                    add(Quad.Literal(number))
+                    add(Quad.Literal(random.nextInt()))
+                    add(Quad.Literal(random.nextFloat()))
+                    add(Quad.Literal(random.nextDouble()))
                 }
             }
             repeat(500) {

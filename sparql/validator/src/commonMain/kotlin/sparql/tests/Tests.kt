@@ -5,8 +5,7 @@ import dev.tesserakt.rdf.ontology.Ontology
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import sparql.types.tests
 
 object FOAF: Ontology {
@@ -14,10 +13,10 @@ object FOAF: Ontology {
     override val prefix = "foaf"
     override val base_uri = "http://xmlns.com/foaf/0.1/"
 
-    val Person = "${base_uri}Person".asNamedTerm()
-    val age = "${base_uri}age".asNamedTerm()
-    val knows = "${base_uri}knows".asNamedTerm()
-    val based_near = "${base_uri}based_near".asNamedTerm()
+    val Person = NamedTerm("${base_uri}Person")
+    val age = NamedTerm("${base_uri}age")
+    val knows = NamedTerm("${base_uri}knows")
+    val based_near = NamedTerm("${base_uri}based_near")
 
 }
 
@@ -28,8 +27,8 @@ fun builtinTests() = tests {
         val subj = local("s")
         val obj = local("o")
         val intermediate = local("i")
-        val path1 = "http://example.org/path1".asNamedTerm()
-        val path2 = "http://example.org/path2".asNamedTerm()
+        val path1 = NamedTerm("http://example.org/path1")
+        val path2 = NamedTerm("http://example.org/path2")
         subj has path1 being obj
         subj has path2 being obj
         subj has path1 being intermediate
@@ -76,7 +75,7 @@ fun builtinTests() = tests {
         val example = prefix("", "http://example/")
         repeat(10) { i ->
             example("subj_${i}") has type being example("Example")
-            example("subj_${i}") has example("count") being i.asLiteralTerm()
+            example("subj_${i}") has example("count") being Quad.Literal(i)
             if (i < 10) {
                 example("subj_${i}") has example("next") being example("subj_${i + 1}")
             }
@@ -339,8 +338,8 @@ fun builtinTests() = tests {
         val conditional = example("condition")
         val a = example("A")
         val b = example("B")
-        a has conditional being false.asLiteralTerm()
-        b has conditional being true.asLiteralTerm()
+        a has conditional being Quad.Literal(false)
+        b has conditional being Quad.Literal(true)
     }
 
     using(conditional) test """
@@ -490,8 +489,8 @@ fun builtinTests() = tests {
         val example = prefix("", "http://example/")
         example("alice") has type being FOAF.Person
         example("alice") has FOAF("name") being example("name")
-        example("name") has example("firstName") being "Alice".asLiteralTerm()
-        example("name") has example("lastName") being "LastName".asLiteralTerm()
+        example("name") has example("firstName") being Quad.Literal("Alice")
+        example("name") has example("lastName") being Quad.Literal("LastName")
         example("bob") has type being FOAF.Person
     }
 
@@ -738,7 +737,7 @@ fun builtinTests() = tests {
         val subj = local("s")
         val obj = local("o")
         val intermediate = local("i")
-        val path1 = "http://example.org/path1".asNamedTerm()
+        val path1 = NamedTerm("http://example.org/path1")
         subj has path1 being obj
         subj has path1 being intermediate
         intermediate has path1 being obj
@@ -754,23 +753,23 @@ fun builtinTests() = tests {
 
     val medium = buildStore {
         val person = local("person1")
-        person has RDF.type being "http://example.org/person".asNamedTerm()
-        person has "http://example.org/age".asNamedTerm() being 23
-        person has "http://example.org/notes".asNamedTerm() being list(
-            "http://example.org/first-note".asNamedTerm(),
-            "http://example.org/second-note".asNamedTerm(),
-            "http://example.org/third-note".asNamedTerm(),
-            "http://example.org/fourth-note".asNamedTerm(),
-            "http://example.org/another-note".asNamedTerm(),
-            "http://example.org/last-note".asNamedTerm(),
+        person has RDF.type being NamedTerm("http://example.org/person")
+        person has NamedTerm("http://example.org/age") being 23
+        person has NamedTerm("http://example.org/notes") being list(
+            NamedTerm("http://example.org/first-note"),
+            NamedTerm("http://example.org/second-note"),
+            NamedTerm("http://example.org/third-note"),
+            NamedTerm("http://example.org/fourth-note"),
+            NamedTerm("http://example.org/another-note"),
+            NamedTerm("http://example.org/last-note"),
         )
-        person has "http://example.org/notes".asNamedTerm() being list(
-            "http://example.org/even-more-notes".asNamedTerm()
+        person has NamedTerm("http://example.org/notes") being list(
+            NamedTerm("http://example.org/even-more-notes")
         )
-        person has "http://example.org/decoy".asNamedTerm() being list(
-            "http://example.org/wrong-1".asNamedTerm(),
-            "http://example.org/wrong-2".asNamedTerm(),
-            "http://example.org/wrong-3".asNamedTerm(),
+        person has NamedTerm("http://example.org/decoy") being list(
+            NamedTerm("http://example.org/wrong-1"),
+            NamedTerm("http://example.org/wrong-2"),
+            NamedTerm("http://example.org/wrong-3"),
         )
     }
 
@@ -811,7 +810,7 @@ fun builtinTests() = tests {
     val chain = buildStore {
         val start = local("start")
         val end = local("end")
-        val path = "http://example.org/path".asNamedTerm()
+        val path = NamedTerm("http://example.org/path")
         start has path being end
         start has path being blank {
             path being end
@@ -858,10 +857,10 @@ fun builtinTests() = tests {
 //    """
 
     val fullyConnected = buildStore {
-        val a = "http://example.org/a".asNamedTerm()
-        val b = "http://example.org/b".asNamedTerm()
-        val c = "http://example.org/c".asNamedTerm()
-        val p = "http://example.org/p".asNamedTerm()
+        val a = NamedTerm("http://example.org/a")
+        val b = NamedTerm("http://example.org/b")
+        val c = NamedTerm("http://example.org/c")
+        val p = NamedTerm("http://example.org/p")
         a has p being b
         a has p being c
         b has p being a
@@ -1016,11 +1015,11 @@ fun builtinTests() = tests {
     """
 
     val literals = buildStore {
-        val a = "http://www.example.org/a".asNamedTerm()
-        val b = "http://www.example.org/b".asNamedTerm()
-        val c = "http://www.example.org/c".asNamedTerm()
-        val d = "http://www.example.org/d".asNamedTerm()
-        val p = "http://www.example.org/p".asNamedTerm()
+        val a = NamedTerm("http://www.example.org/a")
+        val b = NamedTerm("http://www.example.org/b")
+        val c = NamedTerm("http://www.example.org/c")
+        val d = NamedTerm("http://www.example.org/d")
+        val p = NamedTerm("http://www.example.org/p")
 
         a has p being 11
         a has p being b
@@ -1053,11 +1052,11 @@ fun builtinTests() = tests {
             local("person2"), local("person3"), local("person4")
         )
         person has FOAF.based_near being blank {
-            "https://www.example.org/street".asNamedTerm() being "unknown".asLiteralTerm()
-            "https://www.example.org/number".asNamedTerm() being (-1).asLiteralTerm()
+            NamedTerm("https://www.example.org/street") being Quad.Literal("unknown")
+            NamedTerm("https://www.example.org/number") being Quad.Literal((-1))
         }
-        person has "notes".asNamedTerm() being list(
-            "first-note".asNamedTerm(), "second-note".asNamedTerm()
+        person has NamedTerm("notes") being list(
+            NamedTerm("first-note"), NamedTerm("second-note")
         )
     }
 
@@ -1083,23 +1082,23 @@ fun builtinTests() = tests {
 
     val person2 = buildStore {
         val person = local("person1")
-        person has RDF.type being "person".asNamedTerm()
-        person has "https://www.example.org/age".asNamedTerm() being 23
-        person has "https://www.example.org/notes".asNamedTerm() being list(
-            "first-note".asNamedTerm(),
-            "second-note".asNamedTerm(),
-            "third-note".asNamedTerm(),
-            "fourth-note".asNamedTerm(),
-            "another-note".asNamedTerm(),
-            "last-note".asNamedTerm(),
+        person has RDF.type being NamedTerm("person")
+        person has NamedTerm("https://www.example.org/age") being 23
+        person has NamedTerm("https://www.example.org/notes") being list(
+            NamedTerm("first-note"),
+            NamedTerm("second-note"),
+            NamedTerm("third-note"),
+            NamedTerm("fourth-note"),
+            NamedTerm("another-note"),
+            NamedTerm("last-note"),
         )
-        person has "https://www.example.org/notes".asNamedTerm() being list(
-            "even-more-notes".asNamedTerm()
+        person has NamedTerm("https://www.example.org/notes") being list(
+            NamedTerm("even-more-notes")
         )
-        person has "https://www.example.org/decoy".asNamedTerm() being list(
-            "wrong-1".asNamedTerm(),
-            "wrong-2".asNamedTerm(),
-            "wrong-3".asNamedTerm(),
+        person has NamedTerm("https://www.example.org/decoy") being list(
+            NamedTerm("wrong-1"),
+            NamedTerm("wrong-2"),
+            NamedTerm("wrong-3"),
         )
     }
 
@@ -1150,24 +1149,24 @@ fun builtinTests() = tests {
     """
 
     val addresses = buildStore {
-        "person1".asNamedTerm() has "https://www.example.org/domicile".asNamedTerm() being blank {
-            "https://www.example.org/address".asNamedTerm() being blank {
-                "https://www.example.org/street".asNamedTerm() being "Person St.".asLiteralTerm()
-                "https://www.example.org/city".asNamedTerm() being blank {
-                    "https://www.example.org/inhabitants".asNamedTerm() being 5000
+        NamedTerm("person1") has NamedTerm("https://www.example.org/domicile") being blank {
+            NamedTerm("https://www.example.org/address") being blank {
+                NamedTerm("https://www.example.org/street") being Quad.Literal("Person St.")
+                NamedTerm("https://www.example.org/city") being blank {
+                    NamedTerm("https://www.example.org/inhabitants") being 5000
                 }
             }
         }
-        "person2".asNamedTerm() has "https://www.example.org/domicile".asNamedTerm() being "house2".asNamedTerm()
-        "house2".asNamedTerm() has "https://www.example.org/address".asNamedTerm() being "address2".asNamedTerm()
-        "address2".asNamedTerm() has "https://www.example.org/street".asNamedTerm() being "Person II St.".asLiteralTerm()
-        "address2".asNamedTerm() has "https://www.example.org/city".asNamedTerm() being blank {
-            "https://www.example.org/inhabitants".asNamedTerm() being 7500
+        NamedTerm("person2") has NamedTerm("https://www.example.org/domicile") being NamedTerm("house2")
+        NamedTerm("house2") has NamedTerm("https://www.example.org/address") being NamedTerm("address2")
+        NamedTerm("address2") has NamedTerm("https://www.example.org/street") being Quad.Literal("Person II St.")
+        NamedTerm("address2") has NamedTerm("https://www.example.org/city") being blank {
+            NamedTerm("https://www.example.org/inhabitants") being 7500
         }
-        "incomplete".asNamedTerm() has "https://www.example.org/domicile".asNamedTerm() being blank {
-            "https://www.example.org/address".asNamedTerm() being blank {
-                "https://www.example.org/street".asNamedTerm() being "unknown".asNamedTerm()
-                "https://www.example.org/city".asNamedTerm() being "unknown".asNamedTerm()
+        NamedTerm("incomplete") has NamedTerm("https://www.example.org/domicile") being blank {
+            NamedTerm("https://www.example.org/address") being blank {
+                NamedTerm("https://www.example.org/street") being NamedTerm("unknown")
+                NamedTerm("https://www.example.org/city") being NamedTerm("unknown")
             }
         }
     }

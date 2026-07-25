@@ -5,8 +5,8 @@ import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.turtle.Turtle
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.debug.BindingsTable.Companion.tabulate
@@ -17,24 +17,24 @@ import kotlin.test.assertFailsWith
 class QueryStructureStateTest {
 
     private fun buildAddressesStore() = buildStore {
-        "person1".asNamedTerm() has "domicile".asNamedTerm() being blank {
-            "address".asNamedTerm() being blank {
-                "street".asNamedTerm() being "Person St.".asLiteralTerm()
-                "city".asNamedTerm() being blank {
-                    "inhabitants".asNamedTerm() being 5000
+        NamedTerm("person1") has NamedTerm("domicile") being blank {
+            NamedTerm("address") being blank {
+                NamedTerm("street") being Quad.Literal("Person St.")
+                NamedTerm("city") being blank {
+                    NamedTerm("inhabitants") being 5000
                 }
             }
         }
-        "person2".asNamedTerm() has "domicile".asNamedTerm() being "house2".asNamedTerm()
-        "house2".asNamedTerm() has "address".asNamedTerm() being "address2".asNamedTerm()
-        "address2".asNamedTerm() has "street".asNamedTerm() being "Person II St.".asLiteralTerm()
-        "address2".asNamedTerm() has "city".asNamedTerm() being blank {
-            "inhabitants".asNamedTerm() being 7500
+        NamedTerm("person2") has NamedTerm("domicile") being NamedTerm("house2")
+        NamedTerm("house2") has NamedTerm("address") being NamedTerm("address2")
+        NamedTerm("address2") has NamedTerm("street") being Quad.Literal("Person II St.")
+        NamedTerm("address2") has NamedTerm("city") being blank {
+            NamedTerm("inhabitants") being 7500
         }
-        "incomplete".asNamedTerm() has "domicile".asNamedTerm() being blank {
-            "address".asNamedTerm() being blank {
-                "street".asNamedTerm() being "unknown".asNamedTerm()
-                "city".asNamedTerm() being "unknown".asNamedTerm()
+        NamedTerm("incomplete") has NamedTerm("domicile") being blank {
+            NamedTerm("address") being blank {
+                NamedTerm("street") being NamedTerm("unknown")
+                NamedTerm("city") being NamedTerm("unknown")
             }
         }
     }
@@ -82,23 +82,23 @@ class QueryStructureStateTest {
     fun advanced() = with (VerboseCompiler) {
         val store = buildStore {
             val person = local("person1")
-            person has RDF.type being "person".asNamedTerm()
-            person has "age".asNamedTerm() being 23
-            person has "notes".asNamedTerm() being list(
-                "first-note".asNamedTerm(),
-                "second-note".asNamedTerm(),
-                "third-note".asNamedTerm(),
-                "fourth-note".asNamedTerm(),
-                "another-note".asNamedTerm(),
-                "last-note".asNamedTerm(),
+            person has RDF.type being NamedTerm("person")
+            person has NamedTerm("age") being 23
+            person has NamedTerm("notes") being list(
+                NamedTerm("first-note"),
+                NamedTerm("second-note"),
+                NamedTerm("third-note"),
+                NamedTerm("fourth-note"),
+                NamedTerm("another-note"),
+                NamedTerm("last-note"),
             )
-            person has "notes".asNamedTerm() being list(
-                "even-more-notes".asNamedTerm()
+            person has NamedTerm("notes") being list(
+                NamedTerm("even-more-notes")
             )
-            person has "decoy".asNamedTerm() being list(
-                "wrong-1".asNamedTerm(),
-                "wrong-2".asNamedTerm(),
-                "wrong-3".asNamedTerm(),
+            person has NamedTerm("decoy") being list(
+                NamedTerm("wrong-1"),
+                NamedTerm("wrong-2"),
+                NamedTerm("wrong-3"),
             )
         }
 
