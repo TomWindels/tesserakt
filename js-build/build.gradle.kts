@@ -17,7 +17,7 @@ group = ""
 gradle.projectsEvaluated {
     kotlin {
         sourceSets {
-            val jsMain by getting {
+            getByName("jsMain") {
                 dependencies {
                     (rootProject.subprojects - project)
                         .filter { it.tasks.findByName("jsExport") != null }

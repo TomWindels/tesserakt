@@ -7,7 +7,7 @@ group = "sparql-endpoint"
 
 kotlin {
     sourceSets {
-        val jvmMain by getting {
+        getByName("jvmMain") {
             dependencies {
                 // shared types to interact with sparql endpoints through ktor - the `SparqlEndpoint` type has these as
                 //  an API
@@ -23,7 +23,7 @@ kotlin {
                 api(libs.kotlinx.serialization.json)
             }
         }
-        val jvmTest by getting {
+        getByName("jvmTest") {
             dependencies {
                 implementation(kotlin("test"))
             }

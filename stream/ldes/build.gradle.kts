@@ -4,7 +4,7 @@ plugins {
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 api(project(":rdf"))
                 api("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
@@ -12,7 +12,7 @@ kotlin {
                 implementation(project(":utils"))
             }
         }
-        val commonTest by getting {
+        getByName("commonTest") {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(project(":utils"))

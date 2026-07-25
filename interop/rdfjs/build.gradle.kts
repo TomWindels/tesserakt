@@ -4,7 +4,7 @@ plugins {
 
 kotlin {
     sourceSets {
-        val jsMain by getting {
+        getByName("jsMain") {
             dependencies {
                 api(project(":rdf"))
                 implementation(npm("n3", "1.17.3"))
