@@ -105,5 +105,5 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4.4.0
         with:
           branch: gh-pages
-          folder: build/dokka/htmlMultiModule
+          folder: build/dokka/html
           target-folder: ${{ env.RELEASE_VERSION }}
