@@ -63,14 +63,14 @@ class ReplayBenchmarkTest {
 
     private fun buildBenchmark(): ReplayBenchmark {
         val first = buildStore {
-            NamedTerm("s1") has RDF.type being NamedTerm("Test")
+            NamedTerm("s1") a NamedTerm("Test")
         }
         val second = buildStore {
-            NamedTerm("s1") has RDF.type being NamedTerm("Test")
-            NamedTerm("s2") has RDF.type being NamedTerm("Test")
+            NamedTerm("s1") a NamedTerm("Test")
+            NamedTerm("s2") a NamedTerm("Test")
         }
         val third = buildStore {
-            NamedTerm("s2") has RDF.type being NamedTerm("Test")
+            NamedTerm("s2") a NamedTerm("Test")
         }
 
         val snapshotStore = SnapshotStore

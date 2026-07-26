@@ -33,9 +33,9 @@ class ReplayBenchmark(
     }
 
     fun toStore(target: MutableStore = MutableStore()): MutableStore = target.insert {
-        identifier has type being RBO.ReplayBenchmark
-        identifier has RBO.usesQuery being multiple(queries.map { Quad.Literal(it.toCleanedUpQuery()) })
-        identifier has RBO.usesDataset being store.identifier
+        identifier a RBO.ReplayBenchmark
+        (identifier) (RBO.usesQuery) (queries.map { Quad.Literal(it.toCleanedUpQuery()) })
+        (identifier) (RBO.usesDataset) (store.identifier)
         +store.toStore()
     }
 

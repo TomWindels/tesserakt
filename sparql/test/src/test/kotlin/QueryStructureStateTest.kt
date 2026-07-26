@@ -1,6 +1,5 @@
 
 import dev.tesserakt.rdf.dsl.buildStore
-import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
 import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.serialization.common.serializer
@@ -17,24 +16,24 @@ import kotlin.test.assertFailsWith
 class QueryStructureStateTest {
 
     private fun buildAddressesStore() = buildStore {
-        NamedTerm("person1") has NamedTerm("domicile") being blank {
-            NamedTerm("address") being blank {
-                NamedTerm("street") being Quad.Literal("Person St.")
-                NamedTerm("city") being blank {
-                    NamedTerm("inhabitants") being 5000
+        (NamedTerm("person1")) (NamedTerm("domicile")) blank {
+            (NamedTerm("address")) blank {
+                (NamedTerm("street")) (Quad.Literal("Person St."))
+                (NamedTerm("city")) blank {
+                    NamedTerm("inhabitants") (5000)
                 }
             }
         }
-        NamedTerm("person2") has NamedTerm("domicile") being NamedTerm("house2")
-        NamedTerm("house2") has NamedTerm("address") being NamedTerm("address2")
-        NamedTerm("address2") has NamedTerm("street") being Quad.Literal("Person II St.")
-        NamedTerm("address2") has NamedTerm("city") being blank {
-            NamedTerm("inhabitants") being 7500
+        (NamedTerm("person2")) (NamedTerm("domicile")) (NamedTerm("house2"))
+        (NamedTerm("house2")) (NamedTerm("address")) (NamedTerm("address2"))
+        (NamedTerm("address2")) (NamedTerm("street")) (Quad.Literal("Person II St."))
+        (NamedTerm("address2")) (NamedTerm("city")) blank {
+            NamedTerm("inhabitants") (7500)
         }
-        NamedTerm("incomplete") has NamedTerm("domicile") being blank {
-            NamedTerm("address") being blank {
-                NamedTerm("street") being NamedTerm("unknown")
-                NamedTerm("city") being NamedTerm("unknown")
+        (NamedTerm("incomplete")) (NamedTerm("domicile")) blank {
+            (NamedTerm("address")) blank {
+                (NamedTerm("street")) (NamedTerm("unknown"))
+                (NamedTerm("city")) (NamedTerm("unknown"))
             }
         }
     }
@@ -82,9 +81,9 @@ class QueryStructureStateTest {
     fun advanced() = with (VerboseCompiler) {
         val store = buildStore {
             val person = local("person1")
-            person has RDF.type being NamedTerm("person")
-            person has NamedTerm("age") being 23
-            person has NamedTerm("notes") being list(
+            (person) a NamedTerm("person")
+            (person) (NamedTerm("age")) (23)
+            (person) (NamedTerm("notes")) list listOf(
                 NamedTerm("first-note"),
                 NamedTerm("second-note"),
                 NamedTerm("third-note"),
@@ -92,10 +91,10 @@ class QueryStructureStateTest {
                 NamedTerm("another-note"),
                 NamedTerm("last-note"),
             )
-            person has NamedTerm("notes") being list(
+            (person) (NamedTerm("notes")) list listOf(
                 NamedTerm("even-more-notes")
             )
-            person has NamedTerm("decoy") being list(
+            (person) (NamedTerm("decoy")) list listOf(
                 NamedTerm("wrong-1"),
                 NamedTerm("wrong-2"),
                 NamedTerm("wrong-3"),

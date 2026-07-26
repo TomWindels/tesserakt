@@ -21,16 +21,16 @@ object FOAF: Ontology {
 
 fun createTestStore(): Store = buildStore {
     val person = local("person1")
-    person has RDF.type being FOAF.Person
-    person has FOAF.age being 23
-    person has FOAF.knows being multiple(
+    (person) (RDF.type) (FOAF.Person)
+    (person) (FOAF.age) (23)
+    (person) (FOAF.knows) (
         local("person2"), local("person3"), local("person4")
     )
-    person has FOAF.based_near being blank {
-        NamedTerm("street") being Quad.Literal("unknown")
-        NamedTerm("number") being Quad.Literal((-1))
+    (person) (FOAF.based_near) blank {
+        (NamedTerm("street")) (Quad.Literal("unknown"))
+        (NamedTerm("number")) (Quad.Literal(-1))
     }
-    person has NamedTerm("notes") being list(
+    (person) (NamedTerm("notes")) list listOf(
         NamedTerm("first-note"), NamedTerm("second-note")
     )
 }

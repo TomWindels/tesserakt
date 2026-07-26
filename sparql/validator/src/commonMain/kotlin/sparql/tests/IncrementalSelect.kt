@@ -30,13 +30,13 @@ fun compareIncrementalChainSelectOutput(size: Int = 500, depth: Int = 7, entropy
                     var subject = subjects[0].random(rng)
                     repeat(depth) {
                         val next = subjects[it + 1].random(rng)
-                        subject has predicates[it] being next
+                        (subject) (predicates[it]) (next)
                         subject = next
                     }
                 } else {
                     // not keeping track of the individual subjects being linked
                     repeat(depth) {
-                        subjects[it].random(rng) has predicates[it] being subjects[it + 1].random(rng)
+                        (subjects[it].random(rng)) (predicates[it]) (subjects[it + 1].random(rng))
                     }
                 }
             }
@@ -72,12 +72,12 @@ fun compareIncrementalStarSelectOutput(size: Int = 200, depth: Int = 5, entropy:
                 if (isValid) {
                     val subject = subjects.random(rng)
                     repeat(depth) {
-                        subject has predicates[it] being objects.random(rng)
+                        (subject) (predicates[it]) (objects.random(rng))
                     }
                 } else {
                     // not keeping track of the individual subjects being linked
                     repeat(depth) {
-                        subjects.random(rng) has predicates[it] being objects.random(rng)
+                        (subjects.random(rng)) (predicates[it]) (objects.random(rng))
                     }
                 }
             }

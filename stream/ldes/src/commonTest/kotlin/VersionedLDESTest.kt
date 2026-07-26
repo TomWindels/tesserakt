@@ -66,29 +66,29 @@ class VersionedLDESTest {
             val example = prefix("ex", "http://example.org/")
             val document = prefix("", "http://example-document.org/")
 
-            document("s1") has example("name") being document("Test")
-            document("s1") has example("property") being Quad.Literal("Value")
+            (document / "s1") (example / "name") (document / "Test")
+            (document / "s1") (example / "property") (Quad.Literal("Value"))
 
-            document("Test") has example("value") being Quad.Literal("abc")
+            (document / "Test") (example / "value") (Quad.Literal("abc"))
         }
         val two: RDF_DSL = {
             val example = prefix("ex", "http://example.org/")
             val document = prefix("", "http://example-document.org/")
 
-            document("s2") has example("name") being document("Test2")
-            document("s2") has example("property") being Quad.Literal("Value")
-            document("s2") has example("property") being Quad.Literal("Additional")
+            (document / "s2") (example / "name") (document / "Test2")
+            (document / "s2") (example / "property") (Quad.Literal("Value"))
+            (document / "s2") (example / "property") (Quad.Literal("Additional"))
 
-            document("Test2") has example("value") being Quad.Literal("def")
+            (document / "Test2") (example / "value") (Quad.Literal("def"))
         }
         val two2: RDF_DSL = {
             val example = prefix("ex", "http://example.org/")
             val document = prefix("", "http://example-document.org/")
 
-            document("s2") has example("name") being Quad.Literal("Test2")
-            document("s2") has example("property") being Quad.Literal("Additional")
+            (document / "s2") (example / "name") (Quad.Literal("Test2"))
+            (document / "s2") (example / "property") (Quad.Literal("Additional"))
 
-            document("Test2") has example("value") being Quad.Literal("def")
+            (document / "Test2") (example / "value") (Quad.Literal("def"))
         }
         ldes.add(
             baseVersion = NamedTerm("s1"),
@@ -127,7 +127,7 @@ class VersionedLDESTest {
             transform = StreamTransform.GraphBased
         )
         val now = Clock.System.now()
-        val data = buildStore { NamedTerm("s1") has RDF.type being NamedTerm("Test") }
+        val data = buildStore { NamedTerm("s1") a NamedTerm("Test") }
         ldes.add(
             baseVersion = NamedTerm("s1"),
             timestamp = (now - 10.seconds).asLiteral(),
@@ -155,9 +155,9 @@ class VersionedLDESTest {
         val t3 = (now - 6.seconds).asLiteral()
         val pre_t4 = (now - 5.seconds).asLiteral()
 
-        val data1 = buildStore { NamedTerm("s1") has RDF.type being NamedTerm("Test") }
-        val data1v2 = buildStore { NamedTerm("s1") has RDF.type being NamedTerm("Test2") }
-        val data2 = buildStore { NamedTerm("s2") has RDF.type being NamedTerm("Test") }
+        val data1 = buildStore { NamedTerm("s1") a NamedTerm("Test") }
+        val data1v2 = buildStore { NamedTerm("s1") a NamedTerm("Test2") }
+        val data2 = buildStore { NamedTerm("s2") a NamedTerm("Test") }
 
         ldes.add(
             baseVersion = NamedTerm("s1"),
