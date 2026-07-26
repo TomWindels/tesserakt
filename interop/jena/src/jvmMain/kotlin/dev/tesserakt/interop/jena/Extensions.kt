@@ -2,7 +2,7 @@ package dev.tesserakt.interop.jena
 
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import org.apache.jena.datatypes.BaseDatatype
 import org.apache.jena.datatypes.RDFDatatype
 import org.apache.jena.datatypes.xsd.XSDDatatype
@@ -74,7 +74,7 @@ fun Node.toTerm() : Quad.Element = when (this) {
         )
         else -> Quad.Literal(
             value = literalValue.toString(),
-            type = literalDatatype.uri.asNamedTerm()
+            type = NamedTerm(literalDatatype.uri)
         )
     }
     is Node_Blank -> Quad.BlankTerm(id = blankNodeLabel.takeLastWhile { it.isDigit() }.toInt())

@@ -1,8 +1,7 @@
 package dev.tesserakt
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.IntPairMapping
@@ -15,10 +14,10 @@ import kotlin.random.Random
 const val SIZE = 7_500
 const val VARIANCE = 50
 val BINDINGS = listOf(
-    "person" to List(VARIANCE) { "http://example/person_${it}".asNamedTerm() },
-    "job" to List(VARIANCE) { "http://example/job_${it}".asNamedTerm() },
-    "name" to List(VARIANCE) { "http://example/name_${it}".asNamedTerm() },
-    "age" to List(VARIANCE) { it.asLiteralTerm() },
+    "person" to List(VARIANCE) { NamedTerm("http://example/person_${it}") },
+    "job" to List(VARIANCE) { NamedTerm("http://example/job_${it}") },
+    "name" to List(VARIANCE) { NamedTerm("http://example/name_${it}") },
+    "age" to List(VARIANCE) { Quad.Literal(it) },
 )
 
 typealias MapMapping = Map<String, Quad.Element>

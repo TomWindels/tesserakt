@@ -2,7 +2,7 @@ package sparql.tests
 
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.Store
 import sparql.types.tests
 import kotlin.random.Random
@@ -18,7 +18,7 @@ import kotlin.time.measureTime
  */
 fun compareIncrementalChainSelectOutput(size: Int = 500, depth: Int = 7, entropy: Float = 3f, seed: Int = Random.nextInt()) = tests {
     val store: Store
-    val predicates = (0 ..< depth).map { "http://example.org/p_$it".asNamedTerm() }
+    val predicates = (0 ..< depth).map { NamedTerm("http://example.org/p_$it") }
     val rng = Random(seed)
     val prepTime = measureTime {
         store = buildStore {
@@ -30,13 +30,13 @@ fun compareIncrementalChainSelectOutput(size: Int = 500, depth: Int = 7, entropy
                     var subject = subjects[0].random(rng)
                     repeat(depth) {
                         val next = subjects[it + 1].random(rng)
-                        subject has predicates[it] being next
+                        (subject) (predicates[it]) (next)
                         subject = next
                     }
                 } else {
                     // not keeping track of the individual subjects being linked
                     repeat(depth) {
-                        subjects[it].random(rng) has predicates[it] being subjects[it + 1].random(rng)
+                        (subjects[it].random(rng)) (predicates[it]) (subjects[it + 1].random(rng))
                     }
                 }
             }
@@ -64,7 +64,7 @@ fun compareIncrementalStarSelectOutput(size: Int = 200, depth: Int = 5, entropy:
     val prepTime = measureTime {
         store = buildStore {
             val subjects = (0..< (entropy * size).toInt()).map { local("s_$it") }
-            predicates = (0 ..< depth).map { "http://example.org/p_$it".asNamedTerm() }
+            predicates = (0 ..< depth).map { NamedTerm("http://example.org/p_$it") }
             val objects = (0..< (entropy * size * depth).toInt()).map { local("o_$it") }
             repeat(size) {
                 // whether to generate a guaranteed full set
@@ -72,12 +72,12 @@ fun compareIncrementalStarSelectOutput(size: Int = 200, depth: Int = 5, entropy:
                 if (isValid) {
                     val subject = subjects.random(rng)
                     repeat(depth) {
-                        subject has predicates[it] being objects.random(rng)
+                        (subject) (predicates[it]) (objects.random(rng))
                     }
                 } else {
                     // not keeping track of the individual subjects being linked
                     repeat(depth) {
-                        subjects.random(rng) has predicates[it] being objects.random(rng)
+                        (subjects.random(rng)) (predicates[it]) (objects.random(rng))
                     }
                 }
             }

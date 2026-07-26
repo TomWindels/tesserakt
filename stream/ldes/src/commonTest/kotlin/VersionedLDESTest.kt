@@ -10,8 +10,7 @@ import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.serialization.trig.usePrettyFormatting
 import dev.tesserakt.rdf.serialization.trig.withPrefixes
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.rdf.types.factory.Store
@@ -36,7 +35,7 @@ class VersionedLDESTest {
     @Test
     fun basicVersionedLDES() {
         val ldes = IndexedVersionedLinkedDataEventStream.initialise(
-            identifier = "myLDES".asNamedTerm(),
+            identifier = NamedTerm("myLDES"),
             timestampPath = DC.modified,
             versionOfPath = DC.isVersionOf,
             transform = StreamTransform.GraphBased
@@ -48,7 +47,7 @@ class VersionedLDESTest {
     fun invalidLDES() {
         assertFails {
             IndexedVersionedLinkedDataEventStream(
-                identifier = "myLDES".asNamedTerm(),
+                identifier = NamedTerm("myLDES"),
                 transform = StreamTransform.GraphBased,
                 store = indexedStoreOf()
             )
@@ -58,7 +57,7 @@ class VersionedLDESTest {
     @Test
     fun mutatedVersionedLDES() {
         val ldes = MutableVersionedLinkedDataEventStream.initialise(
-            identifier = "myLDES".asNamedTerm(),
+            identifier = NamedTerm("myLDES"),
             timestampPath = DC.modified,
             versionOfPath = DC.isVersionOf,
             transform = StreamTransform.GraphBased
@@ -67,42 +66,42 @@ class VersionedLDESTest {
             val example = prefix("ex", "http://example.org/")
             val document = prefix("", "http://example-document.org/")
 
-            document("s1") has example("name") being document("Test")
-            document("s1") has example("property") being "Value".asLiteralTerm()
+            (document / "s1") (example / "name") (document / "Test")
+            (document / "s1") (example / "property") (Quad.Literal("Value"))
 
-            document("Test") has example("value") being "abc".asLiteralTerm()
+            (document / "Test") (example / "value") (Quad.Literal("abc"))
         }
         val two: RDF_DSL = {
             val example = prefix("ex", "http://example.org/")
             val document = prefix("", "http://example-document.org/")
 
-            document("s2") has example("name") being document("Test2")
-            document("s2") has example("property") being "Value".asLiteralTerm()
-            document("s2") has example("property") being "Additional".asLiteralTerm()
+            (document / "s2") (example / "name") (document / "Test2")
+            (document / "s2") (example / "property") (Quad.Literal("Value"))
+            (document / "s2") (example / "property") (Quad.Literal("Additional"))
 
-            document("Test2") has example("value") being "def".asLiteralTerm()
+            (document / "Test2") (example / "value") (Quad.Literal("def"))
         }
         val two2: RDF_DSL = {
             val example = prefix("ex", "http://example.org/")
             val document = prefix("", "http://example-document.org/")
 
-            document("s2") has example("name") being "Test2".asLiteralTerm()
-            document("s2") has example("property") being "Additional".asLiteralTerm()
+            (document / "s2") (example / "name") (Quad.Literal("Test2"))
+            (document / "s2") (example / "property") (Quad.Literal("Additional"))
 
-            document("Test2") has example("value") being "def".asLiteralTerm()
+            (document / "Test2") (example / "value") (Quad.Literal("def"))
         }
         ldes.add(
-            baseVersion = "s1".asNamedTerm(),
+            baseVersion = NamedTerm("s1"),
             timestamp = (Clock.System.now() - 30.seconds).asLiteral(),
             data = buildStore(block = one)
         )
         ldes.add(
-            baseVersion = "s2".asNamedTerm(),
+            baseVersion = NamedTerm("s2"),
             timestamp = (Clock.System.now() - 20.seconds).asLiteral(),
             data = buildStore(block = two)
         )
         ldes.add(
-            baseVersion = "s2".asNamedTerm(),
+            baseVersion = NamedTerm("s2"),
             timestamp = (Clock.System.now() - 10.seconds).asLiteral(),
             data = buildStore(block = two2)
         )
@@ -122,15 +121,15 @@ class VersionedLDESTest {
     @Test
     fun consumeLDES() {
         val ldes = MutableVersionedLinkedDataEventStream.initialise(
-            identifier = "myLDES".asNamedTerm(),
+            identifier = NamedTerm("myLDES"),
             timestampPath = DC.modified,
             versionOfPath = DC.isVersionOf,
             transform = StreamTransform.GraphBased
         )
         val now = Clock.System.now()
-        val data = buildStore { "s1".asNamedTerm() has RDF.type being "Test".asNamedTerm() }
+        val data = buildStore { NamedTerm("s1") a NamedTerm("Test") }
         ldes.add(
-            baseVersion = "s1".asNamedTerm(),
+            baseVersion = NamedTerm("s1"),
             timestamp = (now - 10.seconds).asLiteral(),
             data = data
         )
@@ -141,7 +140,7 @@ class VersionedLDESTest {
     @Test
     fun consumeVersionedLDES() {
         val ldes = MutableVersionedLinkedDataEventStream.initialise(
-            identifier = "myLDES".asNamedTerm(),
+            identifier = NamedTerm("myLDES"),
             timestampPath = DC.modified,
             versionOfPath = DC.isVersionOf,
             transform = StreamTransform.GraphBased
@@ -156,22 +155,22 @@ class VersionedLDESTest {
         val t3 = (now - 6.seconds).asLiteral()
         val pre_t4 = (now - 5.seconds).asLiteral()
 
-        val data1 = buildStore { "s1".asNamedTerm() has RDF.type being "Test".asNamedTerm() }
-        val data1v2 = buildStore { "s1".asNamedTerm() has RDF.type being "Test2".asNamedTerm() }
-        val data2 = buildStore { "s2".asNamedTerm() has RDF.type being "Test".asNamedTerm() }
+        val data1 = buildStore { NamedTerm("s1") a NamedTerm("Test") }
+        val data1v2 = buildStore { NamedTerm("s1") a NamedTerm("Test2") }
+        val data2 = buildStore { NamedTerm("s2") a NamedTerm("Test") }
 
         ldes.add(
-            baseVersion = "s1".asNamedTerm(),
+            baseVersion = NamedTerm("s1"),
             timestamp = t1,
             data = data1
         )
         ldes.add(
-            baseVersion = "s2".asNamedTerm(),
+            baseVersion = NamedTerm("s2"),
             timestamp = t2,
             data = data2
         )
         ldes.add(
-            baseVersion = "s1".asNamedTerm(),
+            baseVersion = NamedTerm("s1"),
             timestamp = t3,
             data = data1v2
         )
@@ -190,7 +189,7 @@ class VersionedLDESTest {
 
         // doing the same tests, but indexed
         val indexed = IndexedVersionedLinkedDataEventStream(
-            identifier = "myLDES".asNamedTerm(),
+            identifier = NamedTerm("myLDES"),
             store = IndexedStore(ldes),
             transform = StreamTransform.GraphBased
         )

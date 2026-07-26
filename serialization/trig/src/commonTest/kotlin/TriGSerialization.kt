@@ -1,5 +1,5 @@
 
-import dev.tesserakt.rdf.dsl.RDF
+import dev.tesserakt.rdf.dsl.RDFContext
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.dsl.extractPrefixes
 import dev.tesserakt.rdf.serialization.DelicateSerializationApi
@@ -8,8 +8,8 @@ import dev.tesserakt.rdf.serialization.common.TextDataSource
 import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.*
 import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.toStore
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -22,15 +22,15 @@ class TriGSerialization {
     fun serialize0() = serialize {
         val ex = prefix("ex", "http://www.example.org/vocabulary#")
         val document = prefix("", "http://www.example.org/exampleDocument#")
-        graph(document("G1")) {
-            val monica = document("Monica")
-            monica has type being ex("Person")
-            monica has ex("name") being "Monica Murphy".asLiteralTerm()
-            monica has ex("homepage") being "http://www.monicamurphy.org".asNamedTerm()
-            monica has ex("email") being "mailto:monica@monicamurphy.org".asNamedTerm()
-            monica has ex("hasSkill") being multiple(
-                ex("management"),
-                ex("programming")
+        (document / "G1") {
+            val monica = document / "Monica"
+            monica a ex / "Person"
+            monica (ex / "name") (Quad.Literal("Monica Murphy"))
+            monica (ex / "homepage") (NamedTerm("http://www.monicamurphy.org"))
+            monica (ex / "email") (NamedTerm("mailto:monica@monicamurphy.org"))
+            monica (ex / "hasSkill") (
+                ex / "management",
+                ex / "programming"
             )
         }
     }
@@ -39,23 +39,23 @@ class TriGSerialization {
     @Test
     fun serialize1() = serialize {
         val ex = prefix("ex", "http://example.org/")
-        graph(ex("my-graph")) {
-            ex("graph") has type being ex("Test")
+        (ex / "my-graph") {
+            ex / "graph" a ex / "Test"
         }
-        ex("data") has ex("graph") being ex("my-graph")
+        (ex / "data") (ex / "graph") (ex / "my-graph")
     }
 
     // testing blank object behaviour
     @Test
     fun serialize2() = serialize {
         val ex = prefix("ex", "http://www.example.org/")
-        graph(ex("test")) {
-            val stream = ex("stream")
-            stream has type being ex("Stream")
-            stream has ex("properties") being blank {
-                type being ex("Properties")
-                ex("value") being 10
-                ex("name") being "Test".asLiteralTerm()
+        (ex / "test") {
+            val stream = ex / "stream"
+            stream a ex / "Stream"
+            stream (ex / "properties") blank {
+                a (ex / "Properties")
+                (ex / "value") (10)
+                (ex / "name") (Quad.Literal("Test"))
             }
         }
     }
@@ -64,17 +64,17 @@ class TriGSerialization {
     @Test
     fun serialize3() = serialize {
         val ex = prefix("ex", "http://www.example.org/")
-        graph(ex("t#st")) {
-            val stream = ex("my_stream")
-            stream has type being ex("Stream")
-            stream has ex("value") being """This\should_not#be+escaped""".asLiteralTerm()
+        (ex / "t#st") {
+            val stream = ex / "my_stream"
+            stream a (ex / "Stream")
+            (stream) (ex / "value") (Quad.Literal("""This\should_not#be+escaped"""))
             // should be a valid prefix term w/o any escaping for the % sign, see https://www.w3.org/TR/turtle/#h_note_5
-            stream has ex("encoded_sequence") being ex("%AB-test")
+            (stream) (ex / "encoded_sequence") (ex / "%AB-test")
         }
     }
 
     @OptIn(DelicateSerializationApi::class, InternalSerializationApi::class)
-    private fun serialize(block: RDF.() -> Unit) {
+    private fun serialize(block: RDFContext.() -> Unit) {
         val reference = buildStore(block = block)
         val serializer = serializer(TriG) {
             usePrettyFormatting {
