@@ -58,18 +58,6 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
         element.reindex(bindings, hint)
     }
 
-    override fun filtered(filter: FilterExpression): MutableJoinState {
-        // we have to make sure the filter expression fits in the single join state we wrap, as
-        //  otherwise the expression could not be properly processed within this tree, and we cannot
-        //  apply the filter
-        if (filter.bindings !in this.bindings) {
-            return this
-        }
-        return SingleItemJoinTree(
-            element = element.filtered(filter),
-        )
-    }
-
     companion object {
 
         @JvmName("forPatterns")
@@ -88,6 +76,7 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
                         root = root.filtered(expression)
                     }
                 }
+                root.prefill()
                 root
             }
         )

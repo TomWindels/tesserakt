@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.types.EncodingContext
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.compat.Compat
 import dev.tesserakt.sparql.runtime.evaluation.*
@@ -13,7 +14,7 @@ import kotlin.jvm.JvmInline
 
 sealed class QueryState<ResultType, Q: QueryStructure>(
     protected val ast: Q,
-    encodingContext: EncodingContext? = null,
+    source: Store? = null,
 ) {
 
     sealed interface ResultChange<out T> {
@@ -41,8 +42,13 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     }
 
-    protected val context = QueryContext(encodingContext, ast)
-    protected val bgpState = BasicGraphPatternState(context, ast = Compat.apply(ast.body))
+    protected val context = QueryContext(source, ast)
+    protected val bgpState = BasicGraphPatternState(
+        context = context,
+        ast = Compat.apply(ast.body),
+        // this is the most top-level state, so there isn't any external source to obtain filters from
+        externalFilters = emptyList(),
+    )
 
     abstract val results: Collection<ResultType>
 

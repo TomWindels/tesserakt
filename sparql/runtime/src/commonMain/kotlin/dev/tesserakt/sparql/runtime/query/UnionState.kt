@@ -24,8 +24,9 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
             constructor(
                 context: QueryContext,
                 parent: GraphPatternSegment,
+                externalFilters: List<FilterExpression>
             ): this(
-                state = BasicGraphPatternState(context, parent.pattern),
+                state = BasicGraphPatternState(context, parent.pattern, externalFilters),
             )
 
             override val bindings get() = state.bindings
@@ -49,11 +50,6 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
                 return state.stats(context, granularity)
             }
 
-            override fun filtered(expression: FilterExpression): Segment {
-                return GraphPatternSegmentState(
-                    state = state.filtered(expression)
-                )
-            }
         }
 
         class SubqueryState(context: QueryContext, parent: SelectQuerySegment): Segment() {
@@ -79,10 +75,6 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
                 TODO("Not yet implemented")
             }
 
-            override fun filtered(expression: FilterExpression): Segment {
-                TODO("Not yet implemented")
-            }
-
         }
 
         abstract val bindings: BindingIdentifierSet
@@ -97,8 +89,6 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
 
         abstract fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
-        abstract fun filtered(expression: FilterExpression): Segment
-
     }
 
     constructor(
@@ -107,9 +97,7 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
         filters: List<FilterExpression>,
     ): this(
         state = union.map {
-            var segment = it.createIncrementalSegmentState(context = context)
-            filters.forEach { filter -> segment = segment.filtered(filter) }
-            segment
+            it.createIncrementalSegmentState(context = context, filters = filters)
         },
     )
 
@@ -174,19 +162,13 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
         }
     }
 
-    override fun filtered(filter: FilterExpression): MutableJoinState {
-        return UnionState(
-            state = state.map { it.filtered(filter) }
-        )
-    }
-
     companion object {
 
         /* helpers */
 
-        private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState(context: QueryContext) = when (this) {
+        private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState(context: QueryContext, filters: List<FilterExpression>) = when (this) {
             is SelectQuerySegment -> Segment.SubqueryState(context, this)
-            is GraphPatternSegment -> Segment.GraphPatternSegmentState(context, this)
+            is GraphPatternSegment -> Segment.GraphPatternSegmentState(context, this, filters)
         }
     }
 

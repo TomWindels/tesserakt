@@ -52,10 +52,6 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(private val query: QuerySt
     }
 
     override fun subscribe(store: ObservableStore) {
-        // adding the existing store contents to the queue
-        store.encodedIterator().forEach {
-            process(Change.Addition(it))
-        }
         // we can now queue up additional changes
         store.addListener(listener)
     }

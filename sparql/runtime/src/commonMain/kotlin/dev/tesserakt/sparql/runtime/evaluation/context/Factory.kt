@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.runtime.evaluation.context
 
-import dev.tesserakt.rdf.types.EncodingContext
+import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.types.QueryStructure
 import dev.tesserakt.sparql.types.extractAllBindings
 
@@ -11,11 +11,11 @@ fun QueryContext(ast: QueryStructure): QueryContext {
     }
 }
 
-fun QueryContext(context: EncodingContext?, ast: QueryStructure): QueryContext {
+fun QueryContext(source: Store?, ast: QueryStructure): QueryContext {
     return when {
         ast.body.extractAllBindings().distinct().size < 32 -> {
-            if (context != null) {
-                StoreBackedQueryContext(ast, context)
+            if (source != null) {
+                StoreBackedQueryContext(ast, source)
             } else {
                 BitsetQueryContext(ast)
             }

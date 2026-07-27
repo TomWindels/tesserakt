@@ -7,8 +7,6 @@ import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
-import dev.tesserakt.sparql.runtime.query.FilterExpression
-import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.emptyStream
@@ -47,10 +45,6 @@ data object EmptyJoinTree: JoinTree {
         return Statistics.Empty
     }
 
-    override fun filtered(filter: FilterExpression): MutableJoinState {
-        // we cannot apply the filter to this join state as we don't contain any bindings
-        return this
-    }
 
     override fun toString(): String = "Empty join tree"
 

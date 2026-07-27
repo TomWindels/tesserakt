@@ -88,50 +88,6 @@ class GroupPatternState private constructor(
         }
     }
 
-    override fun filtered(filter: FilterExpression): MutableJoinState {
-        // we have to make sure the filter expression fits in the combined state we contain, as
-        //  otherwise the expression could not be properly processed within this state, and we cannot
-        //  apply the filter
-        if (filter.bindings !in this.bindings) {
-            return this
-        }
-        return when {
-            filter.bindings in patterns.bindings && filter.bindings in unions.bindings -> {
-                // can be applied to both, separately, so pushing down on both sides
-                GroupPatternState(
-                    patterns = patterns.filtered(filter),
-                    unions = unions.filtered(filter),
-                    filters = filters,
-                )
-            }
-            filter.bindings in patterns.bindings && filter.bindings.asIntIterable().none { it in unions.bindings } -> {
-                // can be applied to patterns only, the unions are not affected by the filter
-                GroupPatternState(
-                    patterns = patterns.filtered(filter),
-                    unions = unions,
-                    filters = filters,
-                )
-            }
-            filter.bindings.asIntIterable().none { it in patterns.bindings } && filter.bindings in unions.bindings -> {
-                // can be applied to unions only, the patterns are not affected by the filter
-                GroupPatternState(
-                    patterns = patterns,
-                    unions = unions.filtered(filter),
-                    filters = filters,
-                )
-            }
-            /* they both have a subset of the necessary bindings, so the filter is done top-level */
-            else -> {
-                // we add it to the filters evaluated at group-level
-                GroupPatternState(
-                    patterns = patterns,
-                    unions = unions,
-                    filters = filters + filter,
-                )
-            }
-        }
-    }
-
     companion object {
 
         operator fun invoke(

@@ -176,46 +176,6 @@ value class GraphPatternFilterState(
 
     }
 
-    sealed interface Stateless {
-
-        fun filter(input: Stream<MappingDelta>): Stream<MappingDelta>
-
-        data object Unfiltered: Stateless {
-            override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
-                return input
-            }
-        }
-
-        @JvmInline
-        value class SingleFilter(internal val filter: StatelessFilter): Stateless {
-
-            override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
-                return filter.filter(input)
-            }
-
-        }
-
-        @JvmInline
-        value class MultiFilter(internal val filters: CollectedStream<StatelessFilter>): Stateless {
-
-            override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
-                return filters.folded(input) { acc, element -> element.filter(acc) }
-            }
-
-        }
-
-        companion object {
-            operator fun invoke(filters: List<StatelessFilter>): Stateless {
-                return when {
-                    filters.isEmpty() -> Unfiltered
-                    filters.size == 1 -> SingleFilter(filters.single())
-                    else -> MultiFilter(filters.toStream())
-                }
-            }
-        }
-
-    }
-
     companion object {
 
         /**

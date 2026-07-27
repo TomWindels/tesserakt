@@ -1,6 +1,8 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
+import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree.Node
 import dev.tesserakt.util.removeLastElement
@@ -10,30 +12,26 @@ internal object DynamicJoinTreeBuilder {
     /**
      * Produces a tree structure, returning its root node, that contains all provided [states] joined together using
      *  properties of the individual join states in the collection.
-     * States that contain [MutableJoinState.bindings] referenced in the [prioritizedBindings] set are attempted to be
-     *  pushed down the tree as much as possible, so these bindings are processed sooner, which is useful for
-     *  early expression evaluation (filter pushdown).
+     * The various [filters] are applied in the tree at the most appropriate stages, grouping [states] where possible
+     *  to improve performance.
      */
     fun build(
+        context: QueryContext,
         states: List<MutableJoinState>,
-        prioritizedBindings: BindingIdentifierSet,
+        filters: List<FilterExpression>,
     ): Node {
-        // used to keep old `build()` behaviour intact
-        fun Node.disconnect(): Node {
-            return when (this) {
-                is Node.Connected -> Node.Disconnected(
-                    left = left,
-                    right = right
-                )
-                is Node.Disconnected,
-                is Node.Leaf -> this
-            }
-        }
+        // TODO:::
+        //  - rework join tree construction, changing use of prioritized bindings to be from filters, but only if there's
+        //    binding overlap between children required to get a filter going; otherwise, cardinality estimates already
+        //    tell the whole story
+
+
+        // TODO prioritized bindings again
+        val prioritizedBindings = BindingIdentifierSet.EMPTY
 
         val states = states.mapTo(mutableListOf()) { state -> TreeSegment.leaf(state) }
         if (prioritizedBindings.isEmpty()) {
-            // keeping old behaviour after having constructed the tree: we keep a disconnected node at the root
-            return build(states).node.disconnect()
+            return build(context, states, filters).node
         }
         // we create subtrees for all states containing prioritized bindings
         val currentStates = mutableListOf<TreeSegment>()
@@ -58,7 +56,7 @@ internal object DynamicJoinTreeBuilder {
                 }
             }
             // with our current set of states that need to be joined grouped together, we can create our subtree
-            subtrees.add(build(currentStates))
+            subtrees.add(build(context, currentStates, filters))
         }
         // next, we want to create the shortest possible paths between these subtrees, where possible
         loop@ while (subtrees.size > 1) {
@@ -68,7 +66,7 @@ internal object DynamicJoinTreeBuilder {
                 repeat(subtrees.size - i - 1) { j ->
                     val j = i + j + 1
                     val right = subtrees[j]
-                    val connected = connect(left, right, states)
+                    val connected = connect(context, left, right, states, filters)
                     if (connected != null) {
                         // we now have less states to deal with, with the two subtrees being properly connected
                         subtrees.removeAt(i)
@@ -91,7 +89,7 @@ internal object DynamicJoinTreeBuilder {
         // it's possible our shortest path consumed all elements already, meaning we can short circuit here
         if (states.isEmpty()) {
             // keeping old behaviour after having constructed the tree: we keep a disconnected node at the root
-            return subtrees[0].node.disconnect()
+            return subtrees[0].node
         }
         // we have some nodes remaining, so we combine our subtrees with our remaining leaf nodes to get the total root
         //  node set up
@@ -100,15 +98,17 @@ internal object DynamicJoinTreeBuilder {
         currentStates.clear()
         currentStates.addAll(states)
         currentStates.addAll(subtrees)
-        // keeping old behaviour after having constructed the tree: we keep a disconnected node at the root
-        return build(currentStates).node.disconnect()
+        return build(context, currentStates, filters).node
     }
 
     /**
-     * Reduces all individual [TreeSegment]s listed in the [groups] collection to a single [TreeSegment]
+     * Reduces all individual [TreeSegment]s listed in the [groups] collection to a single [TreeSegment],
+     *  applying [filters] to connected segments where applicable
      */
     private fun build(
+        context: QueryContext,
         groups: MutableList<TreeSegment>,
+        filters: List<FilterExpression>,
     ): TreeSegment {
         // as long as not all groups have been merged into one, we find the best match pair to join together
         while (groups.size > 2) {
@@ -116,28 +116,30 @@ internal object DynamicJoinTreeBuilder {
             val a = groups.removeAt(matches.group2)
             val b = groups.removeAt(matches.group1)
 
-            // if the new group have internal binding overlap, having their combination cached is beneficial as the
-            //  number of results obtained here are not the result of a cartesian join;
-            //  otherwise, falling back on the indexes of the leafs themselves is as performant
-            val segment = if (a.getCommonBindingsCount(b) > 0) {
-                // getting all bindings found in the other groups, and intersecting these with the individual bindings
-                //  found in this group
-                val indexes = (1 ..< groups.size)
-                    .fold(groups[0].bindings) { bindings, i -> bindings + groups[i].bindings }
-                    .intersect(a.bindings + b.bindings)
-                TreeSegment.connected(a, b, indexes)
-            } else {
-                TreeSegment.disconnected(a, b)
-            }
+            val segment = TreeSegment.join(
+                context = context,
+                first = a,
+                second = b,
+                // all other groups are 'external' to this segment, meaning that it can reasonably expect incoming
+                //  mappings to have binding values associated with those defined in these sections
+                externalBindings = groups.bindings(),
+                // the `TreeSegment::join()` logic only retains the filters applicable to this node
+                filters = filters,
+            )
 
             groups.add(segment)
         }
         return if (groups.size == 2) {
-            if (groups[0].bindings.intersectSize(groups[1].bindings) != 0) {
-                TreeSegment.connected(groups[0], groups[1])
-            } else {
-                TreeSegment.disconnected(groups[0], groups[1])
-            }
+            TreeSegment.join(
+                context = context,
+                first = groups[0],
+                second = groups[1],
+                filters = filters,
+                // we set no initial index bindings as we may be the root element of a query that requires
+                //  no specific values to join on;
+                // if this changes, the owner of this (sub)tree can always call `reindex`
+                externalBindings = BindingIdentifierSet.EMPTY,
+            )
         } else {
             groups.single()
         }
@@ -153,18 +155,27 @@ internal object DynamicJoinTreeBuilder {
      *  but may have inconsistent results with different order of [paths] elements.
      */
     private fun connect(
+        context: QueryContext,
         left: TreeSegment,
         right: TreeSegment,
         paths: MutableList<TreeSegment>,
+        filters: List<FilterExpression>,
     ): TreeSegment? {
         // ideal case: there is already binding overlap, no extra path required
         if (left.bindings.intersectSize(right.bindings) != 0) {
-            return TreeSegment.connected(
+            // considering we used none of the remaining paths, their bindings can be considered external
+            return TreeSegment.join(
+                context = context,
                 first = left,
                 second = right,
+                externalBindings = paths.bindings(),
+                filters = filters,
             )
         }
         var i = 0
+        // FIXME don't use tree segments at this stage! will do eager joining in case of connected
+        //  segments (which will always be the case!!!!) meaning that it will evaluate A LOT
+        //  instead, use a shallow version that then transforms 1:1 in connected segments after the fact
         var extended = listOf((left to right) to emptySet<Int>())
         while (i < paths.size) {
             extended = extended.flatMap { (segments, consumed) ->
@@ -180,7 +191,15 @@ internal object DynamicJoinTreeBuilder {
                         //  terms of 'encountered bindings'
                         segments.first.bindings.size < segments.first.bindings.unionSize(path.bindings)
                     ) {
-                        (TreeSegment.connected(segments.first, path) to segments.second) to consumed + i
+                        // only retaining the bindings found in paths not yet consumed
+                        val externalBindings = paths.foldIndexed(BindingIdentifierSet.EMPTY) { j, set, path ->
+                            if (i == j || j in consumed) {
+                                set
+                            } else {
+                                set + path.bindings
+                            }
+                        }
+                        (TreeSegment.join(context, segments.first, path, externalBindings, filters) to segments.second) to consumed + i
                     } else if (
                         // we need to meaningfully connect with this path segment: there is at least 1 binding in common
                         segments.second.bindings.intersectSize(path.bindings) != 0 &&
@@ -188,7 +207,15 @@ internal object DynamicJoinTreeBuilder {
                         //  terms of 'encountered bindings'
                         segments.second.bindings.size < segments.second.bindings.unionSize(path.bindings)
                     ) {
-                        (segments.first to TreeSegment.connected(segments.second, path)) to consumed + i
+                        // only retaining the bindings found in paths not yet consumed
+                        val externalBindings = paths.foldIndexed(BindingIdentifierSet.EMPTY) { j, set, path ->
+                            if (i == j || j in consumed) {
+                                set
+                            } else {
+                                set + path.bindings
+                            }
+                        }
+                        (segments.first to TreeSegment.join(context, segments.second, path, externalBindings, filters)) to consumed + i
                     } else {
                         // can't use this path
                         null
@@ -217,7 +244,21 @@ internal object DynamicJoinTreeBuilder {
                         }
                     }
                 }
-                val segment = TreeSegment.connected(solution.first.first, solution.first.second)
+                val externalBindings = paths.foldIndexed(BindingIdentifierSet.EMPTY) { j, set, path ->
+                    // `i` is already included in the 'consumed' set at this point
+                    if (j in solution.second) {
+                        set
+                    } else {
+                        set + path.bindings
+                    }
+                }
+                val segment = TreeSegment.join(
+                    context = context,
+                    first = solution.first.first,
+                    second = solution.first.second,
+                    externalBindings = externalBindings,
+                    filters = filters,
+                )
                 // we consume the paths that lead to this solution as well
                 // we do so in reverse order so the indexes are valid (and less copying is required)
                 solution.second.sortedDescending().forEach { pathIndex ->
@@ -230,6 +271,18 @@ internal object DynamicJoinTreeBuilder {
         }
         // we ended up with no valid solution, so we can assume these two segments will never connect
         return null
+    }
+
+    private fun Iterable<TreeSegment>.bindings(): BindingIdentifierSet {
+        val iter = iterator()
+        if (!iter.hasNext()) {
+            return BindingIdentifierSet.EMPTY
+        }
+        var r = iter.next().bindings
+        while (iter.hasNext()) {
+            r += iter.next().bindings
+        }
+        return r
     }
 
     class TreeSegment private constructor(
@@ -265,18 +318,81 @@ internal object DynamicJoinTreeBuilder {
                 length = 1,
             )
 
-            fun connected(
+            /**
+             * Creates the most appropriate tree segment type based on the [first] and [second] segments' properties,
+             *  possibly applying [filters] on top of it.
+             * Uses the provided [externalBindings] to configure appropriate bindings to index on if applicable.
+             */
+            fun join(
+                context: QueryContext,
                 first: TreeSegment,
                 second: TreeSegment,
-                bindings: BindingIdentifierSet = first.bindings.intersect(second.bindings),
-            ) = TreeSegment(
-                node = Node.Connected(first.node, second.node, bindings),
-                length = first.length + second.length,
-            ).also {
+                externalBindings: BindingIdentifierSet,
+                filters: List<FilterExpression>,
+            ): TreeSegment {
+                // we *have* to use a connected segment if there are any filters that need to be applied, otherwise
+                //  if the new group have internal binding overlap, having their combination cached is beneficial as the
+                //  number of results obtained here are not the result of a cartesian join;
+                //  otherwise, falling back on the indexes of the leafs themselves is as performant
+                val filters = filters.filter { filter ->
+                    // we only need to apply filters to our new segment if
+                    // * we contain all bindings required by this filter to evaluate
+                    // * at least one of our children contains at least one of the filter bindings, but
+                    //  not all (meaning that the filter is not applied to that child already)
+                    filter.bindings in (first.bindings + second.bindings) && (
+                        filter.bindings.intersectSize(first.bindings) in 1 ..< filter.bindings.size ||
+                        filter.bindings.intersectSize(second.bindings) in 1 ..< filter.bindings.size
+                    )
+                }
+                return if (filters.isNotEmpty() || first.bindings.intersectSize(second.bindings) != 0) {
+                    // we index on the bindings found in either first and/or second that are also available 'externally',
+                    //  as we expect incoming mappings to join on that have these external bindings set
+                    val indexes = externalBindings
+                        .intersect(first.bindings + second.bindings)
+                    connected(
+                        context = context,
+                        first = first,
+                        second = second,
+                        indexes = indexes,
+                        filters = filters,
+                    )
+                } else {
+                    disconnected(
+                        first = first,
+                        second = second,
+                    )
+                }
+            }
+
+            fun connected(
+                context: QueryContext,
+                first: TreeSegment,
+                second: TreeSegment,
+                /**
+                 * The bindings to index on. It is recommended this contains all bindings that are joined on by the
+                 *  parent state
+                 */
+                indexes: BindingIdentifierSet,
+                /**
+                 * Set of filters to apply after joining the two states together
+                 */
+                filters: List<FilterExpression>,
+            ): TreeSegment {
                 // requesting the child nodes to rehash themselves based on common bindings
                 val common = first.node.bindings.intersect(second.node.bindings)
                 first.node.reindex(common)
                 second.node.reindex(common)
+                // followed by construction of the connecting segment
+                return TreeSegment(
+                    node = Node.Connected(
+                        context = context,
+                        left = first.node,
+                        right = second.node,
+                        indexes = indexes,
+                        filters = filters,
+                    ),
+                    length = first.length + second.length,
+                )
             }
 
             fun disconnected(

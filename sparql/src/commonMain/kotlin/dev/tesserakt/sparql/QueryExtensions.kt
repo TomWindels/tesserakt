@@ -39,8 +39,7 @@ fun <RT> Iterable<Quad>.query(
     }
     if (this is Store) {
         val state = query.createState(
-            // we can hijack the store's context and use the encoded representations directly
-            context = this.context,
+            source = this,
         )
         // setting initial state
         state.results.forEach {
@@ -55,7 +54,7 @@ fun <RT> Iterable<Quad>.query(
         }
     } else {
         val state = query.createState(
-            context = null,
+            source = null,
         )
         // setting initial state
         state.results.forEach {
@@ -72,46 +71,69 @@ fun <RT> Iterable<Quad>.query(
 }
 
 fun <RT> Iterable<Quad>.query(query: Query<RT>): List<RT> {
-    val queryState = query.createState(
-        // we can hijack the store's context if we are being evaluated on one
-        context = if (this is Store) this.context else null,
-    )
-    return query(queryState)
+    val queryState = when {
+        this is Store -> {
+            // we can tie the store instance directly to the (temporary) query state; this allows
+            //  the query state to interface with the store directly in two key ways:
+            //  * reuse the store's encoding context
+            //  * using indexes (if any) to do targeted lookup of the store contents;
+            //  * use the results of the targeted lookups to do query planning;
+            query.createState(
+                source = this,
+            )
+        }
+        else -> {
+            // we've created an encoding context specific for this query: we need to use the context to encode the elements
+            //  on the fly
+            val state = query.createState(
+                source = null,
+            )
+            // we also need to feed the query state all data of this source iterable
+            val it = this@query.iterator()
+            while (it.hasNext()) {
+                state.processAddition(it.next())
+            }
+            state
+        }
+    }
+    return queryState.results.toList()
 }
 
 fun <RT> Iterable<Quad>.queryWithStatistics(query: Query<RT>, granularity: QueryStatistics.Granularity): Pair<List<RT>, Statistics> {
-    val queryState = query.createState(
-        // we can hijack the store's context if we are being evaluated on one
-        context = if (this is Store) this.context else null,
-    )
-    return query(queryState) to queryState.stats(granularity)
-}
-
-internal fun <RT> Iterable<Quad>.query(query: QueryState<RT, *>): List<RT> {
-    if (this is Store) {
-        // all possible paths that called `query` have constructed the state using the encoding context found in the
-        //  receiver (store context), so we can iterate over the encoded representations directly
-        val it = this@query.encodedIterator()
-        while (it.hasNext()) {
-            query.process(DataAddition(it.next()))
+    val queryState = when {
+        this is Store -> {
+            // we can tie the store instance directly to the (temporary) query state; this allows
+            //  the query state to interface with the store directly in two key ways:
+            //  * reuse the store's encoding context
+            //  * using indexes (if any) to do targeted lookup of the store contents;
+            //  * use the results of the targeted lookups to do query planning;
+            query.createState(
+                source = this,
+            )
         }
-    } else {
-        // we've created an encoding context specific for this query: we need to use the context to encode the elements
-        //  on the fly
-        val it = this@query.iterator()
-        while (it.hasNext()) {
-            query.processAddition(it.next())
+        else -> {
+            // we've created an encoding context specific for this query: we need to use the context to encode the elements
+            //  on the fly
+            val state = query.createState(
+                source = null,
+            )
+            // we also need to feed the query state all data of this source iterable
+            val it = this@queryWithStatistics.iterator()
+            while (it.hasNext()) {
+                state.processAddition(it.next())
+            }
+            state
         }
     }
-    return query.results.toList()
+    return queryState.results.toList() to queryState.stats(granularity)
 }
 
 fun <RT> ObservableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
-    return OngoingQueryEvaluationImpl(query.createState(context)).also { it.subscribe(this) }
+    return OngoingQueryEvaluationImpl(query.createState(this)).also { it.subscribe(this) }
 }
 
 fun <RT> ObservableStore.queryDeferred(query: Query<RT>): DeferredOngoingQueryEvaluation<RT> {
-    return DeferredOngoingQueryEvaluationImpl(query.createState(context)).also { it.subscribe(this) }
+    return DeferredOngoingQueryEvaluationImpl(query.createState(this)).also { it.subscribe(this) }
 }
 
 /* helper properties */

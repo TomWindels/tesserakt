@@ -24,9 +24,6 @@ internal class OngoingQueryEvaluationImpl<RT>(private val query: QueryState<RT, 
     }
 
     override fun subscribe(store: ObservableStore) {
-        store.encodedIterator().forEach { quad ->
-            query.process(DataAddition(quad))
-        }
         store.addListener(listener)
     }
 
