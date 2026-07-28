@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree.Node
+import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.Counter
 import dev.tesserakt.sparql.util.ZeroCardinality
 import dev.tesserakt.util.removeLastElement
@@ -482,19 +483,29 @@ internal object DynamicJoinTreeBuilder {
         val common: Int,
         val total: Int,
         val length: Int,
+        // 0 if either is zero; sum if binding overlap, multiplication if no binding overlap
+        val estimatedCombinedCardinality: Cardinality,
     ) : Comparable<IntermediateMatchResult> {
 
-        constructor(a: TreeSegment, b: TreeSegment): this(
-            common = a.getCommonBindingsCount(b),
-            total = a.getTotalBindingsCount(b),
-            length = a.getTotalLength(b),
-        )
-
+        // used to get the best next match in the list; highest = best match
         override fun compareTo(other: IntermediateMatchResult): Int {
-            // we prefer common bindings first
+            // we prefer substantial differences in estimated combined cardinality first
+            if (estimatedCombinedCardinality.value < 0.5 * other.estimatedCombinedCardinality.value) {
+                return 1
+            } else if (estimatedCombinedCardinality.value * 0.5 > other.estimatedCombinedCardinality.value) {
+                return -1
+            }
+            // then, we prefer common bindings
             if (common > other.common) {
                 return 1
             } else if (common < other.common) {
+                return -1
+            }
+            // we prefer lower amount of total bindings next, as fewer bindings in total
+            //  means less data is likely to match
+            if (other.total > total) {
+                return 1
+            } else if (other.total < total) {
                 return -1
             }
             // next, we prefer longer segments, as longer segments require more data to
@@ -504,10 +515,37 @@ internal object DynamicJoinTreeBuilder {
             } else if (length < other.length) {
                 return -1
             }
-            // we prefer lower amount of total bindings next, as fewer bindings in total
-            //  means less data is likely to match
-            return other.total - total
+            // we simply compare the small differences in estimated cardinalities directly, with
+            //  the smaller cardinality meaning higher score (so inverse compare to)
+            return other.estimatedCombinedCardinality.compareTo(estimatedCombinedCardinality)
         }
+
+        companion object {
+
+            operator fun invoke(a: TreeSegment, b: TreeSegment): IntermediateMatchResult {
+                val common = a.getCommonBindingsCount(b)
+                val left = a.node.cardinality
+                val right = b.node.cardinality
+                return IntermediateMatchResult(
+                    common = common,
+                    total = a.getTotalBindingsCount(b),
+                    length = a.getTotalLength(b),
+                    estimatedCombinedCardinality = when {
+                        left == ZeroCardinality || right == ZeroCardinality -> {
+                            ZeroCardinality
+                        }
+                        common != 0 -> {
+                            left + right
+                        }
+                        else -> {
+                            left * right
+                        }
+                    }
+                )
+            }
+
+        }
+
     }
 
     private fun findGroupMatch(
