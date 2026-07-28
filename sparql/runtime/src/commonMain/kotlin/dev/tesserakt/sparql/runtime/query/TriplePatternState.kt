@@ -231,24 +231,6 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
     }
 
-    class SimpleAltPatternState(
-        context: QueryContext,
-        s: Subject,
-        p: SimpleAlts,
-        o: Object
-    ) : ArrayBackedPatternState<SimpleAlts>(context, s, p, o) {
-
-        override fun peek(quad: EncodedQuad): Mapping? {
-            if (p.allowed.none { it.matches(quad.p) }) {
-                return null
-            }
-            val s = subjectMappingOrNull(quad) ?: return null
-            val o = objectMappingOrNull(quad) ?: return null
-            return s.join(o)
-        }
-
-    }
-
     class NegatedPatternState(
         context: QueryContext,
         subj: Subject,
@@ -321,6 +303,127 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
             state.reindex(bindings, hint)
+        }
+
+    }
+
+    // special case: doesn't have a complex state (similar to array backed types), but can yield
+    //  more than 1 mapping for a single data change
+    class SimpleAltPatternState(
+        context: QueryContext,
+        s: Subject,
+        p: SimpleAlts,
+        o: Object
+    ) : TriplePatternState<SimpleAlts>(context, s, p, o) {
+
+        private val data = ReindexableMappingArray()
+
+        override val cardinality: Cardinality
+            get() = data.cardinality
+
+        override var changeCount: Long = 0L
+            private set
+
+        override fun prefill() {
+            // if all our inner predicates have direct lookup available, we can do multiple targeted scans
+            fun SimpleAlts.hasDirectLookup(): Boolean {
+                return allowed.all { it is Exact || it is SimpleAlts && it.hasDirectLookup() }
+            }
+            fun SimpleAlts.iterExacts(): Iterator<Exact> = iterator {
+                allowed.forEach { element ->
+                    when (element) {
+                        is Exact -> yield(element)
+
+                        is SimpleAlts -> yieldAll(element.iterExacts())
+
+                        else ->
+                            throw IllegalStateException("Could not yield exact elements only! Found $element")
+                    }
+                }
+            }
+            if (p.hasDirectLookup()) {
+                p.iterExacts().forEach { exact ->
+                    context.iter(
+                        s = this.s.termId ?: Int.MIN_VALUE,
+                        p = exact.id.id,
+                        o = this.o.termId ?: Int.MIN_VALUE,
+                    ).forEach { quad ->
+                        // we don't `peek()` here, as this could get duplicate results
+                        //  for other allowed predicates we're currently not processing
+                        // s / o can still mismatch in case they share binding name
+                        val s = subjectMappingOrNull(quad) ?: return@forEach
+                        val o = objectMappingOrNull(quad) ?: return@forEach
+                        val result = s.join(o) ?: return@forEach
+                        data.add(result)
+                        ++changeCount
+                    }
+                }
+            }
+            // if not, we need to do a full scan on the predicate and go from there
+            else {
+                context.iter(
+                    s = this.s.termId ?: Int.MIN_VALUE,
+                    o = this.o.termId ?: Int.MIN_VALUE,
+                ).forEach { quad ->
+                    val new = peek(quad)
+                    changeCount += data.addAll(new)
+                }
+            }
+        }
+
+        override fun process(delta: DataDelta) {
+            when (delta) {
+                is DataAddition -> {
+                    val new = peek(delta)
+                    changeCount += data.addAll(new)
+                }
+                is DataDeletion -> {
+                    val removed = peek(delta)
+                    changeCount += data.removeAll(removed)
+                }
+            }
+        }
+
+        override fun peek(delta: DataAddition): Stream<Mapping> {
+            return peek(delta.value)
+        }
+
+        override fun join(delta: MappingDelta): Stream<MappingDelta> {
+            val removed = (delta.origin as? DataDeletion)?.value
+            return if (removed != null) {
+                val ignored = peek(removed)
+                delta.mapToStream {
+                    data
+                        .iter(delta.value)
+                        .remove(ignored)
+                        .join(delta.value)
+                }
+            } else {
+                delta.mapToStream { data.join(delta.value) }
+            }
+        }
+
+        // we're stateless
+        private fun peek(delta: EncodedQuad): Stream<Mapping> {
+            // we yield as many results as there are predicates that match it
+            val count = p.allowed.count { it.matches(delta.p) }
+            if (count == 0) {
+                return emptyStream()
+            }
+            // s / o can still mismatch
+            val s = subjectMappingOrNull(delta) ?: return emptyStream()
+            val o = objectMappingOrNull(delta) ?: return emptyStream()
+            val result = s.join(o) ?: return emptyStream()
+            // the count is expected to be really small
+            if (count == 1) {
+                return streamOf(result)
+            }
+            // the same mapping, repeated
+            return CollectedStream(List(count) { result })
+        }
+
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            data.reindex(bindings, hint)
         }
 
     }

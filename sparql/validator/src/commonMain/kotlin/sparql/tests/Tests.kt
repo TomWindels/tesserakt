@@ -59,6 +59,32 @@ fun builtinTests() = tests {
 
     using(small) test """
         SELECT * {
+            ?s (<http://example.org/path1>|<http://example.org/path1>) ?o
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o .
+            ?s <http://example.org/path1> ?o
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            # should be identical to the test case above
+            ?s <http://example.org/path1> ?o , ?o
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s (<http://example.org/path1>|!<http://example.org/path2>) ?o
+        }
+    """
+
+    using(small) test """
+        SELECT * {
             ?s !<http://example.org/path3> ?o
         }
     """
