@@ -4,11 +4,27 @@ import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.OneCardinality
 import kotlin.jvm.JvmInline
 
+// also implements Collection<E> so size-specific choices can be made
 @JvmInline
-value class SingleStream<E: Any>(private val element: E): Stream<E>, OptimisedStream<E> {
+value class SingleStream<E: Any>(private val element: E): Stream<E>, OptimisedStream<E>, Collection<E> {
 
     override val cardinality: Cardinality
         get() = OneCardinality
+
+    override val size: Int
+        get() = 1
+
+    override fun contains(element: E): Boolean {
+        return this.element == element
+    }
+
+    override fun isEmpty(): Boolean {
+        return false
+    }
+
+    override fun containsAll(elements: Collection<E>): Boolean {
+        return elements.isEmpty() || elements.size == 1 && elements.single() == element
+    }
 
     override fun hasZeroCardinality(): Boolean {
         return false

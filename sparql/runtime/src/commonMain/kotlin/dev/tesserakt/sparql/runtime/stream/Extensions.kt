@@ -33,11 +33,18 @@ fun Stream<Mapping>.join(other: Mapping): Stream<Mapping> =
 fun Mapping.join(other: Stream<Mapping>): Stream<Mapping> =
     if (other.hasZeroCardinality()) emptyStream() else StreamSingleJoin(this, other)
 
-fun <E : Any> Stream<E>.remove(elements: Iterable<E>): Stream<E> =
-    StreamReduction(this, removed = elements)
+fun <E : Any> Stream<E>.remove(element: E): Stream<E> =
+    SingleElementStreamReduction(this, removed = element)
 
-fun <E : Any> Stream<E>.remove(elements: Stream<E>): Stream<E> = when {
-    elements.hasZeroCardinality() -> this
+fun <E : Any> Stream<E>.remove(elements: Iterable<E>): Stream<E> = when (elements) {
+    is Collection<E> if elements.isEmpty() -> this
+    is Collection<E> if elements.size == 1 -> SingleElementStreamReduction(this, elements.iterator().next())
+    else -> StreamReduction(this, removed = elements)
+}
+
+fun <E : Any> Stream<E>.remove(elements: Stream<E>): Stream<E> = when (elements) {
+    is Collection<*> if elements.size == 1 -> SingleElementStreamReduction(this, removed = elements.iterator().next())
+    else if elements.hasZeroCardinality() -> this
     else -> StreamReduction(this, removed = elements)
 }
 

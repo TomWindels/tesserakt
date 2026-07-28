@@ -141,13 +141,15 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         final override fun process(delta: DataDelta) {
             when (delta) {
                 is DataAddition -> {
-                    val new = peek(delta)
-                    changeCount += data.addAll(new)
+                    val new = peek(delta.value) ?: return
+                    data.add(new)
+                    ++changeCount
                 }
 
                 is DataDeletion -> {
-                    val removed = peek(delta)
-                    changeCount += data.removeAll(removed)
+                    val removed = peek(delta.value) ?: return
+                    data.remove(removed)
+                    ++changeCount
                 }
             }
         }
@@ -159,7 +161,9 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
                 delta.mapToStream {
                     data
                         .iter(delta.value)
-                        .remove(ignored)
+                        .let { stream ->
+                            if (ignored != null) stream.remove(ignored) else stream
+                        }
                         .join(delta.value)
                 }
             } else {
@@ -171,13 +175,25 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             data.reindex(bindings, hint)
         }
 
-        // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
-
-        final override fun peek(delta: DataAddition): Stream<Mapping> {
-            return peek(delta.value)
+        override fun prefill() {
+            context.iter(
+                s = this.s.termId ?: Int.MIN_VALUE,
+                p = this.p.termId ?: Int.MIN_VALUE,
+                o = this.o.termId ?: Int.MIN_VALUE,
+            ).forEach { quad ->
+                val mapping = peek(quad) ?: return@forEach
+                data.add(mapping)
+                ++changeCount
+            }
         }
 
-        abstract fun peek(quad: EncodedQuad): Stream<Mapping>
+        // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
+        final override fun peek(delta: DataAddition): Stream<Mapping> {
+            val element = peek(delta.value) ?: return emptyStream()
+            return streamOf(element)
+        }
+
+        abstract fun peek(quad: EncodedQuad): Mapping?
 
     }
 
@@ -188,14 +204,13 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         obj: Object
     ) : ArrayBackedPatternState<Exact>(context, subj, pred, obj) {
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
+        override fun peek(quad: EncodedQuad): Mapping? {
             if (pred.id.id != quad.p) {
-                return emptyStream()
+                return null
             }
-            val s = subjectMappingOrNull(quad) ?: return emptyStream()
-            val o = objectMappingOrNull(quad) ?: return emptyStream()
-            val result = s.join(o) ?: return emptyStream()
-            return streamOf(result)
+            val s = subjectMappingOrNull(quad) ?: return null
+            val o = objectMappingOrNull(quad) ?: return null
+            return s.join(o)
         }
 
     }
@@ -207,12 +222,11 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         obj: Object
     ) : ArrayBackedPatternState<Binding>(context, subj, pred, obj) {
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
-            val s = subjectMappingOrNull(quad) ?: return emptyStream()
-            val o = objectMappingOrNull(quad) ?: return emptyStream()
+        override fun peek(quad: EncodedQuad): Mapping? {
+            val s = subjectMappingOrNull(quad) ?: return null
+            val o = objectMappingOrNull(quad) ?: return null
             val p = mappingOf(context, p.id to TermIdentifier(quad.p))
-            val result = s.join(p)?.join(o) ?: return emptyStream()
-            return streamOf(result)
+            return s.join(p)?.join(o)
         }
 
     }
@@ -224,14 +238,13 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         o: Object
     ) : ArrayBackedPatternState<SimpleAlts>(context, s, p, o) {
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
+        override fun peek(quad: EncodedQuad): Mapping? {
             if (p.allowed.none { it.matches(quad.p) }) {
-                return emptyStream()
+                return null
             }
-            val s = subjectMappingOrNull(quad) ?: return emptyStream()
-            val o = objectMappingOrNull(quad) ?: return emptyStream()
-            val result = s.join(o) ?: return emptyStream()
-            return streamOf(result)
+            val s = subjectMappingOrNull(quad) ?: return null
+            val o = objectMappingOrNull(quad) ?: return null
+            return s.join(o)
         }
 
     }
@@ -243,14 +256,13 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         obj: Object
     ) : ArrayBackedPatternState<Negated>(context, subj, pred, obj) {
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
+        override fun peek(quad: EncodedQuad): Mapping? {
             if (!pred.matches(quad.p)) {
-                return emptyStream()
+                return null
             }
-            val s = subjectMappingOrNull(quad) ?: return emptyStream()
-            val o = objectMappingOrNull(quad) ?: return emptyStream()
-            val result = s.join(o) ?: return emptyStream()
-            return streamOf(result)
+            val s = subjectMappingOrNull(quad) ?: return null
+            val o = objectMappingOrNull(quad) ?: return null
+            return s.join(o)
         }
 
     }
@@ -497,11 +509,11 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         // we don't store the data ourselves; instead, we piggyback of our wrapped type's data instance
         override val data: ReindexableMappingArray = inner.data
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
+        override fun peek(quad: EncodedQuad): Mapping? {
             // array-backed implementations use this adapted result stream to alter the data state, so we don't
             //  need to adapt the backing array any further; no additional filtering is required at `join()` time
             //  either (see description above)
-            return inner.peek(quad).filtered { mapping -> expr.test(mapping) }
+            return inner.peek(quad)?.takeIf { mapping -> expr.test(mapping) }
         }
 
         override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
@@ -728,7 +740,6 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
     final override fun toString() = "$s $p $o - cardinality $cardinality"
 
-    final override fun filtered(filter: FilterExpression): TriplePatternState<*> {
     /**
      * Returns a wrapped version of this state instance, with a filter expression being applied directly on top of it.
      * Note that applying a filter that references bindings not found in this triple pattern is an error.
