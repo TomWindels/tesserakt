@@ -129,11 +129,17 @@ fun <RT> Iterable<Quad>.queryWithStatistics(query: Query<RT>, granularity: Query
 }
 
 fun <RT> ObservableStore.query(query: Query<RT>): OngoingQueryEvaluation<RT> {
-    return OngoingQueryEvaluationImpl(query.createState(this)).also { it.subscribe(this) }
+    return OngoingQueryEvaluationImpl(
+        parent = this,
+        query = query.createState(this),
+    )
 }
 
 fun <RT> ObservableStore.queryDeferred(query: Query<RT>): DeferredOngoingQueryEvaluation<RT> {
-    return DeferredOngoingQueryEvaluationImpl(query.createState(this)).also { it.subscribe(this) }
+    return DeferredOngoingQueryEvaluationImpl(
+        parent = this,
+        query = query,
+    )
 }
 
 /* helper properties */
