@@ -1,13 +1,19 @@
 
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
-import dev.tesserakt.sparql.runtime.evaluation.*
+import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
+import dev.tesserakt.sparql.runtime.evaluation.DataDelta
+import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTreeBuilder
+import dev.tesserakt.sparql.runtime.stream.OptimisedStream
+import dev.tesserakt.sparql.runtime.stream.emptyStream
+import dev.tesserakt.sparql.types.Expression
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.ZeroCardinality
 import kotlin.contracts.ExperimentalContracts
@@ -27,18 +33,27 @@ class DynamicJoinTreeBuilderTest {
         var indexes = bindings
             private set
 
+        // this makes it so there's no bias towards any single test node
         override val cardinality: Cardinality
-            get() = throw UnsupportedOperationException()
+            get() = ZeroCardinality
 
         override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
             indexes = bindings
         }
 
-        override fun join(delta: MappingDelta) = throw UnsupportedOperationException()
+        override fun join(delta: MappingDelta): OptimisedStream<MappingDelta> {
+            // no delta
+            return emptyStream()
+        }
 
-        override fun peek(delta: DataDelta) = throw UnsupportedOperationException()
+        override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
+            // nothing matches
+            return emptyStream()
+        }
 
-        override fun process(delta: DataDelta) = throw UnsupportedOperationException()
+        override fun process(delta: DataDelta) {
+            // no backing structure, no-op
+        }
 
         override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity) =
             Statistics.DescriptionElement(
@@ -47,8 +62,6 @@ class DynamicJoinTreeBuilderTest {
                     changeCount = 0L
                 ),
                 description = "Test node, bindings:\n${bindings.asIntIterable().joinToString { GlobalQueryContext.resolveBinding(it) }}")
-
-        override fun filtered(filter: FilterExpression) = throw UnsupportedOperationException()
 
         override fun toString() = "Node(bindings=${bindings}, indexes=${indexes})"
 
@@ -59,8 +72,13 @@ class DynamicJoinTreeBuilderTest {
         listOf("a", "b"),
         listOf("b"),
     ) { root ->
-        // the root node has to be disconnected, as caching the very last step is not useful
-        root.assertIsDisconnected()
+        assertTrue {
+            root is DynamicJoinTree.Node.Disconnected || (
+                root is DynamicJoinTree.Node.Connected &&
+                // we haven't been reindexed
+                root.buf.indexes.isEmpty()
+            )
+        }
     }
 
     @Test
@@ -70,10 +88,14 @@ class DynamicJoinTreeBuilderTest {
         listOf("b", "c"),
     ) { root ->
         // ensuring correct root node type
-        root.assertIsDisconnected()
         assertTrue {
-            root.left is DynamicJoinTree.Node.Connected ||
-            root.right is DynamicJoinTree.Node.Connected
+            root is DynamicJoinTree.Node.Connected && (
+                root.left is DynamicJoinTree.Node.Connected ||
+                root.right is DynamicJoinTree.Node.Connected
+            ) || root is DynamicJoinTree.Node.Disconnected && (
+                root.left is DynamicJoinTree.Node.Connected ||
+                root.right is DynamicJoinTree.Node.Connected
+            )
         }
     }
 
@@ -85,8 +107,6 @@ class DynamicJoinTreeBuilderTest {
         listOf("4", "5"),
         listOf("5", "6"),
     ) { root ->
-        // ensuring correct root node type
-        root.assertIsDisconnected()
         // a deep-left/right join tree should be constructed; all nodes should have one leaf and one connected node,
         // until reaching the end
         var sibling = root.single<DynamicJoinTree.Node.Leaf>()
@@ -117,24 +137,107 @@ class DynamicJoinTreeBuilderTest {
         // unrelated segments
         listOf("0"),
         listOf("1"),
-    ) { root ->
-        // ensuring correct root node type
-        root.assertIsDisconnected()
+    ) { root, patterns ->
         // there is always at least one binding overlap between segments, so no cartesian joins are expected
-        var sibling = root.single<DynamicJoinTree.Node.Leaf>()
-        var subtree = root.single<DynamicJoinTree.Node.Connected>()
-        repeat(4) {
+        // we check if we're missing any patterns after constructing the tree; we do so by checking all leaf bindings
+        //  before the tree has been constructed with the individual leafs discovered after traversing the result;
+        //  we can do this as we know the binding combinations are unique per leaf
+        val missing = patterns.mapTo(mutableSetOf()) { TestNode(it).bindings }
+
+        fun check(node: DynamicJoinTree.Node) {
             // making sure its indexed on its common pair
-            subtree.assertIsConnected()
-            val activeIndexes = subtree.buf.indexes.asIntIterable()
+            node.assertIsConnected()
+            val activeIndexes = node.buf.indexes.asIntIterable()
             if (!activeIndexes.iterator().hasNext()) {
-                fail("Expected at least one active index, got none!")
+                fail("Expected at least one active index, got none: ${node.left.bindings} <> ${node.right.bindings} is cached with ${node.buf}!")
             }
-            val possibleIndexes = sibling.state.bindings
+            val possibleIndexes = node.bindings
             assertTrue { activeIndexes.all { it in possibleIndexes } }
             // moving to the next check
-            sibling = subtree.single<DynamicJoinTree.Node.Leaf>()
-            subtree = subtree.single<DynamicJoinTree.Node.Connected>()
+            when (node.left) {
+                is DynamicJoinTree.Node.Connected -> {
+                    check(node.left)
+                }
+                is DynamicJoinTree.Node.Disconnected -> {
+                    fail("Unexpected disconnected child!")
+                }
+                is DynamicJoinTree.Node.Leaf -> {
+                    // terminal point reached
+                    missing.remove(node.left.state.bindings)
+                }
+            }
+            when (node.right) {
+                is DynamicJoinTree.Node.Connected -> {
+                    check(node.right)
+                }
+                is DynamicJoinTree.Node.Disconnected -> {
+                    fail("Unexpected disconnected child!")
+                }
+                is DynamicJoinTree.Node.Leaf -> {
+                    // terminal point reached
+                    missing.remove(node.right.state.bindings)
+                }
+            }
+        }
+        when (root) {
+            // can be valid if no further tree information is known, but
+            //  we don't expect any indexes here as it was never reindexed
+            is DynamicJoinTree.Node.Connected -> {
+                assertTrue {
+                    root.buf.indexes == BindingIdentifierSet.EMPTY
+                }
+                when (root.left) {
+                    is DynamicJoinTree.Node.Connected -> {
+                        check(root.left)
+                    }
+                    is DynamicJoinTree.Node.Disconnected -> {
+                        fail("Did not expect a disconnected node at this point!")
+                    }
+                    is DynamicJoinTree.Node.Leaf -> {
+                        missing.remove(root.left.state.bindings)
+                    }
+                }
+                when (root.right) {
+                    is DynamicJoinTree.Node.Connected -> {
+                        check(root.right)
+                    }
+                    is DynamicJoinTree.Node.Disconnected -> {
+                        fail("Did not expect a disconnected node at this point!")
+                    }
+                    is DynamicJoinTree.Node.Leaf -> {
+                        missing.remove(root.right.state.bindings)
+                    }
+                }
+            }
+            // can be valid if we're configured to be the most top-level tree
+            is DynamicJoinTree.Node.Disconnected -> {
+                when (root.left) {
+                    is DynamicJoinTree.Node.Connected -> {
+                        check(root.left)
+                    }
+                    is DynamicJoinTree.Node.Disconnected -> {
+                        fail("Did not expect a disconnected node at this point!")
+                    }
+                    is DynamicJoinTree.Node.Leaf -> {
+                        missing.remove(root.left.state.bindings)
+                    }
+                }
+                when (root.right) {
+                    is DynamicJoinTree.Node.Connected -> {
+                        check(root.right)
+                    }
+                    is DynamicJoinTree.Node.Disconnected -> {
+                        fail("Did not expect a disconnected node at this point!")
+                    }
+                    is DynamicJoinTree.Node.Leaf -> {
+                        missing.remove(root.right.state.bindings)
+                    }
+                }
+            }
+            is DynamicJoinTree.Node.Leaf -> fail("Root node is of wrong type!")
+        }
+        if (missing.isNotEmpty()) {
+            fail("Missing the following states: ${missing.joinToString()}")
         }
     }
 
@@ -150,29 +253,113 @@ class DynamicJoinTreeBuilderTest {
         // unrelated segments
         listOf("0"),
         listOf("1"),
-    ) { root ->
-        // ensuring correct root node type
-        root.assertIsDisconnected()
+    ) { root, patterns ->
         // there is always at least one binding overlap between segments, so no cartesian joins are expected
-        var sibling = root.single<DynamicJoinTree.Node.Leaf>()
-        var subtree = root.single<DynamicJoinTree.Node.Connected>()
-        repeat(4) {
+        // we check if we're missing any patterns after constructing the tree; we do so by checking all leaf bindings
+        //  before the tree has been constructed with the individual leafs discovered after traversing the result;
+        //  we can do this as we know the binding combinations are unique per leaf
+        val missing = patterns.mapTo(mutableSetOf()) { TestNode(it).bindings }
+
+        fun check(node: DynamicJoinTree.Node) {
             // making sure its indexed on its common pair
-            subtree.assertIsConnected()
-            val activeIndexes = subtree.buf.indexes.asIntIterable()
+            node.assertIsConnected()
+            val activeIndexes = node.buf.indexes.asIntIterable()
             if (!activeIndexes.iterator().hasNext()) {
-                fail("Expected at least one active index, got none!")
+                fail("Expected at least one active index, got none: ${node.left.bindings} <> ${node.right.bindings} is cached with ${node.buf}!")
             }
-            val possibleIndexes = sibling.state.bindings
+            val possibleIndexes = node.bindings
             assertTrue { activeIndexes.all { it in possibleIndexes } }
             // moving to the next check
-            sibling = subtree.single<DynamicJoinTree.Node.Leaf>()
-            subtree = subtree.single<DynamicJoinTree.Node.Connected>()
+            when (node.left) {
+                is DynamicJoinTree.Node.Connected -> {
+                    check(node.left)
+                }
+                is DynamicJoinTree.Node.Disconnected -> {
+                    fail("Unexpected disconnected child!")
+                }
+                is DynamicJoinTree.Node.Leaf -> {
+                    // terminal point reached
+                    missing.remove(node.left.state.bindings)
+                }
+            }
+            when (node.right) {
+                is DynamicJoinTree.Node.Connected -> {
+                    check(node.right)
+                }
+                is DynamicJoinTree.Node.Disconnected -> {
+                    fail("Unexpected disconnected child!")
+                }
+                is DynamicJoinTree.Node.Leaf -> {
+                    // terminal point reached
+                    missing.remove(node.right.state.bindings)
+                }
+            }
+        }
+        when (root) {
+            // can be valid if no further tree information is known, but
+            //  we don't expect any indexes here as it was never reindexed
+            is DynamicJoinTree.Node.Connected -> {
+                assertTrue {
+                    root.buf.indexes == BindingIdentifierSet.EMPTY
+                }
+                when (root.left) {
+                    is DynamicJoinTree.Node.Connected -> {
+                        check(root.left)
+                    }
+                    is DynamicJoinTree.Node.Disconnected -> {
+                        fail("Did not expect a disconnected node at this point!")
+                    }
+                    is DynamicJoinTree.Node.Leaf -> {
+                        missing.remove(root.left.state.bindings)
+                    }
+                }
+                when (root.right) {
+                    is DynamicJoinTree.Node.Connected -> {
+                        check(root.right)
+                    }
+                    is DynamicJoinTree.Node.Disconnected -> {
+                        fail("Did not expect a disconnected node at this point!")
+                    }
+                    is DynamicJoinTree.Node.Leaf -> {
+                        missing.remove(root.right.state.bindings)
+                    }
+                }
+            }
+            // can be valid if we're configured to be the most top-level tree
+            is DynamicJoinTree.Node.Disconnected -> {
+                when (root.left) {
+                    is DynamicJoinTree.Node.Connected -> {
+                        check(root.left)
+                    }
+                    is DynamicJoinTree.Node.Disconnected -> {
+                        fail("Did not expect a disconnected node at this point!")
+                    }
+                    is DynamicJoinTree.Node.Leaf -> {
+                        missing.remove(root.left.state.bindings)
+                    }
+                }
+                when (root.right) {
+                    is DynamicJoinTree.Node.Connected -> {
+                        check(root.right)
+                    }
+                    is DynamicJoinTree.Node.Disconnected -> {
+                        fail("Did not expect a disconnected node at this point!")
+                    }
+                    is DynamicJoinTree.Node.Leaf -> {
+                        missing.remove(root.right.state.bindings)
+                    }
+                }
+            }
+            is DynamicJoinTree.Node.Leaf -> fail("Root node is of wrong type!")
+        }
+        if (missing.isNotEmpty()) {
+            fail("Missing the following states: ${missing.joinToString()}")
         }
     }
 
+
     @Test
-    fun disconnected() = test(
+    fun connected() = test(
         // chain 1 segments
         listOf("1a", "2a"),
         listOf("2a", "3a"),
@@ -211,9 +398,10 @@ class DynamicJoinTreeBuilderTest {
         listOf("a"),
         listOf("b"),
     ) { root ->
-        // we expect the root node to exists of disconnected nodes making up the unrelated segments, and the chain
-        //  segment deep into the tree using a connected structure
+        // we want to ensure the root node here is disconnected, as it has to join with no overlap at the very
+        //  end (cartesian join)
         root.assertIsDisconnected()
+        // we expect a single child of our root parent that contains our unrelated bindings in a disconnected child
         assertTrue("The tree structure (root level) has non-empty indexes for its leaf!") {
             root.single<DynamicJoinTree.Node.Leaf>().state.indexes.isEmpty()
         }
@@ -252,8 +440,16 @@ class DynamicJoinTreeBuilderTest {
     // we simulate a filter that compares `?a` with `?f`, so these bindings are prioritized
     // the remaining structure of the patterns would otherwise not lead to such a hierarchy naturally
     @Test
-    fun priority() = testWithPriorityBindings(
-        priority = BindingIdentifierSet(GlobalQueryContext, listOf("a", "f")),
+    fun filters() = testWithFilters(
+        filters = listOf(
+            FilterExpression(
+                context = GlobalQueryContext,
+                expr = Expression.Calculation(
+                    lhs = Expression.BindingValues("a"),
+                    rhs = Expression.BindingValues("f"),
+                    operator = Expression.Calculation.Operator.CMP_NEQ
+                )
+            )),
         listOf("a", "b"),
         listOf("a"),
         listOf("b"),
@@ -267,29 +463,37 @@ class DynamicJoinTreeBuilderTest {
         listOf("e"),
         listOf("f", "e"),
     ) { root ->
-        root.assertIsDisconnected()
-        // 8 TPs have to be put 'higher' in the tree so that all `f` and `a` referencing TPs are as deep as possible
-        val a = BindingIdentifier(GlobalQueryContext, "a")
-        val f = BindingIdentifier(GlobalQueryContext, "f")
+        assertTrue {
+            root is DynamicJoinTree.Node.Disconnected || (
+                root is DynamicJoinTree.Node.Connected &&
+                root.buf.indexes == BindingIdentifierSet.EMPTY
+            )
+        }
 
         // we first expect none to contain either `a` or `f` in the leaf nodes that are part of the subtree
         var treeDepth = 0
         var subtree = root
         while (
             subtree.hasSingle<DynamicJoinTree.Node.Leaf>() &&
-            a.id !in subtree.single<DynamicJoinTree.Node.Leaf>().bindings &&
-            f.id !in subtree.single<DynamicJoinTree.Node.Leaf>().bindings
+            subtree.getSingle<DynamicJoinTree.Node.Connected>().let { connected ->
+                connected != null && connected.filters.isEmpty()
+            }
         ) {
             // we go deeper, away from the leaf we just checked
-            subtree = subtree.singleNot<DynamicJoinTree.Node.Leaf>()
+            subtree = subtree.getSingle<DynamicJoinTree.Node.Connected>()
+                // should work as we just checked
+                ?: fail("Unexpected failure during tree traversal")
             ++treeDepth
         }
         // we need to be a few levels deep
-        assertTrue { treeDepth > 2 }
-        // we should have at least one child remaining
-        assertTrue { subtree !is DynamicJoinTree.Node.Leaf }
-        // and we shouldn't have encountered another segment with different bindings inside
-        assertTrue { a.id in subtree.bindings || f.id in subtree.bindings }
+        assertTrue { treeDepth > 5 }
+        // we traverse to the child that has our filters
+        subtree = subtree.getSingle<DynamicJoinTree.Node.Connected>()
+            ?: fail("Did not find the tree segment with the filter!")
+        // we should have ended at a connected segment that has our filter
+        assertTrue { subtree.filters.isNotEmpty() }
+        // and this node has all bindings required to form the proper path, including those required by the filter
+        assertTrue { BindingIdentifierSet(GlobalQueryContext, listOf("a", "c", "d", "g", "e", "f")) in subtree.bindings }
     }
 
     /* test helpers */
@@ -309,13 +513,28 @@ class DynamicJoinTreeBuilderTest {
         }
     }
 
-    private fun testWithPriorityBindings(
-        priority: BindingIdentifierSet,
+    private fun test(vararg bindings: List<String>, test: (DynamicJoinTree.Node, List<List<String>>) -> Unit) {
+        var i = 0
+        bindings.toList().permutations().forEach { bindings ->
+            val tree = buildTree(bindings)
+            try {
+                test(tree, bindings)
+            } catch (t: Throwable) {
+                fail(
+                    "Permutation $i (bindings: ${bindings.joinToString()}) failed with ${t::class.simpleName}\n${t.message}\n${tree.stats(
+                    GlobalQueryContext, QueryStatistics.Granularity.VERBOSE)}", t)
+            }
+            ++i
+        }
+    }
+
+    private fun testWithFilters(
+        filters: List<FilterExpression>,
         vararg bindings: List<String>, test: (DynamicJoinTree.Node) -> Unit
     ) {
         var i = 0
         bindings.toList().permutations().forEach { bindings ->
-            val tree = buildTree(bindings, priority)
+            val tree = buildTree(bindings, filters)
             try {
                 test(tree)
             } catch (t: Throwable) {
@@ -347,10 +566,10 @@ class DynamicJoinTreeBuilderTest {
 
     private fun buildTree(
         bindings: List<List<String>>,
-        prioritizedBindings: BindingIdentifierSet = BindingIdentifierSet.EMPTY,
+        filters: List<FilterExpression> = emptyList(),
     ): DynamicJoinTree.Node {
         val nodes = bindings.map { TestNode(it) }
-        return DynamicJoinTreeBuilder.build(nodes, prioritizedBindings)
+        return DynamicJoinTreeBuilder.build(GlobalQueryContext, nodes, filters)
     }
 
     /**
@@ -380,6 +599,37 @@ class DynamicJoinTreeBuilderTest {
                 right
             } else {
                 fail("No children of type ${N::class.simpleName} present, got ${left::class.simpleName} and ${right::class.simpleName} instead!")
+            }
+        }
+    }
+
+    /**
+     * Returns the only child of matching type [N], or fails the test if not exactly one child is of the provided type
+     */
+    private inline fun <reified N: DynamicJoinTree.Node> DynamicJoinTree.Node.getSingle(): N? = when (this) {
+        is DynamicJoinTree.Node.Leaf -> {
+            return null
+        }
+        is DynamicJoinTree.Node.Connected -> {
+            if (left is N && right is N) {
+                null
+            } else if (left is N) {
+                left
+            } else if (right is N) {
+                right
+            } else {
+                null
+            }
+        }
+        is DynamicJoinTree.Node.Disconnected -> {
+            if (left is N && right is N) {
+                null
+            } else if (left is N) {
+                left
+            } else if (right is N) {
+                right
+            } else {
+                null
             }
         }
     }

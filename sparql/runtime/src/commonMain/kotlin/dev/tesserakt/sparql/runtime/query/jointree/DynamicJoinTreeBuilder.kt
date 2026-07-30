@@ -42,7 +42,7 @@ internal object DynamicJoinTreeBuilder {
             }
             // if any of our leaf states already contains all necessary bindings, that state is the one responsible
             //  for ensuring it emits no filter-violating results
-            val isSpanning = states.none { state -> filter.bindings.unionSize(state.bindings) == filter.bindings.size }
+            val isSpanning = states.none { state -> filter.bindings in state.bindings }
             if (!isSpanning) {
                 return@forEach
             }
@@ -214,13 +214,13 @@ internal object DynamicJoinTreeBuilder {
             // if we have a state available that matches it directly and has at least one binding in common,
             //  we have the best possible solution
             val solutionAvailable = lut.keys.any { set ->
-                set.intersectSize(available) != 0 && set.intersectSize(missing) == missing.size
+                set.intersectSize(available) != 0 && missing in set
             }
             if (solutionAvailable) {
                 // we take the index that matches our requirement and has the lowest cardinality
                 return intArrayOf(
                     lut
-                        .filter { (set, _) -> set.intersectSize(available) != 0 && set.intersectSize(missing) == missing.size }
+                        .filter { (set, _) -> set.intersectSize(available) != 0 && missing in set }
                         .values
                         .minBy { index -> states[index].node.cardinality }
                 )
@@ -229,8 +229,7 @@ internal object DynamicJoinTreeBuilder {
             // there's no point in trying states that currently have no binding overlap (as that voids the contract),
             // nor if they don't introduce any new bindings to those we have 'discovered'
             val contenders = lut.filter { (set, _) ->
-                val overlap = set.intersectSize(available)
-                overlap != 0 && overlap < set.size
+                set.intersectSize(available) != 0 && set.unionSize(available) > available.size
             }
             if (contenders.isEmpty()) {
                 // no path forward, no connection possible
@@ -256,7 +255,7 @@ internal object DynamicJoinTreeBuilder {
             }
             return solutions.minWith(comparator)
         }
-        // sending of the first version, in which we create one with every possible state to start with that is valid
+        // sending off the first version, in which we create one with every possible state to start with that is valid
         val solutions = lut.mapNotNull { (set, id) ->
             val solution = recurse(
                 available = set,
@@ -501,18 +500,20 @@ internal object DynamicJoinTreeBuilder {
             } else if (common < other.common) {
                 return -1
             }
-            // we prefer lower amount of total bindings next, as fewer bindings in total
-            //  means less data is likely to match
-            if (other.total > total) {
-                return 1
-            } else if (other.total < total) {
-                return -1
-            }
             // next, we prefer longer segments, as longer segments require more data to
             //  create results
             if (length > other.length) {
                 return 1
             } else if (length < other.length) {
+                return -1
+            }
+            // we prefer lower amount of total bindings next, as fewer bindings in total
+            //  means less data is likely to match
+            // this one is more speculative as we already have some cardinality numbers in a non-incremental
+            //  scenario
+            if (other.total > total) {
+                return 1
+            } else if (other.total < total) {
                 return -1
             }
             // we simply compare the small differences in estimated cardinalities directly, with
