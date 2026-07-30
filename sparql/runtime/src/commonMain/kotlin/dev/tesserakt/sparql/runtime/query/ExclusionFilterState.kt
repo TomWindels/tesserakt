@@ -36,16 +36,26 @@ sealed interface ExclusionFilterState: MutableFilterState {
      *  collection (which may not be empty!)
      */
     class Narrow(
+        context: QueryContext,
         private val commonBindingNames: BindingIdentifierSet,
         private val state: BasicGraphPatternState,
     ) : ExclusionFilterState {
 
-        init {
-            require(commonBindingNames.isNotEmpty()) { "Invalid filter use detected!" }
-        }
-
         // tracking what binding groups are "invalid" (= should be filtered out)
         private val filtered = Counter<Mapping>()
+
+        init {
+            require(commonBindingNames.isNotEmpty()) { "Invalid filter use detected!" }
+            state
+                .join(MappingAddition(context.emptyMapping(), null))
+                .forEach { mappingDelta ->
+                    when (mappingDelta) {
+                        is MappingAddition -> filtered.increment(mappingDelta.value.retain(commonBindingNames))
+                        // highly unlikely occurrence considering we're joining on an empty mapping
+                        is MappingDeletion -> filtered.decrement(mappingDelta.value.retain(commonBindingNames))
+                    }
+                }
+        }
 
         override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
             val changes = state.peek(delta).mapped { it.map { it.retain(commonBindingNames) } }
@@ -176,9 +186,19 @@ sealed interface ExclusionFilterState: MutableFilterState {
      * Special variant of the exclude filter, where the # of common bindings is zero, meaning that a satisfied internal
      *  state means no bindings are coming through
      */
-    class Broad(private val state: BasicGraphPatternState) : ExclusionFilterState {
+    class Broad(
+        context: QueryContext,
+        private val state: BasicGraphPatternState,
+    ) : ExclusionFilterState {
 
-        private var count = 0
+        private var count = state
+            .join(MappingAddition(context.emptyMapping(), null))
+            .fold(0) { acc, mappingDelta ->
+                when (mappingDelta) {
+                    is MappingAddition -> acc + 1
+                    is MappingDeletion -> acc - 1
+                }
+            }
 
         override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
             val change = state.peek(delta).fold(0) { acc, mappingDelta ->
@@ -253,12 +273,17 @@ sealed interface ExclusionFilterState: MutableFilterState {
     companion object {
 
         operator fun invoke(context: QueryContext, parent: MutableJoinState, filter: Filter.NotExists): ExclusionFilterState {
-            val state = BasicGraphPatternState(context, filter.pattern)
+            // we don't apply filters from our parent, as that is not the expected effect of a FILTER expression
+            val state = BasicGraphPatternState(context = context, ast = filter.pattern, externalFilters = emptyList())
             val externalBindings = parent.bindings.intersect(state.bindings)
             return if (externalBindings.isEmpty()) {
-                Broad(state = state)
+                Broad(
+                    context = context,
+                    state = state,
+                )
             } else {
                 Narrow(
+                    context = context,
                     commonBindingNames = externalBindings,
                     state = state
                 )

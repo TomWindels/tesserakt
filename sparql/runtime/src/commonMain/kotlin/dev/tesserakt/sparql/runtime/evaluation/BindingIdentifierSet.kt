@@ -138,6 +138,20 @@ constructor(
         return BindingIdentifierSet(ids)
     }
 
+    operator fun minus(other: BindingIdentifierSet): BindingIdentifierSet {
+        val size = this.size - this.intersectSize(other)
+        val ids = IntArray(size)
+        val iter = this.ids.iterator()
+        repeat(size) { i ->
+            var next = iter.next()
+            while (next in other) {
+                next = iter.next()
+            }
+            ids[i] = next
+        }
+        return BindingIdentifierSet(ids)
+    }
+
     override fun equals(other: Any?): Boolean {
         if (other !is BindingIdentifierSet) {
             return false

@@ -54,26 +54,16 @@ class BasicGraphPatternState private constructor(
         return filters.stats(context, base, granularity)
     }
 
-    /**
-     * Returns a copy of self with the [expr] applied to its inner group of triple patterns.
-     *
-     * IMPORTANT: this expression **is not applied** to stateful
-     *  filters (the active [GraphPatternFilterState]), as that would not create the same query results!
-     */
-    fun filtered(expr: FilterExpression): BasicGraphPatternState {
-        return BasicGraphPatternState(
-            context = context,
-            group = group.filtered(expr),
-            filters = filters,
-            bindings = bindings,
-        )
-    }
-
     companion object {
 
         operator fun invoke(
             context: QueryContext,
             ast: GraphPattern,
+            /**
+             * In case this is a state that originates from an inner query structure (e.g. part of a union), filters
+             *  from outer scopes can be passed here for push down purposes
+             */
+            externalFilters: List<FilterExpression>
         ): BasicGraphPatternState {
             val group = GroupPatternState(
                 context = context,
@@ -82,7 +72,7 @@ class BasicGraphPatternState private constructor(
                 filters = ast.filters.mapNotNull { filter ->
                     val expression = (filter as? Filter.Predicate)?.expression ?: return@mapNotNull null
                     FilterExpression(context, expression)
-                },
+                } + externalFilters,
             )
             return BasicGraphPatternState(
                 context = context,

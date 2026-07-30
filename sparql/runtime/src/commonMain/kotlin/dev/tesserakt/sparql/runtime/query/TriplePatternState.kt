@@ -129,8 +129,10 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         /**
          * The backing structure used to store all intermediate matches with this specific triple pattern instance.
+         * We don't apply any indexes outright; our parent structure can use the [reindex] method to change it when
+         *  necessary.
          */
-        open val data = ReindexableMappingArray(bindingIdentifierSetOf(subj, pred, obj))
+        open val data = ReindexableMappingArray()
 
         override val cardinality get() = data.cardinality
 
@@ -139,13 +141,15 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         final override fun process(delta: DataDelta) {
             when (delta) {
                 is DataAddition -> {
-                    val new = peek(delta)
-                    changeCount += data.addAll(new)
+                    val new = peek(delta.value) ?: return
+                    data.add(new)
+                    ++changeCount
                 }
 
                 is DataDeletion -> {
-                    val removed = peek(delta)
-                    changeCount += data.removeAll(removed)
+                    val removed = peek(delta.value) ?: return
+                    data.remove(removed)
+                    ++changeCount
                 }
             }
         }
@@ -157,7 +161,9 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
                 delta.mapToStream {
                     data
                         .iter(delta.value)
-                        .remove(ignored)
+                        .let { stream ->
+                            if (ignored != null) stream.remove(ignored) else stream
+                        }
                         .join(delta.value)
                 }
             } else {
@@ -169,13 +175,25 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             data.reindex(bindings, hint)
         }
 
-        // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
-
-        final override fun peek(delta: DataAddition): Stream<Mapping> {
-            return peek(delta.value)
+        override fun prefill() {
+            context.iter(
+                s = this.s.termId ?: Int.MIN_VALUE,
+                p = this.p.termId ?: Int.MIN_VALUE,
+                o = this.o.termId ?: Int.MIN_VALUE,
+            ).forEach { quad ->
+                val mapping = peek(quad) ?: return@forEach
+                data.add(mapping)
+                ++changeCount
+            }
         }
 
-        abstract fun peek(quad: EncodedQuad): Stream<Mapping>
+        // as these are "stateless" compared to prior data, the operation type associated with the delta is irrelevant
+        final override fun peek(delta: DataAddition): Stream<Mapping> {
+            val element = peek(delta.value) ?: return emptyStream()
+            return streamOf(element)
+        }
+
+        abstract fun peek(quad: EncodedQuad): Mapping?
 
     }
 
@@ -186,14 +204,13 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         obj: Object
     ) : ArrayBackedPatternState<Exact>(context, subj, pred, obj) {
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
+        override fun peek(quad: EncodedQuad): Mapping? {
             if (pred.id.id != quad.p) {
-                return emptyStream()
+                return null
             }
-            val s = subjectMappingOrNull(quad) ?: return emptyStream()
-            val o = objectMappingOrNull(quad) ?: return emptyStream()
-            val result = s.join(o) ?: return emptyStream()
-            return streamOf(result)
+            val s = subjectMappingOrNull(quad) ?: return null
+            val o = objectMappingOrNull(quad) ?: return null
+            return s.join(o)
         }
 
     }
@@ -205,12 +222,11 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         obj: Object
     ) : ArrayBackedPatternState<Binding>(context, subj, pred, obj) {
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
-            val s = subjectMappingOrNull(quad) ?: return emptyStream()
-            val o = objectMappingOrNull(quad) ?: return emptyStream()
+        override fun peek(quad: EncodedQuad): Mapping? {
+            val s = subjectMappingOrNull(quad) ?: return null
+            val o = objectMappingOrNull(quad) ?: return null
             val p = mappingOf(context, p.id to TermIdentifier(quad.p))
-            val result = s.join(p)?.join(o) ?: return emptyStream()
-            return streamOf(result)
+            return s.join(p)?.join(o)
         }
 
     }
@@ -222,14 +238,13 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         obj: Object
     ) : ArrayBackedPatternState<Negated>(context, subj, pred, obj) {
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
+        override fun peek(quad: EncodedQuad): Mapping? {
             if (!pred.matches(quad.p)) {
-                return emptyStream()
+                return null
             }
-            val s = subjectMappingOrNull(quad) ?: return emptyStream()
-            val o = objectMappingOrNull(quad) ?: return emptyStream()
-            val result = s.join(o) ?: return emptyStream()
-            return streamOf(result)
+            val s = subjectMappingOrNull(quad) ?: return null
+            val o = objectMappingOrNull(quad) ?: return null
+            return s.join(o)
         }
 
     }
@@ -292,6 +307,127 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
     }
 
+    // special case: doesn't have a complex state (similar to array backed types), but can yield
+    //  more than 1 mapping for a single data change
+    class SimpleAltPatternState(
+        context: QueryContext,
+        s: Subject,
+        p: SimpleAlts,
+        o: Object
+    ) : TriplePatternState<SimpleAlts>(context, s, p, o) {
+
+        private val data = ReindexableMappingArray()
+
+        override val cardinality: Cardinality
+            get() = data.cardinality
+
+        override var changeCount: Long = 0L
+            private set
+
+        override fun prefill() {
+            // if all our inner predicates have direct lookup available, we can do multiple targeted scans
+            fun SimpleAlts.hasDirectLookup(): Boolean {
+                return allowed.all { it is Exact || it is SimpleAlts && it.hasDirectLookup() }
+            }
+            fun SimpleAlts.iterExacts(): Iterator<Exact> = iterator {
+                allowed.forEach { element ->
+                    when (element) {
+                        is Exact -> yield(element)
+
+                        is SimpleAlts -> yieldAll(element.iterExacts())
+
+                        else ->
+                            throw IllegalStateException("Could not yield exact elements only! Found $element")
+                    }
+                }
+            }
+            if (p.hasDirectLookup()) {
+                p.iterExacts().forEach { exact ->
+                    context.iter(
+                        s = this.s.termId ?: Int.MIN_VALUE,
+                        p = exact.id.id,
+                        o = this.o.termId ?: Int.MIN_VALUE,
+                    ).forEach { quad ->
+                        // we don't `peek()` here, as this could get duplicate results
+                        //  for other allowed predicates we're currently not processing
+                        // s / o can still mismatch in case they share binding name
+                        val s = subjectMappingOrNull(quad) ?: return@forEach
+                        val o = objectMappingOrNull(quad) ?: return@forEach
+                        val result = s.join(o) ?: return@forEach
+                        data.add(result)
+                        ++changeCount
+                    }
+                }
+            }
+            // if not, we need to do a full scan on the predicate and go from there
+            else {
+                context.iter(
+                    s = this.s.termId ?: Int.MIN_VALUE,
+                    o = this.o.termId ?: Int.MIN_VALUE,
+                ).forEach { quad ->
+                    val new = peek(quad)
+                    changeCount += data.addAll(new)
+                }
+            }
+        }
+
+        override fun process(delta: DataDelta) {
+            when (delta) {
+                is DataAddition -> {
+                    val new = peek(delta)
+                    changeCount += data.addAll(new)
+                }
+                is DataDeletion -> {
+                    val removed = peek(delta)
+                    changeCount += data.removeAll(removed)
+                }
+            }
+        }
+
+        override fun peek(delta: DataAddition): Stream<Mapping> {
+            return peek(delta.value)
+        }
+
+        override fun join(delta: MappingDelta): Stream<MappingDelta> {
+            val removed = (delta.origin as? DataDeletion)?.value
+            return if (removed != null) {
+                val ignored = peek(removed)
+                delta.mapToStream {
+                    data
+                        .iter(delta.value)
+                        .remove(ignored)
+                        .join(delta.value)
+                }
+            } else {
+                delta.mapToStream { data.join(delta.value) }
+            }
+        }
+
+        // we're stateless
+        private fun peek(delta: EncodedQuad): Stream<Mapping> {
+            // we yield as many results as there are predicates that match it
+            val count = p.allowed.count { it.matches(delta.p) }
+            if (count == 0) {
+                return emptyStream()
+            }
+            // s / o can still mismatch
+            val s = subjectMappingOrNull(delta) ?: return emptyStream()
+            val o = objectMappingOrNull(delta) ?: return emptyStream()
+            val result = s.join(o) ?: return emptyStream()
+            // the count is expected to be really small
+            if (count == 1) {
+                return streamOf(result)
+            }
+            // the same mapping, repeated
+            return CollectedStream(List(count) { result })
+        }
+
+        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            data.reindex(bindings, hint)
+        }
+
+    }
+
     class AltPatternState(
         context: QueryContext,
         s: Subject,
@@ -307,6 +443,11 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         override val changeCount: Long
             get() = states.sumOf { it.changeCount }
 
+        override fun prefill() {
+            // we process the prefill requires on a per-state basis; each state manages it differently
+            states.forEach { it.prefill() }
+        }
+
         override fun process(delta: DataDelta) {
             states.forEach { it.process(delta) }
         }
@@ -318,44 +459,6 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         override fun peek(delta: DataDeletion): Stream<Mapping> {
             // whilst the max cardinality here is not correct in all cases, it covers most bases
-            return states.toStream().transform(maxCardinality = 1) { it.peek(delta) }
-        }
-
-        override fun join(delta: MappingDelta): Stream<MappingDelta> {
-            // stream creation here is cheap, already a list
-            return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
-        }
-
-        override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
-            states.forEach { it.reindex(bindings, hint) }
-        }
-
-    }
-
-    class SimpleAltPatternState(
-        context: QueryContext,
-        s: Subject,
-        p: SimpleAlts,
-        o: Object
-    ) : TriplePatternState<SimpleAlts>(context, s, p, o) {
-
-        private val states = p.allowed.map { p -> from(context, s, p, o) }
-
-        override val cardinality: Cardinality
-            get() = Cardinality(states.sumOf { it.cardinality.toDouble() })
-
-        override val changeCount: Long
-            get() = states.sumOf { it.changeCount }
-
-        override fun process(delta: DataDelta) {
-            states.forEach { it.process(delta) }
-        }
-
-        override fun peek(delta: DataAddition): Stream<Mapping> {
-            return states.toStream().transform(maxCardinality = 1) { it.peek(delta) }
-        }
-
-        override fun peek(delta: DataDeletion): Stream<Mapping> {
             return states.toStream().transform(maxCardinality = 1) { it.peek(delta) }
         }
 
@@ -387,6 +490,12 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         override var changeCount = 0L
             private set
 
+        override fun prefill() {
+            // no-op - our inner join tree prefilled the inner triple states automatically
+            // we only 'calibrate' our change count to match the initial state
+            changeCount = cardinality.value.toLong()
+        }
+
         override fun process(delta: DataDelta) {
             val prev = tree.cardinality.value.toLong()
             tree.process(delta)
@@ -413,6 +522,10 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
             tree.reindex(bindings, hint)
+        }
+
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            return tree.stats(context, granularity)
         }
 
     }
@@ -434,6 +547,11 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         override var changeCount = 0L
             private set
 
+        override fun prefill() {
+            // data-wise no-op - our inner join tree prefilled the inner triple states automatically
+            // we only 'calibrate' our change count to match the initial state
+            changeCount = cardinality.value.toLong()
+        }
 
         override fun process(delta: DataDelta) {
             val prev = tree.cardinality.value.toLong()
@@ -461,6 +579,10 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
             tree.reindex(bindings, hint)
+        }
+
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            return tree.stats(context, granularity)
         }
 
     }
@@ -490,11 +612,11 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         // we don't store the data ourselves; instead, we piggyback of our wrapped type's data instance
         override val data: ReindexableMappingArray = inner.data
 
-        override fun peek(quad: EncodedQuad): Stream<Mapping> {
+        override fun peek(quad: EncodedQuad): Mapping? {
             // array-backed implementations use this adapted result stream to alter the data state, so we don't
             //  need to adapt the backing array any further; no additional filtering is required at `join()` time
             //  either (see description above)
-            return inner.peek(quad).filtered { mapping -> expr.test(mapping) }
+            return inner.peek(quad)?.takeIf { mapping -> expr.test(mapping) }
         }
 
         override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
@@ -527,6 +649,12 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         init {
             // making sure we're not wrapping a type of triple pattern that can be filtered out more effectively
             check(inner !is ArrayBackedPatternState && inner !is FilteredArrayBackedTriplePatternState)
+        }
+
+        override fun prefill() {
+            // we have to specialize our `prefill()` method as it's possible the implementation we wrap
+            //  has a custom version
+            inner.prefill()
         }
 
         override fun peek(delta: DataAddition): Stream<Mapping> {
@@ -575,6 +703,22 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
     abstract val changeCount: Long
 
     final override val bindings = bindingIdentifierSetOf(s, p, o)
+
+    /**
+     * Uses the associated [QueryContext] instance to 'prefill' this state with data already present in the backing
+     *  structure, if any
+    */
+    open fun prefill() {
+        context.iter(
+            s = this.s.termId ?: Int.MIN_VALUE,
+            p = this.p.termId ?: Int.MIN_VALUE,
+            o = this.o.termId ?: Int.MIN_VALUE,
+        ).forEach { quad ->
+            val addition = DataAddition(quad)
+            // this will internally `peek()` the change, ensuring it matches the exact predicate properly
+            process(addition)
+        }
+    }
 
     /**
      * Yields a new mapping on (subject-based) match:
@@ -699,7 +843,14 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
     final override fun toString() = "$s $p $o - cardinality $cardinality"
 
-    final override fun filtered(filter: FilterExpression): TriplePatternState<*> {
+    /**
+     * Returns a wrapped version of this state instance, with a filter expression being applied directly on top of it.
+     * Note that applying a filter that references bindings not found in this triple pattern is an error.
+     */
+    fun filtered(filter: FilterExpression): TriplePatternState<*> {
+        check(filter.bindings in this.bindings) {
+            "Tried to apply a filter to a triple pattern that does not contain all of the necessary bindings!"
+        }
         // we choose the most optimal filter wrapper based on the type we're wrapping
         return when (this) {
             is ArrayBackedPatternState<*> -> {

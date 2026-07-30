@@ -49,8 +49,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
 
         fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
-        fun filtered(expression: FilterExpression): Node
-
         @JvmInline
         value class Leaf(val state: MutableJoinState): Node {
 
@@ -80,25 +78,14 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 return state.stats(context, granularity)
             }
 
-            override fun filtered(expression: FilterExpression): Node {
-                // we have to make sure the filter expression fits in at least the combination of both nodes, as
-                //  otherwise the expression could not be properly processed within this sub-tree, and we cannot
-                //  apply the filter
-                if (expression.bindings !in this.bindings) {
-                    return this
-                }
-                return Leaf(state = state.filtered(expression))
-            }
-
         }
 
         class Connected(
+            context: QueryContext,
             internal val left: Node,
             internal val right: Node,
             indexes: BindingIdentifierSet,
-            // filters are applied (pushed down) after tree construction, so this is often empty until the tree is
-            //  formed
-            internal val filters: List<FilterExpression> = emptyList(),
+            internal val filters: List<FilterExpression>,
         ): Node {
 
             override val bindings = left.bindings + right.bindings
@@ -111,6 +98,15 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
 
             init {
                 check(filters.all { expression -> expression.bindings in bindings })
+                // we process our initial state as that of the combination of left and right nodes, as these
+                //  can already contain initial data
+                val initialData = right
+                    .join(left.join(MappingAddition(context.emptyMapping(), null)).optimisedForSingleUse(left.cardinality))
+                    .filtered { filters.all { expression -> expression.test(it.value) } }
+                initialData.forEach { delta ->
+                    check(delta is MappingAddition) { "Got an unexpected mapping deletion event!" }
+                    buf.add(delta.value)
+                }
             }
 
             override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
@@ -166,7 +162,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                     left = left.stats(context, granularity),
                     right = right.stats(context, granularity),
                 )
-                val inner = if (granularity isAtLeast QueryStatistics.Granularity.DETAILED && filters.isNotEmpty()) {
+                val inner = if (granularity isAtLeast QueryStatistics.Granularity.HIGH_LEVEL && filters.isNotEmpty()) {
                     Statistics.DescriptionElement(
                         description = "Filtered\n${filters.joinToString("\n")}",
                         inner = base,
@@ -178,54 +174,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                     inner = inner,
                     cardinality = cardinality,
                 )
-            }
-
-            override fun filtered(expression: FilterExpression): Node {
-                // we have to make sure the filter expression fits in at least the combination of both nodes, as
-                //  otherwise the expression could not be properly processed within this sub-tree, and we cannot
-                //  apply the filter
-                if (expression.bindings !in this.bindings) {
-                    return this
-                }
-                return when {
-                    expression.bindings in left.bindings && expression.bindings in right.bindings -> {
-                        // affects both sides, individually, so we don't need to globally filter after the fact
-                        Connected(
-                            left = left.filtered(expression),
-                            right = right.filtered(expression),
-                            indexes = buf.indexes,
-                            filters = filters,
-                        )
-                    }
-                    expression.bindings in left.bindings && expression.bindings.asIntIterable().none { binding -> binding in right.bindings } -> {
-                        // affects the left side only, individually, so we don't need to globally filter after the fact
-                        Connected(
-                            left = left.filtered(expression),
-                            right = right,
-                            indexes = buf.indexes,
-                            filters = filters,
-                        )
-                    }
-                    expression.bindings.asIntIterable().none { binding -> binding in left.bindings } && expression.bindings in right.bindings -> {
-                        // affects the right side only, individually, so we don't need to globally filter after the fact
-                        Connected(
-                            left = left,
-                            right = right.filtered(expression),
-                            indexes = buf.indexes,
-                            filters = filters,
-                        )
-                    }
-                    else -> {
-                        // can only be applied after joining both sides together, so we put the filter as part of this
-                        //  node (see check above)
-                        Connected(
-                            left = left,
-                            right = right,
-                            indexes = buf.indexes,
-                            filters = filters + expression,
-                        )
-                    }
-                }
             }
 
         }
@@ -280,47 +228,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 return Statistics.JoinedElement(left = left.stats(context, granularity), right = right.stats(context, granularity))
             }
 
-            override fun filtered(expression: FilterExpression): Node {
-                // we have to make sure the filter expression fits in at least the combination of both nodes, as
-                //  otherwise the expression could not be properly processed within this sub-tree, and we cannot
-                //  apply the filter
-                if (expression.bindings !in this.bindings) {
-                    return this
-                }
-                return when {
-                    expression.bindings in left.bindings && expression.bindings in right.bindings -> {
-                        // affects both sides, individually, so we don't need to globally filter after the fact
-                        Disconnected(
-                            left = left.filtered(expression),
-                            right = right.filtered(expression),
-                        )
-                    }
-                    expression.bindings in left.bindings && expression.bindings.asIntIterable().none { binding -> binding in right.bindings } -> {
-                        // affects the left side only, individually, so we don't need to globally filter after the fact
-                        Disconnected(
-                            left = left.filtered(expression),
-                            right = right,
-                        )
-                    }
-                    expression.bindings.asIntIterable().none { binding -> binding in left.bindings } && expression.bindings in right.bindings -> {
-                        // affects the right side only, individually, so we don't need to globally filter after the fact
-                        Disconnected(
-                            left = left,
-                            right = right.filtered(expression),
-                        )
-                    }
-                    else -> {
-                        // can only be applied after joining both sides together, so we put the filter as part of this
-                        //  node (see check above)
-                        Connected(
-                            left = left,
-                            right = right,
-                            filters = listOf(expression),
-                            indexes = BindingIdentifierSet.EMPTY,
-                        )
-                    }
-                }
-            }
         }
 
     }
@@ -364,12 +271,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
         return root.stats(context, granularity)
     }
 
-    override fun filtered(filter: FilterExpression): MutableJoinState {
-        return DynamicJoinTree(
-            root = root.filtered(filter)
-        )
-    }
-
     companion object {
 
         @JvmName("forPatterns")
@@ -379,16 +280,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             filters: List<FilterExpression>,
         ): DynamicJoinTree {
             val states = patterns.map { TriplePatternState.from(context, it) }
-            val root = filters.fold(
-                initial = build(
-                    states = states,
-                    prioritizedBindings = filters
-                        .fold(BindingIdentifierSet.EMPTY) { set, filter -> set + filter.bindings }
-                )
-            ) { tree, filter ->
-                tree.filtered(filter)
-            }
-            return DynamicJoinTree(root)
+            return invoke(states, filters)
         }
 
         @JvmName("forPatternStates")
@@ -396,15 +288,34 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             patterns: List<TriplePatternState<*>>,
             filters: List<FilterExpression>,
         ): DynamicJoinTree {
-            val root = filters.fold(
-                initial = build(
-                    states = patterns,
-                    prioritizedBindings = filters
-                        .fold(BindingIdentifierSet.EMPTY) { set, filter -> set + filter.bindings }
-                )
-            ) { tree, filter ->
-                tree.filtered(filter)
+            // we're currently dealing with fresh triple pattern states that need to be prefilled
+            // however, before we do that, we need to apply all their relevant filters
+            val patterns = if (filters.isEmpty()) {
+                // small optimization; if there aren't any filters we need to apply, we don't need to
+                //  create a mapped view of the triple pattern states either
+                patterns
+            } else {
+                // we replace all pattern states with filtered variants, so that prefilling them already
+                //  has their filter constraints satisfied
+                patterns.map { pattern ->
+                    filters.fold(pattern) { pattern, filter ->
+                        if (filter.bindings in pattern.bindings) {
+                            pattern.filtered(filter)
+                        } else {
+                            pattern
+                        }
+                    }
+                }
             }
+            // now it is safe to do all necessary prefilling
+            patterns.forEach { it.prefill() }
+            // we supply downstream with all filter information; not all have to be applied on a connected node level
+            //  however, this depends on the bindings of the individual join tree sections
+            val root = build(
+                context = patterns[0].context,
+                states = patterns,
+                filters = filters,
+            )
             return DynamicJoinTree(root)
         }
 
@@ -423,28 +334,29 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                     filters = emptyList()
                 )
             }
-            val root = filters.fold(
-                initial = build(
+            return DynamicJoinTree(
+                root = build(
+                    context = context,
                     states = states,
-                    prioritizedBindings = filters
-                        .fold(BindingIdentifierSet.EMPTY) { set, filter -> set + filter.bindings }
+                    filters = filters,
                 )
-            ) { tree, filter ->
-                tree.filtered(filter)
-            }
-            return DynamicJoinTree(root)
+            )
         }
 
         /**
          * Builds a tree, returning the tree's root, using the provided [states]
          */
-        private fun build(states: List<MutableJoinState>, prioritizedBindings: BindingIdentifierSet): Node {
+        private fun build(
+            context: QueryContext,
+            states: List<MutableJoinState>,
+            filters: List<FilterExpression>,
+        ): Node {
             check(states.isNotEmpty())
             if (states.size == 1) {
                 // hardly a tree, but what can we do
                 return Node.Leaf(states.single())
             }
-            return DynamicJoinTreeBuilder.build(states, prioritizedBindings)
+            return DynamicJoinTreeBuilder.build(context, states, filters)
         }
     }
 

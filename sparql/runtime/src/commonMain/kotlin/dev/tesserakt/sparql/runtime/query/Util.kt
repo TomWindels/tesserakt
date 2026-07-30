@@ -74,6 +74,16 @@ val TriplePatternState.Predicate.bindingId: Int?
 val TriplePatternState.Object.bindingId: Int?
     get() = (this as? TriplePatternState.Binding)?.id?.id
 
+val TriplePatternState.Subject.termId: Int?
+    get() = (this as? TriplePatternState.Exact)?.id?.id
+
+val TriplePatternState.Predicate.termId: Int?
+    get() = (this as? TriplePatternState.Exact)?.id?.id
+
+val TriplePatternState.Object.termId: Int?
+    get() = (this as? TriplePatternState.Exact)?.id?.id
+
+
 inline fun JoinTree.join(deltas: List<MappingDelta>): List<MappingDelta> {
     return deltas.flatMap { delta -> join(delta) }
 }
