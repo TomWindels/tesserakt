@@ -16,7 +16,7 @@ fun GraphPattern.extractAllBindings(): List<TriplePattern.Binding> =
     (
             patterns.flatMap { pattern -> pattern.extractAllBindings() } +
                     unions.flatMap { union -> union.flatMap { it.extractAllBindings() } } +
-                    optional.flatMap { optional -> optional.segment.extractAllBindings() }
+                    optional.flatMap { optional -> optional.patterns.flatMap { it.extractAllBindings() } }
             ).distinct()
 
 fun Segment.extractAllBindings() = when (this) {

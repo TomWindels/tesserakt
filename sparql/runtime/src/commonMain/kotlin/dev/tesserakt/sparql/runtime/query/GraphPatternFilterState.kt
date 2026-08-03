@@ -29,13 +29,6 @@ value class GraphPatternFilterState(
         return stateful.filter(input)
     }
 
-    /**
-     * Filters the [input] stream, using its processed internal state after applying the [delta]
-     */
-    fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
-        return stateful.filter(input, delta)
-    }
-
     fun process(delta: DataDelta) {
         stateful.process(delta)
     }
@@ -52,11 +45,6 @@ value class GraphPatternFilterState(
         fun peek(parent: MutableJoinState, delta: DataDelta): Stream<MappingDelta>
 
         /**
-         * Filters the [input] stream, using its processed internal state after applying the [delta]
-         */
-        fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta>
-
-        /**
          * Filters the [input] stream, using only its processed internal state
          */
         fun filter(input: Stream<MappingDelta>): Stream<MappingDelta>
@@ -70,11 +58,6 @@ value class GraphPatternFilterState(
             override fun peek(parent: MutableJoinState, delta: DataDelta): Stream<MappingDelta> {
                 // no filters applied
                 return parent.peek(delta)
-            }
-
-            override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
-                // can go through unfiltered
-                return input
             }
 
             override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
@@ -101,10 +84,6 @@ value class GraphPatternFilterState(
                 // getting the new results from the filter, affecting the pattern group
                 val two = filter.peek(delta).transform(parent.cardinality) { parent.join(it) }
                 return two.chain(one)
-            }
-
-            override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
-                return filter.filter(input, delta)
             }
 
             override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
@@ -142,10 +121,6 @@ value class GraphPatternFilterState(
                             .folded(base) { results, filter -> filter.filter(results, delta = delta) }
                     }
                 return one.chain(two)
-            }
-
-            override fun filter(input: Stream<MappingDelta>, delta: DataDelta): Stream<MappingDelta> {
-                return filters.folded(input) { results, filter -> filter.filter(results, delta = delta) }
             }
 
             override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {

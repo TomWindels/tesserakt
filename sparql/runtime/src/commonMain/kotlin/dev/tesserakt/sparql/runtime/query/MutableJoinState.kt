@@ -9,6 +9,7 @@ import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
+import dev.tesserakt.sparql.runtime.stream.collect
 import dev.tesserakt.sparql.util.Cardinality
 
 /**
@@ -46,5 +47,12 @@ interface MutableJoinState {
     fun process(delta: DataDelta)
 
     fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
+
+    fun insert(delta: DataDelta): List<MappingDelta> {
+        // it's important we collect the results before we process the delta
+        val total = peek(delta).collect()
+        process(delta)
+        return total
+    }
 
 }

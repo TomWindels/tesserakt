@@ -3,7 +3,7 @@ package dev.tesserakt.sparql.runtime.stream
 import dev.tesserakt.sparql.util.Cardinality
 
 class StreamTransform<I: Any, O: Any>(
-    private val source: OptimisedStream<I>,
+    private val source: Stream<I>,
     private val transform: (I) -> Stream<O>,
     override val cardinality: Cardinality,
 ): Stream<O> {

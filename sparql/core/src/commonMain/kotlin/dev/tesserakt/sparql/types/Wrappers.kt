@@ -8,8 +8,7 @@ value class TriplePatternSet(private val items: List<TriplePattern>): List<Tripl
 @JvmInline
 value class Union(val segments: List<Segment>): List<Segment> by segments, QueryAtom
 
-@JvmInline
-value class Optional(val segment: Segment): QueryAtom
+data class Optional(val patterns: TriplePatternSet, val filters: List<Filter.Predicate>): QueryAtom
 
 sealed interface Segment : QueryAtom
 

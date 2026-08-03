@@ -54,7 +54,31 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
                     // consuming the "OPTIONAL" keyword before extracting the segment
                     consume()
                     // extracting the segment and inserting it
-                    builder.optional.add(Optional(use(SegmentProcessor())))
+                    expectToken(Token.Symbol.CurlyBracketStart)
+                    consume()
+                    val filters = mutableListOf<Filter.Predicate>()
+                    val patterns = mutableListOf<TriplePattern>()
+                    while (token != Token.Symbol.CurlyBracketEnd) {
+                        when (token) {
+                            Token.Keyword.Filter -> {
+                                // `FILTER` is expected to be consumed
+                                consume()
+                                val filter = use(FilterProcessor())
+                                if (filter !is Filter.Predicate) {
+                                    bail("Filter expression expected! Found ${filter::class.simpleName}")
+                                }
+                                filters.add(filter)
+                            }
+                            else -> {
+                                // not a filter, nor a `}`, so consuming it expecting patterns
+                                val new = use(PatternProcessor())
+                                patterns.addAll(new)
+                            }
+                        }
+                    }
+                    builder.optional.add(Optional(patterns = TriplePatternSet(patterns), filters = filters))
+                    expectToken(Token.Symbol.CurlyBracketEnd)
+                    consume()
                 }
                 Token.Symbol.CurlyBracketStart -> {
                     builder.unions.add(use(UnionProcessor()))

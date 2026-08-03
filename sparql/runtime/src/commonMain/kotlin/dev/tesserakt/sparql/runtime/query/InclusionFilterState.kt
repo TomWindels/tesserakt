@@ -38,7 +38,7 @@ sealed interface InclusionFilterState: MutableFilterState {
     class Narrow(
         context: QueryContext,
         private val commonBindingNames: BindingIdentifierSet,
-        private val state: BasicGraphPatternState,
+        private val state: MutableJoinState,
     ) : InclusionFilterState {
 
         // tracking what binding groups are "invalid" (= should be filtered out)
@@ -58,20 +58,13 @@ sealed interface InclusionFilterState: MutableFilterState {
         }
 
         override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-            val changes = state.peek(delta).mapped { it.map { it.retain(commonBindingNames) } }
+            peekStateChange(delta)
             // these changes, combined with the `filtered` state, will result in a set of bindings that can now be joined
             //  with to find all resulting changes:
             // * change deletions (in filtered now, but removed in `changes`) => these have to be removed outwards
             // * change additions (not in filtered now, but in `changes`) => these have to be added outwards
-            val diff = mutableMapOf<Mapping, Int>()
-            changes.forEach { mappingDelta ->
-                when (mappingDelta) {
-                    is MappingAddition -> diff.replace(mappingDelta.value) { (it ?: 0) + 1 }
-                    is MappingDeletion -> diff.replace(mappingDelta.value) { (it ?: 0) - 1 }
-                }
-            }
             val results = mutableListOf<MappingDelta>()
-            diff.forEach { (mapping, count) ->
+            lastChanges.forEach { (mapping, count) ->
                 val current = filtered[mapping]
                 when {
                     count < 0 && current <= -count -> {
@@ -187,8 +180,8 @@ sealed interface InclusionFilterState: MutableFilterState {
      *  state means no bindings are coming through
      */
     class Broad(
-        context: QueryContext,
-        private val state: BasicGraphPatternState,
+        val context: QueryContext,
+        private val state: MutableJoinState,
     ) : InclusionFilterState {
 
         private var count = state
@@ -210,12 +203,12 @@ sealed interface InclusionFilterState: MutableFilterState {
             // if the count becomes > 0 through this delta, all mappings should be added;
             if (count == 0 && change != 0) {
                 check(change > 0) { "Invalid internal state!" }
-                return streamOf(MappingAddition(state.context.emptyMapping(), null))
+                return streamOf(MappingAddition(context.emptyMapping(), null))
             }
             // similarly, if the count becomes 0 through this delta, all mappings should be removed
             if (count > 0 && count + change <= 0) {
                 check(count + change == 0) { "Invalid internal state!" }
-                return streamOf(MappingDeletion(state.context.emptyMapping(), null))
+                return streamOf(MappingDeletion(context.emptyMapping(), null))
             }
             // nothing changed, so the peek is empty
             return emptyStream()

@@ -18,7 +18,7 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
     private sealed class Segment {
 
         class GraphPatternSegmentState private constructor(
-            private val state: BasicGraphPatternState,
+            private val state: MutableJoinState,
         ): Segment() {
 
             constructor(

@@ -95,6 +95,74 @@ fun builtinTests() = tests {
         }
     """
 
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o1
+            OPTIONAL {
+                ?o1 <http://example.org/path1> ?o2
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o1
+            OPTIONAL {
+                ?s <http://example.org/path2> ?o2
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o
+            OPTIONAL {
+                ?s <http://example.org/path2> ?o
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o
+            OPTIONAL {
+                ?s <http://example.org/path1> ?o
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o
+            OPTIONAL {
+                ?o <http://example.org/path1> ?o2
+                FILTER(?o != ?o2)
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            OPTIONAL {
+                ?s1 <http://example.org/path1> ?o1
+            }
+            OPTIONAL {
+                ?s2 <http://example.org/path2> ?o2
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            OPTIONAL {
+                ?s <http://example.org/path1> ?o1
+            }
+            OPTIONAL {
+                ?s <http://example.org/path2> ?o2
+            }
+        }
+    """
+
     val counts = buildStore {
         val example = prefix("", "http://example/")
         repeat(10) { i ->
@@ -122,8 +190,32 @@ fun builtinTests() = tests {
         PREFIX : <http://example/>
 
         SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL {
+                FILTER(?c > 3)
+                ?s :count ?c
+            }
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
             ?s a :Example ; :count ?c .
             FILTER(?c <= 3)
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL {
+                ?s :count ?c .
+                FILTER(?c <= 3)
+            }
         }
     """
 
@@ -144,6 +236,22 @@ fun builtinTests() = tests {
             ?s a :Example ; :count ?c .
             FILTER(?c > 2) .
             FILTER(?c < 5) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL {
+                ?s :count ?c1 .
+                FILTER(?c1 > 2)
+            }
+            OPTIONAL {
+                ?s :count ?c2 .
+                FILTER(?c2 < 5)
+            }
         }
     """
 
@@ -181,6 +289,32 @@ fun builtinTests() = tests {
             FILTER(?s1 != ?s2) .
             FILTER(?s2 != ?s3) .
             FILTER(?s3 != ?s4) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            # getting enough subject - count pairs to get a more complex join tree hierarchy
+            # we have no filter affecting a single optional block, instead, these are applied after
+            # the optional joins have been evaluated
+            ?s1 a :Example ; :count ?c1 .
+            OPTIONAL {
+                ?s2 a :Example ; :count ?c2 .
+            }
+            OPTIONAL {
+                ?s3 a :Example ; :count ?c3 .
+            }
+            OPTIONAL {
+                ?s4 a :Example ; :count ?c4 .
+            }
+            FILTER(?s1 != ?s2) .
+            FILTER(?s2 != ?s3) .
+            FILTER(?s3 != ?s4) .
+            FILTER(?c1 >= ?c2) .
+            FILTER(?c2 >= ?c3) .
+            FILTER(?c3 >= ?c4) .
         }
     """
 

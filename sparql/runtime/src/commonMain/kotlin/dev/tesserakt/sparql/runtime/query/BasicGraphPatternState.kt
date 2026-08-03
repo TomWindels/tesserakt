@@ -1,13 +1,15 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.QueryStatistics
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.runtime.stream.collect
+import dev.tesserakt.sparql.runtime.stream.optimisedForSingleUse
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.types.GraphPattern
 import dev.tesserakt.sparql.util.Cardinality
@@ -21,35 +23,35 @@ class BasicGraphPatternState private constructor(
      * A collection of all bindings found inside this query body; it is not guaranteed that all solutions generated
      *  through [insert]ion have a value for all of these bindings, as this depends on the query itself
      */
-    val bindings: BindingIdentifierSet,
-) {
+    override val bindings: BindingIdentifierSet,
+): MutableJoinState {
 
     // we don't check the cardinality after filtering, as doing so would be expensive
-    val cardinality: Cardinality
+    override val cardinality: Cardinality
         get() = group.cardinality
 
-    fun insert(delta: DataDelta): List<MappingDelta> {
-        // it's important we collect the results before we process the delta
-        val total = peek(delta).collect()
-        process(delta)
-        return total
-    }
-
-    fun peek(delta: DataDelta): Stream<MappingDelta> {
+    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
         // getting the max amount of mappings we can yield based on the inner group
-        return filters.peek(group, delta)
+        return filters.peek(group, delta).optimisedForSingleUse()
     }
 
-    fun process(delta: DataDelta) {
+    override fun process(delta: DataDelta) {
         group.process(delta)
         filters.process(delta)
     }
 
-    fun join(delta: MappingDelta): Stream<MappingDelta> {
+    override fun join(delta: MappingDelta): Stream<MappingDelta> {
         return filters.filter(group.join(delta))
     }
 
-    fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+    override fun reindex(
+        bindings: BindingIdentifierSet,
+        hint: MappingArrayHint
+    ) {
+        group.reindex(bindings, hint)
+    }
+
+    override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
         val base = group.stats(context, granularity)
         return filters.stats(context, base, granularity)
     }
@@ -64,21 +66,37 @@ class BasicGraphPatternState private constructor(
              *  from outer scopes can be passed here for push down purposes
              */
             externalFilters: List<FilterExpression>
-        ): BasicGraphPatternState {
+        ): MutableJoinState {
+            val filters = ast.filters.mapNotNull { filter ->
+                val expression = (filter as? Filter.Predicate)?.expression ?: return@mapNotNull null
+                FilterExpression(context, expression)
+            } + externalFilters
             val group = GroupPatternState(
                 context = context,
                 pattern = ast.patterns,
                 unions = ast.unions,
-                filters = ast.filters.mapNotNull { filter ->
-                    val expression = (filter as? Filter.Predicate)?.expression ?: return@mapNotNull null
-                    FilterExpression(context, expression)
-                } + externalFilters,
+                filters = filters,
             )
-            return BasicGraphPatternState(
+            val inner = BasicGraphPatternState(
                 context = context,
                 group = group,
                 filters = GraphPatternFilterState(context, parent = group, filters = ast.filters),
-                bindings = BindingIdentifierSet(context, ast.getAllNamedBindings().map { it.name }),
+                bindings = BindingIdentifierSet(
+                    context = context,
+                    names = ast.patterns.getAllNamedBindings().map { it.name }).plus(
+                        BindingIdentifierSet(
+                            context = context,
+                            names = ast.unions.getAllNamedBindings().map { it.name })
+                    ),
+            )
+            if (ast.optional.isEmpty()) {
+                return inner
+            }
+            return OptionalState(
+                context = context,
+                inner = inner,
+                optionals = ast.optional,
+                filters = filters,
             )
         }
 
