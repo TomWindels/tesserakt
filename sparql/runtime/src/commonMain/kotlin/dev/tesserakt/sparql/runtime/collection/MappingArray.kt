@@ -7,7 +7,10 @@ import dev.tesserakt.sparql.util.Cardinality
 
 interface MappingArray : Iterable<Mapping> {
 
+    val size: Int
+
     val cardinality: Cardinality
+        get() = Cardinality(size)
 
     val indexes: BindingIdentifierSet
 
