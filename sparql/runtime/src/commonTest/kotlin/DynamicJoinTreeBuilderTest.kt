@@ -569,7 +569,7 @@ class DynamicJoinTreeBuilderTest {
         filters: List<FilterExpression> = emptyList(),
     ): DynamicJoinTree.Node {
         val nodes = bindings.map { TestNode(it) }
-        return DynamicJoinTreeBuilder.build(GlobalQueryContext, nodes, filters)
+        return DynamicJoinTreeBuilder.build(GlobalQueryContext, nodes, filters, externalBindings = BindingIdentifierSet.EMPTY)
     }
 
     /**

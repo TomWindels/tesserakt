@@ -482,7 +482,12 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         // we don't apply any filters here - we use anonymous bindings during the unfolding, so none could possibly
         //  match in the inner state
-        private val tree = JoinTree.from(p.unfold(context, start = s, end = o), filters = emptyList())
+        private val tree = JoinTree.from(
+            patterns = p.unfold(context, start = s, end = o),
+            filters = emptyList(),
+            // subsequent call to `reindex` will change this
+            externalBindings = BindingIdentifierSet.EMPTY,
+        )
 
         override val cardinality: Cardinality
             get() = tree.cardinality
@@ -539,7 +544,12 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         // we don't apply any filters here - we use anonymous bindings during the unfolding, so none could possibly
         //  match in the inner state
-        private val tree = JoinTree.from(pred.unfold(context, start = subj, end = obj), filters = emptyList())
+        private val tree = JoinTree.from(
+            patterns = pred.unfold(context, start = subj, end = obj),
+            filters = emptyList(),
+            // subsequent call to `reindex` will change this
+            externalBindings = BindingIdentifierSet.EMPTY,
+        )
 
         override val cardinality: Cardinality
             get() = tree.cardinality

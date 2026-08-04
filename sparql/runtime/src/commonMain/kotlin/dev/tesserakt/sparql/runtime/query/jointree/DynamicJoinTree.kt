@@ -278,15 +278,17 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             context: QueryContext,
             patterns: List<TriplePattern>,
             filters: List<FilterExpression>,
+            externalBindings: BindingIdentifierSet,
         ): DynamicJoinTree {
             val states = patterns.map { TriplePatternState.from(context, it) }
-            return invoke(states, filters)
+            return invoke(states, filters, externalBindings)
         }
 
         @JvmName("forPatternStates")
         operator fun invoke(
             patterns: List<TriplePatternState<*>>,
             filters: List<FilterExpression>,
+            externalBindings: BindingIdentifierSet,
         ): DynamicJoinTree {
             // we're currently dealing with fresh triple pattern states that need to be prefilled
             // however, before we do that, we need to apply all their relevant filters
@@ -315,6 +317,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 context = patterns[0].context,
                 states = patterns,
                 filters = filters,
+                externalBindings = externalBindings,
             )
             return DynamicJoinTree(root)
         }
@@ -324,6 +327,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             context: QueryContext,
             unions: List<Union>,
             filters: List<FilterExpression>,
+            externalBindings: BindingIdentifierSet,
         ): DynamicJoinTree {
             val states = unions.map { union ->
                 UnionState(
@@ -339,6 +343,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                     context = context,
                     states = states,
                     filters = filters,
+                    externalBindings = externalBindings,
                 )
             )
         }
@@ -350,13 +355,14 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             context: QueryContext,
             states: List<MutableJoinState>,
             filters: List<FilterExpression>,
+            externalBindings: BindingIdentifierSet,
         ): Node {
             check(states.isNotEmpty())
             if (states.size == 1) {
                 // hardly a tree, but what can we do
                 return Node.Leaf(states.single())
             }
-            return DynamicJoinTreeBuilder.build(context, states, filters)
+            return DynamicJoinTreeBuilder.build(context, states, filters, externalBindings)
         }
     }
 

@@ -22,10 +22,11 @@ internal object DynamicJoinTreeBuilder {
         context: QueryContext,
         states: List<MutableJoinState>,
         filters: List<FilterExpression>,
+        externalBindings: BindingIdentifierSet,
     ): Node {
         val states = states.mapTo(mutableListOf()) { state -> TreeSegment.leaf(state) }
         if (filters.isEmpty()) {
-            return build(context, states, filters).node
+            return build(context, states, filters, externalBindings).node
         }
         // we need to apply filters that span across multiple states, as they cannot be passed down fully to any single
         //  state because of their requirements
@@ -52,7 +53,7 @@ internal object DynamicJoinTreeBuilder {
         }
         if (spanningFilters.isEmpty()) {
             // regular join tree construction possible
-            return build(context, states, filters).node
+            return build(context, states, filters, externalBindings).node
         }
         // we have spanning filters we need to satisfy;
         // we apply the filters, starting from those with the 'smallest' requirements first, generating subtrees
@@ -140,7 +141,7 @@ internal object DynamicJoinTreeBuilder {
         }
 
         // we now have a more complex hierarchy of subtrees and unused states we can build to our final tree
-        return build(context, states, filters).node
+        return build(context, states, filters, externalBindings).node
     }
 
     /**
@@ -284,6 +285,7 @@ internal object DynamicJoinTreeBuilder {
         context: QueryContext,
         groups: MutableList<TreeSegment>,
         filters: List<FilterExpression>,
+        externalBindings: BindingIdentifierSet,
     ): TreeSegment {
         // as long as not all groups have been merged into one, we find the best match pair to join together
         while (groups.size > 2) {
@@ -305,16 +307,22 @@ internal object DynamicJoinTreeBuilder {
             groups.add(segment)
         }
         return if (groups.size == 2) {
-            TreeSegment.join(
-                context = context,
-                first = groups[0],
-                second = groups[1],
-                filters = filters,
-                // we set no initial index bindings as we may be the root element of a query that requires
-                //  no specific values to join on;
-                // if this changes, the owner of this (sub)tree can always call `reindex`
-                externalBindings = BindingIdentifierSet.EMPTY,
-            )
+            val commonExternalBindings = externalBindings.intersect(groups[0].bindings + groups[1].bindings)
+            if (commonExternalBindings.isEmpty() && filters.isEmpty()) {
+                TreeSegment.disconnected(
+                    first = groups[0],
+                    second = groups[1],
+                )
+            } else {
+                TreeSegment.join(
+                    context = context,
+                    first = groups[0],
+                    second = groups[1],
+                    filters = filters,
+                    // if this changes, the owner of this (sub)tree can always call `reindex`
+                    externalBindings = commonExternalBindings,
+                )
+            }
         } else {
             groups.single()
         }

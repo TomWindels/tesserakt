@@ -10,6 +10,7 @@ import dev.tesserakt.sparql.runtime.query.jointree.from
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.TriplePatternSet
 import dev.tesserakt.sparql.types.Union
+import dev.tesserakt.sparql.types.extractAllBindings
 import dev.tesserakt.sparql.util.Cardinality
 
 class GroupPatternState private constructor(
@@ -97,8 +98,27 @@ class GroupPatternState private constructor(
             filters: List<FilterExpression>,
         ): MutableJoinState {
             // we create both parts separately
-            val patterns = JoinTree.from(context, pattern, filters = filters)
-            val unions = JoinTree.from(context, unions, filters = filters)
+            val patterns = JoinTree.from(
+                context = context,
+                patterns = pattern,
+                filters = filters,
+                externalBindings = unions.fold(
+                    BindingIdentifierSet.EMPTY
+                ) { bindings, union ->
+                    bindings + union.segments.fold(BindingIdentifierSet.EMPTY) { bindings, segment ->
+                        bindings + BindingIdentifierSet(
+                            context = context,
+                            names = segment.extractAllBindings().mapTo(mutableSetOf()) { it.name }
+                        )
+                    }
+                }
+            )
+            val unions = JoinTree.from(
+                context = context,
+                unions = unions,
+                filters = filters,
+                externalBindings = patterns.bindings,
+            )
             // we then apply all filters that can only be combined on the entire group on top of it
             val topLevelFilters = filters.filter { expression ->
                 // we retain those that have overlap with both the patterns and the union query segments

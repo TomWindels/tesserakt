@@ -65,7 +65,6 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(
         val iter = queue.iterator()
         while (iter.hasNext()) {
             state.process(iter.next())
-            iter.remove()
         }
         queue.clear()
         return state
