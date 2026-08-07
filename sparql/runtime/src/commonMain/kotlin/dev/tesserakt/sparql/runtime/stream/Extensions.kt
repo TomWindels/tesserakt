@@ -303,6 +303,17 @@ inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Cardinality = 
         else -> SingleUseStreamView(this, cardinality)
     }
 
+inline fun <E : Any> Stream<E>.orElse(other: Stream<E>): Stream<E> = when {
+    this.hasZeroCardinality() -> other
+    other.hasZeroCardinality() -> this
+    else -> StreamChainEmpty(this, other)
+}
+
+inline fun <E : Any> Stream<E>.orElse(element: E): Stream<E> = when {
+    this.hasZeroCardinality() -> streamOf(element)
+    else -> StreamChainEmpty(this, streamOf(element))
+}
+
 inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Number): OptimisedStream<E> =
     optimisedForSingleUse(cardinality = Cardinality(cardinality))
 

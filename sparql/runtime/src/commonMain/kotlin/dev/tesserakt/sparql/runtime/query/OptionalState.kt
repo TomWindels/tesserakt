@@ -86,7 +86,8 @@ sealed interface OptionalState {
 
             fun optionalJoin(stream: Stream<MappingDelta>): Stream<MappingDelta> {
                 return stream.transform(state.cardinality.coerceAtLeast(OneCardinality)) { element ->
-                    state.optionalJoin(element)
+                    // we need to return the original element if we don't actually yield any results of our own
+                    state.join(element).orElse(element)
                 }
             }
 
@@ -251,7 +252,8 @@ sealed interface OptionalState {
 
             fun optionalJoin(stream: Stream<MappingDelta>): Stream<MappingDelta> {
                 return stream.transform(state.cardinality.coerceAtLeast(OneCardinality)) { element ->
-                    state.optionalJoin(element)
+                    // we need to return the original element if we don't actually yield any results of our own
+                    state.join(element).orElse(element)
                 }
             }
 
@@ -260,7 +262,8 @@ sealed interface OptionalState {
                 return if (peeked.hasZeroCardinality()) {
                     // this data change does not affect us in a meaningful way, so we can do a more direct join
                     stream.transform(state.cardinality.coerceAtLeast(OneCardinality)) { element ->
-                        state.optionalJoin(element)
+                        // we need to return the original element if we don't actually yield any results of our own
+                        state.join(element).orElse(element)
                     }
                 } else {
                     // we need to create a 'combined' intermediate state, which only contains mapping 'additions' for
@@ -274,7 +277,8 @@ sealed interface OptionalState {
                         .simplified()
                     // the result should now only be mapping additions
                     stream.transform(state.cardinality.coerceAtLeast(OneCardinality)) { element ->
-                        base.optionalJoin(element)
+                        // we need to return the original element if we don't actually yield any results of our own
+                        join(base, streamOf(element)).orElse(element)
                     }
                 }
 
@@ -488,37 +492,9 @@ sealed interface OptionalState {
 
 }
 
-// TODO make this a stream operator, doing it lazily (during first iteration) so we can avoid
-//  having this iterator evaluated twice
-//  maybe call it `chainIfEmpty`?
-private fun JoinTree.optionalJoin(delta: MappingDelta, fallbackElement: MappingDelta = delta): Stream<MappingDelta> {
-    // we have to check if we produce at least one result after joining, because if we don't, we
-    //  have to emit the original result back instead
-    // this can happen when we have UNION segments or multiple OPTIONAL blocks, meaning we don't
-    //  have common bindings for direct lookup, but we do still have to satisfy our contract
-    val r = this.join(delta)
-    if (r.iterator().hasNext()) {
-        return r
-    }
-    return streamOf(fallbackElement)
-}
-
-
-// TODO make this a stream operator, doing it lazily (during first iteration) so we can avoid
-//  having this iterator evaluated twice
-//  maybe call it `chainIfEmpty`?
-private fun Stream<MappingDelta>.optionalJoin(delta: MappingDelta, fallbackElement: MappingDelta = delta): Stream<MappingDelta> {
-    // we have to check if we produce at least one result after joining, because if we don't, we
-    //  have to emit the original result back instead
-    // this can happen when we have UNION segments or multiple OPTIONAL blocks, meaning we don't
-    //  have common bindings for direct lookup, but we do still have to satisfy our contract
-    val r = join(this, streamOf(delta))
-    if (r.iterator().hasNext()) {
-        return r
-    }
-    return streamOf(fallbackElement)
-}
-
+/**
+ * Simplifies a stream of deltas, removing opposing changes, potentially reducing the total number of elements.
+ */
 private fun Stream<MappingDelta>.simplified(): CollectedStream<MappingDelta> {
     val combined = this
         .groupingBy { it.value }
