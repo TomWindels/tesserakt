@@ -403,6 +403,15 @@ fun builtinTests() = tests {
         PREFIX : <http://example/>
 
         SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL { ?s :count ?c }
+        } ORDER BY ASC(?s) LIMIT 2
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
             ?s a :Example ; :count ?c .
         } ORDER BY DESC(?c)
     """
@@ -411,8 +420,26 @@ fun builtinTests() = tests {
         PREFIX : <http://example/>
 
         SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL { ?s :count ?c }
+        } ORDER BY DESC(?s)
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
             ?s a :Example ; :count ?c .
         } ORDER BY DESC(?c) LIMIT 1
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL { ?s :count ?c }
+        } ORDER BY DESC(?s) LIMIT 1
     """
 
     val timestamps = buildStore {
@@ -433,6 +460,19 @@ fun builtinTests() = tests {
             ?s a :User .
             ?s :dob ?dob .
             FILTER(?dob > "2010-01-01T00:00:00Z"^^xsd:dateTime) .
+        }
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT * WHERE {
+            ?s a :User .
+            OPTIONAL {
+                ?s :dob ?dob .
+                FILTER(?dob > "2010-01-01T00:00:00Z"^^xsd:dateTime) .
+            }
         }
     """
 
@@ -467,6 +507,28 @@ fun builtinTests() = tests {
         PREFIX : <http://example.com/>
 
         SELECT * WHERE {
+            ?s :dob ?dob .
+            OPTIONAL {
+                ?s a :User .
+            }
+        } ORDER BY DESC(?dob)
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            OPTIONAL {
+                ?s a :User .
+            }
+            ?s :dob ?dob .
+        } ORDER BY DESC(?dob)
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
             ?s a :User .
             ?s :dob ?dob .
         } ORDER BY DESC(?dob) LIMIT 2 OFFSET 1
@@ -488,6 +550,19 @@ fun builtinTests() = tests {
             ?s a :User .
             ?s :name ?name .
             FILTER LANGMATCHES(LANG(?name), "en") .
+        }
+    """
+
+    using(languages) test """
+        PREFIX : <http://example.com/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT * WHERE {
+            ?s a :User .
+            OPTIONAL {
+                ?s :name ?name .
+                FILTER LANGMATCHES(LANG(?name), "en") .
+            }
         }
     """
 
@@ -572,6 +647,21 @@ fun builtinTests() = tests {
         }
     """
 
+    // FIXME `FILTER NOT EXISTS` does not function properly in cases where the common bindings
+    //  are not always present in solutions due to an unsatisfied `OPTIONAL` block
+    // using(numbers) test """
+    //     PREFIX : <http://example.com/>
+    //     SELECT * WHERE {
+    //         OPTIONAL {
+    //             ?x :p ?n
+    //         }
+    //         FILTER EXISTS {
+    //             ?x :q ?m .
+    //             FILTER(?n = ?m)
+    //         } .
+    //     }
+    // """
+
     using(numbers) test """
         PREFIX : <http://example.com/>
         SELECT * WHERE {
@@ -604,6 +694,17 @@ fun builtinTests() = tests {
         SELECT ?n WHERE {
             ?n :p ?c1 .
             ?n :q ?c2 .
+            FILTER(?c1 < ?c2 - 1.5)
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT ?n WHERE {
+            ?n :p ?c1 .
+            OPTIONAL {
+                ?n :q ?c2 .
+            }
             FILTER(?c1 < ?c2 - 1.5)
         }
     """
@@ -700,6 +801,24 @@ fun builtinTests() = tests {
         }
     """
 
+    // FIXME:
+    //  Same note regarding `FILTER NOT EXISTS`
+    // using(filtered) test """
+    //     PREFIX :        <http://example/>
+    //     PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    //     PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+    //
+    //     SELECT ?person
+    //     WHERE
+    //     {
+    //         ?person rdf:type  foaf:Person .
+    //         OPTIONAL {
+    //             ?person foaf:name ?name .
+    //         }
+    //         FILTER NOT EXISTS { ?name :firstName "Alice" }
+    //     }
+    // """
+
     using(filtered) test """
         PREFIX :        <http://example/>
         PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -752,6 +871,35 @@ fun builtinTests() = tests {
             }
             UNION {
                 ?person foaf:name ?name
+                FILTER NOT EXISTS {
+                    ?name :firstName ?firstName
+                }
+                FILTER NOT EXISTS {
+                    ?name :lastName ?lastName
+                }
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            {
+                FILTER NOT EXISTS {
+                    ?person foaf:name ?name
+                }
+            }
+            UNION {
+                ?person foaf:name ?name
+                OPTIONAL {
+                    ?name ?p ?o
+                }
                 FILTER NOT EXISTS {
                     ?name :firstName ?firstName
                 }
@@ -891,6 +1039,27 @@ fun builtinTests() = tests {
         }
     """
 
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            OPTIONAL {
+                ?person rdf:type  foaf:Person .
+            }
+            ?person foaf:name ?name
+            FILTER EXISTS {
+                ?name :firstName ?firstName
+            }
+            FILTER NOT EXISTS {
+                ?name :lastName ?lastName
+            }
+        }
+    """
+
     val extra = buildStore(path = "http://example.org/") {
         val subj = local("s")
         val obj = local("o")
@@ -905,6 +1074,16 @@ fun builtinTests() = tests {
         PREFIX : <http://example.org/>
         SELECT * {
             ?a :path1 ?o .
+            ?a :path1 :o .
+        }
+    """
+
+    using(extra) test """
+        PREFIX : <http://example.org/>
+        SELECT * {
+            OPTIONAL {
+                ?a :path1 ?o .
+            }
             ?a :path1 :o .
         }
     """
@@ -1344,6 +1523,20 @@ fun builtinTests() = tests {
         }
     """
 
+    using(addresses) test """
+        PREFIX ex: <https://www.example.org/>
+        SELECT * {
+            ?person ex:domicile ?domicile .
+            ?domicile ex:address ?address .
+            ?address ex:street ?street .
+            OPTIONAL {
+                ?address ex:city [
+                    ex:inhabitants ?count
+                ]
+            }
+        }
+    """
+
 //    using(addresses) test """
 //        PREFIX ex: <https://www.example.org/>
 //        SELECT * {
@@ -1434,6 +1627,30 @@ fun builtinTests() = tests {
             ?a :p1 ?b .
             ?d :p2 ?c .
             ?c :p1|:p2 :o
+        }
+    """
+
+    using(aux1) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?c :p1|:p2 :o
+            OPTIONAL {
+                ?a :p1 ?b .
+                ?d :p2 ?c .
+            }
+        }
+    """
+
+    using(aux1) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?c :p1|:p2 :o
+            OPTIONAL {
+                ?a :p1 ?b .
+            }
+            OPTIONAL {
+                ?d :p2 ?c .
+            }
         }
     """
 

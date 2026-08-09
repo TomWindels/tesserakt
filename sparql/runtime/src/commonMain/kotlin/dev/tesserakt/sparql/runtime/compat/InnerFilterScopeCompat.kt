@@ -33,7 +33,7 @@ object InnerFilterScopeCompat {
                     }
                     val extra = missing.flatMap { getPatterns(it, body) }.distinct()
                     Filter.Exists(
-                        pattern = filter.pattern.copy(patterns = TriplePatternSet(filter.pattern.patterns + extra))
+                        pattern = filter.pattern.copy(statements = filter.pattern.statements + extra)
                     )
                 }
                 is Filter.NotExists -> {
@@ -44,7 +44,7 @@ object InnerFilterScopeCompat {
                     }
                     val extra = missing.flatMap { getPatterns(it, body) }.distinct()
                     Filter.NotExists(
-                        pattern = filter.pattern.copy(patterns = TriplePatternSet(filter.pattern.patterns + extra))
+                        pattern = filter.pattern.copy(statements = filter.pattern.statements + extra)
                     )
                 }
                 // these two aren't problematic on their own
@@ -56,19 +56,48 @@ object InnerFilterScopeCompat {
 
     private fun extractAllExpressions(body: GraphPattern): List<Expression> {
         val one = body.filters.mapNotNull { (it as? Filter.Predicate)?.expression }
-        val two = body.unions.flatMap { union ->
-            union.segments.flatMap { segment ->
-                (segment as? GraphPatternSegment)
-                    ?.pattern
-                    ?.let { unionPatternSegment -> extractAllExpressions(unionPatternSegment) }
-                    ?: emptyList()
+        val two = body.statements.flatMap { statement ->
+            if (statement !is Union) {
+                return@flatMap emptyList()
+            }
+            statement.segments.flatMap { segment ->
+                when (segment) {
+                    is GraphPatternSegment -> extractAllExpressions(segment.pattern)
+                    is SelectQuerySegment -> extractAllExpressions(segment.query.body)
+                }
             }
         }
         return one + two
     }
 
     private fun getPatterns(name: String, body: GraphPattern): List<TriplePattern> {
-        return body.patterns.filter { it.s.isBinding(name) || it.p.isBinding(name) || it.o.isBinding(name) }
+        fun getPatterns(statement: GraphPattern.Statement): List<TriplePattern> {
+            if (statement is TriplePattern) {
+                return if (statement.s.isBinding(name) || statement.p.isBinding(name) || statement.o.isBinding(name)) {
+                    listOf(statement)
+                } else {
+                    emptyList()
+                }
+            }
+            return when (statement) {
+                is Optional -> {
+                    statement.patterns.flatMap { getPatterns(it) }
+                }
+                is Union -> {
+                    statement.segments.flatMap { segment ->
+                        when (segment) {
+                            is GraphPatternSegment -> {
+                                segment.pattern.statements.flatMap { getPatterns(it) }
+                            }
+                            is SelectQuerySegment -> {
+                                segment.query.body.statements.flatMap { getPatterns(it) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return body.statements.flatMap { getPatterns(it) }
     }
 
     private fun TriplePattern.Element.isBinding(name: String): Boolean {

@@ -155,7 +155,7 @@ value class GraphPatternFilterState(
 
         /**
          * Constructs a [GraphPatternFilterState], responsible for filtering changes encountered by a [parent]
-         *  [MutableJoinState] instance (typically a [GroupPatternState]) through the use of an internal state.
+         *  [MutableJoinState] instance (typically a [BasicGraphBodyState]) through the use of an internal state.
          * The types of filters supported by this type are **only** the **stateful** types:
          *  * `FILTER EXISTS` ('inclusion filters')
          *  * `FILTER NOT EXISTS` ('exclusion filters')

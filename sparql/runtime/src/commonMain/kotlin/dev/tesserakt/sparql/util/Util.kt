@@ -8,9 +8,13 @@ val OneCardinality = Cardinality(1)
 
 fun GraphPattern.getAllNamedBindings(): Set<TriplePattern.NamedBinding> =
     buildSet {
-        addAll(patterns.getAllNamedBindings())
-        optional.forEach { optional -> addAll(optional.patterns.getAllNamedBindings()) }
-        unions.forEach { union -> union.forEach { segment -> addAll(segment.getAllNamedBindings()) } }
+        statements.forEach { statement ->
+            when (statement) {
+                is Optional -> addAll(statement.patterns.getAllNamedBindings())
+                is TriplePattern -> addAll(statement.getAllNamedBindings())
+                is Union -> addAll(statement.segments.getAllNamedBindings())
+            }
+        }
     }
 
 /**
@@ -37,10 +41,8 @@ fun TriplePattern.getAllNamedBindings(): Set<TriplePattern.NamedBinding> {
     }
 }
 
-fun List<Union>.getAllNamedBindings(): Set<TriplePattern.NamedBinding> {
-    return this.flatMapTo(mutableSetOf()) { union ->
-        union.segments.flatMapTo(mutableSetOf()) { segment -> segment.getAllNamedBindings() }
-    }
+fun List<Segment>.getAllNamedBindings(): Set<TriplePattern.NamedBinding> {
+    return flatMapTo(mutableSetOf()) { segment -> segment.getAllNamedBindings() }
 }
 
 private fun Segment.getAllNamedBindings(): Set<TriplePattern.NamedBinding> {

@@ -5,13 +5,12 @@ import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
-import dev.tesserakt.sparql.runtime.query.*
+import dev.tesserakt.sparql.runtime.query.FilterExpression
+import dev.tesserakt.sparql.runtime.query.MutableJoinState
+import dev.tesserakt.sparql.runtime.query.join
 import dev.tesserakt.sparql.runtime.stream.*
-import dev.tesserakt.sparql.types.TriplePattern
-import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
 import kotlin.jvm.JvmInline
-import kotlin.jvm.JvmName
 
 
 @JvmInline
@@ -232,6 +231,24 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
 
     }
 
+    constructor(
+        context: QueryContext,
+        states: List<MutableJoinState>,
+        filters: List<FilterExpression>,
+        externalBindings: BindingIdentifierSet,
+    ): this(
+        root = if (states.size == 1) {
+            Node.Leaf(states.single())
+        } else {
+            DynamicJoinTreeBuilder.build(
+                context = context,
+                states = states,
+                filters = filters,
+                externalBindings = externalBindings,
+            )
+        }
+    )
+
     override val bindings: BindingIdentifierSet
         get() = root.bindings
 
@@ -269,101 +286,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
 
     override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
         return root.stats(context, granularity)
-    }
-
-    companion object {
-
-        @JvmName("forPatterns")
-        operator fun invoke(
-            context: QueryContext,
-            patterns: List<TriplePattern>,
-            filters: List<FilterExpression>,
-            externalBindings: BindingIdentifierSet,
-        ): DynamicJoinTree {
-            val states = patterns.map { TriplePatternState.from(context, it) }
-            return invoke(states, filters, externalBindings)
-        }
-
-        @JvmName("forPatternStates")
-        operator fun invoke(
-            patterns: List<TriplePatternState<*>>,
-            filters: List<FilterExpression>,
-            externalBindings: BindingIdentifierSet,
-        ): DynamicJoinTree {
-            // we're currently dealing with fresh triple pattern states that need to be prefilled
-            // however, before we do that, we need to apply all their relevant filters
-            val patterns = if (filters.isEmpty()) {
-                // small optimization; if there aren't any filters we need to apply, we don't need to
-                //  create a mapped view of the triple pattern states either
-                patterns
-            } else {
-                // we replace all pattern states with filtered variants, so that prefilling them already
-                //  has their filter constraints satisfied
-                patterns.map { pattern ->
-                    filters.fold(pattern) { pattern, filter ->
-                        if (filter.bindings in pattern.bindings) {
-                            pattern.filtered(filter)
-                        } else {
-                            pattern
-                        }
-                    }
-                }
-            }
-            // now it is safe to do all necessary prefilling
-            patterns.forEach { it.prefill() }
-            // we supply downstream with all filter information; not all have to be applied on a connected node level
-            //  however, this depends on the bindings of the individual join tree sections
-            val root = build(
-                context = patterns[0].context,
-                states = patterns,
-                filters = filters,
-                externalBindings = externalBindings,
-            )
-            return DynamicJoinTree(root)
-        }
-
-        @JvmName("forUnions")
-        operator fun invoke(
-            context: QueryContext,
-            unions: List<Union>,
-            filters: List<FilterExpression>,
-            externalBindings: BindingIdentifierSet,
-        ): DynamicJoinTree {
-            val states = unions.map { union ->
-                UnionState(
-                    context = context,
-                    union = union,
-                    // we don't propagate any of the filters to the unions directly; we use the pushdown managed by the
-                    //  nodes instead
-                    filters = emptyList()
-                )
-            }
-            return DynamicJoinTree(
-                root = build(
-                    context = context,
-                    states = states,
-                    filters = filters,
-                    externalBindings = externalBindings,
-                )
-            )
-        }
-
-        /**
-         * Builds a tree, returning the tree's root, using the provided [states]
-         */
-        private fun build(
-            context: QueryContext,
-            states: List<MutableJoinState>,
-            filters: List<FilterExpression>,
-            externalBindings: BindingIdentifierSet,
-        ): Node {
-            check(states.isNotEmpty())
-            if (states.size == 1) {
-                // hardly a tree, but what can we do
-                return Node.Leaf(states.single())
-            }
-            return DynamicJoinTreeBuilder.build(context, states, filters, externalBindings)
-        }
     }
 
 }

@@ -6,14 +6,14 @@ import dev.tesserakt.sparql.types.extractAllBindings
 
 fun QueryContext(ast: QueryStructure): QueryContext {
     return when {
-        ast.body.extractAllBindings().distinct().size < 32 -> BitsetQueryContext(ast)
+        ast.body.extractAllBindings().size < 32 -> BitsetQueryContext(ast)
         else -> IntPairQueryContext(ast)
     }
 }
 
 fun QueryContext(source: Store?, ast: QueryStructure): QueryContext {
     return when {
-        ast.body.extractAllBindings().distinct().size < 32 -> {
+        ast.body.extractAllBindings().size < 32 -> {
             if (source != null) {
                 StoreBackedQueryContext(ast, source)
             } else {

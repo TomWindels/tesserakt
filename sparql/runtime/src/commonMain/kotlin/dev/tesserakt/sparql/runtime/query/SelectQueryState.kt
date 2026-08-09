@@ -7,6 +7,7 @@ import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.asResultChange
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.into
 import dev.tesserakt.sparql.runtime.query.select.OutputState
+import dev.tesserakt.sparql.runtime.stream.CollectedStream
 import dev.tesserakt.sparql.types.SelectQueryStructure
 import dev.tesserakt.sparql.util.MappedCollection.Companion.mapLazily
 
@@ -37,12 +38,20 @@ class SelectQueryState(
 
     override fun processAndGet(data: DataDelta): List<ResultChange<Bindings>> {
         return bgpState.insert(data)
+            // making sure deletions and additions consume each other as much as possible first;
+            // without this, it becomes possible for a deletion to happen before its addition took place
+            .simplified()
             .onEach(::onNewBodyResult)
             .map { it.asResultChange(context) }
     }
 
     override fun process(data: DataDelta) {
-        bgpState.insert(data).forEach(::onNewBodyResult)
+        bgpState
+            .insert(data)
+            // making sure deletions and additions consume each other as much as possible first;
+            // without this, it becomes possible for a deletion to happen before its addition took place
+            .simplified()
+            .forEach(::onNewBodyResult)
     }
 
     private inline fun onNewBodyResult(result: MappingDelta) {
@@ -62,6 +71,33 @@ class SelectQueryState(
             is ResultChange.New<*> -> _results.onResultAdded(change.value)
             is ResultChange.Removed<*> -> _results.onResultRemoved(change.value)
         }
+    }
+
+    /**
+     * Simplifies a stream of deltas, removing opposing changes, potentially reducing the total number of elements.
+     */
+    // TODO perf:
+    //  simply return another Iterable, so we don't need to create a potentially big array at the end
+    private fun Iterable<MappingDelta>.simplified(): List<MappingDelta> {
+        val combined = this
+            .groupingBy { it.value }
+            .fold({ _, _ -> 0 }) { _, count, delta ->
+                val d = if (delta is MappingAddition) 1 else -1
+                count + d
+            }
+        return CollectedStream(
+            data = combined.asIterable().flatMap { (mapping, count) ->
+                when {
+                    count == 0 -> emptyList()
+                    count > 0 -> {
+                        List(count) { MappingAddition(mapping, null) }
+                    }
+                    else -> {
+                        List(-count) { MappingDeletion(mapping, null) }
+                    }
+                }
+            }
+        )
     }
 
 }

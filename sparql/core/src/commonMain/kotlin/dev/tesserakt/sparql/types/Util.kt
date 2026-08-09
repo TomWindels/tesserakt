@@ -12,12 +12,14 @@ val TriplePattern.Object.bindingName: String?
 val TriplePattern.Predicate.bindingName: String?
     get() = (this as? TriplePattern.Binding)?.name
 
-fun GraphPattern.extractAllBindings(): List<TriplePattern.Binding> =
-    (
-            patterns.flatMap { pattern -> pattern.extractAllBindings() } +
-                    unions.flatMap { union -> union.flatMap { it.extractAllBindings() } } +
-                    optional.flatMap { optional -> optional.patterns.flatMap { it.extractAllBindings() } }
-            ).distinct()
+fun GraphPattern.extractAllBindings(): Set<TriplePattern.Binding> =
+    statements.flatMapTo(mutableSetOf()) { statement ->
+        when (statement) {
+            is Optional -> statement.patterns.flatMapTo(mutableSetOf()) { it.extractAllBindings() }
+            is TriplePattern -> statement.extractAllBindings()
+            is Union -> statement.flatMapTo(mutableSetOf()) { it.extractAllBindings() }
+        }
+    }
 
 fun Segment.extractAllBindings() = when (this) {
     is SelectQuerySegment -> query.extractAllOutputsAsBindings()

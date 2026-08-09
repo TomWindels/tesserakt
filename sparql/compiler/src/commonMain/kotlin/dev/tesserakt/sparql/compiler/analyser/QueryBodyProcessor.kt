@@ -7,23 +7,20 @@ import dev.tesserakt.sparql.types.*
 class QueryBodyProcessor: Analyser<GraphPattern>() {
 
     private data class Builder(
-        /** The full pattern block that is required **/
-        val patterns: MutableList<TriplePattern> = mutableListOf(),
+        /**
+         * The ordered statements, ordered according to the input query.
+         * Contains regular [TriplePattern]s, [Union]s and [Optional]s.
+         */
+        val statements: MutableList<GraphPattern.Statement> = mutableListOf(),
         /** All binding statements found inside this pattern block (similar to filters) **/
         val bindingStatements: MutableList<BindingStatement> = mutableListOf(),
         /** All filters applied to this pattern block (optional / union filters NOT included) **/
         val filters: MutableList<Filter> = mutableListOf(),
-        /** All requested unions, not yet flattened to allow for easier optimisation **/
-        val unions: MutableList<Union> = mutableListOf(),
-        /** Collection of pattern blocks that are optional **/
-        val optional: MutableList<Optional> = mutableListOf()
     ) {
         fun build() = GraphPattern(
-            patterns = TriplePatternSet(patterns),
+            statements = statements,
             bindingStatements = bindingStatements,
             filters = filters,
-            unions = unions,
-            optional = optional
         )
     }
 
@@ -44,7 +41,7 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
                 is Token.StringLiteral,
                 is Token.Binding,
                 is Token.NumericLiteral -> {
-                    builder.patterns.addAll(use(PatternProcessor()))
+                    builder.statements.addAll(use(PatternProcessor()))
                 }
                 Token.Keyword.Filter -> {
                     consume()
@@ -76,12 +73,12 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
                             }
                         }
                     }
-                    builder.optional.add(Optional(patterns = TriplePatternSet(patterns), filters = filters))
+                    builder.statements.add(Optional(patterns = TriplePatternSet(patterns), filters = filters))
                     expectToken(Token.Symbol.CurlyBracketEnd)
                     consume()
                 }
                 Token.Symbol.CurlyBracketStart -> {
-                    builder.unions.add(use(UnionProcessor()))
+                    builder.statements.add(use(UnionProcessor()))
                 }
                 Token.Symbol.CurlyBracketEnd -> {
                     // done, consuming it and returning

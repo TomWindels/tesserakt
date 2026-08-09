@@ -26,7 +26,13 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
                 parent: GraphPatternSegment,
                 externalFilters: List<FilterExpression>
             ): this(
-                state = BasicGraphPatternState(context, parent.pattern, externalFilters),
+                state = BasicGraphPatternState(
+                    context = context,
+                    ast = parent.pattern,
+                    externalFilters = externalFilters,
+                    // FIXME
+                    externalBindings = BindingIdentifierSet.EMPTY,
+                ),
             )
 
             override val bindings get() = state.bindings
