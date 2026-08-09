@@ -95,20 +95,44 @@ sealed interface ExclusionFilterState: MutableFilterState {
                 filtered.count == 0 -> {
                     input.filtered { mapping ->
                         val retained = mapping.value.retain(commonBindingNames)
-                        // the changes should not be negative as we're not filtering anything
-                        (lastChanges[retained] ?: 0) <= 0
+                        if (retained.count == commonBindingNames.size) {
+                            // the changes should not be negative as we're not filtering anything
+                            (lastChanges[retained] ?: 0) <= 0
+                        } else {
+                            // we have to check if any of our peeked changes can join with the mapping
+                            // using the map is still an O(N) lookup, but it is reduced as we don't check
+                            //  duplicates
+                            lastChanges.none { (blocked, _) -> blocked.compatibleWith(mapping.value) }
+                        }
                     }
                 }
                 lastChanges.isEmpty() -> {
-                    input.filtered { mapping ->
-                        val retained = mapping.value.retain(commonBindingNames)
-                        filtered[retained] <= 0
-                    }
+                    // the `delta` has no impact
+                    filter(input)
                 }
                 else -> {
+                    // we have to construct a temporary combined state to reason about the final verdict
+                    //  of a given mapping
+                    // we do it lazily, as this can be possibly expensive, and is only required if we have to detect
+                    //  changes that do not have all of our common mappings present (`OPTIONAL` blocks), which is
+                    //  rare
+                    val combined by lazy(LazyThreadSafetyMode.NONE) {
+                        (filtered.current + lastChanges.keys)
+                            .associateWith { filtered[it] + (lastChanges[it] ?: 0) }
+                            // we don't want to falsely block results that end up unaffected by us
+                            .filterValues { count -> count >= 1 }
+                    }
                     input.filtered { mapping ->
                         val retained = mapping.value.retain(commonBindingNames)
-                        (lastChanges[retained] ?: 0) + (filtered[retained]) <= 0
+                        if (retained.count == commonBindingNames.size) {
+                            // the changes should not be negative as we're not filtering anything
+                            (lastChanges[retained] ?: 0) + (filtered[retained]) <= 0
+                        } else {
+                            // we have to check if any of our peeked changes can join with the mapping
+                            // using the map is still an O(N) lookup, but it is reduced as we don't check
+                            //  duplicates
+                            combined.none { (blocked) -> blocked.compatibleWith(mapping.value) }
+                        }
                     }
                 }
             }
@@ -118,10 +142,24 @@ sealed interface ExclusionFilterState: MutableFilterState {
          * Filters the [input] stream, using only its processed internal state
          */
         override fun filter(input: Stream<MappingDelta>): Stream<MappingDelta> {
+            // if we aren't filtering anything, we have no possible mapping we can join with,
+            //  so we have no mappings we can possibly block
+            if (filtered.count == 0) {
+                return input
+            }
             return input.filtered { mapping ->
                 // filtered is strictly positive, not retaining 0-valued instances, so it being present
                 //  means that it is being blocked by us
-                mapping.value.retain(commonBindingNames) !in filtered
+                val subset = mapping.value.retain(commonBindingNames)
+                if (subset.count == commonBindingNames.size) {
+                    // we can do a direct lookup
+                    return@filtered subset !in filtered
+                }
+                // we're dealing with a mapping that does not contain all of our common bindings, so
+                //  we have to fall back to a regular 'can this join with our state' check
+                // we do it through a regular join, as this can use indexes, as opposed to
+                //  going through our entire internal state, which isn't indexed
+                !state.join(mapping).iterator().hasNext()
             }
         }
 
