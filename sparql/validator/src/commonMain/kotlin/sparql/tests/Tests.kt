@@ -1830,4 +1830,25 @@ fun builtinTests() = tests {
             }
         }
     """
+
+    using(tightlyConnected) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?s :p1 ?o1 .
+
+            # even though these OPTIONAL blocks are
+            # positioned relatively high up in the query body,
+            # they can be evaluated after the two final TPs based
+            # on the bindings they contain
+            OPTIONAL {
+                ?s :p2 ?o2 .
+            }
+            OPTIONAL {
+                ?s :p3 ?o3 .
+            }
+
+            ?s :p4 ?o4 .
+            ?s :p5 ?o5 .
+        }
+    """
 }
