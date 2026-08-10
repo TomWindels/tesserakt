@@ -18,7 +18,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
 
     sealed interface Node {
 
-        val bindings: BindingIdentifierSet
+        val properties: MutableJoinState.Properties
 
         val cardinality: Cardinality
 
@@ -44,15 +44,15 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
         fun join(deltas: OptimisedStream<MappingDelta>): Stream<MappingDelta> =
             deltas.transform(maxCardinality = this.cardinality) { delta -> join(delta) }
 
-        fun reindex(bindings: BindingIdentifierSet)
+        fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint)
 
         fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
         @JvmInline
         value class Leaf(val state: MutableJoinState): Node {
 
-            override val bindings: BindingIdentifierSet
-                get() = state.bindings
+            override val properties: MutableJoinState.Properties
+                get() = state.properties
 
             override val cardinality: Cardinality
                 get() = state.cardinality
@@ -69,8 +69,8 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 return state.join(delta)
             }
 
-            override fun reindex(bindings: BindingIdentifierSet) {
-                state.reindex(bindings, hint = MappingArrayHint.DEFAULT)
+            override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+                state.reindex(bindings, hint)
             }
 
             override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
@@ -87,7 +87,10 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             internal val filters: List<FilterExpression>,
         ): Node {
 
-            override val bindings = left.bindings + right.bindings
+            override val properties = MutableJoinState.Properties(
+                guaranteed = left.properties.guaranteed + right.properties.guaranteed,
+                maximum = left.properties.maximum + right.properties.maximum,
+            )
 
             internal val buf = ReindexableMappingArray(indexes)
             private val cache = StreamCache<DataDelta, MappingDelta>()
@@ -96,7 +99,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 get() = buf.cardinality
 
             init {
-                check(filters.all { expression -> expression.bindings in bindings })
+                check(filters.all { expression -> expression.bindings in properties.guaranteed })
                 // we process our initial state as that of the combination of left and right nodes, as these
                 //  can already contain initial data
                 val initialData = right
@@ -148,11 +151,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 }
             }
 
-            override fun reindex(bindings: BindingIdentifierSet) {
-                buf.reindex(bindings)
-            }
-
-            fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+            override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
                 buf.reindex(bindings, hint)
             }
 
@@ -184,7 +183,10 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             //  we transform ourselves into a connected node, so that filter evaluation is limited
         ): Node {
 
-            override val bindings = left.bindings + right.bindings
+            override val properties = MutableJoinState.Properties(
+                guaranteed = left.properties.guaranteed + right.properties.guaranteed,
+                maximum = left.properties.maximum + right.properties.maximum,
+            )
 
             override val cardinality: Cardinality
                 get() = left.cardinality * right.cardinality
@@ -207,8 +209,8 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
-                val leftOverlap = delta.value.keys().asIntIterable().count { it in left.bindings }
-                val rightOverlap = delta.value.keys().asIntIterable().count { it in right.bindings }
+                val leftOverlap = delta.value.keys().asIntIterable().count { it in left.properties.maximum }
+                val rightOverlap = delta.value.keys().asIntIterable().count { it in right.properties.maximum }
                 // as we're joining with our unfiltered nodes, we need to filter out the mappings that do not
                 //  adhere to our filters after having joined the two streams
                 //  together (so we have all required binding values to evaluate the filter expression(s))
@@ -219,7 +221,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 }
             }
 
-            override fun reindex(bindings: BindingIdentifierSet) {
+            override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
                 // nothing to do
             }
 
@@ -249,8 +251,8 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
         }
     )
 
-    override val bindings: BindingIdentifierSet
-        get() = root.bindings
+    override val properties: MutableJoinState.Properties
+        get() = root.properties
 
     override val cardinality: Cardinality
         get() = root.cardinality
@@ -280,7 +282,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 // TODO: consider transforming this into a connected node if the requested bindings
                 //  is not empty
             }
-            is Node.Leaf -> root.reindex(bindings)
+            is Node.Leaf -> root.reindex(bindings, hint)
         }
     }
 

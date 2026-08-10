@@ -794,6 +794,36 @@ fun builtinTests() = tests {
         PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
 
+        SELECT ?person ?p ?o
+        WHERE
+        {
+            ?person rdf:type foaf:Person .
+            ?name ?p ?o .
+            OPTIONAL {
+                ?person foaf:name ?name .
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person ?p ?o
+        WHERE
+        {
+            ?person rdf:type foaf:Person .
+            OPTIONAL {
+                ?person foaf:name ?name .
+            }
+            ?name ?p ?o .
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
         SELECT ?person
         WHERE
         {
@@ -1377,6 +1407,22 @@ fun builtinTests() = tests {
     using(unions) test """
         PREFIX : <http://www.example.org/>
         SELECT ?s WHERE {
+            {
+                :a :p1 ?b .
+            } UNION {
+                ?b :p3 ?s .
+            }
+            {
+                :a :p2 ?b .
+            } UNION {
+                ?b :p4 ?s .
+            }
+        }
+    """
+
+    using(unions) test """
+        PREFIX : <http://www.example.org/>
+        SELECT ?s WHERE {
             :a (:p1|:p2)/(:p3|:p4) ?s
         }
     """
@@ -1723,4 +1769,65 @@ fun builtinTests() = tests {
         }        
     """
 
+    val tightlyConnected = buildStore {
+        val ex = prefix("ex", "http://example.org/")
+
+        (ex / "s1") (ex / "p1") (ex / "s2")
+        (ex / "s1") (ex / "p2") (ex / "s2")
+        (ex / "s1") (ex / "p3") (ex / "s2")
+        (ex / "s1") (ex / "p4") (ex / "s2")
+        (ex / "s1") (ex / "p5") (ex / "s2")
+        (ex / "s1") (ex / "p6") (ex / "s2")
+
+        (ex / "s2") (ex / "p1") (ex / "s3")
+        (ex / "s2") (ex / "p2") (ex / "s3")
+        (ex / "s2") (ex / "p3") (ex / "s3")
+        (ex / "s2") (ex / "p5") (ex / "s3")
+        (ex / "s2") (ex / "p6") (ex / "s3")
+    }
+
+    using(tightlyConnected) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?s :p1 ?o .
+            ?s :p2 ?o .
+            ?s :p3 ?o .
+
+            OPTIONAL {
+                ?s :p4 ?o2 .
+            }
+
+            ?s :p5 ?o2 .
+            ?s :p6 ?o2 .
+        }
+    """
+
+    using(tightlyConnected) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            {
+                ?s :p2 ?o2 .
+                ?s :p3 ?o3 .
+            } UNION {
+
+                OPTIONAL {
+                    ?s :p2 ?o2 .
+                }
+
+                ?s :p4 ?o4 .
+                ?s :p5 ?o5 .
+            }
+
+            ?s :p1 ?o1 .
+
+            OPTIONAL {
+                ?o1 :p1 ?x .
+                ?o1 :p2 ?y .
+            }
+
+            OPTIONAL {
+                ?o2 ?p ?o .
+            }
+        }
+    """
 }

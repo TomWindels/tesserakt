@@ -714,7 +714,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
      */
     abstract val changeCount: Long
 
-    final override val bindings = bindingIdentifierSetOf(s, p, o)
+    final override val properties = MutableJoinState.Properties(exact = bindingIdentifierSetOf(s, p, o))
 
     /**
      * Uses the associated [QueryContext] instance to 'prefill' this state with data already present in the backing
@@ -860,7 +860,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
      * Note that applying a filter that references bindings not found in this triple pattern is an error.
      */
     fun filtered(filter: FilterExpression): TriplePatternState<*> {
-        check(filter.bindings in this.bindings) {
+        check(filter.bindings in this.properties.guaranteed) {
             "Tried to apply a filter to a triple pattern that does not contain all of the necessary bindings!"
         }
         // we choose the most optimal filter wrapper based on the type we're wrapping

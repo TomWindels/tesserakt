@@ -23,14 +23,14 @@ import kotlin.test.*
 class DynamicJoinTreeBuilderTest {
 
     class TestNode(
-        override val bindings: BindingIdentifierSet,
+        override val properties: MutableJoinState.Properties,
     ): MutableJoinState {
 
         constructor(bindings: List<String>): this(
-            bindings = BindingIdentifierSet(GlobalQueryContext, bindings),
+            properties = MutableJoinState.Properties(exact = BindingIdentifierSet(GlobalQueryContext, bindings)),
         )
 
-        var indexes = bindings
+        var indexes = properties.guaranteed
             private set
 
         // this makes it so there's no bias towards any single test node
@@ -61,9 +61,9 @@ class DynamicJoinTreeBuilderTest {
                     cardinality = ZeroCardinality,
                     changeCount = 0L
                 ),
-                description = "Test node, bindings:\n${bindings.asIntIterable().joinToString { GlobalQueryContext.resolveBinding(it) }}")
+                description = "Test node, bindings:\n${properties.maximum.asIntIterable().joinToString { GlobalQueryContext.resolveBinding(it) }}")
 
-        override fun toString() = "Node(bindings=${bindings}, indexes=${indexes})"
+        override fun toString() = "Node(bindings=${properties}, indexes=${indexes})"
 
     }
 
@@ -115,7 +115,7 @@ class DynamicJoinTreeBuilderTest {
             // making sure its indexed on its common pair
             subtree.assertIsConnected()
             val activeIndex = subtree.buf.indexes.asIntIterable().single()
-            val possibleIndexes = sibling.state.bindings
+            val possibleIndexes = sibling.state.properties.maximum
             assertTrue { activeIndex in possibleIndexes }
             // moving to the next check
             sibling = subtree.single<DynamicJoinTree.Node.Leaf>()
@@ -142,16 +142,16 @@ class DynamicJoinTreeBuilderTest {
         // we check if we're missing any patterns after constructing the tree; we do so by checking all leaf bindings
         //  before the tree has been constructed with the individual leafs discovered after traversing the result;
         //  we can do this as we know the binding combinations are unique per leaf
-        val missing = patterns.mapTo(mutableSetOf()) { TestNode(it).bindings }
+        val missing = patterns.mapTo(mutableSetOf()) { TestNode(it).properties }
 
         fun check(node: DynamicJoinTree.Node) {
             // making sure its indexed on its common pair
             node.assertIsConnected()
             val activeIndexes = node.buf.indexes.asIntIterable()
             if (!activeIndexes.iterator().hasNext()) {
-                fail("Expected at least one active index, got none: ${node.left.bindings} <> ${node.right.bindings} is cached with ${node.buf}!")
+                fail("Expected at least one active index, got none: ${node.left.properties} <> ${node.right.properties} is cached with ${node.buf}!")
             }
-            val possibleIndexes = node.bindings
+            val possibleIndexes = node.properties.maximum
             assertTrue { activeIndexes.all { it in possibleIndexes } }
             // moving to the next check
             when (node.left) {
@@ -163,7 +163,7 @@ class DynamicJoinTreeBuilderTest {
                 }
                 is DynamicJoinTree.Node.Leaf -> {
                     // terminal point reached
-                    missing.remove(node.left.state.bindings)
+                    missing.remove(node.left.state.properties)
                 }
             }
             when (node.right) {
@@ -175,7 +175,7 @@ class DynamicJoinTreeBuilderTest {
                 }
                 is DynamicJoinTree.Node.Leaf -> {
                     // terminal point reached
-                    missing.remove(node.right.state.bindings)
+                    missing.remove(node.right.state.properties)
                 }
             }
         }
@@ -194,7 +194,7 @@ class DynamicJoinTreeBuilderTest {
                         fail("Did not expect a disconnected node at this point!")
                     }
                     is DynamicJoinTree.Node.Leaf -> {
-                        missing.remove(root.left.state.bindings)
+                        missing.remove(root.left.state.properties)
                     }
                 }
                 when (root.right) {
@@ -205,7 +205,7 @@ class DynamicJoinTreeBuilderTest {
                         fail("Did not expect a disconnected node at this point!")
                     }
                     is DynamicJoinTree.Node.Leaf -> {
-                        missing.remove(root.right.state.bindings)
+                        missing.remove(root.right.state.properties)
                     }
                 }
             }
@@ -219,7 +219,7 @@ class DynamicJoinTreeBuilderTest {
                         fail("Did not expect a disconnected node at this point!")
                     }
                     is DynamicJoinTree.Node.Leaf -> {
-                        missing.remove(root.left.state.bindings)
+                        missing.remove(root.left.state.properties)
                     }
                 }
                 when (root.right) {
@@ -230,7 +230,7 @@ class DynamicJoinTreeBuilderTest {
                         fail("Did not expect a disconnected node at this point!")
                     }
                     is DynamicJoinTree.Node.Leaf -> {
-                        missing.remove(root.right.state.bindings)
+                        missing.remove(root.right.state.properties)
                     }
                 }
             }
@@ -258,16 +258,16 @@ class DynamicJoinTreeBuilderTest {
         // we check if we're missing any patterns after constructing the tree; we do so by checking all leaf bindings
         //  before the tree has been constructed with the individual leafs discovered after traversing the result;
         //  we can do this as we know the binding combinations are unique per leaf
-        val missing = patterns.mapTo(mutableSetOf()) { TestNode(it).bindings }
+        val missing = patterns.mapTo(mutableSetOf()) { TestNode(it).properties }
 
         fun check(node: DynamicJoinTree.Node) {
             // making sure its indexed on its common pair
             node.assertIsConnected()
             val activeIndexes = node.buf.indexes.asIntIterable()
             if (!activeIndexes.iterator().hasNext()) {
-                fail("Expected at least one active index, got none: ${node.left.bindings} <> ${node.right.bindings} is cached with ${node.buf}!")
+                fail("Expected at least one active index, got none: ${node.left.properties} <> ${node.right.properties} is cached with ${node.buf}!")
             }
-            val possibleIndexes = node.bindings
+            val possibleIndexes = node.properties.maximum
             assertTrue { activeIndexes.all { it in possibleIndexes } }
             // moving to the next check
             when (node.left) {
@@ -279,7 +279,7 @@ class DynamicJoinTreeBuilderTest {
                 }
                 is DynamicJoinTree.Node.Leaf -> {
                     // terminal point reached
-                    missing.remove(node.left.state.bindings)
+                    missing.remove(node.left.state.properties)
                 }
             }
             when (node.right) {
@@ -291,7 +291,7 @@ class DynamicJoinTreeBuilderTest {
                 }
                 is DynamicJoinTree.Node.Leaf -> {
                     // terminal point reached
-                    missing.remove(node.right.state.bindings)
+                    missing.remove(node.right.state.properties)
                 }
             }
         }
@@ -310,7 +310,7 @@ class DynamicJoinTreeBuilderTest {
                         fail("Did not expect a disconnected node at this point!")
                     }
                     is DynamicJoinTree.Node.Leaf -> {
-                        missing.remove(root.left.state.bindings)
+                        missing.remove(root.left.state.properties)
                     }
                 }
                 when (root.right) {
@@ -321,7 +321,7 @@ class DynamicJoinTreeBuilderTest {
                         fail("Did not expect a disconnected node at this point!")
                     }
                     is DynamicJoinTree.Node.Leaf -> {
-                        missing.remove(root.right.state.bindings)
+                        missing.remove(root.right.state.properties)
                     }
                 }
             }
@@ -335,7 +335,7 @@ class DynamicJoinTreeBuilderTest {
                         fail("Did not expect a disconnected node at this point!")
                     }
                     is DynamicJoinTree.Node.Leaf -> {
-                        missing.remove(root.left.state.bindings)
+                        missing.remove(root.left.state.properties)
                     }
                 }
                 when (root.right) {
@@ -346,7 +346,7 @@ class DynamicJoinTreeBuilderTest {
                         fail("Did not expect a disconnected node at this point!")
                     }
                     is DynamicJoinTree.Node.Leaf -> {
-                        missing.remove(root.right.state.bindings)
+                        missing.remove(root.right.state.properties)
                     }
                 }
             }
@@ -493,7 +493,7 @@ class DynamicJoinTreeBuilderTest {
         // we should have ended at a connected segment that has our filter
         assertTrue { subtree.filters.isNotEmpty() }
         // and this node has all bindings required to form the proper path, including those required by the filter
-        assertTrue { BindingIdentifierSet(GlobalQueryContext, listOf("a", "c", "d", "g", "e", "f")) in subtree.bindings }
+        assertTrue { BindingIdentifierSet(GlobalQueryContext, listOf("a", "c", "d", "g", "e", "f")) in subtree.properties.maximum }
     }
 
     /* test helpers */

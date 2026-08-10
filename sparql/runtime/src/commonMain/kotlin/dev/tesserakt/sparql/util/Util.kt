@@ -6,6 +6,14 @@ val ZeroCardinality = Cardinality(0)
 
 val OneCardinality = Cardinality(1)
 
+fun GraphPattern.Statement.getAllNamedBindings(): Set<TriplePattern.NamedBinding> {
+    return when (this) {
+        is Optional -> patterns.getAllNamedBindings()
+        is TriplePattern -> getAllNamedBindings()
+        is Union -> segments.getAllNamedBindings()
+    }
+}
+
 fun GraphPattern.getAllNamedBindings(): Set<TriplePattern.NamedBinding> =
     buildSet {
         statements.forEach { statement ->

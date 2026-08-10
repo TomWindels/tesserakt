@@ -8,6 +8,7 @@ import dev.tesserakt.sparql.types.GraphPattern
 import dev.tesserakt.sparql.types.Optional
 import dev.tesserakt.sparql.types.TriplePattern
 import dev.tesserakt.sparql.types.Union
+import dev.tesserakt.sparql.util.getAllNamedBindings
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -40,7 +41,7 @@ value class BasicGraphBodyState private constructor(
                             pattern = statement,
                         )
                         filters.forEach { filter ->
-                            if (filter.bindings in state.bindings) {
+                            if (filter.bindings in state.properties.maximum) {
                                 state = state.filtered(filter)
                             }
                         }
@@ -52,6 +53,17 @@ value class BasicGraphBodyState private constructor(
                             context = context,
                             union = statement,
                             filters = filters,
+                            externalBindings = statements.indices.fold(BindingIdentifierSet.EMPTY) { total, j ->
+                                if (i == j) {
+                                    return@fold total
+                                }
+                                // NOTE:
+                                //  even though this only captures the *named* bindings, not the generated ones,
+                                //  we cannot have generated bindings in common as these are in separate scopes, and
+                                //  thus could not have such a binding in common
+                                val current = BindingIdentifierSet(context, statements[j].getAllNamedBindings().mapTo(mutableSetOf()) { it.name })
+                                total + current
+                            },
                         )
                         states.add(state)
                     }
@@ -65,7 +77,7 @@ value class BasicGraphBodyState private constructor(
                                 pattern = pattern,
                             )
                             optionalFilters.forEach { filter ->
-                                if (filter.bindings in state.bindings) {
+                                if (filter.bindings in state.properties.maximum) {
                                     state = state.filtered(filter)
                                 }
                             }
@@ -77,7 +89,7 @@ value class BasicGraphBodyState private constructor(
                             states = optionalBody,
                             filters = optionalFilters,
                             externalBindings = states.fold(BindingIdentifierSet.EMPTY) { total, state ->
-                                total + state.bindings
+                                total + state.properties.maximum
                             },
                         )
                         // we have to consume all prior states now, as this is an order-dependant operation
@@ -85,7 +97,7 @@ value class BasicGraphBodyState private constructor(
                             context = context,
                             states = states,
                             filters = filters,
-                            externalBindings = optionalBlock.bindings
+                            externalBindings = optionalBlock.properties.maximum
                         )
 
                         val optional = OptionalState(

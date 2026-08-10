@@ -24,8 +24,8 @@ class BasicGraphPatternState private constructor(
      * A collection of all bindings found inside this query body; it is not guaranteed that all solutions generated
      *  through [insert]ion have a value for all of these bindings, as this depends on the query itself
      */
-    override val bindings: BindingIdentifierSet
-        get() = body.bindings
+    override val properties: MutableJoinState.Properties
+        get() = body.properties
 
     // we don't check the cardinality after filtering, as doing so would be expensive
     override val cardinality: Cardinality

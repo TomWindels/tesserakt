@@ -312,7 +312,7 @@ sealed interface InclusionFilterState: MutableFilterState {
                 // we don't join with anything directly
                 externalBindings = BindingIdentifierSet.EMPTY,
             )
-            val externalBindings = parent.bindings.intersect(state.bindings)
+            val externalBindings = parent.properties.maximum.intersect(state.properties.maximum)
             return if (externalBindings.isEmpty()) {
                 Broad(
                     context = context,

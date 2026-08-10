@@ -89,8 +89,8 @@ class OptionalState private constructor(
             state = optional
         ),
         filters = filters.filter { filter ->
-            val innerOverlap = filter.bindings.intersectSize(inner.bindings)
-            val optionalOverlap = filter.bindings.intersectSize(optional.bindings)
+            val innerOverlap = filter.bindings.intersectSize(inner.properties.maximum)
+            val optionalOverlap = filter.bindings.intersectSize(optional.properties.maximum)
             // we only want to apply this filter where it makes sense the most;
             // in order to satisfy this requirement,
             // neither side has *none* of the required bindings
@@ -99,11 +99,14 @@ class OptionalState private constructor(
             //  instead
             innerOverlap != filter.bindings.size && optionalOverlap != filter.bindings.size &&
             // but combined they do
-            filter.bindings in (inner.bindings + optional.bindings)
+            filter.bindings in (inner.properties.maximum + optional.properties.maximum)
         },
     )
 
-    override val bindings = inner.bindings + optional.state.bindings
+    override val properties = MutableJoinState.Properties(
+        guaranteed = inner.properties.guaranteed,
+        maximum = inner.properties.maximum + optional.state.properties.maximum,
+    )
 
     private var indexedBindings = BindingIdentifierSet.EMPTY
     private var arrayHint = MappingArrayHint()
@@ -220,7 +223,10 @@ class OptionalState private constructor(
                 inner = inner,
             )
         }
-        return inner
+        return Statistics.SelectiveElement(
+            cardinality = cardinality,
+            inner = inner,
+        )
     }
 
     /**

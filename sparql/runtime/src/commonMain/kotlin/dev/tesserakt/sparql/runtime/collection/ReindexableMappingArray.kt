@@ -43,11 +43,6 @@ class ReindexableMappingArray(
     }
 
     fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint = MappingArrayHint.DEFAULT) {
-        // FIXME make sure all use sites properly set this hint
-        //  when their index set contains at least 1 binding that originates
-        //  from an `OPTIONAL` block
-        val hint = MappingArrayHint(partialHashAccess = true)
-
         val new = MappingArray(bindings, hint)
         // if the new array has the same properties given the hint and index configuration, we can skip
         //  the replacement step
