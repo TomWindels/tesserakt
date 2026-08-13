@@ -36,8 +36,6 @@ interface Mapping {
 
     fun compatibleWith(other: Mapping): Boolean
 
-    fun compatibleWith(bindings: BindingIdentifierSet, values: TermIdentifierSet): Boolean
-
     fun isEmpty(): Boolean
 
 }

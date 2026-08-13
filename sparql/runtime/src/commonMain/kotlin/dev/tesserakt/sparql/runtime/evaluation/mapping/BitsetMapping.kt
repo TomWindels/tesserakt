@@ -8,33 +8,50 @@ import dev.tesserakt.sparql.runtime.evaluation.TermIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.util.bitIterator
 import dev.tesserakt.util.cloneTo
+import kotlin.jvm.JvmInline
 
-class BitsetMapping private constructor(
-    // self-managed bitmask
-    private val bindings: Int,
-    // all term values associated with the various bindings above
-    private val terms: IntArray,
+/**
+ * The internal representation of a solution to a SELECT query.
+ *
+ * IMPORTANT: this does not provide consistent [hashCode] and [equals] results!
+ *  If this is required (e.g. lookup in a map), use the appropriate boxed variant!
+ */
+@JvmInline
+value class BitsetMapping internal constructor(
+    // a binding mask, followed by all term values associated with these various bindings
+    internal val data: IntArray,
 ) : Mapping {
+
+    private constructor(bindings: Int, data: Collection<Int>): this(
+        data = IntArray(data.size + 1).apply {
+            this[0] = bindings
+            var i = 1
+            for (v in data) {
+                this[i++] = v
+            }
+        }
+    )
 
     constructor(context: QueryContext, source: Map<String, Quad.Element>): this(
         bindings = source.asIterable().fold(initial = 0) { acc, entry -> acc or (1 shl context.resolveBinding(entry.key)) },
-        terms = source.asIterable().sortedBy { context.resolveBinding(it.key) }.map { context.resolveTerm(it.value) }.toIntArray(),
+        data = source.asIterable().sortedBy { context.resolveBinding(it.key) }.map { context.resolveTerm(it.value) },
     )
 
     constructor(context: QueryContext, source: Iterable<Pair<String, Quad.Element>>): this(
         bindings = source.fold(initial = 0) { acc, entry -> acc or (1 shl context.resolveBinding(entry.first)) },
-        terms = source.sortedBy { context.resolveBinding(it.first) }.map { context.resolveTerm(it.second) }.toIntArray(),
+        data = source.sortedBy { context.resolveBinding(it.first) }.map { context.resolveTerm(it.second) },
     )
 
     constructor(source: Iterable<Pair<BindingIdentifier, TermIdentifier>>): this(
         bindings = source.fold(initial = 0) { acc, entry -> acc or (1 shl entry.first.id) },
-        terms = source.sortedBy { it.first.id }.map { it.second.id }.toIntArray(),
+        data = source.sortedBy { it.first.id }.map { it.second.id },
     )
 
-    private val hashCode = bindings + terms.contentHashCode()
+    val bindings: Int
+        get() = data[0]
 
     override val count: Int
-        get() = bindings.countOneBits()
+        get() = data.size - 1
 
     override fun get(binding: BindingIdentifier): TermIdentifier? {
         // getting the binding index associated with `binding`
@@ -42,33 +59,25 @@ class BitsetMapping private constructor(
         if (index == -1) {
             return null
         }
-        return TermIdentifier(terms[index])
+        return TermIdentifier(data[index])
     }
 
     override fun retain(bindings: BindingIdentifierSet): Mapping {
         val remaining = bindings.asIntIterable().fold(0) { acc, i -> acc or (1 shl i) }
         val common = this.bindings and remaining
         val iter = common.bitIterator()
-        val terms = IntArray(common.countOneBits()) { terms[bindingIndex(iter.nextInt())] }
-        return BitsetMapping(
-            bindings = common,
-            terms = terms,
-        )
+        val data = IntArray(common.countOneBits() + 1)
+        data[0] = common
+        var i = 1
+        while (iter.hasNext()) {
+            data[i++] = this.data[bindingIndex(iter.nextInt())]
+        }
+        return BitsetMapping(data)
     }
 
     override fun compatibleWith(other: Mapping): Boolean {
         require(other is BitsetMapping)
         return count(other) != -1
-    }
-
-    override fun compatibleWith(bindings: BindingIdentifierSet, values: TermIdentifierSet): Boolean {
-        bindings.asIntIterable().forEachIndexed { index, bindingId ->
-            val selfIndex = bindingIndex(bindingId)
-            if (selfIndex != -1 && values[index].id != terms[selfIndex]) {
-                return false
-            }
-        }
-        return true
     }
 
     override fun isEmpty(): Boolean {
@@ -88,87 +97,12 @@ class BitsetMapping private constructor(
             // incompatible mappings
             return null
         }
-        val terms = IntArray(c)
-        var i = 0
-        val a = this.bindings.bitIterator()
-        val b = other.bindings.bitIterator()
-        var left = a.nextInt()
-        var right = b.nextInt()
-        while (true) {
-            when {
-                left < right -> {
-                    terms[i++] = this.get(left)
-                    left = if (a.hasNext()) {
-                        a.nextInt()
-                    } else {
-                        // all other elements to the right can get added right away
-                        val remaining = b.remaining() + 1
-                        other.terms.cloneTo(
-                            target = terms,
-                            thisOffset = other.terms.size - remaining,
-                            targetOffset = i,
-                            length = remaining
-                        )
-                        break
-                    }
-                }
-                right < left -> {
-                    terms[i++] = other.get(right)
-                    right = if (b.hasNext()) {
-                        b.nextInt()
-                    } else {
-                        // all other elements to the right can get added right away
-                        val remaining = a.remaining() + 1
-                        this.terms.cloneTo(
-                            target = terms,
-                            thisOffset = this.terms.size - remaining,
-                            targetOffset = i,
-                            length = remaining
-                        )
-                        break
-                    }
-                }
-                else /* right == left */ -> {
-                    // no equality check required; `count` took care of that
-                    terms[i++] = this.get(left)
-                    left = if (a.hasNext()) {
-                        a.nextInt()
-                    } else {
-                        // all other elements to the right can get added right away
-                        // this first step, `terms[i++] = other.get(right)`, is not required, as here, left == right
-                        val remaining = b.remaining()
-                        other.terms.cloneTo(
-                            target = terms,
-                            thisOffset = other.terms.size - remaining,
-                            targetOffset = i,
-                            length = remaining
-                        )
-                        break
-                    }
-                    right = if (b.hasNext()) {
-                        b.nextInt()
-                    } else {
-                        // all other elements to the right can get added right away
-                        val remaining = a.remaining() + 1
-                        this.terms.cloneTo(
-                            target = terms,
-                            thisOffset = this.terms.size - remaining,
-                            targetOffset = i,
-                            length = remaining
-                        )
-                        break
-                    }
-                }
-            }
-        }
-        return BitsetMapping(
-            bindings = bindings or other.bindings,
-            terms = terms,
-        )
+        // not having this inlined helps enormously with performance
+        return joinUnchecked(this, other)
     }
 
     override fun keys(): BindingIdentifierSet {
-        val bindingCount = this.terms.size // = this.bindings pop count
+        val bindingCount = this.count
         if (bindingCount == 0) {
             return BindingIdentifierSet.EMPTY
         }
@@ -209,7 +143,7 @@ class BitsetMapping private constructor(
     override fun asIterable() = object: Iterable<Pair<BindingIdentifier, TermIdentifier>> {
         override fun iterator() = object: Iterator<Pair<BindingIdentifier, TermIdentifier>> {
             private val iter = bindings.bitIterator()
-            private var i = 0
+            private var i = 1
 
             override fun hasNext(): Boolean {
                 return iter.hasNext()
@@ -218,13 +152,13 @@ class BitsetMapping private constructor(
             override fun next(): Pair<BindingIdentifier, TermIdentifier> {
                 val binding = iter.nextInt()
                 val term = i++
-                return BindingIdentifier(binding) to TermIdentifier(terms[term])
+                return BindingIdentifier(binding) to TermIdentifier(data[term])
             }
         }
     }
 
     override fun values(): TermIdentifierSet {
-        return TermIdentifierSet(terms)
+        return TermIdentifierSet(data.sliceArray(1 ..< data.size))
     }
 
     override fun toMap(context: QueryContext): Map<String, Quad.Element> {
@@ -236,7 +170,7 @@ class BitsetMapping private constructor(
         return if (index == -1) {
             null
         } else {
-            context.resolveTerm(terms[index])
+            context.resolveTerm(data[index])
         }
     }
 
@@ -254,10 +188,14 @@ class BitsetMapping private constructor(
         return (bindings or other.bindings).countOneBits()
     }
 
-    private fun get(binding: Int): Int {
-        return terms[bindingIndex(binding)]
+    internal fun get(binding: Int): Int {
+        return data[bindingIndex(binding)]
     }
 
+    /**
+     * Calculates the index in [data] the term value associated with the binding [target], or `-1` if this instance has
+     *  no value associated with that binding.
+     */
     private fun bindingIndex(target: Int): Int {
         // ensuring it exists
         if ((1 shl target) and bindings == 0) {
@@ -266,35 +204,101 @@ class BitsetMapping private constructor(
         // method: changing the `bindings` field to only contain all bits lower than our target,
         //  and counting how many bits of those are set, as every bit set represents a slot (and thus index)
         //  that should be skipped
-        return (((1 shl target) - 1) and bindings).countOneBits()
+        // we also need to increment it by one, as the first slot is taken up by the `bindings` value
+        return (((1 shl target) - 1) and bindings).countOneBits() + 1
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     override fun toString(): String {
-        return "BitsetMapping { bindings: 0x${bindings.toHexString(format = HexFormat { upperCase = true })}, terms: [${terms.joinToString()}] }"
-    }
-
-    override fun hashCode(): Int {
-        return hashCode
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) {
-            return true
-        }
-        if (other !is BitsetMapping) {
-            return false
-        }
-        if (hashCode != other.hashCode) {
-            return false
-        }
-        return bindings == other.bindings && terms.contentEquals(other.terms)
+        return "BitsetMapping { bindings: 0x${bindings.toHexString(format = HexFormat { upperCase = true })}, terms: [${data.joinToString()}] }"
     }
 
     companion object {
 
-        val EMPTY = BitsetMapping(0, intArrayOf())
+        val EMPTY = BitsetMapping(intArrayOf(0))
 
     }
 
+}
+
+// having this split up here helps with performance, as the happy and unhappy path
+//  can be optimized separately in JIT
+private fun joinUnchecked(
+    leftMapping: BitsetMapping,
+    rightMapping: BitsetMapping,
+): BitsetMapping {
+    val output = IntArray((leftMapping.bindings or rightMapping.bindings).countOneBits() + 1)
+    output[0] = leftMapping.bindings or rightMapping.bindings
+    var i = 1
+    val a = leftMapping.bindings.bitIterator()
+    val b = rightMapping.bindings.bitIterator()
+    var left = a.nextInt()
+    var right = b.nextInt()
+    while (true) {
+        when {
+            left < right -> {
+                output[i++] = leftMapping.get(left)
+                left = if (a.hasNext()) {
+                    a.nextInt()
+                } else {
+                    // all other elements from the right side can be added right away
+                    val remaining = b.remaining() + 1
+                    rightMapping.data.cloneTo(
+                        target = output,
+                        thisOffset = rightMapping.data.size - remaining,
+                        targetOffset = i,
+                        length = remaining
+                    )
+                    break
+                }
+            }
+            right < left -> {
+                output[i++] = rightMapping.get(right)
+                right = if (b.hasNext()) {
+                    b.nextInt()
+                } else {
+                    // all other elements from the left side can be added right away
+                    val remaining = a.remaining() + 1
+                    leftMapping.data.cloneTo(
+                        target = output,
+                        thisOffset = leftMapping.data.size - remaining,
+                        targetOffset = i,
+                        length = remaining
+                    )
+                    break
+                }
+            }
+            else /* right == left */ -> {
+                // no equality check required; `count` took care of that
+                output[i++] = leftMapping.get(left)
+                left = if (a.hasNext()) {
+                    a.nextInt()
+                } else {
+                    // all other elements from the right side can be added right away
+                    // this first step, `result[i++] = other.get(right)`, is not required, as here, left == right
+                    val remaining = b.remaining()
+                    rightMapping.data.cloneTo(
+                        target = output,
+                        thisOffset = rightMapping.data.size - remaining,
+                        targetOffset = i,
+                        length = remaining
+                    )
+                    break
+                }
+                right = if (b.hasNext()) {
+                    b.nextInt()
+                } else {
+                    // all other elements from the left side can be added right away
+                    val remaining = a.remaining() + 1
+                    leftMapping.data.cloneTo(
+                        target = output,
+                        thisOffset = leftMapping.data.size - remaining,
+                        targetOffset = i,
+                        length = remaining
+                    )
+                    break
+                }
+            }
+        }
+    }
+    return BitsetMapping(output)
 }

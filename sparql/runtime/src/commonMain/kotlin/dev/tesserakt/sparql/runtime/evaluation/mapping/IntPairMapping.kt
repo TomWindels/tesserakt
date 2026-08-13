@@ -108,17 +108,6 @@ value class IntPairMapping private constructor(private val data: IntIntPair?) : 
         return count(this.data, other.data) != -1
     }
 
-    override fun compatibleWith(bindings: BindingIdentifierSet, values: TermIdentifierSet): Boolean {
-        val data = data ?: return false
-        bindings.asIntIterable().forEachIndexed { index, bindingId ->
-            val i = data.search(keyValue = bindingId)
-            if (values[index].id != data.value(i)) {
-                return false
-            }
-        }
-        return true
-    }
-
     override fun retain(bindings: BindingIdentifierSet): IntPairMapping {
         if (data == null) {
             return this
