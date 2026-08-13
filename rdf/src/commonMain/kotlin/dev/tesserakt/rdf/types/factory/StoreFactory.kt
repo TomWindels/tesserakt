@@ -11,7 +11,10 @@ fun ObservableStore(): ObservableStore = ObservableStoreImpl()
 
 fun ObservableStore(data: Collection<Quad>): ObservableStore = ObservableStoreImpl(data)
 
-fun IndexedStore(data: Collection<Quad>): IndexedStore = IndexedStoreImpl(data)
+fun IndexedStore(data: Collection<Quad>): IndexedStore = when (data) {
+    is IndexedStore -> data
+    else -> IndexedStoreImpl(data)
+}
 
 fun Store(): Store = EmptyStoreImpl
 
