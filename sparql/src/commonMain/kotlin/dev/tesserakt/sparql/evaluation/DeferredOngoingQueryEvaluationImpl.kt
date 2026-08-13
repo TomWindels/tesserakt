@@ -9,6 +9,7 @@ import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
 import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.query.QueryState
+import dev.tesserakt.util.replace
 
 
 internal class DeferredOngoingQueryEvaluationImpl<RT>(
@@ -23,8 +24,36 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(
             return updateAndGet().results
         }
 
-    // a set, as duplicate insertions / deletions are not possible, and opposite changes can be found efficiently
-    private val queue = mutableSetOf<DataDelta>()
+    private enum class EntryState {
+        Addition,
+        Deletion,
+        /* no other options possible */;
+
+        // caching the two update types to pass to the `queue.replace` method
+        companion object {
+
+            val Increment: (EntryState?) -> EntryState? = { previous ->
+                when (previous) {
+                    null -> Addition
+                    Deletion -> null
+                    Addition -> throw IllegalStateException("Tried to add a quad that was already marked for addition!")
+                }
+            }
+
+            val Decrement: (EntryState?) -> EntryState? = { previous ->
+                when (previous) {
+                    null -> Deletion
+                    Addition -> null
+                    Deletion -> throw IllegalStateException("Tried to delete a quad that was already marked for deletion!")
+                }
+            }
+
+        }
+    }
+
+    // tracking changes, and whether it's an insertion or deletion
+    // updates that are contradictory (insertion - deletion pair) are removed
+    private val queue = mutableMapOf<EncodedQuad, EntryState>()
 
     // we construct our listener, but only attach it after processing initial state, which we only do after having
     //  been called to update for the first time
@@ -64,7 +93,12 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(
         // we have a prior state that needs to be updated
         val iter = queue.iterator()
         while (iter.hasNext()) {
-            state.process(iter.next())
+            val (quad, change) = iter.next()
+            val delta = when (change) {
+                EntryState.Addition -> DataAddition(quad)
+                EntryState.Deletion -> DataDeletion(quad)
+            }
+            state.process(delta)
         }
         queue.clear()
         return state
@@ -79,16 +113,11 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(
     }
 
     private fun process(change: DataDelta) {
-        // if the other operation is already queued, we can remove it instead of inserting the new change
-        if (queue.remove(change.inverse())) {
-            return
+        val update = when (change) {
+            is DataAddition -> EntryState.Increment
+            is DataDeletion -> EntryState.Decrement
         }
-        queue.add(change)
-    }
-
-    private fun DataDelta.inverse() = when (this) {
-        is DataAddition -> DataDeletion(this.value)
-        is DataDeletion -> DataAddition(this.value)
+        queue.replace(change.value, update)
     }
 
 }
