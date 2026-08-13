@@ -24,7 +24,7 @@ sealed class RepeatingPathState {
         // all terms that have been discovered (count of "zero-length" segments)
         private val terms = Counter<TermIdentifier>()
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(start.id, end.id)
+        private val arr = ReindexableMappingArray()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -119,7 +119,7 @@ sealed class RepeatingPathState {
         private val segments = SegmentsList()
         // all terms that have been discovered (count of "zero-length" segments)
         private val terms = Counter<TermIdentifier>()
-        private val arr = ReindexableMappingArray(start.id, end.id)
+        private val arr = ReindexableMappingArray()
         private val inner = TriplePatternState.from(context, start, inner, end)
 
         override val cardinality: Cardinality
@@ -221,7 +221,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(start.id)
+        private val arr = ReindexableMappingArray()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -308,7 +308,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(start.id)
+        private val arr = ReindexableMappingArray()
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -404,7 +404,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(end.id)
+        private val arr = ReindexableMappingArray()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -491,7 +491,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(end.id)
+        private val arr = ReindexableMappingArray()
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -812,7 +812,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(start.id, end.id)
+        private val arr = ReindexableMappingArray()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -874,7 +874,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(start.id, end.id)
+        private val arr = ReindexableMappingArray()
         private val inner = TriplePatternState.from(context, start, inner, end)
 
         override val cardinality: Cardinality
@@ -937,7 +937,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(start.id)
+        private val arr = ReindexableMappingArray()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -999,7 +999,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(start.id)
+        private val arr = ReindexableMappingArray()
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.
@@ -1086,7 +1086,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(end.id)
+        private val arr = ReindexableMappingArray()
 
         override val cardinality: Cardinality
             get() = arr.cardinality
@@ -1148,7 +1148,7 @@ sealed class RepeatingPathState {
     ) : RepeatingPathState() {
 
         private val segments = SegmentsList()
-        private val arr = ReindexableMappingArray(end.id)
+        private val arr = ReindexableMappingArray()
 
         // "bridge" binding, responsible for keeping the inner predicate's end variable, allowing for more matches that
         //  in turn can produce additional results only obtainable by combining these additional matches; i.e.

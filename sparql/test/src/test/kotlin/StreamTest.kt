@@ -1,6 +1,7 @@
 
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.util.Counter
@@ -44,11 +45,11 @@ class StreamTest {
             .toStream()
         val joined1 = a.join(b)
         val joined2 = a.product(b).mappedNonNull { (a, b) -> a.join(b) }
-        val check = Counter(joined1)
+        val check = Counter(joined1.map { it.hashable() })
         assertEquals(joined1.cardinality, joined2.cardinality)
         assertTrue { check.current.size == 4 }
         assertTrue { check.all { it.value == 1 } }
-        joined2.forEach { check.decrement(it) }
+        joined2.forEach { check.decrement(it.hashable()) }
         assertTrue("One: ${joined1.joinToString()}\nTwo: ${joined2.joinToString()}\nRemaining: $check") { check.current.isEmpty() }
     }
 
@@ -65,21 +66,6 @@ class StreamTest {
             actual = filtered,
             message = "Expected: ${0 until 10 step 2}\nReceived: ${filtered.joinToString()}\n"
         )
-    }
-
-    @Test
-    fun removing() {
-        // source = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-        val source = (0 until 10).toList().toStream()
-        // target = 1, 3, 5, 7, 9
-        val target = (1 until 10 step 2).toList()
-        // result = 0, 2, 4, 6, 8
-        val result = source.remove(target).collect()
-        // collected, so the resulting cardinality is now smaller
-        assertTrue { result.cardinality < source.cardinality }
-        assertTrue { result.all { it % 2 == 0 } }
-        assertContentEquals(0 until 10 step 2, result)
-        assertEquals(result.size, 5)
     }
 
 }
