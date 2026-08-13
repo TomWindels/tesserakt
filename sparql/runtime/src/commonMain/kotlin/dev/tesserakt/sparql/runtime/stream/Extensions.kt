@@ -173,10 +173,10 @@ inline fun <I : Any, O : Any> Iterable<Stream<I>>.transform(transform: (Int, Str
 }
 
 /**
- * Transforms this [OptimisedStream] using the provided [transform]. The [maxCardinality] value represents the max
+ * Transforms this [Stream] using the provided [transform]. The [maxCardinality] value represents the max
  *  expected cardinality of the [Stream] returned by the [transform] invocation.
  */
-inline fun <I : Any, O : Any> OptimisedStream<I>.transform(
+inline fun <I : Any, O : Any> Stream<I>.transform(
     /** The largest cardinality value possible for streams obtained through [transform] **/
     maxCardinality: Cardinality,
     noinline transform: (I) -> Stream<O>,
@@ -189,10 +189,10 @@ inline fun <I : Any, O : Any> OptimisedStream<I>.transform(
 }
 
 /**
- * Transforms this [OptimisedStream] using the provided [transform]. The [maxCardinality] value represents the max
+ * Transforms this [Stream] using the provided [transform]. The [maxCardinality] value represents the max
  *  expected cardinality of the [Stream] returned by the [transform] invocation.
  */
-inline fun <I : Any, O : Any> OptimisedStream<I>.transform(
+inline fun <I : Any, O : Any> Stream<I>.transform(
     /** The largest cardinality value possible for streams obtained through [transform] **/
     maxCardinality: Number,
     noinline transform: (I) -> Stream<O>,
@@ -302,6 +302,17 @@ inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Cardinality = 
         // instead of buffering the thing, we're only exposing the iterator once
         else -> SingleUseStreamView(this, cardinality)
     }
+
+inline fun <E : Any> Stream<E>.orElse(other: Stream<E>): Stream<E> = when {
+    this.hasZeroCardinality() -> other
+    other.hasZeroCardinality() -> this
+    else -> StreamChainEmpty(this, other)
+}
+
+inline fun <E : Any> Stream<E>.orElse(element: E): Stream<E> = when {
+    this.hasZeroCardinality() -> streamOf(element)
+    else -> StreamChainEmpty(this, streamOf(element))
+}
 
 inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Number): OptimisedStream<E> =
     optimisedForSingleUse(cardinality = Cardinality(cardinality))

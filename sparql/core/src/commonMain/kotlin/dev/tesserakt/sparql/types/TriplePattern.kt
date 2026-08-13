@@ -7,7 +7,7 @@ data class TriplePattern(
     val s: Subject,
     val p: Predicate,
     val o: Object,
-) : QueryAtom {
+) : GraphPattern.Statement, QueryAtom {
 
     sealed interface Element : QueryAtom
 

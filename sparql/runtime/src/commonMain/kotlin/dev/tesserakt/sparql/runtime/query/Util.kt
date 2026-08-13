@@ -2,7 +2,6 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
-import dev.tesserakt.sparql.runtime.query.jointree.JoinTree
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.mappedNonNull
@@ -83,10 +82,6 @@ val TriplePatternState.Predicate.termId: Int?
 val TriplePatternState.Object.termId: Int?
     get() = (this as? TriplePatternState.Exact)?.id?.id
 
-
-inline fun JoinTree.join(deltas: List<MappingDelta>): List<MappingDelta> {
-    return deltas.flatMap { delta -> join(delta) }
-}
 
 inline fun TriplePatternState.UnboundSequence.unfold(
     context: QueryContext,

@@ -39,6 +39,8 @@ class IncrementalDeferredDeletionTest(
         val ongoing: DeferredOngoingQueryEvaluation<Bindings>
         val setupTime = measureTime {
             ongoing = input.queryDeferred(query)
+            // making sure we properly capture the initial time spent by getting the value
+            ongoing.results
         }
         // checking the initial state (all data)
         builder.add(
@@ -112,17 +114,12 @@ class IncrementalDeferredDeletionTest(
                     when {
                         index == 0 -> {
                             // initial state failed
-                            appendLine("Comparison failed without any data")
-                        }
-                        index <= store.size -> {
-                            // insertion failed
-                            appendLine("First failure occurred at incremental change #$index")
-                            appendLine("\t[+] ${store.elementAt(index - 1)}")
+                            appendLine("Comparison failed without any data changes")
                         }
                         else -> {
                             // deletion failed
                             appendLine("First failure occurred at incremental change #$index")
-                            appendLine("\t[-] ${store.elementAt(index - store.size - 1)}")
+                            appendLine("\t[-] ${store.elementAt(index - 1)}")
                         }
                     }
                     append(outputs[index].exceptionOrNull()?.message ?: "Detailed contents unavailable")

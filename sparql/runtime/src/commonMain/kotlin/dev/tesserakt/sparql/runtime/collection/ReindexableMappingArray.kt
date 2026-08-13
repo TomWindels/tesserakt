@@ -3,14 +3,13 @@ package dev.tesserakt.sparql.runtime.collection
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
-import dev.tesserakt.sparql.util.Cardinality
 
 class ReindexableMappingArray(
     private var active: MappingArray
 ) : MappingArray {
 
-    override val cardinality: Cardinality
-        get() = active.cardinality
+    override val size: Int
+        get() = active.size
 
     override val indexes: BindingIdentifierSet
         get() = active.indexes

@@ -1,5 +1,6 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.FilterExpression
@@ -43,7 +44,7 @@ internal object DynamicJoinTreeBuilder {
             }
             // if any of our leaf states already contains all necessary bindings, that state is the one responsible
             //  for ensuring it emits no filter-violating results
-            val isSpanning = states.none { state -> filter.bindings in state.bindings }
+            val isSpanning = states.none { state -> filter.bindings in state.properties.maximum }
             if (!isSpanning) {
                 return@forEach
             }
@@ -108,7 +109,7 @@ internal object DynamicJoinTreeBuilder {
                     first = segment,
                     second = newSegment,
                     // if we're at the end, we set the empty state, as we do not yet know what to index with
-                    externalBindings = nextNewSegment?.bindings ?: BindingIdentifierSet.EMPTY,
+                    externalBindings = nextNewSegment?.properties?.maximum ?: BindingIdentifierSet.EMPTY,
                     // it should be correct to keep this list empty until the very last iteration
                     filters = filters,
                 )
@@ -164,7 +165,7 @@ internal object DynamicJoinTreeBuilder {
         //  cardinality
         val lut = states
             .withIndex()
-            .groupingBy { it.value.bindings }
+            .groupingBy { it.value.properties.maximum }
             .reduce { _, min, current ->
                 if (current.value.node.cardinality < min.value.node.cardinality) {
                     current
@@ -307,7 +308,7 @@ internal object DynamicJoinTreeBuilder {
             groups.add(segment)
         }
         return if (groups.size == 2) {
-            val commonExternalBindings = externalBindings.intersect(groups[0].bindings + groups[1].bindings)
+            val commonExternalBindings = externalBindings.intersect(groups[0].properties.maximum + groups[1].properties.maximum)
             if (commonExternalBindings.isEmpty() && filters.isEmpty()) {
                 TreeSegment.disconnected(
                     first = groups[0],
@@ -333,9 +334,9 @@ internal object DynamicJoinTreeBuilder {
         if (!iter.hasNext()) {
             return BindingIdentifierSet.EMPTY
         }
-        var r = iter.next().bindings
+        var r = iter.next().properties.maximum
         while (iter.hasNext()) {
-            r += iter.next().bindings
+            r += iter.next().properties.maximum
         }
         return r
     }
@@ -353,13 +354,13 @@ internal object DynamicJoinTreeBuilder {
         private val length: Int,
     ) {
 
-        val bindings: BindingIdentifierSet get() = node.bindings
+        val properties: MutableJoinState.Properties get() = node.properties
 
         fun getTotalBindingsCount(other: TreeSegment) =
-            unionSize(bindings, other.bindings)
+            properties.maximum.unionSize(other.properties.maximum)
 
         fun getCommonBindingsCount(other: TreeSegment) =
-            bindings.intersectSize(other.bindings)
+            properties.maximum.intersectSize(other.properties.maximum)
 
         fun getTotalLength(other: TreeSegment) =
             length + other.length
@@ -393,15 +394,15 @@ internal object DynamicJoinTreeBuilder {
                     // we only need to apply filters to our new segment if
                     // * we contain all bindings required by this filter to evaluate
                     // * neither of the children can (and do) evaluate the filter on their own
-                    filter.bindings in (first.bindings + second.bindings) &&
-                    filter.bindings.intersectSize(first.bindings) in 1 ..< filter.bindings.size &&
-                    filter.bindings.intersectSize(second.bindings) in 1 ..< filter.bindings.size
+                    filter.bindings in (first.properties.maximum + second.properties.maximum) &&
+                    filter.bindings.intersectSize(first.properties.maximum) in 1 ..< filter.bindings.size &&
+                    filter.bindings.intersectSize(second.properties.maximum) in 1 ..< filter.bindings.size
                 }
-                return if (filters.isNotEmpty() || first.bindings.intersectSize(second.bindings) != 0) {
+                return if (filters.isNotEmpty() || first.properties.maximum.intersectSize(second.properties.maximum) != 0) {
                     // we index on the bindings found in either first and/or second that are also available 'externally',
                     //  as we expect incoming mappings to join on that have these external bindings set
                     val indexes = externalBindings
-                        .intersect(first.bindings + second.bindings)
+                        .intersect(first.properties.maximum + second.properties.maximum)
                     connected(
                         context = context,
                         first = first,
@@ -432,9 +433,26 @@ internal object DynamicJoinTreeBuilder {
                 filters: List<FilterExpression>,
             ): TreeSegment {
                 // requesting the child nodes to rehash themselves based on common bindings
-                val common = first.node.bindings.intersect(second.node.bindings)
-                first.node.reindex(common)
-                second.node.reindex(common)
+                // we can only index on binding values that are guaranteed to exist; and it is only
+                //  worthwhile to do so if the other end has the *possibility* of containing values
+                //  for these mappings
+                // as the first node gets results from the second, we need partial access if that second node
+                //  does not end up producing all indexed bindings
+                val firstIndexSet = first.node.properties.guaranteed.intersect(second.properties.maximum)
+                first.node.reindex(
+                    bindings = firstIndexSet,
+                    hint = MappingArrayHint(
+                        partialHashAccess = firstIndexSet !in second.node.properties.guaranteed,
+                    )
+                )
+                // same logic (but mirrored) applies for the other node
+                val secondIndexSet = second.node.properties.guaranteed.intersect(first.properties.maximum)
+                second.node.reindex(
+                    bindings = secondIndexSet,
+                    hint = MappingArrayHint(
+                        partialHashAccess = secondIndexSet !in first.node.properties.guaranteed,
+                    )
+                )
                 // followed by construction of the connecting segment
                 return TreeSegment(
                     node = Node.Connected(
@@ -456,19 +474,26 @@ internal object DynamicJoinTreeBuilder {
                 length = first.length + second.length,
             ).also {
                 // requesting the child nodes to rehash themselves based on common bindings
-                val common = first.node.bindings.intersect(second.node.bindings)
-                first.node.reindex(common)
-                second.node.reindex(common)
-            }
-
-            /* helpers */
-
-            private inline fun unionSize(left: BindingIdentifierSet, right: BindingIdentifierSet): Int {
-                return if (left.size < right.size) {
-                    right.size + left.asIntIterable().count { it !in right }
-                } else {
-                    left.size + right.asIntIterable().count { it !in left }
-                }
+                // we can only index on binding values that are guaranteed to exist; and it is only
+                //  worthwhile to do so if the other end has the *possibility* of containing values
+                //  for these mappings
+                // as the first node gets results from the second, we need partial access if that second node
+                //  does not end up producing all indexed bindings
+                val firstIndexSet = first.node.properties.guaranteed.intersect(second.properties.maximum)
+                first.node.reindex(
+                    bindings = firstIndexSet,
+                    hint = MappingArrayHint(
+                        partialHashAccess = firstIndexSet !in second.node.properties.guaranteed,
+                    )
+                )
+                // same logic (but mirrored) applies for the other node
+                val secondIndexSet = second.node.properties.guaranteed.intersect(first.properties.maximum)
+                second.node.reindex(
+                    bindings = secondIndexSet,
+                    hint = MappingArrayHint(
+                        partialHashAccess = secondIndexSet !in first.node.properties.guaranteed,
+                    )
+                )
             }
 
         }

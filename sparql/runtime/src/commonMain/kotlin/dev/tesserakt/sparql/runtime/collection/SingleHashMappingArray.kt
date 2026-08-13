@@ -6,9 +6,9 @@ import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
+import dev.tesserakt.sparql.runtime.stream.chain
 import dev.tesserakt.sparql.runtime.stream.emptyStream
 import dev.tesserakt.sparql.runtime.stream.flatMapStream
-import dev.tesserakt.sparql.util.Cardinality
 
 /**
  * An array useful for storing a series of mappings, capable of joining with other mappings using the hash join
@@ -25,24 +25,26 @@ class SingleHashMappingArray(
         key = BindingIdentifier(context, binding)
     )
 
-    private val backing = mutableMapOf<TermIdentifier, SimpleMappingArray>()
-
-    override var cardinality = Cardinality(0)
-        private set
+    private val backing = mutableMapOf<TermIdentifier?, SimpleMappingArray>()
 
     override val indexes: BindingIdentifierSet
         get() = BindingIdentifierSet(ids = intArrayOf(key.id))
 
-    /**
-     * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
-     *  on an empty solution results in [size] results, or a size of 0 guarantees no results will get generated)
-     */
-    val size: Int get() = backing.size
+    override var size: Int = 0
+        private set
 
     override fun iter(mapping: Mapping): OptimisedStream<Mapping> {
         val target = mapping.get(key)
         return if (target != null) {
-            backing[target]?.iter() ?: emptyStream()
+            val base = backing[target]?.iter() ?: emptyStream()
+            // it's also possible we contain mappings that did not match our index; these
+            //  can still join with the requested mapping as this would simply be a cartesian join
+            val extra = backing[null]
+            if (extra != null) {
+                base.chain(extra.iter())
+            } else {
+                base
+            }
         } else {
             iter()
         }
@@ -61,11 +63,10 @@ class SingleHashMappingArray(
      */
     override fun add(mapping: Mapping) {
         backing.getOrPut(
-            key = mapping.get(key)
-                ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${key}`"),
+            key = mapping.get(key),
             defaultValue = { SimpleMappingArray() }
         ).add(mapping)
-        cardinality += 1
+        size += 1
     }
 
     /**
@@ -78,10 +79,10 @@ class SingleHashMappingArray(
     }
 
     override fun remove(mapping: Mapping) {
-        backing
-            .get(mapping.get(key) ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${key}`"))!!
-            .remove(mapping)
-        cardinality -= 1
+        val arr = backing[mapping.get(key)]
+            ?: throw NoSuchElementException("Tried to remove $mapping, but found no backing structure for its associated index ${mapping.get(key)}")
+        arr.remove(mapping)
+        size -= 1
     }
 
     override fun removeAll(mappings: Iterable<Mapping>): Int {

@@ -21,8 +21,8 @@ class CompleteHashMappingArray(
 
     private val backing = mutableMapOf<TermIdentifierSet, SimpleMappingArray>()
 
-    override var cardinality: Cardinality = Cardinality(0)
-    private set
+    override var size: Int = 0
+        private set
 
     override val indexes: BindingIdentifierSet
         get() = indexBindingSet
@@ -69,7 +69,7 @@ class CompleteHashMappingArray(
         }
         val arr = backing.getOrPut(hash) { SimpleMappingArray() }
         arr.add(mapping)
-        cardinality += 1
+        size += 1
     }
 
     override fun addAll(mappings: Iterable<Mapping>): Int {
@@ -84,7 +84,7 @@ class CompleteHashMappingArray(
                 val arr = backing.getOrPut(hash) { SimpleMappingArray() }
                 arr.add(mapping)
             }
-            cardinality += mappings.size
+            size += mappings.size
             return mappings.size
         } else {
             var i = 0
@@ -111,7 +111,7 @@ class CompleteHashMappingArray(
                 arr
             }
         }
-        cardinality -= 1
+        size -= 1
     }
 
     override fun removeAll(mappings: Iterable<Mapping>): Int {
@@ -135,7 +135,7 @@ class CompleteHashMappingArray(
                     }
                 }
             }
-            cardinality -= mappings.size
+            size -= mappings.size
             return mappings.size
         } else {
             var i = 0

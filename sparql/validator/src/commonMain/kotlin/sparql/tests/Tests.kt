@@ -95,6 +95,74 @@ fun builtinTests() = tests {
         }
     """
 
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o1
+            OPTIONAL {
+                ?o1 <http://example.org/path1> ?o2
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o1
+            OPTIONAL {
+                ?s <http://example.org/path2> ?o2
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o
+            OPTIONAL {
+                ?s <http://example.org/path2> ?o
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o
+            OPTIONAL {
+                ?s <http://example.org/path1> ?o
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            ?s <http://example.org/path1> ?o
+            OPTIONAL {
+                ?o <http://example.org/path1> ?o2
+                FILTER(?o != ?o2)
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            OPTIONAL {
+                ?s1 <http://example.org/path1> ?o1
+            }
+            OPTIONAL {
+                ?s2 <http://example.org/path2> ?o2
+            }
+        }
+    """
+
+    using(small) test """
+        SELECT * {
+            OPTIONAL {
+                ?s <http://example.org/path1> ?o1
+            }
+            OPTIONAL {
+                ?s <http://example.org/path2> ?o2
+            }
+        }
+    """
+
     val counts = buildStore {
         val example = prefix("", "http://example/")
         repeat(10) { i ->
@@ -122,8 +190,32 @@ fun builtinTests() = tests {
         PREFIX : <http://example/>
 
         SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL {
+                FILTER(?c > 3)
+                ?s :count ?c
+            }
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
             ?s a :Example ; :count ?c .
             FILTER(?c <= 3)
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL {
+                ?s :count ?c .
+                FILTER(?c <= 3)
+            }
         }
     """
 
@@ -144,6 +236,22 @@ fun builtinTests() = tests {
             ?s a :Example ; :count ?c .
             FILTER(?c > 2) .
             FILTER(?c < 5) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL {
+                ?s :count ?c1 .
+                FILTER(?c1 > 2)
+            }
+            OPTIONAL {
+                ?s :count ?c2 .
+                FILTER(?c2 < 5)
+            }
         }
     """
 
@@ -181,6 +289,32 @@ fun builtinTests() = tests {
             FILTER(?s1 != ?s2) .
             FILTER(?s2 != ?s3) .
             FILTER(?s3 != ?s4) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            # getting enough subject - count pairs to get a more complex join tree hierarchy
+            # we have no filter affecting a single optional block, instead, these are applied after
+            # the optional joins have been evaluated
+            ?s1 a :Example ; :count ?c1 .
+            OPTIONAL {
+                ?s2 a :Example ; :count ?c2 .
+            }
+            OPTIONAL {
+                ?s3 a :Example ; :count ?c3 .
+            }
+            OPTIONAL {
+                ?s4 a :Example ; :count ?c4 .
+            }
+            FILTER(?s1 != ?s2) .
+            FILTER(?s2 != ?s3) .
+            FILTER(?s3 != ?s4) .
+            FILTER(?c1 >= ?c2) .
+            FILTER(?c2 >= ?c3) .
+            FILTER(?c3 >= ?c4) .
         }
     """
 
@@ -269,6 +403,15 @@ fun builtinTests() = tests {
         PREFIX : <http://example/>
 
         SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL { ?s :count ?c }
+        } ORDER BY ASC(?s) LIMIT 2
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
             ?s a :Example ; :count ?c .
         } ORDER BY DESC(?c)
     """
@@ -277,8 +420,26 @@ fun builtinTests() = tests {
         PREFIX : <http://example/>
 
         SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL { ?s :count ?c }
+        } ORDER BY DESC(?s)
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
             ?s a :Example ; :count ?c .
         } ORDER BY DESC(?c) LIMIT 1
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL { ?s :count ?c }
+        } ORDER BY DESC(?s) LIMIT 1
     """
 
     val timestamps = buildStore {
@@ -299,6 +460,19 @@ fun builtinTests() = tests {
             ?s a :User .
             ?s :dob ?dob .
             FILTER(?dob > "2010-01-01T00:00:00Z"^^xsd:dateTime) .
+        }
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT * WHERE {
+            ?s a :User .
+            OPTIONAL {
+                ?s :dob ?dob .
+                FILTER(?dob > "2010-01-01T00:00:00Z"^^xsd:dateTime) .
+            }
         }
     """
 
@@ -333,6 +507,28 @@ fun builtinTests() = tests {
         PREFIX : <http://example.com/>
 
         SELECT * WHERE {
+            ?s :dob ?dob .
+            OPTIONAL {
+                ?s a :User .
+            }
+        } ORDER BY DESC(?dob)
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
+            OPTIONAL {
+                ?s a :User .
+            }
+            ?s :dob ?dob .
+        } ORDER BY DESC(?dob)
+    """
+
+    using(timestamps) test """
+        PREFIX : <http://example.com/>
+
+        SELECT * WHERE {
             ?s a :User .
             ?s :dob ?dob .
         } ORDER BY DESC(?dob) LIMIT 2 OFFSET 1
@@ -354,6 +550,19 @@ fun builtinTests() = tests {
             ?s a :User .
             ?s :name ?name .
             FILTER LANGMATCHES(LANG(?name), "en") .
+        }
+    """
+
+    using(languages) test """
+        PREFIX : <http://example.com/>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT * WHERE {
+            ?s a :User .
+            OPTIONAL {
+                ?s :name ?name .
+                FILTER LANGMATCHES(LANG(?name), "en") .
+            }
         }
     """
 
@@ -441,6 +650,46 @@ fun builtinTests() = tests {
     using(numbers) test """
         PREFIX : <http://example.com/>
         SELECT * WHERE {
+            FILTER EXISTS {
+                ?x :q ?m .
+            }
+        }
+    """
+
+    // FIXME:
+    //  these queries misbehave as the `FILTER [NOT] EXISTS` yields changed state mappings that then
+    //  incorrectly interact with the 'optional join' semantics - this is unique to this type of query
+    //  as there's only a single OPTIONAL block making up the main query body, so the lack of results
+    //  is not properly detected throughout the remainder of the query body
+    /*
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            OPTIONAL {
+                ?x :p ?n
+            }
+            FILTER EXISTS {
+                ?x :q ?m .
+            }
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
+            OPTIONAL {
+                ?x :p ?n
+            }
+            FILTER NOT EXISTS {
+                ?x :q ?m .
+            }
+        }
+    """
+    */
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT * WHERE {
             ?x :p ?n
             FILTER NOT EXISTS {
                 ?a1 ?a2 ?n .
@@ -470,6 +719,17 @@ fun builtinTests() = tests {
         SELECT ?n WHERE {
             ?n :p ?c1 .
             ?n :q ?c2 .
+            FILTER(?c1 < ?c2 - 1.5)
+        }
+    """
+
+    using(numbers) test """
+        PREFIX : <http://example.com/>
+        SELECT ?n WHERE {
+            ?n :p ?c1 .
+            OPTIONAL {
+                ?n :q ?c2 .
+            }
             FILTER(?c1 < ?c2 - 1.5)
         }
     """
@@ -534,6 +794,36 @@ fun builtinTests() = tests {
         PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
 
+        SELECT ?person ?p ?o
+        WHERE
+        {
+            ?person rdf:type foaf:Person .
+            ?name ?p ?o .
+            OPTIONAL {
+                ?person foaf:name ?name .
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person ?p ?o
+        WHERE
+        {
+            ?person rdf:type foaf:Person .
+            OPTIONAL {
+                ?person foaf:name ?name .
+            }
+            ?name ?p ?o .
+        }
+    """
+
+    using(filtered) test """
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
         SELECT ?person
         WHERE
         {
@@ -563,6 +853,37 @@ fun builtinTests() = tests {
         {
             ?person rdf:type  foaf:Person .
             FILTER NOT EXISTS { ?a foaf:name ?b }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            OPTIONAL {
+                ?person foaf:name ?name .
+            }
+            FILTER NOT EXISTS { ?name :firstName "Alice" }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            OPTIONAL {
+                ?person foaf:name ?name .
+            }
+            FILTER EXISTS { ?name :firstName "Alice" }
         }
     """
 
@@ -618,6 +939,35 @@ fun builtinTests() = tests {
             }
             UNION {
                 ?person foaf:name ?name
+                FILTER NOT EXISTS {
+                    ?name :firstName ?firstName
+                }
+                FILTER NOT EXISTS {
+                    ?name :lastName ?lastName
+                }
+            }
+        }
+    """
+
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            ?person rdf:type  foaf:Person .
+            {
+                FILTER NOT EXISTS {
+                    ?person foaf:name ?name
+                }
+            }
+            UNION {
+                ?person foaf:name ?name
+                OPTIONAL {
+                    ?name ?p ?o
+                }
                 FILTER NOT EXISTS {
                     ?name :firstName ?firstName
                 }
@@ -757,6 +1107,27 @@ fun builtinTests() = tests {
         }
     """
 
+    using(filtered) test """
+        PREFIX :        <http://example/>
+        PREFIX  rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX  foaf:   <http://xmlns.com/foaf/0.1/>
+
+        SELECT ?person
+        WHERE
+        {
+            OPTIONAL {
+                ?person rdf:type  foaf:Person .
+            }
+            ?person foaf:name ?name
+            FILTER EXISTS {
+                ?name :firstName ?firstName
+            }
+            FILTER NOT EXISTS {
+                ?name :lastName ?lastName
+            }
+        }
+    """
+
     val extra = buildStore(path = "http://example.org/") {
         val subj = local("s")
         val obj = local("o")
@@ -771,6 +1142,16 @@ fun builtinTests() = tests {
         PREFIX : <http://example.org/>
         SELECT * {
             ?a :path1 ?o .
+            ?a :path1 :o .
+        }
+    """
+
+    using(extra) test """
+        PREFIX : <http://example.org/>
+        SELECT * {
+            OPTIONAL {
+                ?a :path1 ?o .
+            }
             ?a :path1 :o .
         }
     """
@@ -1026,6 +1407,22 @@ fun builtinTests() = tests {
     using(unions) test """
         PREFIX : <http://www.example.org/>
         SELECT ?s WHERE {
+            {
+                :a :p1 ?b .
+            } UNION {
+                ?b :p3 ?s .
+            }
+            {
+                :a :p2 ?b .
+            } UNION {
+                ?b :p4 ?s .
+            }
+        }
+    """
+
+    using(unions) test """
+        PREFIX : <http://www.example.org/>
+        SELECT ?s WHERE {
             :a (:p1|:p2)/(:p3|:p4) ?s
         }
     """
@@ -1210,6 +1607,20 @@ fun builtinTests() = tests {
         }
     """
 
+    using(addresses) test """
+        PREFIX ex: <https://www.example.org/>
+        SELECT * {
+            ?person ex:domicile ?domicile .
+            ?domicile ex:address ?address .
+            ?address ex:street ?street .
+            OPTIONAL {
+                ?address ex:city [
+                    ex:inhabitants ?count
+                ]
+            }
+        }
+    """
+
 //    using(addresses) test """
 //        PREFIX ex: <https://www.example.org/>
 //        SELECT * {
@@ -1303,6 +1714,30 @@ fun builtinTests() = tests {
         }
     """
 
+    using(aux1) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?c :p1|:p2 :o
+            OPTIONAL {
+                ?a :p1 ?b .
+                ?d :p2 ?c .
+            }
+        }
+    """
+
+    using(aux1) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?c :p1|:p2 :o
+            OPTIONAL {
+                ?a :p1 ?b .
+            }
+            OPTIONAL {
+                ?d :p2 ?c .
+            }
+        }
+    """
+
     val aux2 = buildStore("http://example.org/") {
         val s0 = local("s0")
         val s1 = local("s1")
@@ -1334,4 +1769,86 @@ fun builtinTests() = tests {
         }        
     """
 
+    val tightlyConnected = buildStore {
+        val ex = prefix("ex", "http://example.org/")
+
+        (ex / "s1") (ex / "p1") (ex / "s2")
+        (ex / "s1") (ex / "p2") (ex / "s2")
+        (ex / "s1") (ex / "p3") (ex / "s2")
+        (ex / "s1") (ex / "p4") (ex / "s2")
+        (ex / "s1") (ex / "p5") (ex / "s2")
+        (ex / "s1") (ex / "p6") (ex / "s2")
+
+        (ex / "s2") (ex / "p1") (ex / "s3")
+        (ex / "s2") (ex / "p2") (ex / "s3")
+        (ex / "s2") (ex / "p3") (ex / "s3")
+        (ex / "s2") (ex / "p5") (ex / "s3")
+        (ex / "s2") (ex / "p6") (ex / "s3")
+    }
+
+    using(tightlyConnected) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?s :p1 ?o .
+            ?s :p2 ?o .
+            ?s :p3 ?o .
+
+            OPTIONAL {
+                ?s :p4 ?o2 .
+            }
+
+            ?s :p5 ?o2 .
+            ?s :p6 ?o2 .
+        }
+    """
+
+    using(tightlyConnected) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            {
+                ?s :p2 ?o2 .
+                ?s :p3 ?o3 .
+            } UNION {
+
+                OPTIONAL {
+                    ?s :p2 ?o2 .
+                }
+
+                ?s :p4 ?o4 .
+                ?s :p5 ?o5 .
+            }
+
+            ?s :p1 ?o1 .
+
+            OPTIONAL {
+                ?o1 :p1 ?x .
+                ?o1 :p2 ?y .
+            }
+
+            OPTIONAL {
+                ?o2 ?p ?o .
+            }
+        }
+    """
+
+    using(tightlyConnected) test """
+        PREFIX : <http://example.org/>
+        SELECT * WHERE {
+            ?s :p1 ?o1 .
+
+            # even though these OPTIONAL blocks are
+            # positioned relatively high up in the query body,
+            # they can be evaluated after the two final TPs based
+            # on the bindings they contain
+            OPTIONAL {
+                ?s :p2 ?o2 .
+            }
+            OPTIONAL {
+                ?s :p3 ?o3 .
+            }
+
+            ?s :p4 ?o4 .
+            ?s :p5 ?o5 .
+        }
+    """
 }

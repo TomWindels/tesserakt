@@ -9,6 +9,7 @@ import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
+import dev.tesserakt.sparql.runtime.stream.collect
 import dev.tesserakt.sparql.util.Cardinality
 
 /**
@@ -17,7 +18,36 @@ import dev.tesserakt.sparql.util.Cardinality
  */
 interface MutableJoinState {
 
-    val bindings: BindingIdentifierSet
+    /**
+     * Information about a [MutableJoinState]'s bindings that are bound for [MappingDelta]s emitted whilst [peek]ing.
+     *  For most query structures, the [guaranteed] set is identical to the [maximum] set. Notable exceptions are:
+     *  * `OPTIONAL` blocks, as these only emit additional values if matched, or the original value if unmatched;
+     *  * `UNION`s, as these emit solutions for all segments, which can refer to different bindings
+     */
+    data class Properties(
+        /**
+         * Set of bindings *guaranteed* to be bound for any given [MappingDelta] emitted by [peek]
+         */
+        val guaranteed: BindingIdentifierSet,
+        /**
+         * Set of bindings *possibly* bound for any given [MappingDelta] emitted by [peek]
+         */
+        val maximum: BindingIdentifierSet,
+    ) {
+
+        constructor(exact: BindingIdentifierSet): this(guaranteed = exact, maximum = exact)
+
+        init {
+            check(guaranteed in maximum) { "Found bindings that are set as 'guaranteed', but are not listed as 'maximum': $guaranteed - $maximum" }
+        }
+
+        companion object {
+            val EMPTY = Properties(exact = BindingIdentifierSet.EMPTY)
+        }
+
+    }
+
+    val properties: Properties
 
     /**
      * Denotes the number of matches it contains, useful for quick cardinality calculations (e.g., joining this state
@@ -46,5 +76,12 @@ interface MutableJoinState {
     fun process(delta: DataDelta)
 
     fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
+
+    fun insert(delta: DataDelta): List<MappingDelta> {
+        // it's important we collect the results before we process the delta
+        val total = peek(delta).collect()
+        process(delta)
+        return total
+    }
 
 }

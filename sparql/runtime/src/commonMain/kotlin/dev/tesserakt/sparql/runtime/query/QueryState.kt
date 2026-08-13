@@ -48,6 +48,8 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
         ast = Compat.apply(ast.body),
         // this is the most top-level state, so there isn't any external source to obtain filters from
         externalFilters = emptyList(),
+        // this also means there aren't any other 'external' bindings
+        externalBindings = BindingIdentifierSet.EMPTY,
     )
 
     abstract val results: Collection<ResultType>

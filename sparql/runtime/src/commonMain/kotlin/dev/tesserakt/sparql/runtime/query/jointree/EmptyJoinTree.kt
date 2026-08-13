@@ -7,6 +7,7 @@ import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
 import dev.tesserakt.sparql.runtime.stream.emptyStream
@@ -19,8 +20,8 @@ import dev.tesserakt.sparql.util.OneCardinality
  */
 data object EmptyJoinTree: JoinTree {
 
-    override val bindings: BindingIdentifierSet
-        get() = BindingIdentifierSet.EMPTY
+    override val properties: MutableJoinState.Properties
+        get() = MutableJoinState.Properties.EMPTY
 
     override val cardinality: Cardinality
         get() = OneCardinality // always matches

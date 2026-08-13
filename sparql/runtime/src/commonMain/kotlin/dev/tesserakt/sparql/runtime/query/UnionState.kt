@@ -12,24 +12,32 @@ import dev.tesserakt.sparql.types.GraphPatternSegment
 import dev.tesserakt.sparql.types.SelectQuerySegment
 import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
+import kotlin.jvm.JvmInline
 
 class UnionState private constructor(private val state: List<Segment>): MutableJoinState {
 
-    private sealed class Segment {
+    private sealed interface Segment {
 
-        class GraphPatternSegmentState private constructor(
-            private val state: BasicGraphPatternState,
-        ): Segment() {
+        @JvmInline
+        value class GraphPatternSegmentState private constructor(
+            private val state: MutableJoinState,
+        ): Segment {
 
             constructor(
                 context: QueryContext,
                 parent: GraphPatternSegment,
-                externalFilters: List<FilterExpression>
+                externalFilters: List<FilterExpression>,
+                externalBindings: BindingIdentifierSet,
             ): this(
-                state = BasicGraphPatternState(context, parent.pattern, externalFilters),
+                state = BasicGraphPatternState(
+                    context = context,
+                    ast = parent.pattern,
+                    externalFilters = externalFilters,
+                    externalBindings = externalBindings,
+                ),
             )
 
-            override val bindings get() = state.bindings
+            override val properties get() = state.properties
 
             override val cardinality: Cardinality
                 get() = state.cardinality
@@ -46,15 +54,19 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
                 return state.join(delta)
             }
 
+            override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+                state.reindex(bindings, hint)
+            }
+
             override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
                 return state.stats(context, granularity)
             }
 
         }
 
-        class SubqueryState(context: QueryContext, parent: SelectQuerySegment): Segment() {
+        class SubqueryState(context: QueryContext, parent: SelectQuerySegment): Segment {
 
-            override val bindings = BindingIdentifierSet(context, parent.query.bindings)
+            override val properties = TODO()
 
             override val cardinality: Cardinality
                 get() = TODO("Not yet implemented")
@@ -71,23 +83,29 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
                 TODO("Not yet implemented")
             }
 
+            override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
+                TODO("Not yet implemented")
+            }
+
             override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
                 TODO("Not yet implemented")
             }
 
         }
 
-        abstract val bindings: BindingIdentifierSet
+        val properties: MutableJoinState.Properties
 
-        abstract val cardinality: Cardinality
+        val cardinality: Cardinality
 
-        abstract fun peek(delta: DataDelta): Stream<MappingDelta>
+        fun peek(delta: DataDelta): Stream<MappingDelta>
 
-        abstract fun process(delta: DataDelta)
+        fun process(delta: DataDelta)
 
-        abstract fun join(delta: MappingDelta): Stream<MappingDelta>
+        fun join(delta: MappingDelta): Stream<MappingDelta>
 
-        abstract fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
+        fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint)
+
+        fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
     }
 
@@ -95,17 +113,27 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
         context: QueryContext,
         union: Union,
         filters: List<FilterExpression>,
+        externalBindings: BindingIdentifierSet,
     ): this(
         state = union.map {
-            it.createIncrementalSegmentState(context = context, filters = filters)
+            it.createIncrementalSegmentState(
+                context = context,
+                filters = filters,
+                externalBindings = externalBindings,
+            )
         },
     )
 
-    override val bindings: BindingIdentifierSet = when {
-        state.isEmpty() -> BindingIdentifierSet.EMPTY
-        state.size == 1 -> state[0].bindings
-        else -> {
-            (1 ..< state.size).fold(state[0].bindings) { bindings, i -> bindings + state[i].bindings }
+    override val properties = if (state.isEmpty()) {
+        MutableJoinState.Properties.EMPTY
+    } else {
+        val initial = state[0].properties
+        (1 ..< state.size).fold(initial) { properties, i ->
+            val new = state[i].properties
+            MutableJoinState.Properties(
+                guaranteed = properties.guaranteed.intersect(new.guaranteed),
+                maximum = properties.maximum + new.maximum,
+            )
         }
     }
 
@@ -126,7 +154,7 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
     }
 
     override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
-        // TODO: not yet implemented
+        state.forEach { it.reindex(bindings, hint) }
     }
 
     override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
@@ -166,9 +194,18 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
 
         /* helpers */
 
-        private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState(context: QueryContext, filters: List<FilterExpression>) = when (this) {
+        private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState(
+            context: QueryContext,
+            filters: List<FilterExpression>,
+            externalBindings: BindingIdentifierSet,
+        ) = when (this) {
             is SelectQuerySegment -> Segment.SubqueryState(context, this)
-            is GraphPatternSegment -> Segment.GraphPatternSegmentState(context, this, filters)
+            is GraphPatternSegment -> Segment.GraphPatternSegmentState(
+                context = context,
+                parent = this,
+                externalFilters = filters,
+                externalBindings = externalBindings,
+            )
         }
     }
 
