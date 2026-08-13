@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.asResultChange
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.into
 import dev.tesserakt.sparql.runtime.query.select.OutputState
@@ -29,7 +30,7 @@ class SelectQueryState(
             // getting all current results by joining with an empty new mapping
             .join(
                 MappingAddition(
-                    value = context.emptyMapping(),
+                    value = Mapping.EMPTY,
                     origin = null
                 )
             )
@@ -40,6 +41,9 @@ class SelectQueryState(
         return bgpState.insert(data)
             // making sure deletions and additions consume each other as much as possible first;
             // without this, it becomes possible for a deletion to happen before its addition took place
+            // TODO perf:
+            //  this is not required for simple queries (ones that do not contain any (nested) `OPTIONAL`
+            //  and `FILTER [NOT] EXISTS`
             .simplified()
             .onEach(::onNewBodyResult)
             .map { it.asResultChange(context) }
@@ -50,6 +54,9 @@ class SelectQueryState(
             .insert(data)
             // making sure deletions and additions consume each other as much as possible first;
             // without this, it becomes possible for a deletion to happen before its addition took place
+            // TODO perf:
+            //  this is not required for simple queries (ones that do not contain any (nested) `OPTIONAL`
+            //  and `FILTER [NOT] EXISTS`
             .simplified()
             .forEach(::onNewBodyResult)
     }
@@ -80,7 +87,8 @@ class SelectQueryState(
     //  simply return another Iterable, so we don't need to create a potentially big array at the end
     private fun Iterable<MappingDelta>.simplified(): List<MappingDelta> {
         val combined = this
-            .groupingBy { it.value }
+            // we need to make it hashable for `groupingBy` to work correctly
+            .groupingBy { it.value.hashable() }
             .fold({ _, _ -> 0 }) { _, count, delta ->
                 val d = if (delta is MappingAddition) 1 else -1
                 count + d
@@ -90,10 +98,10 @@ class SelectQueryState(
                 when {
                     count == 0 -> emptyList()
                     count > 0 -> {
-                        List(count) { MappingAddition(mapping, null) }
+                        List(count) { MappingAddition(mapping.inner, null) }
                     }
                     else -> {
-                        List(-count) { MappingDeletion(mapping, null) }
+                        List(-count) { MappingDeletion(mapping.inner, null) }
                     }
                 }
             }

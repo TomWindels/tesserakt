@@ -2,7 +2,6 @@ package dev.tesserakt.sparql.runtime.query.jointree
 
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
-import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree.Node
@@ -20,14 +19,13 @@ internal object DynamicJoinTreeBuilder {
      *  to improve performance.
      */
     fun build(
-        context: QueryContext,
         states: List<MutableJoinState>,
         filters: List<FilterExpression>,
         externalBindings: BindingIdentifierSet,
     ): Node {
         val states = states.mapTo(mutableListOf()) { state -> TreeSegment.leaf(state) }
         if (filters.isEmpty()) {
-            return build(context, states, filters, externalBindings).node
+            return build(states, filters, externalBindings).node
         }
         // we need to apply filters that span across multiple states, as they cannot be passed down fully to any single
         //  state because of their requirements
@@ -54,7 +52,7 @@ internal object DynamicJoinTreeBuilder {
         }
         if (spanningFilters.isEmpty()) {
             // regular join tree construction possible
-            return build(context, states, filters, externalBindings).node
+            return build(states, filters, externalBindings).node
         }
         // we have spanning filters we need to satisfy;
         // we apply the filters, starting from those with the 'smallest' requirements first, generating subtrees
@@ -105,7 +103,6 @@ internal object DynamicJoinTreeBuilder {
                     .getOrNull(index + 1)
                     ?.let { states[it] }
                 TreeSegment.join(
-                    context = context,
                     first = segment,
                     second = newSegment,
                     // if we're at the end, we set the empty state, as we do not yet know what to index with
@@ -142,7 +139,7 @@ internal object DynamicJoinTreeBuilder {
         }
 
         // we now have a more complex hierarchy of subtrees and unused states we can build to our final tree
-        return build(context, states, filters, externalBindings).node
+        return build(states, filters, externalBindings).node
     }
 
     /**
@@ -283,7 +280,6 @@ internal object DynamicJoinTreeBuilder {
      *  applying [filters] to connected segments where applicable
      */
     private fun build(
-        context: QueryContext,
         groups: MutableList<TreeSegment>,
         filters: List<FilterExpression>,
         externalBindings: BindingIdentifierSet,
@@ -295,7 +291,6 @@ internal object DynamicJoinTreeBuilder {
             val b = groups.removeAt(matches.group1)
 
             val segment = TreeSegment.join(
-                context = context,
                 first = a,
                 second = b,
                 // all other groups are 'external' to this segment, meaning that it can reasonably expect incoming
@@ -316,7 +311,6 @@ internal object DynamicJoinTreeBuilder {
                 )
             } else {
                 TreeSegment.join(
-                    context = context,
                     first = groups[0],
                     second = groups[1],
                     filters = filters,
@@ -380,7 +374,6 @@ internal object DynamicJoinTreeBuilder {
              * Uses the provided [externalBindings] to configure appropriate bindings to index on if applicable.
              */
             fun join(
-                context: QueryContext,
                 first: TreeSegment,
                 second: TreeSegment,
                 externalBindings: BindingIdentifierSet,
@@ -404,7 +397,6 @@ internal object DynamicJoinTreeBuilder {
                     val indexes = externalBindings
                         .intersect(first.properties.maximum + second.properties.maximum)
                     connected(
-                        context = context,
                         first = first,
                         second = second,
                         indexes = indexes,
@@ -419,7 +411,6 @@ internal object DynamicJoinTreeBuilder {
             }
 
             fun connected(
-                context: QueryContext,
                 first: TreeSegment,
                 second: TreeSegment,
                 /**
@@ -456,7 +447,6 @@ internal object DynamicJoinTreeBuilder {
                 // followed by construction of the connecting segment
                 return TreeSegment(
                     node = Node.Connected(
-                        context = context,
                         left = first.node,
                         right = second.node,
                         indexes = indexes,

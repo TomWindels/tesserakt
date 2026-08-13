@@ -5,7 +5,9 @@ import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.HashableMapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.runtime.evaluation.mapping.mappingOf
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.util.*
@@ -59,17 +61,17 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newPathsOnAdding(quad.toSegment())
-                .mapTo(result) { mappingOf(context, start.id to it.start, end.id to it.end) }
+                .mapTo(result) { mappingOf(end.id to it.end).hashable() }
             // as we're two bindings zero length, the quad's edges can also be null-length paths
             if (TermIdentifier(quad.s) !in terms) {
-                result.add(mappingOf(context, start.id to TermIdentifier(quad.s), end.id to TermIdentifier(quad.s)))
+                result.add(mappingOf(end.id to TermIdentifier(quad.s)).hashable())
             }
             if (TermIdentifier(quad.o) !in terms) {
-                result.add(mappingOf(context, start.id to TermIdentifier(quad.o), end.id to TermIdentifier(quad.o)))
+                result.add(mappingOf(end.id to TermIdentifier(quad.o)).hashable())
             }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -79,16 +81,16 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.removedPathsOnRemoving(quad.toSegment())
-                .mapTo(result) { mappingOf(context, start.id to it.start, end.id to it.end) }
+                .mapTo(result) { mappingOf(end.id to it.end).hashable() }
             if (terms[TermIdentifier(quad.s)] == 1) {
-                result.add(mappingOf(context, start.id to TermIdentifier(quad.s), end.id to TermIdentifier(quad.s)))
+                result.add(mappingOf(end.id to TermIdentifier(quad.s)).hashable())
             }
             if (terms[TermIdentifier(quad.o)] == 1) {
-                result.add(mappingOf(context, start.id to TermIdentifier(quad.o), end.id to TermIdentifier(quad.o)))
+                result.add(mappingOf(end.id to TermIdentifier(quad.o)).hashable())
             }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
@@ -154,22 +156,22 @@ sealed class RepeatingPathState {
                 .map { SegmentsList.Segment(start = it.get(start.id)!!, end = it.get(end.id)!!) }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newPathsOnAdding(new.toSet())
                 .forEach {
                     // ensuring zero lengths aren't included
                     if (it.start != it.end) {
-                        result.add(mappingOf(context, start.id to it.start, end.id to it.end))
+                        result.add(mappingOf(end.id to it.end).hashable())
                     }
                 }
             // as we're two bindings zero length, the quad's edges can also be null-length paths
             if (TermIdentifier(quad.s) !in terms) {
-                result.add(mappingOf(context, start.id to TermIdentifier(quad.s), end.id to TermIdentifier(quad.s)))
+                result.add(mappingOf(end.id to TermIdentifier(quad.s)).hashable())
             }
             if (TermIdentifier(quad.o) !in terms) {
-                result.add(mappingOf(context, start.id to TermIdentifier(quad.o), end.id to TermIdentifier(quad.o)))
+                result.add(mappingOf(end.id to TermIdentifier(quad.o)).hashable())
             }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -178,21 +180,21 @@ sealed class RepeatingPathState {
                 .map { SegmentsList.Segment(start = it.get(start.id)!!, end = it.get(end.id)!!) }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.removedPathsOnRemoving(removed)
                 .forEach {
                     // ensuring zero lengths aren't included
                     if (it.start != it.end) {
-                        result.add(mappingOf(context, start.id to it.start, end.id to it.end))
+                        result.add(mappingOf(end.id to it.end).hashable())
                     }
                 }
             if (terms[TermIdentifier(quad.s)] == 1) {
-                result.add(mappingOf(context, start.id to TermIdentifier(quad.s), end.id to TermIdentifier(quad.s)))
+                result.add(mappingOf(end.id to TermIdentifier(quad.s)).hashable())
             }
             if (terms[TermIdentifier(quad.o)] == 1) {
-                result.add(mappingOf(context, start.id to TermIdentifier(quad.o), end.id to TermIdentifier(quad.o)))
+                result.add(mappingOf(end.id to TermIdentifier(quad.o)).hashable())
             }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
@@ -226,7 +228,7 @@ sealed class RepeatingPathState {
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
-            arr.add(mappingOf(context, start.id to end.id))
+            arr.add(mappingOf(start.id to end.id))
         }
 
         override fun process(delta: DataDelta) {
@@ -255,14 +257,14 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newPathsOnAdding(quad.toSegment())
                 .forEach {
                     if (end.matches(it.end) && !end.matches(it.start)) {
-                        result.add(mappingOf(context, start.id to it.start))
+                        result.add(mappingOf(start.id to it.start).hashable())
                     }
                 }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -272,14 +274,14 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.removedPathsOnRemoving(quad.toSegment())
                 .forEach {
                     if (end.matches(it.end) && !end.matches(it.start)) {
-                        result.add(mappingOf(context, start.id to it.start))
+                        result.add(mappingOf(start.id to it.start).hashable())
                     }
                 }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
@@ -319,7 +321,7 @@ sealed class RepeatingPathState {
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
-            arr.add(mappingOf(context, start.id to end.id))
+            arr.add(mappingOf(start.id to end.id))
         }
 
         override fun process(delta: DataDelta) {
@@ -351,14 +353,14 @@ sealed class RepeatingPathState {
                 .ifEmpty { return emptyStream() }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newPathsOnAdding(new)
                 .forEach {
                     if (end.matches(it.end) && !end.matches(it.start)) {
-                        result.add(mappingOf(context, start.id to it.start))
+                        result.add(mappingOf(start.id to it.start).hashable())
                     }
                 }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -367,15 +369,15 @@ sealed class RepeatingPathState {
                 .ifEmpty { return emptyStream() }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.removedPathsOnRemoving(removed)
                 .forEach {
                     // making sure we only include non-zero-length exact matches
                     if (end.matches(it.end) && !end.matches(it.start)) {
-                        result.add(mappingOf(context, start.id to it.start))
+                        result.add(mappingOf(start.id to it.start).hashable())
                     }
                 }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
@@ -409,7 +411,7 @@ sealed class RepeatingPathState {
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
-            arr.add(mappingOf(context, end.id to start.id))
+            arr.add(mappingOf(end.id to start.id))
         }
 
         override fun process(delta: DataDelta) {
@@ -438,14 +440,14 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newPathsOnAdding(quad.toSegment())
                 .forEach {
                     if (start.matches(it.start) && !start.matches(it.end)) {
-                        result.add(mappingOf(context, end.id to it.end))
+                        result.add(mappingOf(end.id to it.end).hashable())
                     }
                 }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -455,14 +457,14 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.removedPathsOnRemoving(quad.toSegment())
                 .forEach {
                     if (start.matches(it.start) && !start.matches(it.end)) {
-                        result.add(mappingOf(context, end.id to it.end))
+                        result.add(mappingOf(end.id to it.end).hashable())
                     }
                 }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
@@ -502,7 +504,7 @@ sealed class RepeatingPathState {
 
         init {
             // eval(Path(X:term, ZeroOrOnePath(P), Y:var)) = { (Y, yn) | yn = X or {(Y, yn)} in eval(Path(X,P,Y)) }
-            arr.add(mappingOf(context, end.id to start.id))
+            arr.add(mappingOf(end.id to start.id))
         }
 
         override fun process(delta: DataDelta) {
@@ -534,14 +536,14 @@ sealed class RepeatingPathState {
                 .ifEmpty { return emptyStream() }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newPathsOnAdding(new)
                 .forEach {
                     if (start.matches(it.start) && !start.matches(it.end)) {
-                        result.add(mappingOf(context, end.id to it.end))
+                        result.add(mappingOf(end.id to it.end).hashable())
                     }
                 }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -550,14 +552,14 @@ sealed class RepeatingPathState {
                 .ifEmpty { return emptyStream() }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.removedPathsOnRemoving(removed)
                 .forEach {
                     if (start.matches(it.start) && !start.matches(it.end)) {
-                        result.add(mappingOf(context, end.id to it.end))
+                        result.add(mappingOf(end.id to it.end).hashable())
                     }
                 }
-            return result.toStream()
+            return result.toStream().mapped { it.inner }
         }
 
         override fun join(mappings: OptimisedStream<Mapping>): Stream<Mapping> {
@@ -635,7 +637,7 @@ sealed class RepeatingPathState {
                 val new = segments.newPathsOnAdding(segment)
                 // checking if any valid path has been reached
                 if (new.any { it.start == start.id && it.end == end.id }) {
-                    return streamOf(context.emptyMapping())
+                    return streamOf(Mapping.EMPTY)
                 }
             }
             return emptyStream()
@@ -657,7 +659,7 @@ sealed class RepeatingPathState {
                 val remaining = segments.remainingPathsOnRemoving(segment)
                 // checking if any valid path remains
                 if (remaining.none { it.start == start.id && it.end == end.id }) {
-                    return streamOf(context.emptyMapping())
+                    return streamOf(Mapping.EMPTY)
                 }
             }
             return emptyStream()
@@ -757,7 +759,7 @@ sealed class RepeatingPathState {
                     )
                 }
             if (segments.newPathsOnAdding(added).any { it.start == start.id && it.end == end.id }) {
-                return streamOf(context.emptyMapping())
+                return streamOf(Mapping.EMPTY)
             }
             return emptyStream()
         }
@@ -783,7 +785,7 @@ sealed class RepeatingPathState {
                     .remainingPathsOnRemoving(removed)
                     .none { it.start == start.id && it.end == end.id }
             ) {
-                return streamOf(context.emptyMapping())
+                return streamOf(Mapping.EMPTY)
             }
             return emptyStream()
         }
@@ -838,10 +840,10 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newPathsOnAdding(quad.toSegment())
-                .mapTo(result) { mappingOf(context, start.id to it.start, end.id to it.end) }
-            return result.toStream()
+                .mapTo(result) { mappingOf(end.id to it.end).hashable() }
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -896,10 +898,10 @@ sealed class RepeatingPathState {
             val new = getNewSegments(quad)
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newPathsOnAdding(new)
-                .mapTo(result) { mappingOf(context, start.id to it.start, end.id to it.end) }
-            return result.toStream()
+                .mapTo(result) { mappingOf(end.id to it.end).hashable() }
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -963,10 +965,10 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newReachableStartNodesOnAdding(quad.toSegment())
-                .mapTo(result) { mappingOf(context, start.id to it) }
-            return result.toStream()
+                .mapTo(result) { mappingOf(start.id to it).hashable() }
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -1018,7 +1020,7 @@ sealed class RepeatingPathState {
             when (delta) {
                 is DataAddition -> {
                     val peeked = peekNewlyReachable(quad)
-                    arr.addAll(peeked.map { mappingOf(context, start.id to it) })
+                    arr.addAll(peeked.map { mappingOf(start.id to it) })
                     reached.addAll(peeked)
                     inner.process(delta)
                     segments.insert(getNewSegments(quad))
@@ -1031,7 +1033,7 @@ sealed class RepeatingPathState {
         override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             val result = peekNewlyReachable(quad)
-            return result.map { mappingOf(context, start.id to it) }.toStream()
+            return result.map { mappingOf(start.id to it) }.toStream()
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -1112,10 +1114,10 @@ sealed class RepeatingPathState {
             }
             // as it's possible for multiple segments to be returned from a single quad insertion, and this in turn
             //  cause some paths to come back in duplicates, we make it instantly distinct
-            val result = mutableSetOf<Mapping>()
+            val result = mutableSetOf<HashableMapping>()
             segments.newReachableEndNodesOnAdding(quad.toSegment())
-                .mapTo(result) { mappingOf(context, end.id to it) }
-            return result.toStream()
+                .mapTo(result) { mappingOf(end.id to it).hashable() }
+            return result.toStream().mapped { it.inner }
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -1167,7 +1169,7 @@ sealed class RepeatingPathState {
             when (delta) {
                 is DataAddition -> {
                     val peeked = peekNewlyReachable(quad)
-                    arr.addAll(peeked.map { mappingOf(context, end.id to it) })
+                    arr.addAll(peeked.map { mappingOf(end.id to it) })
                     reached.addAll(peeked)
                     inner.process(DataAddition(quad))
                     segments.insert(getNewSegments(quad))
@@ -1180,7 +1182,7 @@ sealed class RepeatingPathState {
         override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             val result = peekNewlyReachable(quad)
-            return result.map { mappingOf(context, end.id to it) }.toStream()
+            return result.map { mappingOf(end.id to it) }.toStream()
         }
 
         override fun peek(deletion: DataDeletion): Stream<Mapping> {
@@ -1254,7 +1256,7 @@ sealed class RepeatingPathState {
         override fun peek(addition: DataAddition): Stream<Mapping> {
             val quad = addition.value
             return if (!satisfied && inner.matches(quad.p)) {
-                streamOf(context.emptyMapping())
+                streamOf(Mapping.EMPTY)
             } else {
                 emptyStream()
             }
@@ -1336,7 +1338,7 @@ sealed class RepeatingPathState {
                         )
                     }
                 if (segments.newPathsOnAdding(new).any { it.start == start.id && it.end == end.id }) {
-                    return streamOf(context.emptyMapping())
+                    return streamOf(Mapping.EMPTY)
                 }
             }
             return emptyStream()

@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.join
@@ -80,7 +81,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
         }
 
         class Connected(
-            context: QueryContext,
             internal val left: Node,
             internal val right: Node,
             indexes: BindingIdentifierSet,
@@ -103,7 +103,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 // we process our initial state as that of the combination of left and right nodes, as these
                 //  can already contain initial data
                 val initialData = right
-                    .join(left.join(MappingAddition(context.emptyMapping(), null)).optimisedForSingleUse(left.cardinality))
+                    .join(left.join(MappingAddition(Mapping.EMPTY, null)).optimisedForSingleUse(left.cardinality))
                     .filtered { filters.all { expression -> expression.test(it.value) } }
                 initialData.forEach { delta ->
                     check(delta is MappingAddition) { "Got an unexpected mapping deletion event!" }
@@ -209,11 +209,8 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
-                val leftOverlap = delta.value.keys().asIntIterable().count { it in left.properties.maximum }
-                val rightOverlap = delta.value.keys().asIntIterable().count { it in right.properties.maximum }
-                // as we're joining with our unfiltered nodes, we need to filter out the mappings that do not
-                //  adhere to our filters after having joined the two streams
-                //  together (so we have all required binding values to evaluate the filter expression(s))
+                val leftOverlap = delta.value.bindings.intersectSize(left.properties.maximum)
+                val rightOverlap = delta.value.bindings.intersectSize(right.properties.maximum)
                 return if (leftOverlap > rightOverlap) {
                     right.join(left.join(delta).optimisedForSingleUse(left.cardinality))
                 } else {
@@ -234,7 +231,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
     }
 
     constructor(
-        context: QueryContext,
         states: List<MutableJoinState>,
         filters: List<FilterExpression>,
         externalBindings: BindingIdentifierSet,
@@ -243,7 +239,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             Node.Leaf(states.single())
         } else {
             DynamicJoinTreeBuilder.build(
-                context = context,
                 states = states,
                 filters = filters,
                 externalBindings = externalBindings,

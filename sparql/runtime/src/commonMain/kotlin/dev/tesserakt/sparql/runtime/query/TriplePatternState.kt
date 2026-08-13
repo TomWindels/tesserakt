@@ -225,7 +225,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         override fun peek(quad: EncodedQuad): Mapping? {
             val s = subjectMappingOrNull(quad) ?: return null
             val o = objectMappingOrNull(quad) ?: return null
-            val p = mappingOf(context, p.id to TermIdentifier(quad.p))
+            val p = mappingOf(p.id to TermIdentifier(quad.p))
             return s.join(p)?.join(o)
         }
 
@@ -483,8 +483,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         // we don't apply any filters here - we use anonymous bindings during the unfolding, so none could possibly
         //  match in the inner state
         private val tree = JoinTree.from(
-            context = context,
-            states = p.unfold(context, start = s, end = o).also { it.forEach { state -> state.prefill() } },
+            states = p.unfold(context, start = s, end = o).onEach { state -> state.prefill() },
             filters = emptyList(),
             // subsequent call to `reindex` will change this
             externalBindings = BindingIdentifierSet.EMPTY,
@@ -546,8 +545,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         // we don't apply any filters here - we use anonymous bindings during the unfolding, so none could possibly
         //  match in the inner state
         private val tree = JoinTree.from(
-            context = context,
-            states = pred.unfold(context, start = subj, end = obj).also { it.forEach { state -> state.prefill() } },
+            states = pred.unfold(context, start = subj, end = obj).onEach { state -> state.prefill() },
             filters = emptyList(),
             // subsequent call to `reindex` will change this
             externalBindings = BindingIdentifierSet.EMPTY,
@@ -743,8 +741,8 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
      */
     protected fun subjectMappingOrNull(quad: EncodedQuad): Mapping? {
         return when (s) {
-            is Binding -> mappingOf(context, s.id to TermIdentifier(quad.s))
-            is Exact -> if (s.id.id == quad.s) context.emptyMapping() else null
+            is Binding -> mappingOf(s.id to TermIdentifier(quad.s))
+            is Exact -> if (s.id.id == quad.s) Mapping.EMPTY else null
         }
     }
 
@@ -759,8 +757,8 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
      */
     protected fun objectMappingOrNull(quad: EncodedQuad): Mapping? {
         return when (o) {
-            is Binding -> mappingOf(context, o.id to TermIdentifier(quad.o))
-            is Exact -> if (o.id.id == quad.o) context.emptyMapping() else null
+            is Binding -> mappingOf(o.id to TermIdentifier(quad.o))
+            is Exact -> if (o.id.id == quad.o) Mapping.EMPTY else null
         }
     }
 

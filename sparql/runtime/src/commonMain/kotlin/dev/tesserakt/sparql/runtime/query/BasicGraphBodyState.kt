@@ -82,7 +82,6 @@ value class BasicGraphBodyState private constructor(
                             state
                         }
                         val optionalBlock = JoinTree.from(
-                            context = context,
                             states = optionalBody,
                             filters = optionalFilters,
                             externalBindings = states.fold(BindingIdentifierSet.EMPTY) { total, state ->
@@ -91,7 +90,6 @@ value class BasicGraphBodyState private constructor(
                         )
                         // we have to consume all prior states now, as this is an order-dependant operation
                         val inner = JoinTree.from(
-                            context = context,
                             states = states,
                             filters = filters,
                             externalBindings = optionalBlock.properties.maximum
@@ -113,7 +111,6 @@ value class BasicGraphBodyState private constructor(
 
             return BasicGraphBodyState(
                 inner = JoinTree.from(
-                    context = context,
                     states = states,
                     filters = filters,
                     externalBindings = externalBindings
