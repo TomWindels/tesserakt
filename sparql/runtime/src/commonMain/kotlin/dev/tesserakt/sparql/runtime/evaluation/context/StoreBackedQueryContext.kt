@@ -1,9 +1,6 @@
 package dev.tesserakt.sparql.runtime.evaluation.context
 
 import dev.tesserakt.rdf.types.*
-import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
 import dev.tesserakt.sparql.types.QueryStructure
 
 class StoreBackedQueryContext(
@@ -55,18 +52,6 @@ class StoreBackedQueryContext(
         // see note above
         return context.decode(id)
             ?: throw NoSuchElementException("Failed to decode term with ID $id")
-    }
-
-    override fun mappingFromValues(terms: Iterable<Pair<String, Quad.Element>>): BitsetMapping {
-        return BitsetMapping(this, terms)
-    }
-
-    override fun mappingFromIdentifiers(terms: Iterable<Pair<BindingIdentifier, TermIdentifier>>): BitsetMapping {
-        return BitsetMapping(terms)
-    }
-
-    override fun emptyMapping(): BitsetMapping {
-        return BitsetMapping.EMPTY
     }
 
 }

@@ -5,7 +5,8 @@ import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
-import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.runtime.query.jointree.JoinTree
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.util.Cardinality
@@ -54,7 +55,7 @@ class OptionalState private constructor(
                 // we need to create a 'combined' intermediate state, which only contains mapping 'additions' for
                 //  us to join with
                 val base = state
-                    .join(MappingAddition(BitsetMapping.EMPTY, null))
+                    .join(MappingAddition(Mapping.EMPTY, null))
                     .chain(peeked)
                     // we have to 'simplify' these combined results immediately, as otherwise `optionalJoin` might
                     //  misbehave when an addition - deletion combo 'consume' each other and thus incorrectly emit
@@ -118,7 +119,7 @@ class OptionalState private constructor(
     init {
         // we have to construct our initial state
         val base: Stream<MappingDelta> = inner
-            .join(MappingAddition(BitsetMapping.EMPTY, null))
+            .join(MappingAddition(Mapping.EMPTY, null))
             // required for our `check` that only expects mapping additions; if we're dealing with a mapping
             //  deletion, it should consume the corresponding additions before we do the optional join chain
             .simplified()
@@ -181,8 +182,8 @@ class OptionalState private constructor(
             //  and have that ripple through all our optionals
             val newState = stateAfter(delta)
             // our peeked delta is the difference between this new state and our existing state
-            val c1 = Counter(state.iter())
-            val c2 = Counter(newState.iter())
+            val c1 = Counter(state.iter().mapped { it.hashable() })
+            val c2 = Counter(newState.iter().mapped { it.hashable() })
             val total = c1.current + c2.current
             val diffs = total.associateWith { c2[it] - c1[it] }
             CollectedStream(
@@ -190,10 +191,10 @@ class OptionalState private constructor(
                     when {
                         count == 0 -> emptyList()
                         count > 0 -> {
-                            List(count) { MappingAddition(mapping, delta) }
+                            List(count) { MappingAddition(mapping.inner, delta) }
                         }
                         else -> {
-                            List(-count) { MappingDeletion(mapping, delta) }
+                            List(-count) { MappingDeletion(mapping.inner, delta) }
                         }
                     }
                 }
@@ -241,7 +242,7 @@ class OptionalState private constructor(
             return cached.second
         }
         val base: Stream<MappingDelta> = inner
-            .join(MappingAddition(BitsetMapping.EMPTY, null))
+            .join(MappingAddition(Mapping.EMPTY, null))
             .chain(inner.peek(delta))
             // required for our `check` that only expects mapping additions; if we're dealing with a mapping
             //  deletion, it should consume the corresponding additions before we do the optional join chain
@@ -267,7 +268,8 @@ class OptionalState private constructor(
  */
 private fun Stream<MappingDelta>.simplified(): CollectedStream<MappingDelta> {
     val combined = this
-        .groupingBy { it.value }
+        // we need to make it hashable for `groupingBy` to work correctly
+        .groupingBy { it.value.hashable() }
         .fold({ _, _ -> 0 }) { _, count, delta ->
             val d = if (delta is MappingAddition) 1 else -1
             count + d
@@ -277,10 +279,10 @@ private fun Stream<MappingDelta>.simplified(): CollectedStream<MappingDelta> {
             when {
                 count == 0 -> emptyList()
                 count > 0 -> {
-                    List(count) { MappingAddition(mapping, null) }
+                    List(count) { MappingAddition(mapping.inner, null) }
                 }
                 else -> {
-                    List(-count) { MappingDeletion(mapping, null) }
+                    List(-count) { MappingDeletion(mapping.inner, null) }
                 }
             }
         }

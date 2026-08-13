@@ -7,7 +7,7 @@ import dev.tesserakt.sparql.types.extractAllBindings
 fun QueryContext(ast: QueryStructure): QueryContext {
     return when {
         ast.body.extractAllBindings().size < 32 -> BitsetQueryContext(ast)
-        else -> IntPairQueryContext(ast)
+        else -> throw UnsupportedOperationException("Queries containing more than 32 distinct binding identifiers are currently unsupported!")
     }
 }
 
@@ -20,6 +20,6 @@ fun QueryContext(source: Store?, ast: QueryStructure): QueryContext {
                 BitsetQueryContext(ast)
             }
         }
-        else -> IntPairQueryContext(ast)
+        else -> throw UnsupportedOperationException("Queries containing more than 32 distinct binding identifiers are currently unsupported!")
     }
 }

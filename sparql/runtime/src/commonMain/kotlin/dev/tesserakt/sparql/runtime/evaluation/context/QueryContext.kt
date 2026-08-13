@@ -3,9 +3,6 @@ package dev.tesserakt.sparql.runtime.evaluation.context
 import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.rdf.types.EncodedQuadElement
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.emptyIterator
 
 interface QueryContext {
@@ -33,11 +30,5 @@ interface QueryContext {
     fun resolveBinding(id: Int): String
 
     fun resolveTerm(id: Int): Quad.Element
-
-    fun mappingFromValues(terms: Iterable<Pair<String, Quad.Element>>): Mapping
-
-    fun mappingFromIdentifiers(terms: Iterable<Pair<BindingIdentifier, TermIdentifier>>): Mapping
-
-    fun emptyMapping(): Mapping
 
 }

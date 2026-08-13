@@ -1,22 +1,22 @@
 package dev.tesserakt.sparql.runtime.stream
 
+import dev.tesserakt.sparql.runtime.evaluation.mapping.HashableMapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.util.Cardinality
+import dev.tesserakt.sparql.util.Counter
 
-/**
- * Special variant of the [StreamReduction] where exactly *1 element value* needs to be removed *once*
- */
-class SingleElementStreamReduction<E: Any>(
-    private val source: Stream<E>,
-    private val removed: E
-): Stream<E> {
+class MappingStreamReduction(
+    private val source: Stream<Mapping>,
+    removed: Iterable<Mapping>
+): Stream<Mapping> {
 
-    // necessary type lower bound for the Counter type
-    private class Iter<E : Any>(
-        private val source: Iterator<E>,
-        private var remove: E?
-    ): Iterator<E> {
+    private class Iter(
+        private val source: Iterator<Mapping>,
+        private val remove: Counter<HashableMapping>
+    ): Iterator<Mapping> {
 
-        private var next: E? = null
+        private var next: Mapping? = null
 
         override fun hasNext(): Boolean {
             if (next != null) {
@@ -26,18 +26,21 @@ class SingleElementStreamReduction<E: Any>(
             return next != null
         }
 
-        override fun next(): E {
+        override fun next(): Mapping {
             val current = next ?: getNext()
             next = null
             return current ?: throw NoSuchElementException()
         }
 
-        private fun getNext(): E? {
+        private fun getNext(): Mapping? {
             while (source.hasNext()) {
                 val result = source.next()
-                if (result == remove) {
-                    // we no longer need to remove any element
-                    remove = null
+                if (remove.count == 0) {
+                    return result
+                }
+                val hashed = result.hashable()
+                if (hashed in remove) {
+                    remove.decrement(hashed)
                     continue
                 }
                 return result
@@ -46,6 +49,8 @@ class SingleElementStreamReduction<E: Any>(
         }
 
     }
+
+    private val counter = Counter(removed.map { it.hashable() })
 
     override val cardinality: Cardinality
         // not removing the dropped ones from the cardinality, as it's not guaranteed they're present in the first place
@@ -56,12 +61,11 @@ class SingleElementStreamReduction<E: Any>(
     }
 
     override fun supportsEfficientIteration(): Boolean {
-        // we're simple enough in this case compared to the more complete single item stream reduction
-        return true
+        return false
     }
 
-    override fun iterator(): Iterator<E> {
-        return Iter(source = source.iterator(), remove = removed)
+    override fun iterator(): Iterator<Mapping> {
+        return Iter(source = source.iterator(), remove = counter.clone())
     }
 
     override fun supportsReuse(): Boolean {

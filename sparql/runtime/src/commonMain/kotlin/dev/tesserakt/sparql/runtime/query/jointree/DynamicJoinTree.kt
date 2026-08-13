@@ -5,6 +5,7 @@ import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.join
@@ -103,7 +104,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 // we process our initial state as that of the combination of left and right nodes, as these
                 //  can already contain initial data
                 val initialData = right
-                    .join(left.join(MappingAddition(context.emptyMapping(), null)).optimisedForSingleUse(left.cardinality))
+                    .join(left.join(MappingAddition(Mapping.EMPTY, null)).optimisedForSingleUse(left.cardinality))
                     .filtered { filters.all { expression -> expression.test(it.value) } }
                 initialData.forEach { delta ->
                     check(delta is MappingAddition) { "Got an unexpected mapping deletion event!" }

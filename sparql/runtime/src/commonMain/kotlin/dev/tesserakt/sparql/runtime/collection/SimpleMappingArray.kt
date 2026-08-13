@@ -42,7 +42,7 @@ value class SimpleMappingArray(
     }
 
     override fun remove(mapping: Mapping) {
-        val i = this.mappings.indexOfLast { it == mapping }
+        val i = this.mappings.indexOfLast { it.matches(mapping) }
         when (i) {
             -1 -> {
                 throw NoSuchElementException("$mapping cannot be removed from SimpleMappingArray - not found!")

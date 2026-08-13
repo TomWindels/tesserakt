@@ -9,13 +9,10 @@ import kotlin.jvm.JvmName
 
 @JvmName("mappingOfValues")
 fun mappingOf(context: QueryContext, vararg pairs: Pair<String, Quad.Element>) =
-    context.mappingFromValues(pairs.asIterable())
+    if (pairs.isEmpty()) Mapping.EMPTY else Mapping(context, pairs.asIterable())
 
 @JvmName("mappingOfIdentifiers")
-fun mappingOf(context: QueryContext, vararg pairs: Pair<BindingIdentifier, TermIdentifier>) =
-    context.mappingFromIdentifiers(pairs.asIterable())
+fun mappingOf(vararg pairs: Pair<BindingIdentifier, TermIdentifier>) =
+    if (pairs.isEmpty()) Mapping.EMPTY else Mapping(pairs.asIterable())
 
-@JvmName("mappingOfNullable")
-fun mappingOf(context: QueryContext, vararg pairs: Pair<String?, Quad.Element>) =
-    @Suppress("UNCHECKED_CAST")
-    context.mappingFromValues(pairs.filter { it.first != null } as List<Pair<String, Quad.Element>>)
+fun Mapping.hashable() = if (count == 0) HashableMapping.EMPTY else HashableMapping(this)

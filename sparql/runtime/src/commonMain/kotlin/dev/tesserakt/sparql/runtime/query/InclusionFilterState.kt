@@ -3,7 +3,9 @@ package dev.tesserakt.sparql.runtime.query
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
+import dev.tesserakt.sparql.runtime.evaluation.mapping.HashableMapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.util.Counter
@@ -42,17 +44,17 @@ sealed interface InclusionFilterState: MutableFilterState {
     ) : InclusionFilterState {
 
         // tracking what binding groups are "invalid" (= should be filtered out)
-        private val filtered = Counter<Mapping>()
+        private val filtered = Counter<HashableMapping>()
 
         init {
             require(commonBindingNames.isNotEmpty()) { "Invalid filter use detected!" }
             state
-                .join(MappingAddition(context.emptyMapping(), null))
+                .join(MappingAddition(Mapping.EMPTY, null))
                 .forEach { mappingDelta ->
                     when (mappingDelta) {
-                        is MappingAddition -> filtered.increment(mappingDelta.value.retain(commonBindingNames))
+                        is MappingAddition -> filtered.increment(mappingDelta.value.retain(commonBindingNames).hashable())
                         // highly unlikely occurrence considering we're joining on an empty mapping
-                        is MappingDeletion -> filtered.decrement(mappingDelta.value.retain(commonBindingNames))
+                        is MappingDeletion -> filtered.decrement(mappingDelta.value.retain(commonBindingNames).hashable())
                     }
                 }
         }
@@ -69,12 +71,12 @@ sealed interface InclusionFilterState: MutableFilterState {
                 when {
                     count < 0 && current <= -count -> {
                         // it's now being filtered out, meaning it's removal becomes the result of the peek
-                        results.add(MappingDeletion(value = mapping, origin = null))
+                        results.add(MappingDeletion(value = mapping.inner, origin = null))
                     }
 
                     count > 0 && current == 0 -> {
                         // it's no longer being filtered out, meaning it's addition becomes the result of the peek
-                        results.add(MappingAddition(value = mapping, origin = null))
+                        results.add(MappingAddition(value = mapping.inner, origin = null))
                     }
                 }
             }
@@ -97,12 +99,12 @@ sealed interface InclusionFilterState: MutableFilterState {
                         val retained = mapping.value.retain(commonBindingNames)
                         if (retained.count == commonBindingNames.size) {
                             // the changes should not be negative as we're not filtering anything
-                            (lastChanges[retained] ?: 0) > 0
+                            (lastChanges[retained.hashable()] ?: 0) > 0
                         } else {
                             // we have to check if any of our peeked changes can join with the mapping
                             // using the map is still an O(N) lookup, but it is reduced as we don't check
                             //  duplicates
-                            lastChanges.any { (allowed, _) -> allowed.compatibleWith(mapping.value) }
+                            lastChanges.any { (allowed, _) -> allowed.inner.compatibleWith(mapping.value) }
                         }
                     }
                 }
@@ -126,12 +128,12 @@ sealed interface InclusionFilterState: MutableFilterState {
                         val retained = mapping.value.retain(commonBindingNames)
                         if (retained.count == commonBindingNames.size) {
                             // the changes should not be negative as we're not filtering anything
-                            (lastChanges[retained] ?: 0) + (filtered[retained]) > 0
+                            (lastChanges[retained.hashable()] ?: 0) + (filtered[retained.hashable()]) > 0
                         } else {
                             // we have to check if any of our peeked changes can join with the mapping
                             // using the map is still an O(N) lookup, but it is reduced as we don't check
                             //  duplicates
-                            combined.any { (allowed) -> allowed.compatibleWith(mapping.value) }
+                            combined.any { (allowed) -> allowed.inner.compatibleWith(mapping.value) }
                         }
                     }
                 }
@@ -153,7 +155,7 @@ sealed interface InclusionFilterState: MutableFilterState {
                 val subset = mapping.value.retain(commonBindingNames)
                 if (subset.count == commonBindingNames.size) {
                     // we can do a direct lookup
-                    return@filtered subset in filtered
+                    return@filtered subset.hashable() in filtered
                 }
                 // we're dealing with a mapping that does not contain all of our common bindings, so
                 //  we have to fall back to a regular 'can this join with our state' check
@@ -187,7 +189,7 @@ sealed interface InclusionFilterState: MutableFilterState {
         }
 
         private var lastDelta: DataDelta? = null
-        private val lastChanges = mutableMapOf<Mapping, Int>()
+        private val lastChanges = mutableMapOf<HashableMapping, Int>()
 
         /**
          * Peeks the impact of the [delta], putting the changes in the cached map [lastChanges]
@@ -205,8 +207,8 @@ sealed interface InclusionFilterState: MutableFilterState {
                 .mapped { it.map { it.retain(commonBindingNames) } }
                 .forEach { mappingDelta ->
                     when (mappingDelta) {
-                        is MappingAddition -> lastChanges.replace(mappingDelta.value) { existing -> (existing ?: 0) + 1 }
-                        is MappingDeletion -> lastChanges.replace(mappingDelta.value) { existing -> (existing ?: 0) - 1 }
+                        is MappingAddition -> lastChanges.replace(mappingDelta.value.hashable()) { existing -> (existing ?: 0) + 1 }
+                        is MappingDeletion -> lastChanges.replace(mappingDelta.value.hashable()) { existing -> (existing ?: 0) - 1 }
                     }
                 }
         }
@@ -223,7 +225,7 @@ sealed interface InclusionFilterState: MutableFilterState {
     ) : InclusionFilterState {
 
         private var count = state
-            .join(MappingAddition(context.emptyMapping(), null))
+            .join(MappingAddition(Mapping.EMPTY, null))
             .fold(0) { acc, mappingDelta ->
                 when (mappingDelta) {
                     is MappingAddition -> acc + 1
@@ -241,12 +243,12 @@ sealed interface InclusionFilterState: MutableFilterState {
             // if the count becomes > 0 through this delta, all mappings should be added;
             if (count == 0 && change != 0) {
                 check(change > 0) { "Invalid internal state!" }
-                return streamOf(MappingAddition(context.emptyMapping(), null))
+                return streamOf(MappingAddition(Mapping.EMPTY, null))
             }
             // similarly, if the count becomes 0 through this delta, all mappings should be removed
             if (count > 0 && count + change <= 0) {
                 check(count + change == 0) { "Invalid internal state!" }
-                return streamOf(MappingDeletion(context.emptyMapping(), null))
+                return streamOf(MappingDeletion(Mapping.EMPTY, null))
             }
             // nothing changed, so the peek is empty
             return emptyStream()
