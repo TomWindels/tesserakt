@@ -7,8 +7,6 @@ import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluation
 import dev.tesserakt.sparql.evaluation.DeferredOngoingQueryEvaluationImpl
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluation
 import dev.tesserakt.sparql.evaluation.OngoingQueryEvaluationImpl
-import dev.tesserakt.sparql.runtime.evaluation.DataAddition
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.query.QueryState
 import dev.tesserakt.sparql.types.SelectQueryStructure
 
@@ -41,16 +39,9 @@ fun <RT> Iterable<Quad>.query(
         val state = query.createState(
             source = this,
         )
-        // setting initial state
+        // we immediately get the results
         state.results.forEach {
             callback(QueryState.ResultChange.New(it))
-        }
-        // now incrementally evaluating the input
-        val it = encodedIterator()
-        while (it.hasNext()) {
-            state
-                .processAndGet(DataAddition(it.next()))
-                .forEach { callback(it) }
         }
     } else {
         val state = query.createState(
@@ -99,7 +90,10 @@ fun <RT> Iterable<Quad>.query(query: Query<RT>): List<RT> {
     return queryState.results.toList()
 }
 
-fun <RT> Iterable<Quad>.queryWithStatistics(query: Query<RT>, granularity: QueryStatistics.Granularity): Pair<List<RT>, Statistics> {
+fun <RT> Iterable<Quad>.queryWithStatistics(
+    query: Query<RT>,
+    granularity: QueryStatistics.Granularity = QueryStatistics.Granularity.DETAILED,
+): Pair<List<RT>, QueryStatistics> {
     val queryState = when {
         this is Store -> {
             // we can tie the store instance directly to the (temporary) query state; this allows
