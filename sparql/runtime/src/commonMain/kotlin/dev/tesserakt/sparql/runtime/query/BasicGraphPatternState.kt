@@ -83,11 +83,23 @@ class BasicGraphPatternState private constructor(
                 filters = filters,
                 externalBindings = externalBindings,
             )
-            return BasicGraphPatternState(
-                context = context,
-                body = body,
-                filters = GraphPatternFilterState(context, parent = body, filters = ast.filters),
-            )
+            return ast.filters.fold(body) { inner, filter ->
+                when (filter) {
+                    is Filter.Exists -> TODO()
+                    is Filter.NotExists -> {
+                        // FIXME
+                        ExclusionFilterState.Hybrid(
+                            context = context,
+                            parent = inner,
+                            filter = filter,
+                        )
+                    }
+                    is Filter.Predicate -> {
+                        // has no further impact - already managed by the innermost state
+                        inner
+                    }
+                }
+            }
         }
 
     }

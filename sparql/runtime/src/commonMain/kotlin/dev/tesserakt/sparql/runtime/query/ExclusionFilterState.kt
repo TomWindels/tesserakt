@@ -1,6 +1,8 @@
 package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.QueryStatistics
+import dev.tesserakt.sparql.runtime.collection.MappingArray
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.HashableMapping
@@ -8,6 +10,7 @@ import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.Filter
+import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.Counter
 import dev.tesserakt.util.replace
 
@@ -212,6 +215,292 @@ sealed interface ExclusionFilterState: MutableFilterState {
                 }
         }
 
+    }
+
+    /**
+     * Special variant of the exclude filter, where discarded solutions are stored, so that incremental changes can
+     *  locally look up what solutions should be allowed again.
+     *
+     * Required when the common bindings are not always present in a solution.
+     *
+     * Not a [MutableFilterState] implementor as it has a different parent - filter relationship
+     */
+    class Hybrid(
+        /**
+         * The regular query body the filter is being applied to
+         */
+        private val parent: MutableJoinState,
+        /**
+         * The state of the filter block itself
+         */
+        private val filter: MutableJoinState,
+    ) : MutableJoinState {
+
+        constructor(
+            context: QueryContext,
+            parent: MutableJoinState,
+            filter: Filter.NotExists,
+        ): this(
+            parent = parent,
+            filter = BasicGraphPatternState(
+                context = context,
+                ast = filter.pattern,
+                externalFilters = emptyList(),
+                externalBindings = BindingIdentifierSet.EMPTY,
+            )
+        )
+
+        private val commonBindingNames = (filter.properties.guaranteed).intersect(parent.properties.maximum)
+        // a set of mappings that were obtained from the `parent`, which are compatible with at least one of the
+        //  filtered mappings above
+        // TODO init blocked
+        private val blocked = MappingArray(
+            bindings = commonBindingNames,
+            hint = MappingArrayHint(
+                // checked during `init {}` as well; if this wouldn't be required, this implementation is overkill
+                partialHashAccess = true
+            ),
+        )
+
+        override val properties: MutableJoinState.Properties
+            // we don't introduce any bindings ourselves
+            get() = parent.properties
+
+        override val cardinality: Cardinality
+            get() = parent.cardinality - blocked.size
+
+        init {
+            // if `Narrow` can be used, it is preferred
+            check(parent.properties.guaranteed.intersectSize(filter.properties.maximum) != filter.properties.maximum.size) { "Suboptimal filter implementation used!" }
+            val filterIndexes = parent.properties.maximum.intersect(filter.properties.guaranteed)
+            filter.reindex(
+                bindings = filterIndexes,
+                hint = MappingArrayHint(
+                    partialHashAccess = filterIndexes !in parent.properties.guaranteed
+                ),
+            )
+        }
+
+        override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
+            // we check the impact it has on the filter
+            // we collect it eagerly as we need to reuse the result
+            val filterChange = filter
+                .peek(delta)
+                .collect()
+            if (filterChange.isEmpty()) {
+                // simple case: the delta only impacts our parent
+                // we only need to ensure our existing state cannot possibly join with the changes the parent emits
+                return parent.peek(delta)
+                    .filtered { delta -> !filter.join(delta).iterator().hasNext() }
+                    .optimisedForSingleUse()
+            }
+            // we turn the ones we filter into a change map, so we can inspect which ones have actually changed
+            val filterChangeMap = filterChange
+                .groupingBy { it.value.retain(commonBindingNames) }
+                .fold(0) { acc, delta ->
+                    val change = when (delta) {
+                        is MappingAddition -> 1
+                        is MappingDeletion -> -1
+                    }
+                    acc + change
+                }
+            var result: Stream<MappingDelta> = emptyStream()
+
+            // caches the result of the cached join count to prevent duplicate work
+            val existingCache = mutableMapOf<Mapping, Int>()
+            fun currentBlockCount(mapping: Mapping): Int {
+                return existingCache.getOrPut(mapping) {
+                    filter.join(MappingAddition(mapping, delta)).count()
+                }
+            }
+
+            filterChangeMap.forEach { (mapping, change) ->
+                // if it ends up having no impact, there's nothing that changes here
+                if (change == 0) {
+                    return@forEach
+                }
+                // we count how many variants of this mapping are being blocked
+                val existing = currentBlockCount(mapping)
+                when {
+                    existing == 0 -> {
+                        check(change > 0)
+                        // we weren't blocking it, but are now
+                        val blocked = parent.join(MappingDeletion(value = mapping, origin = delta))
+                        result = result.chain(blocked)
+                    }
+                    existing != 0 && existing + change == 0 -> {
+                        // we were blocking it, but are no longer
+                        // instead of letting the parent join with an addition statement, we check our internal
+                        //  array - this prevents extra results from being generated in edge cases with specific
+                        //  queries (e.g. certain OPTIONAL block configurations)
+                        val allowed = blocked
+                            .iter(mapping)
+                            .filtered { it.compatibleWith(mapping) }
+                            .mapped { MappingAddition(it, delta) }
+                        result = result.chain(allowed)
+                    }
+                    // else... our filter hasn't changed in any meaningful way
+                }
+            }
+            // it's possible the parent is not affected by the delta
+            val parentChange = parent.peek(delta).collect()
+            // if the parent doesn't change, there aren't any additional changes required
+            if (parentChange.isEmpty()) {
+                return result.optimisedForSingleUse()
+            }
+            // we have to append the parent's changes with our amended filter state
+            result = result.chain(
+                parentChange.filtered { delta ->
+                    val retained = delta.value.retain(commonBindingNames)
+                    val existing = currentBlockCount(retained)
+                    if (retained.count != commonBindingNames.size) {
+                        // we have to manually check our change set - hash lookup would fail
+                        val b = filterChangeMap.asIterable().fold(0) { acc, (mapping, count) ->
+                            val extra = if (mapping.compatibleWith(retained)) {
+                                count
+                            } else {
+                                0
+                            }
+                            acc + extra
+                        }
+                        existing + b <= 0
+                    } else {
+                        existing + (filterChangeMap[retained] ?: 0) <= 0
+                    }
+                }
+            )
+            return result.optimisedForSingleUse()
+        }
+
+        override fun join(delta: MappingDelta): Stream<MappingDelta> {
+            return parent.join(delta)
+                .filtered { delta -> !filter.join(delta).iterator().hasNext() }
+                .optimisedForSingleUse()
+        }
+
+        override fun reindex(
+            bindings: BindingIdentifierSet,
+            hint: MappingArrayHint
+        ) {
+            // TODO
+        }
+
+        // TODO most of this logic is a carbon copy of `peek` - can possibly be consolidated with a special return type
+        //  that is then transformed to `peek` & `process`s individual needs
+        override fun process(delta: DataDelta) {
+            // we check the impact it has on the filter
+            // we collect it eagerly as we need to reuse the result
+            val filterChange = filter
+                .peek(delta)
+                .collect()
+            if (filterChange.isEmpty()) {
+                // simple case, we only have to amend our state based on parent's changes
+                parent.peek(delta)
+                    .filtered { delta -> filter.join(delta).iterator().hasNext() }
+                    .forEach { delta ->
+                        when (delta) {
+                            is MappingAddition -> blocked.add(delta.value)
+                            is MappingDeletion -> blocked.remove(delta.value)
+                        }
+                    }
+            } else {
+                // we turn the ones we filter into a change map, so we can inspect which ones have actually changed
+                val filterChangeMap = filterChange
+                    .groupingBy { it.value.retain(commonBindingNames) }
+                    .fold(0) { acc, delta ->
+                        val change = when (delta) {
+                            is MappingAddition -> 1
+                            is MappingDeletion -> -1
+                        }
+                        acc + change
+                    }
+
+                // caches the result of the cached join count to prevent duplicate work
+                val existingCache = mutableMapOf<Mapping, Int>()
+                fun currentBlockCount(mapping: Mapping): Int {
+                    return existingCache.getOrPut(mapping) {
+                        filter.join(MappingAddition(mapping, delta)).count()
+                    }
+                }
+
+                filterChangeMap.forEach { (mapping, change) ->
+                    // if it ends up having no impact, there's nothing that changes here
+                    if (change == 0) {
+                        return@forEach
+                    }
+                    // we count how many variants of this mapping are being blocked
+                    val existing = currentBlockCount(mapping)
+                    when {
+                        existing == 0 -> {
+                            check(change > 0)
+                            // we weren't blocking it, but are now
+                            parent
+                                .join(MappingAddition(value = mapping, origin = delta))
+                                .forEach { delta ->
+                                    when (delta) {
+                                        is MappingAddition -> blocked.add(delta.value)
+                                        is MappingDeletion -> blocked.remove(delta.value)
+                                    }
+                                }
+                        }
+                        existing != 0 && existing + change == 0 -> {
+                            // we were blocking it, but are no longer
+                            // we simply drain all blocked mappings that match our mapping
+                            blocked.removeAll(blocked.iter(mapping).collect())
+                        }
+                        // else... our filter hasn't changed in any meaningful way
+                    }
+                    // it's possible the parent is not affected by the delta
+                    val parentChange = parent.peek(delta).collect()
+                    // if the parent doesn't change, there aren't any additional changes required
+                    if (parentChange.isNotEmpty()) {
+                        // we have to append the parent's changes with our amended filter state
+                        parentChange
+                            // we filter to retain those that we *do not allow* so we can ammend our block list
+                            .filtered { delta ->
+                                val retained = delta.value.retain(commonBindingNames)
+                                val existing = currentBlockCount(retained)
+                                if (retained.count != commonBindingNames.size) {
+                                    // we have to manually check our change set - hash lookup would fail
+                                    val b = filterChangeMap.asIterable().fold(0) { acc, (mapping, count) ->
+                                        val extra = if (mapping.compatibleWith(retained)) {
+                                            count
+                                        } else {
+                                            0
+                                        }
+                                        acc + extra
+                                    }
+                                    existing + b > 0
+                                } else {
+                                    existing + (filterChangeMap[retained] ?: 0) > 0
+                                }
+                            }
+                            .forEach { delta ->
+                                when (delta) {
+                                    is MappingAddition -> blocked.add(delta.value)
+                                    is MappingDeletion -> blocked.remove(delta.value)
+                                }
+                            }
+                    }
+                }
+            }
+            // and we update our inner states at the end as well
+            parent.process(delta)
+            filter.process(delta)
+        }
+
+        override fun stats(
+            context: QueryContext,
+            granularity: QueryStatistics.Granularity
+        ): Statistics {
+            return Statistics.JoinedElement(
+                left = parent.stats(context, granularity),
+                right = Statistics.DescriptionElement(
+                    description = "FILTER NOT EXISTS",
+                    inner = filter.stats(context, granularity)
+                )
+            )
+        }
     }
 
     /**
