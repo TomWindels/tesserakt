@@ -49,8 +49,8 @@ value class Mapping internal constructor(
         data = source.sortedBy { it.first.id }.map { it.second.id },
     )
 
-    val bindings: Int
-        get() = data[0]
+    val bindings: BindingIdentifierSet
+        get() = BindingIdentifierSet.fromMask(data[0])
 
     /**
      * The number of terms bound in this instance
@@ -69,7 +69,7 @@ value class Mapping internal constructor(
 
     fun retain(bindings: BindingIdentifierSet): Mapping {
         val remaining = bindings.asIntIterable().fold(0) { acc, i -> acc or (1 shl i) }
-        val common = this.bindings and remaining
+        val common = this.bindings.mask and remaining
         val iter = common.bitIterator()
         val data = IntArray(common.countOneBits() + 1)
         data[0] = common
@@ -85,10 +85,10 @@ value class Mapping internal constructor(
     }
 
     fun join(other: Mapping): Mapping? {
-        if (this.bindings == 0) {
+        if (this.bindings.mask == 0) {
             return other
         }
-        if (other.bindings == 0) {
+        if (other.bindings.mask == 0) {
             return this
         }
         val c = count(other)
@@ -98,16 +98,6 @@ value class Mapping internal constructor(
         }
         // not having this inlined helps enormously with performance
         return joinUnchecked(this, other)
-    }
-
-    fun keys(): BindingIdentifierSet {
-        val bindingCount = this.count
-        if (bindingCount == 0) {
-            return BindingIdentifierSet.EMPTY
-        }
-        // is automatically sorted
-        val iter = this.bindings.bitIterator()
-        return BindingIdentifierSet(ids = IntArray(bindingCount) { iter.nextInt() })
     }
 
     fun asIterable(context: QueryContext) = object: Iterable<Pair<String, Quad.Element>> {
@@ -127,7 +117,7 @@ value class Mapping internal constructor(
 
     fun asIterable() = object: Iterable<Pair<BindingIdentifier, TermIdentifier>> {
         override fun iterator() = object: Iterator<Pair<BindingIdentifier, TermIdentifier>> {
-            private val iter = bindings.bitIterator()
+            private val iter = bindings.iterator()
             private var i = 1
 
             override fun hasNext(): Boolean {
@@ -154,7 +144,7 @@ value class Mapping internal constructor(
     }
 
     private fun count(other: Mapping): Int {
-        val common = bindings and other.bindings
+        val common = bindings.mask and other.bindings.mask
         // ensuring all those that are in common, are in fact identical; if there aren't any, no checks are required
         val iter = common.bitIterator()
         while (iter.hasNext()) {
@@ -164,7 +154,7 @@ value class Mapping internal constructor(
             }
         }
         // as all bindings are either not in common, or identical, the total "sum" of these binding pairs is the result
-        return (bindings or other.bindings).countOneBits()
+        return (bindings.mask or other.bindings.mask).countOneBits()
     }
 
     internal fun get(binding: Int): Int {
@@ -177,18 +167,18 @@ value class Mapping internal constructor(
      */
     private fun bindingIndex(target: Int): Int {
         // ensuring it exists
-        if ((1 shl target) and bindings == 0) {
+        if ((1 shl target) and bindings.mask == 0) {
             return -1
         }
         // method: changing the `bindings` field to only contain all bits lower than our target,
         //  and counting how many bits of those are set, as every bit set represents a slot (and thus index)
         //  that should be skipped
         // we also need to increment it by one, as the first slot is taken up by the `bindings` value
-        return (((1 shl target) - 1) and bindings).countOneBits() + 1
+        return (((1 shl target) - 1) and bindings.mask).countOneBits() + 1
     }
 
     override fun toString(): String {
-        return "BitsetMapping { bindings: 0x${bindings.toHexString(format = HexFormat { upperCase = true })}, terms: [${(1 ..< data.size).joinToString { data[it].toString() }}] }"
+        return "BitsetMapping { bindings: 0x${bindings.mask.toHexString(format = HexFormat { upperCase = true })}, terms: [${(1 ..< data.size).joinToString { data[it].toString() }}] }"
     }
 
     companion object {
@@ -205,11 +195,11 @@ private fun joinUnchecked(
     leftMapping: Mapping,
     rightMapping: Mapping,
 ): Mapping {
-    val output = IntArray((leftMapping.bindings or rightMapping.bindings).countOneBits() + 1)
-    output[0] = leftMapping.bindings or rightMapping.bindings
+    val output = IntArray((leftMapping.bindings.mask or rightMapping.bindings.mask).countOneBits() + 1)
+    output[0] = leftMapping.bindings.mask or rightMapping.bindings.mask
     var i = 1
-    val a = leftMapping.bindings.bitIterator()
-    val b = rightMapping.bindings.bitIterator()
+    val a = leftMapping.bindings.mask.bitIterator()
+    val b = rightMapping.bindings.mask.bitIterator()
     var left = a.nextInt()
     var right = b.nextInt()
     while (true) {

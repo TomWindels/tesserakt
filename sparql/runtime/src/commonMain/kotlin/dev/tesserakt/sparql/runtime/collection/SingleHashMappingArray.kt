@@ -28,7 +28,7 @@ class SingleHashMappingArray(
     private val backing = mutableMapOf<TermIdentifier?, SimpleMappingArray>()
 
     override val indexes: BindingIdentifierSet
-        get() = BindingIdentifierSet(ids = intArrayOf(key.id))
+        get() = BindingIdentifierSet(key.id)
 
     override var size: Int = 0
         private set

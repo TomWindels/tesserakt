@@ -210,11 +210,8 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
-                val leftOverlap = delta.value.keys().asIntIterable().count { it in left.properties.maximum }
-                val rightOverlap = delta.value.keys().asIntIterable().count { it in right.properties.maximum }
-                // as we're joining with our unfiltered nodes, we need to filter out the mappings that do not
-                //  adhere to our filters after having joined the two streams
-                //  together (so we have all required binding values to evaluate the filter expression(s))
+                val leftOverlap = delta.value.bindings.intersectSize(left.properties.maximum)
+                val rightOverlap = delta.value.bindings.intersectSize(right.properties.maximum)
                 return if (leftOverlap > rightOverlap) {
                     right.join(left.join(delta).optimisedForSingleUse(left.cardinality))
                 } else {
