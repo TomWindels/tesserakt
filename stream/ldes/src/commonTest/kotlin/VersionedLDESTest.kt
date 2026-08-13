@@ -9,13 +9,8 @@ import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.serialization.trig.usePrettyFormatting
 import dev.tesserakt.rdf.serialization.trig.withPrefixes
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.rdf.types.Quad.NamedTerm
-import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.IndexedStore
-import dev.tesserakt.rdf.types.factory.Store
-import dev.tesserakt.rdf.types.factory.emptyStore
-import dev.tesserakt.rdf.types.factory.indexedStoreOf
 import dev.tesserakt.stream.ldes.IndexedVersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.MutableVersionedLinkedDataEventStream
 import dev.tesserakt.stream.ldes.StreamTransform

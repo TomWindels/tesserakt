@@ -1,10 +1,9 @@
 package sparql.types
 
 import dev.tesserakt.rdf.types.MutableStore
+import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.QueryStatistics

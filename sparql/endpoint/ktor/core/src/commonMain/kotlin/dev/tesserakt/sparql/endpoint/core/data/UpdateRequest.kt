@@ -5,7 +5,7 @@ import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.mutableStoreOf
+import dev.tesserakt.rdf.types.mutableStoreOf
 import dev.tesserakt.rdf.types.toStore
 
 data class UpdateRequest(

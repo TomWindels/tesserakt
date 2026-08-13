@@ -6,7 +6,6 @@ import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.MutableStore
 
 class ReplayBenchmark(
     private val identifier: Quad.NamedTerm,

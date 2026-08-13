@@ -4,7 +4,6 @@ import dev.tesserakt.rdf.dsl.RDFContext.Environment
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.MutableStore
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract

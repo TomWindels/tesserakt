@@ -1,10 +1,5 @@
 
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.IndexedStore
-import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.ObservableStore
-import dev.tesserakt.rdf.types.factory.Store
+import dev.tesserakt.rdf.types.*
 import kotlin.random.Random
 import kotlin.test.*
 

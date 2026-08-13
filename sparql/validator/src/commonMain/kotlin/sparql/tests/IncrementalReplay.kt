@@ -4,8 +4,8 @@ import dev.tesserakt.rdf.serialization.common.FileDataSource
 import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.types.MutableStore
+import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.SnapshotStore
-import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Compiler

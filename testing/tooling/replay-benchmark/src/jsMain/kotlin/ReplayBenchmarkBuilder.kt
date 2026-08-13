@@ -9,10 +9,10 @@ import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.serialization.trig.usePrettyFormatting
 import dev.tesserakt.rdf.serialization.trig.withPrefixes
+import dev.tesserakt.rdf.types.IndexedStore
 import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.sparql.benchmark.replay.RBO
 import dev.tesserakt.sparql.benchmark.replay.ReplayBenchmark
 
