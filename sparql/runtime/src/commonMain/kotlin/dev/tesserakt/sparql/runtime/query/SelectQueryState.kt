@@ -3,12 +3,8 @@ package dev.tesserakt.sparql.runtime.query
 import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.runtime.evaluation.*
-import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
-import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
-import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.asResultChange
 import dev.tesserakt.sparql.runtime.query.QueryState.ResultChange.Companion.into
 import dev.tesserakt.sparql.runtime.query.select.OutputState
-import dev.tesserakt.sparql.runtime.stream.CollectedStream
 import dev.tesserakt.sparql.types.SelectQueryStructure
 import dev.tesserakt.sparql.util.MappedCollection.Companion.mapLazily
 
@@ -24,88 +20,26 @@ class SelectQueryState(
         get() = _results.mapLazily { it.into(context) }
 
     init {
-         // required when setting up the initial state: sets up initial state
-         //  combinations (i.e. triple patterns such as "?a <p>* <b>", yielding ?a = <b>)
-        bgpState
-            // getting all current results by joining with an empty new mapping
-            .join(
-                MappingAddition(
-                    value = Mapping.EMPTY,
-                    origin = null
-                )
-            )
-            .forEach(::onNewBodyResult)
+        constructInitialState()
     }
 
-    override fun processAndGet(data: DataDelta): List<ResultChange<Bindings>> {
-        return bgpState.insert(data)
-            // making sure deletions and additions consume each other as much as possible first;
-            // without this, it becomes possible for a deletion to happen before its addition took place
-            // TODO perf:
-            //  this is not required for simple queries (ones that do not contain any (nested) `OPTIONAL`
-            //  and `FILTER [NOT] EXISTS`
-            .simplified()
-            .onEach(::onNewBodyResult)
-            .map { it.asResultChange(context) }
-    }
-
-    override fun process(data: DataDelta) {
-        bgpState
-            .insert(data)
-            // making sure deletions and additions consume each other as much as possible first;
-            // without this, it becomes possible for a deletion to happen before its addition took place
-            // TODO perf:
-            //  this is not required for simple queries (ones that do not contain any (nested) `OPTIONAL`
-            //  and `FILTER [NOT] EXISTS`
-            .simplified()
-            .forEach(::onNewBodyResult)
-    }
-
-    private inline fun onNewBodyResult(result: MappingDelta) {
-        val projected = applyProjection(result.asResultChange())
-        insert(projected)
-    }
-
-    private inline fun applyProjection(change: ResultChange<Mapping>): ResultChange<Mapping> {
-        return when (change) {
-            is ResultChange.New -> ResultChange.New(change.value.retain(projectionSet))
-            is ResultChange.Removed -> ResultChange.Removed(change.value.retain(projectionSet))
-        }
-    }
-
-    private fun insert(change: ResultChange<Mapping>) {
+    override fun onNewBodyResult(change: MappingDelta) {
+        val projected = change.value.retain(projectionSet)
         when (change) {
-            is ResultChange.New<*> -> _results.onResultAdded(change.value)
-            is ResultChange.Removed<*> -> _results.onResultRemoved(change.value)
+            is MappingAddition -> {
+                _results.onResultAdded(projected)
+            }
+            is MappingDeletion -> {
+                _results.onResultRemoved(projected)
+            }
         }
     }
 
-    /**
-     * Simplifies a stream of deltas, removing opposing changes, potentially reducing the total number of elements.
-     */
-    // TODO perf:
-    //  simply return another Iterable, so we don't need to create a potentially big array at the end
-    private fun Iterable<MappingDelta>.simplified(): List<MappingDelta> {
-        val combined = this
-            // we need to make it hashable for `groupingBy` to work correctly
-            .groupingBy { it.value.hashable() }
-            .fold({ _, _ -> 0 }) { _, count, delta ->
-                val d = if (delta is MappingAddition) 1 else -1
-                count + d
-            }
-        return CollectedStream(
-            data = combined.asIterable().flatMap { (mapping, count) ->
-                when {
-                    count == 0 -> emptyList()
-                    count > 0 -> {
-                        List(count) { MappingAddition(mapping.inner, null) }
-                    }
-                    else -> {
-                        List(-count) { MappingDeletion(mapping.inner, null) }
-                    }
-                }
-            }
-        )
+    override fun transformNewBodyResult(change: MappingDelta): ResultChange<Bindings> {
+        val bindings = change.value.retain(projectionSet).into(context)
+        return when (change) {
+            is MappingAddition -> ResultChange.New(bindings)
+            is MappingDeletion -> ResultChange.Removed(bindings)
+        }
     }
-
 }

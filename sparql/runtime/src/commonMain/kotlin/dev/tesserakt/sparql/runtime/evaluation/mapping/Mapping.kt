@@ -68,8 +68,7 @@ value class Mapping internal constructor(
     }
 
     fun retain(bindings: BindingIdentifierSet): Mapping {
-        val remaining = bindings.asIntIterable().fold(0) { acc, i -> acc or (1 shl i) }
-        val common = this.bindings.mask and remaining
+        val common = this.bindings.mask and bindings.mask
         val iter = common.bitIterator()
         val data = IntArray(common.countOneBits() + 1)
         data[0] = common
