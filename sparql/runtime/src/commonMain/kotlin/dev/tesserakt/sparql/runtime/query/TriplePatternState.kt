@@ -483,8 +483,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         // we don't apply any filters here - we use anonymous bindings during the unfolding, so none could possibly
         //  match in the inner state
         private val tree = JoinTree.from(
-            context = context,
-            states = p.unfold(context, start = s, end = o).also { it.forEach { state -> state.prefill() } },
+            states = p.unfold(context, start = s, end = o).onEach { state -> state.prefill() },
             filters = emptyList(),
             // subsequent call to `reindex` will change this
             externalBindings = BindingIdentifierSet.EMPTY,
@@ -546,8 +545,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         // we don't apply any filters here - we use anonymous bindings during the unfolding, so none could possibly
         //  match in the inner state
         private val tree = JoinTree.from(
-            context = context,
-            states = pred.unfold(context, start = subj, end = obj).also { it.forEach { state -> state.prefill() } },
+            states = pred.unfold(context, start = subj, end = obj).onEach { state -> state.prefill() },
             filters = emptyList(),
             // subsequent call to `reindex` will change this
             externalBindings = BindingIdentifierSet.EMPTY,

@@ -81,7 +81,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
         }
 
         class Connected(
-            context: QueryContext,
             internal val left: Node,
             internal val right: Node,
             indexes: BindingIdentifierSet,
@@ -232,7 +231,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
     }
 
     constructor(
-        context: QueryContext,
         states: List<MutableJoinState>,
         filters: List<FilterExpression>,
         externalBindings: BindingIdentifierSet,
@@ -241,7 +239,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             Node.Leaf(states.single())
         } else {
             DynamicJoinTreeBuilder.build(
-                context = context,
                 states = states,
                 filters = filters,
                 externalBindings = externalBindings,

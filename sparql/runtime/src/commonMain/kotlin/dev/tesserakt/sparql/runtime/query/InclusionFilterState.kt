@@ -38,7 +38,6 @@ sealed interface InclusionFilterState: MutableFilterState {
      *  collection (which may not be empty!)
      */
     class Narrow(
-        context: QueryContext,
         private val commonBindingNames: BindingIdentifierSet,
         private val state: MutableJoinState,
     ) : InclusionFilterState {
@@ -220,7 +219,6 @@ sealed interface InclusionFilterState: MutableFilterState {
      *  state means no bindings are coming through
      */
     class Broad(
-        val context: QueryContext,
         private val state: MutableJoinState,
     ) : InclusionFilterState {
 
@@ -317,12 +315,10 @@ sealed interface InclusionFilterState: MutableFilterState {
             val externalBindings = parent.properties.maximum.intersect(state.properties.maximum)
             return if (externalBindings.isEmpty()) {
                 Broad(
-                    context = context,
                     state = state,
                 )
             } else {
                 Narrow(
-                    context = context,
                     commonBindingNames = externalBindings,
                     state = state
                 )
