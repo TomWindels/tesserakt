@@ -38,7 +38,7 @@ class ExclusionFilterState(
         )
 
         inner
-            .join(MappingAddition(Mapping.EMPTY, null))
+            .join(MappingAddition(Mapping.EMPTY))
             .filtered { !filter.join(it).iterator().hasNext() }
             .forEach { delta ->
                 check(delta is MappingAddition)
@@ -93,7 +93,7 @@ class ExclusionFilterState(
 //                                .filtered { it.compatibleWith(mapping.inner) }
 
 
-                            .mapped { MappingDeletion(it, null) }
+                            .mapped { MappingDeletion(it) }
                             // we need to make sure the up-to-date filter state can join with it before
                             //  we can actually mark it as blocked
                             .filtered { filter.join(it).iterator().hasNext() }
@@ -109,7 +109,7 @@ class ExclusionFilterState(
                         //  join with this newly made available solution, and check if our *updated* state still
                         //  lets it through
                         val new = inner
-                            .join(MappingAddition(mapping.inner, null))
+                            .join(MappingAddition(mapping.inner))
                             // we don't want to send the same exact value out again if we weren't blocking it
                             //  in the first place
                             .filtered { !buf.iter(it.value).join(it.value).iterator().hasNext() }

@@ -94,11 +94,11 @@ class OptionalState(
                 when {
                     count == 0 -> emptyList()
                     count > 0 -> {
-                        List(count) { MappingAddition(mapping.inner, delta) }
+                        List(count) { MappingAddition(mapping.inner) }
                     }
 
                     else -> {
-                        List(-count) { MappingDeletion(mapping.inner, delta) }
+                        List(-count) { MappingDeletion(mapping.inner) }
                     }
                 }
             }
@@ -132,7 +132,7 @@ class OptionalState(
 
     private fun createState(): MappingArray {
         val final = inner
-            .join(MappingAddition(Mapping.EMPTY, null))
+            .join(MappingAddition(Mapping.EMPTY))
             .transform { delta -> optional.join(delta).orElse(delta) }
         // these should all be mapping additions
         val result = MappingArray(indexedBindings, arrayHint)
@@ -163,10 +163,10 @@ private fun Stream<MappingDelta>.simplified(): CollectedStream<MappingDelta> {
             when {
                 count == 0 -> emptyList()
                 count > 0 -> {
-                    List(count) { MappingAddition(mapping.inner, null) }
+                    List(count) { MappingAddition(mapping.inner) }
                 }
                 else -> {
-                    List(-count) { MappingDeletion(mapping.inner, null) }
+                    List(-count) { MappingDeletion(mapping.inner) }
                 }
             }
         }

@@ -65,10 +65,10 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
                         when {
                             count == 0 -> emptyList()
                             count > 0 -> {
-                                List(count) { MappingAddition(mapping.inner, null) }
+                                List(count) { MappingAddition(mapping.inner) }
                             }
                             else -> {
-                                List(-count) { MappingDeletion(mapping.inner, null) }
+                                List(-count) { MappingDeletion(mapping.inner) }
                             }
                         }
                     }
@@ -132,12 +132,7 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
         //  combinations (i.e. triple patterns such as "?a <p>* <b>", yielding ?a = <b>)
         bgpState
             // getting all current results by joining with an empty new mapping
-            .join(
-                MappingAddition(
-                    value = Mapping.EMPTY,
-                    origin = null
-                )
-            )
+            .join(MappingAddition(Mapping.EMPTY))
             .let { streamPostProcessor.adapt(it) }
             .forEach(::onNewBodyResult)
     }

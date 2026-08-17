@@ -38,7 +38,7 @@ class InclusionFilterState(
         )
 
         inner
-            .join(MappingAddition(Mapping.EMPTY, null))
+            .join(MappingAddition(Mapping.EMPTY))
             .filtered { filter.join(it).iterator().hasNext() }
             .forEach { delta ->
                 check(delta is MappingAddition)
@@ -94,7 +94,7 @@ class InclusionFilterState(
 //                                .filtered { it.compatibleWith(mapping.inner) }
 
 
-                            .mapped { MappingDeletion(it, null) }
+                            .mapped { MappingDeletion(it) }
                             // we don't want to mark items as removed if they are still allowed by the filter
                             //  (the changes applied to the filter were not enough to fully block these results)
                             .filtered { !filter.join(it).iterator().hasNext() }
@@ -110,7 +110,7 @@ class InclusionFilterState(
                         //  join with this newly made available solution, and check if our *updated* state still
                         //  lets it through
                         val new = inner
-                            .join(MappingAddition(mapping.inner, null))
+                            .join(MappingAddition(mapping.inner))
                             // we don't want to send the same exact value out again if we weren't blocking it
                             //  in the first place
                             .filtered { !buf.iter(it.value).join(it.value).iterator().hasNext() }

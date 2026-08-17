@@ -57,7 +57,7 @@ sealed class RepeatingPathState {
                     terms.increment(TermIdentifier(quad.s))
                     terms.increment(TermIdentifier(quad.o))
 
-                    result.toStream().mapped { MappingAddition(it.inner, null) }
+                    result.toStream().mapped { MappingAddition(it.inner) }
                 }
                 is DataDeletion -> {
                     segments.removedPathsOnRemoving(quad.toSegment())
@@ -75,7 +75,7 @@ sealed class RepeatingPathState {
                     terms.decrement(TermIdentifier(quad.s))
                     terms.decrement(TermIdentifier(quad.o))
 
-                    result.toStream().mapped { MappingDeletion(it.inner, null) }
+                    result.toStream().mapped { MappingDeletion(it.inner) }
                 }
             }
         }

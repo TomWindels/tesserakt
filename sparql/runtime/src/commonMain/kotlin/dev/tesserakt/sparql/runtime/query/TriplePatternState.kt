@@ -145,12 +145,12 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             val delta = when (delta) {
                 is DataAddition -> {
                     data.add(change)
-                    MappingAddition(change, null)
+                    MappingAddition(change)
                 }
 
                 is DataDeletion -> {
                     data.remove(change)
-                    MappingDeletion(change, null)
+                    MappingDeletion(change)
                 }
             }
             return streamOf(delta)
@@ -347,11 +347,11 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             val stream = when (delta) {
                 is DataAddition -> {
                     changeCount += data.addAll(changes)
-                    changes.mapped { MappingAddition(it, null) }
+                    changes.mapped { MappingAddition(it) }
                 }
                 is DataDeletion -> {
                     changeCount += data.removeAll(changes)
-                    changes.mapped { MappingDeletion(it, null) }
+                    changes.mapped { MappingDeletion(it) }
                 }
             }.collect()
             return stream
