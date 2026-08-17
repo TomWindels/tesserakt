@@ -24,9 +24,18 @@ class InclusionFilterState(
         get() = buf.cardinality
 
     init {
-        // FIXME
-        inner.reindex(BindingIdentifierSet.EMPTY, MappingArrayHint.DEFAULT)
-        filter.reindex(BindingIdentifierSet.EMPTY, MappingArrayHint.DEFAULT)
+        inner.reindex(
+            bindings = inner.properties.guaranteed.intersect(filter.properties.maximum),
+            hint = MappingArrayHint(
+                partialHashAccess = false
+            )
+        )
+        filter.reindex(
+            bindings = filter.properties.guaranteed.intersect(inner.properties.guaranteed),
+            hint = MappingArrayHint(
+                partialHashAccess = false
+            )
+        )
 
         inner
             .join(MappingAddition(Mapping.EMPTY, null))
