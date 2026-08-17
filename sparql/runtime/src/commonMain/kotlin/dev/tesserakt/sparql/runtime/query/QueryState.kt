@@ -9,10 +9,7 @@ import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.context.encode
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
-import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
-import dev.tesserakt.sparql.runtime.stream.CollectedStream
-import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.types.*
+import dev.tesserakt.sparql.types.QueryStructure
 import kotlin.jvm.JvmInline
 
 sealed class QueryState<ResultType, Q: QueryStructure>(
@@ -33,54 +30,6 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
             inline fun Mapping.into(context: QueryContext) = BindingsImpl(context, this)
         }
 
-    }
-
-    /**
-     * Based on the query body definition, it's possible mandatory stream post-processing is required to prevent
-     *  results temporarily going negative during evaluation
-     */
-    sealed interface StreamPostProcessor {
-
-        fun adapt(stream: Stream<MappingDelta>): Stream<MappingDelta>
-
-        data object None: StreamPostProcessor {
-            override fun adapt(stream: Stream<MappingDelta>): Stream<MappingDelta> {
-                return stream
-            }
-        }
-
-        data object Reordered: StreamPostProcessor {
-            override fun adapt(stream: Stream<MappingDelta>): Stream<MappingDelta> {
-                val combined = stream
-                    // we need to make it hashable for `groupingBy` to work correctly
-                    .groupingBy { it.value.hashable() }
-                    .fold({ _, _ -> 0 }) { _, count, delta ->
-                        val d = if (delta is MappingAddition) 1 else -1
-                        count + d
-                    }
-                return CollectedStream(
-                    // TODO perf:
-                    //  simply return another Iterable, so we don't need to create a potentially big array at the end
-                    data = combined.asIterable().flatMap { (mapping, count) ->
-                        when {
-                            count == 0 -> emptyList()
-                            count > 0 -> {
-                                List(count) { MappingAddition(mapping.inner) }
-                            }
-                            else -> {
-                                List(-count) { MappingDeletion(mapping.inner) }
-                            }
-                        }
-                    }
-                )
-            }
-        }
-
-    }
-
-    private val streamPostProcessor = when {
-        ast.body.requiresReordering() -> StreamPostProcessor.Reordered
-        else -> StreamPostProcessor.None
     }
 
     protected val context = QueryContext(source, ast)
@@ -114,7 +63,6 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
     fun processAndGet(data: DataDelta): List<ResultChange<ResultType>> {
         return bgpState
             .process(data)
-            .let { streamPostProcessor.adapt(it) }
             .onEach(::onNewBodyResult)
             .map(::transformNewBodyResult)
     }
@@ -122,7 +70,6 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
     fun process(data: DataDelta) {
         bgpState
             .process(data)
-            .let { streamPostProcessor.adapt(it) }
             .onEach(::onNewBodyResult)
     }
 
@@ -133,7 +80,6 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
         bgpState
             // getting all current results by joining with an empty new mapping
             .join(MappingAddition(Mapping.EMPTY))
-            .let { streamPostProcessor.adapt(it) }
             .forEach(::onNewBodyResult)
     }
 
@@ -143,19 +89,6 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     fun stats(granularity: QueryStatistics.Granularity): Statistics {
         return bgpState.stats(context, granularity)
-    }
-
-    private fun GraphPattern.requiresReordering(): Boolean {
-        fun Union.requiresReordering(): Boolean {
-            return segments.any { segment ->
-                when (segment) {
-                    is GraphPatternSegment -> segment.pattern.requiresReordering()
-                    is SelectQuerySegment -> false
-                }
-            }
-        }
-        return filters.any { it !is Filter.Predicate } ||
-                statements.any { it is Optional || (it is Union && it.requiresReordering()) }
     }
 
 }
