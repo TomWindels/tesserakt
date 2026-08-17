@@ -61,15 +61,36 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
     }
 
     fun processAndGet(data: DataDelta): List<ResultChange<ResultType>> {
+        bgpState.enqueue(data)
         return bgpState
-            .process(data)
+            .process()
             .onEach(::onNewBodyResult)
             .map(::transformNewBodyResult)
     }
 
     fun process(data: DataDelta) {
+        bgpState.enqueue(data)
         bgpState
-            .process(data)
+            .process()
+            .onEach(::onNewBodyResult)
+    }
+
+    fun processAndGet(changes: Iterable<DataDelta>): List<ResultChange<ResultType>> {
+        changes.forEach { data ->
+            bgpState.enqueue(data)
+        }
+        return bgpState
+            .process()
+            .onEach(::onNewBodyResult)
+            .map(::transformNewBodyResult)
+    }
+
+    fun process(changes: Iterable<DataDelta>) {
+        changes.forEach { data ->
+            bgpState.enqueue(data)
+        }
+        bgpState
+            .process()
             .onEach(::onNewBodyResult)
     }
 

@@ -134,26 +134,39 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
          */
         open val data = ReindexableMappingArray()
 
+        // is consumed every `process` invocation
+        private var enqueued = mutableListOf<MappingDelta>()
+
         override val cardinality get() = data.cardinality
 
         override var changeCount = 0L
 
-        final override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-            val change = peek(delta.value)
-                ?: return emptyStream()
-            ++changeCount
-            val delta = when (delta) {
-                is DataAddition -> {
-                    data.add(change)
-                    MappingAddition(change)
-                }
+        override fun enqueue(delta: DataDelta) {
+            val change = peek(delta.value) ?: return
+            when (delta) {
+                is DataAddition -> enqueued.add(MappingAddition(change))
+                is DataDeletion -> enqueued.add(MappingDeletion(change))
+            }
+        }
 
-                is DataDeletion -> {
-                    data.remove(change)
-                    MappingDeletion(change)
+        final override fun process(): OptimisedStream<MappingDelta> {
+            if (enqueued.isEmpty()) {
+                return emptyStream()
+            }
+            changeCount += enqueued.size
+            enqueued.forEach { delta ->
+                when (delta) {
+                    is MappingAddition -> {
+                        data.add(delta.value)
+                    }
+                    is MappingDeletion -> {
+                        data.remove(delta.value)
+                    }
                 }
             }
-            return streamOf(delta)
+            val changeList = enqueued.toStream()
+            enqueued = mutableListOf()
+            return changeList
         }
 
         final override fun join(delta: MappingDelta): Stream<MappingDelta> {
@@ -262,10 +275,16 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
         override val cardinality: Cardinality
             get() = state.cardinality
 
-        override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-            val stream = state.process(delta).collect()
-            state.process(delta)
-            return stream
+        override fun enqueue(delta: DataDelta) {
+            TODO()
+        }
+
+        override fun process(): OptimisedStream<MappingDelta> {
+            TODO()
+        }
+
+        override fun prefill() {
+            TODO("Not yet implemented")
         }
 
         override fun join(delta: MappingDelta): Stream<MappingDelta> {
@@ -294,6 +313,9 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         override var changeCount: Long = 0L
             private set
+
+        // similar to `ArrayBackedPatternState`
+        private var enqueued = mutableListOf<MappingDelta>()
 
         override fun prefill() {
             // if all our inner predicates have direct lookup available, we can do multiple targeted scans
@@ -342,18 +364,39 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             }
         }
 
-        override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+        override fun enqueue(delta: DataDelta) {
             val changes = peek(delta.value)
-            val stream = when (delta) {
+            when (delta) {
                 is DataAddition -> {
-                    changeCount += data.addAll(changes)
-                    changes.mapped { MappingAddition(it) }
+                    changes.forEach {
+                        enqueued.add(MappingAddition(it))
+                    }
                 }
                 is DataDeletion -> {
-                    changeCount += data.removeAll(changes)
-                    changes.mapped { MappingDeletion(it) }
+                    changes.forEach {
+                        enqueued.add(MappingDeletion(it))
+                    }
                 }
-            }.collect()
+            }
+        }
+
+        override fun process(): OptimisedStream<MappingDelta> {
+            if (enqueued.isEmpty()) {
+                return emptyStream()
+            }
+            changeCount += enqueued.size
+            enqueued.forEach { delta ->
+                when (delta) {
+                    is MappingAddition -> {
+                        data.add(delta.value)
+                    }
+                    is MappingDeletion -> {
+                        data.remove(delta.value)
+                    }
+                }
+            }
+            val stream = enqueued.toStream()
+            enqueued = mutableListOf()
             return stream
         }
 
@@ -406,9 +449,12 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             states.forEach { it.prefill() }
         }
 
-        override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-            // whilst the max cardinality here is not correct in all cases, it covers most bases
-            return states.toStream().transform { it.process(delta) }.optimisedForSingleUse()
+        override fun enqueue(delta: DataDelta) {
+            states.forEach { it.enqueue(delta) }
+        }
+
+        override fun process(): OptimisedStream<MappingDelta> {
+            return states.toStream().transform { it.process() }.optimisedForSingleUse()
         }
 
         override fun join(delta: MappingDelta): Stream<MappingDelta> {
@@ -450,9 +496,13 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             changeCount = cardinality.value.toLong()
         }
 
-        override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+        override fun enqueue(delta: DataDelta) {
+            tree.enqueue(delta)
+        }
+
+        override fun process(): OptimisedStream<MappingDelta> {
             val prev = tree.cardinality.value.toLong()
-            val changes = tree.process(delta)
+            val changes = tree.process()
             // the change count for a sequence is a bit unique: as the main goal of the change count is to track
             //  how frequent it emits new mappings as a source, tracking the changes to individual segment elements
             //  is not very insightful (as it is possible these individual elements never make up a full sequence and
@@ -507,9 +557,13 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             changeCount = cardinality.value.toLong()
         }
 
-        override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+        override fun enqueue(delta: DataDelta) {
+            tree.enqueue(delta)
+        }
+
+        override fun process(): OptimisedStream<MappingDelta> {
             val prev = tree.cardinality.value.toLong()
-            val changes = tree.process(delta)
+            val changes = tree.process()
             // the change count for a sequence is a bit unique: as the main goal of the change count is to track
             //  how frequent it emits new mappings as a source, tracking the changes to individual segment elements
             //  is not very insightful (as it is possible these individual elements never make up a full sequence and
@@ -606,9 +660,13 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
             inner.prefill()
         }
 
-        override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+        override fun enqueue(delta: DataDelta) {
+            inner.enqueue(delta)
+        }
+
+        override fun process(): OptimisedStream<MappingDelta> {
             return inner
-                .process(delta)
+                .process()
                 .filtered { mapping -> expr.test(mapping.value) }
                 .optimisedForSingleUse()
         }
@@ -656,17 +714,7 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
      * Uses the associated [QueryContext] instance to 'prefill' this state with data already present in the backing
      *  structure, if any
     */
-    open fun prefill() {
-        context.iter(
-            s = this.s.termId ?: Int.MIN_VALUE,
-            p = this.p.termId ?: Int.MIN_VALUE,
-            o = this.o.termId ?: Int.MIN_VALUE,
-        ).forEach { quad ->
-            val addition = DataAddition(quad)
-            // this will internally `peek()` the change, ensuring it matches the exact predicate properly
-            process(addition)
-        }
-    }
+    abstract fun prefill()
 
     /**
      * Yields a new mapping on (subject-based) match:

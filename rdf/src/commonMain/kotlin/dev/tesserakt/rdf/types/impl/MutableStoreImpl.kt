@@ -88,7 +88,8 @@ internal class MutableStoreImpl(quads: Collection<Quad> = emptyList()): Abstract
 
     override fun clear() {
         quads.clear()
-        context.clear()
+        // we keep the context alive, as this implementation is reused in the observable store implementation,
+        //  which still requires it to emit binding changes in the deferred evaluation variant
     }
 
     override fun removeAll(elements: Collection<Quad>): Boolean {

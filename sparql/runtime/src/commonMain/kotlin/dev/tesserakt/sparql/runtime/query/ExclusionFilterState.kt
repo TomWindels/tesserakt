@@ -57,9 +57,14 @@ class ExclusionFilterState(
         buf.reindex(bindings, hint)
     }
 
-    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+    override fun enqueue(delta: DataDelta) {
+        inner.enqueue(delta)
+        filter.enqueue(delta)
+    }
+
+    override fun process(): OptimisedStream<MappingDelta> {
         val filterChanges = filter
-            .process(delta)
+            .process()
             .groupingBy { it.value.retain(inner.properties.guaranteed).hashable() }
             .fold(0) { acc, delta ->
                 val d = when (delta) {
@@ -70,7 +75,7 @@ class ExclusionFilterState(
             }
         if (filterChanges.isEmpty()) {
             val changes = inner
-                .process(delta)
+                .process()
                 // eager as we would collect it immediately otherwise anyway
                 .filter { delta -> !filter.join(delta).iterator().hasNext() }
             changes.forEach { delta ->
@@ -89,10 +94,6 @@ class ExclusionFilterState(
                         //  prior state
                         val removed = buf
                             .iter(mapping.inner)
-
-//                                .filtered { it.compatibleWith(mapping.inner) }
-
-
                             .mapped { MappingDeletion(it) }
                             // we need to make sure the up-to-date filter state can join with it before
                             //  we can actually mark it as blocked
@@ -127,7 +128,7 @@ class ExclusionFilterState(
             }
             // we also apply the newest changes observed in our inner state with this updated filter block
             val changes = inner
-                .process(delta)
+                .process()
                 // eager as we would collect it immediately otherwise anyway
                 .filter { delta -> !filter.join(delta).iterator().hasNext() }
             changes.forEach { delta ->

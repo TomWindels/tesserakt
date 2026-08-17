@@ -63,10 +63,15 @@ class OptionalState(
         state = newArray
     }
 
-    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-        if (!optional.process(delta).iterator().hasNext()) {
+    override fun enqueue(delta: DataDelta) {
+        inner.enqueue(delta)
+        optional.enqueue(delta)
+    }
+
+    override fun process(): OptimisedStream<MappingDelta> {
+        if (!optional.process().iterator().hasNext()) {
             val total = inner
-                .process(delta)
+                .process()
                 .transform { delta -> optional.join(delta).orElse(delta) }
                 .filtered { delta -> filters.all { it.test(delta.value) } }
                 .collect()
@@ -80,7 +85,7 @@ class OptionalState(
         }
         // we update the inner state, but discard what has actually changed as the relationship between these two are
         //  complex; we completely re-evaluate it instead
-        inner.process(delta)
+        inner.process()
         // we have to recalculate the entire state from nothing, combined with the impact of the peeked change,
         //  and have that ripple through all our optionals
         val newState = createState()

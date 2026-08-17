@@ -30,8 +30,12 @@ value class BasicGraphPatternState private constructor(
     override val cardinality: Cardinality
         get() = body.cardinality
 
-    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-        return body.process(delta)
+    override fun enqueue(delta: DataDelta) {
+        body.enqueue(delta)
+    }
+
+    override fun process(): OptimisedStream<MappingDelta> {
+        return body.process()
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {

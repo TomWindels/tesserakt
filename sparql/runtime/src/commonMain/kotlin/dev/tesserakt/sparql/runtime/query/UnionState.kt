@@ -7,7 +7,10 @@ import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
-import dev.tesserakt.sparql.runtime.stream.*
+import dev.tesserakt.sparql.runtime.stream.OptimisedStream
+import dev.tesserakt.sparql.runtime.stream.Stream
+import dev.tesserakt.sparql.runtime.stream.toStream
+import dev.tesserakt.sparql.runtime.stream.transform
 import dev.tesserakt.sparql.types.GraphPatternSegment
 import dev.tesserakt.sparql.types.SelectQuerySegment
 import dev.tesserakt.sparql.types.Union
@@ -42,8 +45,12 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
             override val cardinality: Cardinality
                 get() = state.cardinality
 
-            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-                return state.process(delta)
+            override fun enqueue(delta: DataDelta) {
+                state.enqueue(delta)
+            }
+
+            override fun process(): OptimisedStream<MappingDelta> {
+                return state.process()
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
@@ -67,7 +74,11 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
             override val cardinality: Cardinality
                 get() = TODO("Not yet implemented")
 
-            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+            override fun enqueue(delta: DataDelta) {
+                TODO("Not yet implemented")
+            }
+
+            override fun process(): OptimisedStream<MappingDelta> {
                 TODO("Not yet implemented")
             }
 
@@ -89,7 +100,9 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
 
         val cardinality: Cardinality
 
-        fun process(delta: DataDelta): OptimisedStream<MappingDelta>
+        fun enqueue(delta: DataDelta)
+
+        fun process(): OptimisedStream<MappingDelta>
 
         fun join(delta: MappingDelta): Stream<MappingDelta>
 
@@ -130,9 +143,12 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
     override val cardinality: Cardinality
         get() = Cardinality(state.sumOf { it.cardinality.toDouble() })
 
-    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-        // whilst the max cardinality here is not correct in all cases, it covers most bases
-        return state.toStream().transform { it.process(delta) }.optimisedForSingleUse()
+    override fun enqueue(delta: DataDelta) {
+        state.forEach { it.enqueue(delta) }
+    }
+
+    override fun process(): OptimisedStream<MappingDelta> {
+        return state.toStream().transform { it.process() }
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {

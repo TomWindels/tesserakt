@@ -26,8 +26,11 @@ data object EmptyJoinTree: JoinTree {
     override val cardinality: Cardinality
         get() = OneCardinality // always matches
 
-    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-        // nothing to do
+    override fun enqueue(delta: DataDelta) {
+        // no-op
+    }
+
+    override fun process(): OptimisedStream<MappingDelta> {
         return emptyStream()
     }
 
@@ -36,7 +39,7 @@ data object EmptyJoinTree: JoinTree {
     }
 
     override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
-        // nothing to do
+        // no-op
     }
 
     override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {

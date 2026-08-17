@@ -22,10 +22,11 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
 
         val cardinality: Cardinality
 
-        /**
-         * Processes the [delta], updating the node accordingly, returning its changes
-         */
-        fun process(delta: DataDelta): OptimisedStream<MappingDelta>
+        // identical semantics to `MutableJoinState`
+        fun enqueue(delta: DataDelta)
+
+        // identical semantics to `MutableJoinState`
+        fun process(): OptimisedStream<MappingDelta>
 
         /**
          * Returns the result of [join]ing the [delta] with its own internal state
@@ -51,8 +52,12 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             override val cardinality: Cardinality
                 get() = state.cardinality
 
-            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-                return state.process(delta)
+            override fun enqueue(delta: DataDelta) {
+                state.enqueue(delta)
+            }
+
+            override fun process(): OptimisedStream<MappingDelta> {
+                return state.process()
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
@@ -99,10 +104,15 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 }
             }
 
-            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+            override fun enqueue(delta: DataDelta) {
+                left.enqueue(delta)
+                right.enqueue(delta)
+            }
+
+            override fun process(): OptimisedStream<MappingDelta> {
                 val changes = right
-                    .join(left.process(delta))
-                    .chain(left.join(right.process(delta)))
+                    .join(left.process())
+                    .chain(left.join(right.process()))
                     .filtered { change -> filters.all { it.test(change.value) } }
                     .collect()
                 changes.forEach { change ->
@@ -160,10 +170,15 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             override val cardinality: Cardinality
                 get() = left.cardinality * right.cardinality
 
-            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+            override fun enqueue(delta: DataDelta) {
+                left.enqueue(delta)
+                right.enqueue(delta)
+            }
+
+            override fun process(): OptimisedStream<MappingDelta> {
                 val changes = right
-                    .join(left.process(delta))
-                    .chain(left.join(right.process(delta)))
+                    .join(left.process())
+                    .chain(left.join(right.process()))
                     .optimisedForSingleUse()
                 return changes
             }
@@ -212,8 +227,12 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
     override val cardinality: Cardinality
         get() = root.cardinality
 
-    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
-        return root.process(delta)
+    override fun enqueue(delta: DataDelta) {
+        root.enqueue(delta)
+    }
+
+    override fun process(): OptimisedStream<MappingDelta> {
+        return root.process()
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {

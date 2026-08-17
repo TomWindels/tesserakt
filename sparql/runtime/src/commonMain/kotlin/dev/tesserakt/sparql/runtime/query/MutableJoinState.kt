@@ -18,18 +18,18 @@ import dev.tesserakt.sparql.util.Cardinality
 interface MutableJoinState {
 
     /**
-     * Information about a [MutableJoinState]'s bindings that are bound for [MappingDelta]s emitted whilst [peek]ing.
+     * Information about a [MutableJoinState]'s bindings that are bound for [MappingDelta]s emitted whilst [process]ing.
      *  For most query structures, the [guaranteed] set is identical to the [maximum] set. Notable exceptions are:
      *  * `OPTIONAL` blocks, as these only emit additional values if matched, or the original value if unmatched;
      *  * `UNION`s, as these emit solutions for all segments, which can refer to different bindings
      */
     data class Properties(
         /**
-         * Set of bindings *guaranteed* to be bound for any given [MappingDelta] emitted by [peek]
+         * Set of bindings *guaranteed* to be bound for any given [MappingDelta] emitted by [process]
          */
         val guaranteed: BindingIdentifierSet,
         /**
-         * Set of bindings *possibly* bound for any given [MappingDelta] emitted by [peek]
+         * Set of bindings *possibly* bound for any given [MappingDelta] emitted by [process]
          */
         val maximum: BindingIdentifierSet,
     ) {
@@ -64,10 +64,17 @@ interface MutableJoinState {
     fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint)
 
     /**
-     * Updates the state according to the [delta] change, returning the set of output changes that happened because of
-     *  it.
+     * Enqueues a change to the underlying data. Output changes are only made visible after calling [process].
      */
-    fun process(delta: DataDelta): OptimisedStream<MappingDelta>
+    fun enqueue(delta: DataDelta)
+
+    /**
+     * Updates the state according to the [enqueue]d changes, returning the set of output changes that happened because
+     *  of them.
+     *
+     * Note that empty results are emitted if no changes were enqueued compared to the last [process] call.
+     */
+    fun process(): OptimisedStream<MappingDelta>
 
     fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
