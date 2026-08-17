@@ -191,31 +191,6 @@ value class BasicGraphBodyState private constructor(
                 }
             }
             return result
-
-//
-//            val result = mutableListOf<GraphPattern.Statement>()
-//            var i = 0
-//            var encountered = BindingIdentifierSet.EMPTY
-//            while (i < size) {
-//                when (val statement = this[i]) {
-//                    is Optional -> {
-//                        // we have to see what bindings it 'introduces'
-//                        // we only care for named bindings are those are the only ones that can be
-//                        //  referenced in other statements
-//                        val total = BindingIdentifierSet(context, statement.getAllNamedBindings().map { it.name })
-//                        val missing = total - encountered
-//                        // if we aren't missing any, we don't even have to check what statement to put it b
-//                    }
-//                    is TriplePattern,
-//                    is Union -> {
-//                        result.add(statement)
-//                        // we can mark these bindings as 'encountered' now
-//                        encountered += BindingIdentifierSet(context, statement.getAllNamedBindings().map { it.name })
-//                        ++i
-//                    }
-//                }
-//            }
-//            return result
         }
     }
 

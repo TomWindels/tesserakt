@@ -12,7 +12,6 @@ import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.runtime.stream.CollectedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.runtime.stream.toStream
 import dev.tesserakt.sparql.types.*
 import kotlin.jvm.JvmInline
 
@@ -114,8 +113,7 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     fun processAndGet(data: DataDelta): List<ResultChange<ResultType>> {
         return bgpState
-            .insert(data)
-            .toStream()
+            .process(data)
             .let { streamPostProcessor.adapt(it) }
             .onEach(::onNewBodyResult)
             .map(::transformNewBodyResult)
@@ -123,8 +121,7 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     fun process(data: DataDelta) {
         bgpState
-            .insert(data)
-            .toStream()
+            .process(data)
             .let { streamPostProcessor.adapt(it) }
             .onEach(::onNewBodyResult)
     }

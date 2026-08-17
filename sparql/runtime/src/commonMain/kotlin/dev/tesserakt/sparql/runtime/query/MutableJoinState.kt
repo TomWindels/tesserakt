@@ -9,7 +9,6 @@ import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.runtime.stream.collect
 import dev.tesserakt.sparql.util.Cardinality
 
 /**
@@ -65,23 +64,11 @@ interface MutableJoinState {
     fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint)
 
     /**
-     * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in this state, without
-     *  actually modifying it (see [process] for mutating the state)
+     * Updates the state according to the [delta] change, returning the set of output changes that happened because of
+     *  it.
      */
-    fun peek(delta: DataDelta): OptimisedStream<MappingDelta>
-
-    /**
-     * Updates the state according to the [delta] change.
-     */
-    fun process(delta: DataDelta)
+    fun process(delta: DataDelta): OptimisedStream<MappingDelta>
 
     fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
-
-    fun insert(delta: DataDelta): List<MappingDelta> {
-        // it's important we collect the results before we process the delta
-        val total = peek(delta).collect()
-        process(delta)
-        return total
-    }
 
 }

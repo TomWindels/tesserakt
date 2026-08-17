@@ -17,15 +17,10 @@ interface JoinTree : MutableJoinState {
     override val properties: MutableJoinState.Properties
 
     /**
-     * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in child states part of the tree, without
-     *  actually modifying the tree
+     * Updates the state according to the [delta] change, returning the set of output changes that happened because of
+     *  it.
      */
-    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta>
-
-    /**
-     * Processes the [delta], updating the tree accordingly
-     */
-    override fun process(delta: DataDelta)
+    override fun process(delta: DataDelta): OptimisedStream<MappingDelta>
 
     /**
      * Returns the result of [join]ing the [delta] with its own internal state

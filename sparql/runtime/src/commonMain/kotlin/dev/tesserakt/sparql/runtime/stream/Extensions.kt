@@ -180,12 +180,14 @@ inline fun <I : Any, O : Any> Stream<I>.transform(
     /** The largest cardinality value possible for streams obtained through [transform] **/
     maxCardinality: Cardinality,
     noinline transform: (I) -> Stream<O>,
-): Stream<O> {
+): OptimisedStream<O> {
     return if (hasZeroCardinality()) emptyStream() else StreamTransform(
         source = this,
         transform = transform,
         cardinality = cardinality * maxCardinality
     )
+        // FIXME
+        .collect()
 }
 
 /**
@@ -196,8 +198,9 @@ inline fun <I : Any, O : Any> Stream<I>.transform(
     /** The largest cardinality value possible for streams obtained through [transform] **/
     maxCardinality: Number,
     noinline transform: (I) -> Stream<O>,
-): Stream<O> {
-    return transform(maxCardinality = Cardinality(maxCardinality), transform)
+): OptimisedStream<O> {
+    // FIXME
+    return transform(maxCardinality = Cardinality(maxCardinality), transform).collect()
 }
 
 /**

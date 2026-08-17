@@ -42,11 +42,7 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
             override val cardinality: Cardinality
                 get() = state.cardinality
 
-            override fun peek(delta: DataDelta): Stream<MappingDelta> {
-                return state.peek(delta)
-            }
-
-            override fun process(delta: DataDelta) {
+            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
                 return state.process(delta)
             }
 
@@ -71,11 +67,7 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
             override val cardinality: Cardinality
                 get() = TODO("Not yet implemented")
 
-            override fun peek(delta: DataDelta): Stream<MappingDelta> {
-                TODO("Not yet implemented")
-            }
-
-            override fun process(delta: DataDelta) {
+            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
                 TODO("Not yet implemented")
             }
 
@@ -97,9 +89,7 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
 
         val cardinality: Cardinality
 
-        fun peek(delta: DataDelta): Stream<MappingDelta>
-
-        fun process(delta: DataDelta)
+        fun process(delta: DataDelta): OptimisedStream<MappingDelta>
 
         fun join(delta: MappingDelta): Stream<MappingDelta>
 
@@ -140,13 +130,9 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
     override val cardinality: Cardinality
         get() = Cardinality(state.sumOf { it.cardinality.toDouble() })
 
-    override fun process(delta: DataDelta) {
-        state.forEach { it.process(delta) }
-    }
-
-    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
+    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
         // whilst the max cardinality here is not correct in all cases, it covers most bases
-        return state.toStream().transform(maxCardinality = 1) { it.peek(delta) }.optimisedForReuse()
+        return state.toStream().transform(maxCardinality = 1) { it.process(delta) }.optimisedForSingleUse()
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {

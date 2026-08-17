@@ -8,7 +8,6 @@ import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
-import dev.tesserakt.sparql.runtime.query.join
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.util.Cardinality
 import kotlin.jvm.JvmInline
@@ -24,15 +23,9 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
         val cardinality: Cardinality
 
         /**
-         * Returns the [MappingDelta] changes that occur when [process]ing the [delta] in this node, without
-         *  actually modifying the node
+         * Processes the [delta], updating the node accordingly, returning its changes
          */
-        fun peek(delta: DataDelta): OptimisedStream<MappingDelta>
-
-        /**
-         * Processes the [delta], updating the node accordingly
-         */
-        fun process(delta: DataDelta)
+        fun process(delta: DataDelta): OptimisedStream<MappingDelta>
 
         /**
          * Returns the result of [join]ing the [delta] with its own internal state
@@ -58,12 +51,8 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             override val cardinality: Cardinality
                 get() = state.cardinality
 
-            override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-                return state.peek(delta)
-            }
-
-            override fun process(delta: DataDelta) {
-                state.process(delta)
+            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+                return state.process(delta)
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
@@ -93,7 +82,6 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             )
 
             internal val buf = ReindexableMappingArray(indexes)
-            private val cache = StreamCache<DataDelta, MappingDelta>()
 
             override val cardinality: Cardinality
                 get() = buf.cardinality
@@ -111,44 +99,25 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
                 }
             }
 
-            override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-                return cache.getOrCache(delta) {
-                    val one = left.peek(delta)
-                    val two = right.peek(delta)
-                    right
-                        .join(one)
-                        .chain(left.join(two))
-                        .chain(join(one, two))
-                        .filtered { filters.all { expression -> expression.test(it.value) } }
-                }
-            }
-
-            override fun process(delta: DataDelta) {
-                peek(delta).forEach { diff ->
-                    when (diff) {
-                        is MappingAddition -> buf.add(diff.value)
-                        is MappingDeletion -> buf.remove(diff.value)
+            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+                val changes = right
+                    .join(left.process(delta))
+                    .chain(left.join(right.process(delta)))
+                    .filtered { change -> filters.all { it.test(change.value) } }
+                    .collect()
+                changes.forEach { change ->
+                    when (change) {
+                        is MappingAddition -> buf.add(change.value)
+                        is MappingDeletion -> buf.remove(change.value)
                     }
                 }
-                // with left and right changing, `peek()` can no longer be cached
-                cache.clear()
-                left.process(delta)
-                right.process(delta)
+                return changes
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
                 // we don't need to check our filters here: the inner mapping array already filtered out mappings
-                //  that do not satisfy our filters (see `peek()`)
-                return when (val origin = delta.origin) {
-                    is DataAddition, null -> delta.mapToStream { buf.join(it) }
-                    is DataDeletion -> {
-                        delta.mapToStream {
-                            buf.iter(it)
-                                .remove(peek(origin).mapped { it.value })
-                                .join(it)
-                        }
-                    }
-                }
+                //  that do not satisfy our filters (see `process()`)
+                return delta.mapToStream { buf.join(it) }
             }
 
             override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
@@ -191,21 +160,12 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             override val cardinality: Cardinality
                 get() = left.cardinality * right.cardinality
 
-            override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-                // peeking in every substate, which will be joined multiple times, so has to be optimised for such
-                //  a use
-                val one = left.peek(delta).optimisedForReuse()
-                val two = right.peek(delta).optimisedForReuse()
-                return right
-                    .join(one)
-                    .chain(left.join(two))
-                    .chain(join(one, two))
+            override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+                val changes = right
+                    .join(left.process(delta))
+                    .chain(left.join(right.process(delta)))
                     .optimisedForSingleUse()
-            }
-
-            override fun process(delta: DataDelta) {
-                left.process(delta)
-                right.process(delta)
+                return changes
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
@@ -252,12 +212,8 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
     override val cardinality: Cardinality
         get() = root.cardinality
 
-    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-        return root.peek(delta)
-    }
-
-    override fun process(delta: DataDelta) {
-        root.process(delta)
+    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
+        return root.process(delta)
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {

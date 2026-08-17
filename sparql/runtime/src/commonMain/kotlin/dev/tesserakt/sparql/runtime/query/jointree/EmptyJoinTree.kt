@@ -26,12 +26,9 @@ data object EmptyJoinTree: JoinTree {
     override val cardinality: Cardinality
         get() = OneCardinality // always matches
 
-    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-        return emptyStream()
-    }
-
-    override fun process(delta: DataDelta) {
+    override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
         // nothing to do
+        return emptyStream()
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {
