@@ -10,7 +10,6 @@ import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
 import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.util.Cardinality
 import dev.tesserakt.sparql.util.Counter
-import dev.tesserakt.sparql.util.OneCardinality
 
 class OptionalState(
     private val inner: MutableJoinState,
@@ -68,7 +67,7 @@ class OptionalState(
         if (!optional.process(delta).iterator().hasNext()) {
             val total = inner
                 .process(delta)
-                .transform(OneCardinality) { delta -> optional.join(delta).orElse(delta) }
+                .transform { delta -> optional.join(delta).orElse(delta) }
                 .filtered { delta -> filters.all { it.test(delta.value) } }
                 .collect()
             total.forEach { delta ->
@@ -134,7 +133,7 @@ class OptionalState(
     private fun createState(): MappingArray {
         val final = inner
             .join(MappingAddition(Mapping.EMPTY, null))
-            .transform(OneCardinality) { delta -> optional.join(delta).orElse(delta) }
+            .transform { delta -> optional.join(delta).orElse(delta) }
         // these should all be mapping additions
         val result = MappingArray(indexedBindings, arrayHint)
         final.forEach { delta ->

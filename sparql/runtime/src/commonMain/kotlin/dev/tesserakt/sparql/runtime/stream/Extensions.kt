@@ -118,34 +118,6 @@ fun <E : Any> Iterable<Stream<E>>.merge(): Stream<E> {
     return result
 }
 
-inline fun <I : Any, O : Any> Stream<I>.merge(transform: (I) -> Stream<O>): Stream<O> {
-    val iter = iterator()
-    if (!iter.hasNext()) {
-        return emptyStream()
-    }
-    var result = transform(iter.next())
-    while (iter.hasNext()) {
-        result = result.chain(transform(iter.next()))
-    }
-    return result
-}
-
-inline fun <I : Any, O : Any> Stream<I>.folded(start: Stream<O>, transform: (acc: Stream<O>, element: I) -> Stream<O>): Stream<O> {
-    val iter = iterator()
-    if (!iter.hasNext()) {
-        return start
-    }
-    var result = transform(start, iter.next())
-    while (iter.hasNext()) {
-        result = transform(result, iter.next())
-    }
-    return result
-}
-
-inline fun <I : Any> Stream<I>.zippedWithIndex(): Stream<Pair<Int, I>> {
-    return StreamWithIndex(parent = this)
-}
-
 inline fun <I : Any, O : Any> Iterable<Stream<I>>.transform(transform: (Stream<I>) -> Stream<O>): Stream<O> {
     val iter = iterator()
     if (!iter.hasNext()) {
@@ -173,62 +145,23 @@ inline fun <I : Any, O : Any> Iterable<Stream<I>>.transform(transform: (Int, Str
 }
 
 /**
- * Transforms this [Stream] using the provided [transform]. The [maxCardinality] value represents the max
- *  expected cardinality of the [Stream] returned by the [transform] invocation.
+ * Transforms this [Stream] using the provided [transform]. It evaluates the transform function eagerly to prevent
+ *  mutation of the captured variables from causing inconsistent results.
  */
 inline fun <I : Any, O : Any> Stream<I>.transform(
-    /** The largest cardinality value possible for streams obtained through [transform] **/
-    maxCardinality: Cardinality,
-    noinline transform: (I) -> Stream<O>,
+    transform: (I) -> Stream<O>,
 ): OptimisedStream<O> {
-    return if (hasZeroCardinality()) emptyStream() else StreamTransform(
-        source = this,
-        transform = transform,
-        cardinality = cardinality * maxCardinality
-    )
-        // FIXME
-        .collect()
-}
-
-/**
- * Transforms this [Stream] using the provided [transform]. The [maxCardinality] value represents the max
- *  expected cardinality of the [Stream] returned by the [transform] invocation.
- */
-inline fun <I : Any, O : Any> Stream<I>.transform(
-    /** The largest cardinality value possible for streams obtained through [transform] **/
-    maxCardinality: Number,
-    noinline transform: (I) -> Stream<O>,
-): OptimisedStream<O> {
-    // FIXME
-    return transform(maxCardinality = Cardinality(maxCardinality), transform).collect()
-}
-
-/**
- * Transforms this [OptimisedStream] using the provided [transform]. The [maxCardinality] value represents the max
- *  expected cardinality of the non-null [Stream]s returned by the [transform] invocation.
- */
-inline fun <I : Any, O : Any> OptimisedStream<I>.transformNonNull(
-    /** The largest cardinality value possible for streams obtained through [transform] **/
-    maxCardinality: Cardinality,
-    noinline transform: (I) -> Stream<O>?
-): Stream<O> {
-    return if (hasZeroCardinality()) emptyStream() else StreamTransformNullable(
-        source = this,
-        transform = transform,
-        cardinality = cardinality * maxCardinality
-    )
-}
-
-/**
- * Transforms this [OptimisedStream] using the provided [transform]. The [maxCardinality] value represents the max
- *  expected cardinality of the non-null [Stream]s returned by the [transform] invocation.
- */
-inline fun <I : Any, O : Any> OptimisedStream<I>.transformNonNull(
-    /** The largest cardinality value possible for streams obtained through [transform] **/
-    maxCardinality: Number,
-    noinline transform: (I) -> Stream<O>?
-): Stream<O> {
-    return transformNonNull(maxCardinality = Cardinality(maxCardinality), transform = transform)
+    return if (hasZeroCardinality()) {
+        emptyStream()
+    } else {
+        // instead of collecting the complete result as one big array, we keep the sub-streams collected where
+        //  necessary
+        OptimisedStreamView(
+            input = StreamChain(
+                sources = mapTo(mutableListOf()) { transform(it).collect() }
+            )
+        )
+    }
 }
 
 inline fun <I : Any, O : Any> Stream<I>.mapped(noinline transform: (I) -> O): Stream<O> {
@@ -252,10 +185,6 @@ inline fun <I : Any, O : Any> Stream<I>.mappedNonNull(noinline transform: (I) ->
         source = this,
         transform = transform
     )
-}
-
-inline fun <reified O : Any> Stream<*>.filteredIsInstance(): Stream<O> {
-    return mappedNonNull { it as? O }
 }
 
 inline fun <E : Any> Stream<E>.filtered(noinline predicate: (E) -> Boolean): Stream<E> {
@@ -306,19 +235,10 @@ inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Cardinality = 
         else -> SingleUseStreamView(this, cardinality)
     }
 
-inline fun <E : Any> Stream<E>.orElse(other: Stream<E>): Stream<E> = when {
-    this.hasZeroCardinality() -> other
-    other.hasZeroCardinality() -> this
-    else -> StreamChainEmpty(this, other)
-}
-
 inline fun <E : Any> Stream<E>.orElse(element: E): Stream<E> = when {
     this.hasZeroCardinality() -> streamOf(element)
     else -> StreamChainEmpty(this, streamOf(element))
 }
-
-inline fun <E : Any> Stream<E>.optimisedForSingleUse(cardinality: Number): OptimisedStream<E> =
-    optimisedForSingleUse(cardinality = Cardinality(cardinality))
 
 inline fun <E: Any> Iterable<Iterable<E>>.flatMapStream(cardinality: Cardinality): OptimisedStream<E> {
     if (cardinality == ZeroCardinality) {
@@ -332,7 +252,7 @@ inline fun <E: Any> Iterable<Iterable<E>>.flatMapStream(cardinality: Cardinality
 fun MappingArray.join(other: Mapping): Stream<Mapping> = iter(other).join(other)
 
 fun MappingArray.join(other: OptimisedStream<Mapping>): Stream<Mapping> =
-    other.transform(maxCardinality = other.cardinality) { mapping -> join(mapping) }
+    other.transform { mapping -> join(mapping) }
 
 fun MutableJoinState.join(other: OptimisedStream<MappingDelta>): Stream<MappingDelta> =
-    other.transform(maxCardinality = other.cardinality) { this.join(it) }
+    other.transform { this.join(it) }

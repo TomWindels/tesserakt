@@ -19,7 +19,7 @@ class StreamTest {
         }
         val a = streamOf(0)
         val b = streamOf(1)
-        val transform = a.product(b).transform(maxCardinality = 1) { (a, b) -> streamOf(myTransform(a, b)) }
+        val transform = a.product(b).transform { (a, b) -> streamOf(myTransform(a, b)) }
         val mapped = a.product(b).mapped { (a, b) -> myTransform(a, b) }
         assertContentEquals(transform, listOf(myTransform(0, 1)))
         assertContentEquals(transform, mapped)

@@ -36,7 +36,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
          * Returns the result of [join]ing the [deltas] with its own internal state
          */
         fun join(deltas: OptimisedStream<MappingDelta>): Stream<MappingDelta> =
-            deltas.transform(maxCardinality = this.cardinality) { delta -> join(delta) }
+            deltas.transform { delta -> join(delta) }
 
         fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint)
 

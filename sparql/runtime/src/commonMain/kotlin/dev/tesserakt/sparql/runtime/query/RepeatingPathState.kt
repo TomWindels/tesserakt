@@ -85,7 +85,7 @@ sealed class RepeatingPathState {
         }
 
         override fun join(mappings: OptimisedStream<Mapping>, ignore: Iterable<Mapping>): Stream<Mapping> {
-            return mappings.transform(maxCardinality = arr.cardinality) { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
+            return mappings.transform { mapping -> arr.iter(mapping).remove(ignore).join(mapping) }
         }
 
         override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {

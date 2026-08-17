@@ -408,12 +408,12 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
 
         override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
             // whilst the max cardinality here is not correct in all cases, it covers most bases
-            return states.toStream().transform(maxCardinality = 1) { it.process(delta) }.optimisedForSingleUse()
+            return states.toStream().transform { it.process(delta) }.optimisedForSingleUse()
         }
 
         override fun join(delta: MappingDelta): Stream<MappingDelta> {
             // stream creation here is cheap, already a list
-            return states.toStream().transform(maxCardinality = states.maxOf { it.cardinality }) { it.join(delta) }
+            return states.toStream().transform { it.join(delta) }
         }
 
         override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {

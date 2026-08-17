@@ -132,11 +132,11 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
 
     override fun process(delta: DataDelta): OptimisedStream<MappingDelta> {
         // whilst the max cardinality here is not correct in all cases, it covers most bases
-        return state.toStream().transform(maxCardinality = 1) { it.process(delta) }.optimisedForSingleUse()
+        return state.toStream().transform { it.process(delta) }.optimisedForSingleUse()
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {
-        return state.toStream().transform(maxCardinality = state.maxOf { it.cardinality }) { s -> s.join(delta) }
+        return state.toStream().transform { s -> s.join(delta) }
     }
 
     override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
