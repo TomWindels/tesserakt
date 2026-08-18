@@ -74,7 +74,7 @@ class RandomUpdateTest(
             strictOrdering = hasStrictOrdering,
             statistics = ongoing.stats()
         )
-        check(success) { "Initial state failed!" }
+        check(success) { "Initial state failed\n${builder.build().outputs[0]}" }
         repeat(iterations) { i ->
             // and processing it
             val current: List<Bindings>
