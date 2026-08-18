@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
 
 // also implements Collection<E> so size-specific choices can be made
 @JvmInline
-value class SingleStream<E: Any>(private val element: E): Stream<E>, OptimisedStream<E>, Collection<E> {
+value class SingleStream<E: Any>(val element: E): Stream<E>, OptimisedStream<E>, Collection<E> {
 
     override val cardinality: Cardinality
         get() = OneCardinality

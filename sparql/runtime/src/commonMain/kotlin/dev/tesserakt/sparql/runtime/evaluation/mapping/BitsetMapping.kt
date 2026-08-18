@@ -9,11 +9,15 @@ import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.util.bitIterator
 import dev.tesserakt.util.cloneTo
 
-class BitsetMapping private constructor(
-    // self-managed bitmask
-    private val bindings: Int,
-    // all term values associated with the various bindings above
-    private val terms: IntArray,
+class BitsetMapping(
+    /**
+     * The bitmask, with `1`s indicating a binding ID being set in this mapping instance
+     */
+    val bindings: Int,
+    /**
+     * All term values associated with the various bindings above.
+     */
+    val terms: IntArray,
 ) : Mapping {
 
     constructor(context: QueryContext, source: Map<String, Quad.Element>): this(
@@ -30,8 +34,6 @@ class BitsetMapping private constructor(
         bindings = source.fold(initial = 0) { acc, entry -> acc or (1 shl entry.first.id) },
         terms = source.sortedBy { it.first.id }.map { it.second.id }.toIntArray(),
     )
-
-    private val hashCode = bindings + terms.contentHashCode()
 
     override val count: Int
         get() = bindings.countOneBits()
@@ -275,7 +277,7 @@ class BitsetMapping private constructor(
     }
 
     override fun hashCode(): Int {
-        return hashCode
+        return bindings + terms.contentHashCode()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -283,9 +285,6 @@ class BitsetMapping private constructor(
             return true
         }
         if (other !is BitsetMapping) {
-            return false
-        }
-        if (hashCode != other.hashCode) {
             return false
         }
         return bindings == other.bindings && terms.contentEquals(other.terms)

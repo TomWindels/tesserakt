@@ -4,6 +4,7 @@ import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.collection.ReindexableMappingArray
+import dev.tesserakt.sparql.runtime.collection.mappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
@@ -132,7 +133,29 @@ sealed class TriplePatternState<P : TriplePatternState.Predicate>(
          * We don't apply any indexes outright; our parent structure can use the [reindex] method to change it when
          *  necessary.
          */
-        open val data = ReindexableMappingArray()
+        open val data = ReindexableMappingArray(
+            hint = mappingArrayHint {
+                // we can guarantee a fixed shape here
+                fixedShape = 0
+                subj.bindingId?.let { id ->
+                    fixedShape = fixedShape or (1 shl id)
+                }
+                pred.bindingId?.let { id ->
+                    fixedShape = fixedShape or (1 shl id)
+                }
+                obj.bindingId?.let { id ->
+                    fixedShape = fixedShape or (1 shl id)
+                }
+            }
+        )
+
+        override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
+            val inner = super.stats(context, granularity)
+            return Statistics.DescriptionElement(
+                description = data.toString(),
+                inner = inner
+            )
+        }
 
         override val cardinality get() = data.cardinality
 

@@ -57,7 +57,7 @@ class SingleElementStreamReduction<E: Any>(
 
     override fun supportsEfficientIteration(): Boolean {
         // we're simple enough in this case compared to the more complete single item stream reduction
-        return true
+        return source.supportsEfficientIteration()
     }
 
     override fun iterator(): Iterator<E> {

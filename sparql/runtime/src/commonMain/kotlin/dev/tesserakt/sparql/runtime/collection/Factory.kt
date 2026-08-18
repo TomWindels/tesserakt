@@ -1,56 +1,57 @@
 package dev.tesserakt.sparql.runtime.collection
 
-import dev.tesserakt.sparql.runtime.collection.MappingArrayHint.Companion.PARTIAL_HASH_ACCESS
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.query.bindingIdentifierSetOf
-import kotlin.jvm.JvmInline
 
-@JvmInline
-value class MappingArrayHint private constructor(private val mask: Int) {
+data class MappingArrayHint(
+    /**
+     * Whether partial hash access is required.
+     */
+    var partialHashAccess: Boolean = false,
+    /**
+     * Whether all mappings that will be stored have a fixed, ahead of time known shape. If that is the case,
+     *  the bitmask representing the shape has to be set here
+     */
+    var fixedShape: Int = -1,
+)
 
-    constructor(
-        partialHashAccess: Boolean = false,
-    ): this(
-        mask =
-            bit(PARTIAL_HASH_ACCESS, partialHashAccess)
-    )
-
-    companion object {
-
-        val DEFAULT = MappingArrayHint()
-
-        internal const val PARTIAL_HASH_ACCESS = 0
-
-        private fun bit(index: Int, set: Boolean) = if (set) 1 shl index else 0
-
-    }
-
-    fun requires(feature: Int): Boolean = (mask and (1 shl feature)) != 0
-
-}
-
-fun MappingArray(
+inline fun MappingArray(
     bindings: BindingIdentifierSet,
-    hint: MappingArrayHint = MappingArrayHint.DEFAULT,
-) = when {
-    bindings.size == 0 -> SimpleMappingArray()
-    bindings.size == 1 -> SingleHashMappingArray(bindings[0])
-    !hint.requires(PARTIAL_HASH_ACCESS) -> CompleteHashMappingArray(bindings)
-    else -> MultiHashMappingArray(bindings)
+    hint: MappingArrayHint = MappingArrayHint()
+): MappingArray {
+    return when {
+        bindings.size == 0 -> {
+            if (hint.fixedShape != -1) {
+                SimpleFixedShapeMappingArray(hint.fixedShape)
+            } else {
+                SimpleMappingArray()
+            }
+        }
+        bindings.size == 1 -> {
+            val shape = hint.fixedShape
+            SingleHashMappingArray(
+                key = bindings[0],
+                factory = if (shape != -1) {
+                    { SimpleFixedShapeMappingArray(shape) }
+                } else {
+                    { SimpleMappingArray() }
+                }
+            )
+        }
+        !hint.partialHashAccess -> CompleteHashMappingArray(bindings)
+        else -> MultiHashMappingArray(bindings)
+    }
 }
 
-fun ReindexableMappingArray(
+inline fun ReindexableMappingArray(
     vararg bindings: BindingIdentifier?,
-    hint: MappingArrayHint = MappingArrayHint.DEFAULT,
+    hint: MappingArrayHint = MappingArrayHint(),
 ): ReindexableMappingArray {
     val set = bindingIdentifierSetOf(*bindings)
-    return ReindexableMappingArray(active = MappingArray(set, hint))
+    return ReindexableMappingArray(set, hint)
 }
 
-fun ReindexableMappingArray(
-    bindings: BindingIdentifierSet,
-    hint: MappingArrayHint = MappingArrayHint.DEFAULT,
-): ReindexableMappingArray {
-    return ReindexableMappingArray(active = MappingArray(bindings, hint))
+inline fun mappingArrayHint(block: MappingArrayHint.() -> Unit): MappingArrayHint {
+    return MappingArrayHint().apply(block)
 }

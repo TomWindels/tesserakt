@@ -6,8 +6,11 @@ import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.util.Cardinality
 
 class ReindexableMappingArray(
-    private var active: MappingArray
+    bindings: BindingIdentifierSet,
+    private var hint: MappingArrayHint = MappingArrayHint(),
 ) : MappingArray {
+
+    private var active: MappingArray = MappingArray(bindings, hint)
 
     override val cardinality: Cardinality
         get() = active.cardinality
@@ -43,7 +46,9 @@ class ReindexableMappingArray(
         return active.removeAll(mappings)
     }
 
-    fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint = MappingArrayHint.DEFAULT) {
+    fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint? = null) {
+        val hint = hint ?: this.hint
+        this.hint = hint
         val new = MappingArray(bindings, hint)
         // if the new array has the same properties given the hint and index configuration, we can skip
         //  the replacement step

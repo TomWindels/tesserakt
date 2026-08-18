@@ -15,17 +15,20 @@ import dev.tesserakt.sparql.util.Cardinality
  *  algorithm. Hash tables are created for every binding name passed in the constructor.
  */
 class SingleHashMappingArray(
-    private val key: BindingIdentifier
+    private val key: BindingIdentifier,
+    private val factory: () -> MappingArray,
 ): MappingArray {
 
     constructor(
         context: QueryContext,
         binding: String,
+        factory: () -> MappingArray,
     ): this(
-        key = BindingIdentifier(context, binding)
+        key = BindingIdentifier(context, binding),
+        factory = factory,
     )
 
-    private val backing = mutableMapOf<TermIdentifier, SimpleMappingArray>()
+    private val backing = mutableMapOf<TermIdentifier, MappingArray>()
 
     override var cardinality = Cardinality(0)
         private set
@@ -63,7 +66,7 @@ class SingleHashMappingArray(
         backing.getOrPut(
             key = mapping.get(key)
                 ?: throw IllegalArgumentException("Mapping $mapping has no value required for index `${key}`"),
-            defaultValue = { SimpleMappingArray() }
+            defaultValue = factory,
         ).add(mapping)
         cardinality += 1
     }

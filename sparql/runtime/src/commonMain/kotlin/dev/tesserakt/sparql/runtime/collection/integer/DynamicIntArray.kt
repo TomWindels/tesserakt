@@ -53,8 +53,40 @@ class DynamicIntArray: Collection<Int> {
         return true
     }
 
+    fun addAll(elements: IntArray): Boolean {
+        // whilst it is possible `elements` are also a `DynamicIntArray`, we can't take over references
+        //  to its elements as we otherwise would mutate each other
+        preallocate(elements.size)
+        elements.forEach { element ->
+            backing[size shr UNIT_SIZE_BIT][size and (UNIT_SIZE - 1)] = element
+            ++size
+        }
+        return true
+    }
+
+    /**
+     * Removes all values found in-between the [start] (inclusive) and [end] (exclusive) range, overwriting it with
+     *  values found at the end of this collection
+     */
+    fun swapRemoveRange(start: Int, end: Int) {
+        if (end > size || start < 0 || end < start) {
+            throw IllegalArgumentException("Bad range provided - requirement did not hold: $end > $size || $start < 0 || $end < $start")
+        }
+        val len = end - start
+        if (end == size) {
+            pop(len)
+            return
+        }
+        // we need to copy the last `len` bytes to our provided range before we 'remove' these at the end
+        val endOffset = size - len
+        repeat(len) { i ->
+            this[start + i] = this[endOffset + i]
+        }
+        pop(len)
+    }
+
     fun pop(count: Int = 1) {
-        if (size < count) {
+        if (count < 0 || size < count) {
             throw NoSuchElementException("Tried to remove $count element(s) whilst only $size element(s) are available!")
         }
         // we don't need to actually clear the underlying data as it has no impact on the amount of bytes owned by the

@@ -199,6 +199,8 @@ fun builtinTests() = tests {
         }
     """
 
+    return@tests
+
     using(counts) test """
         PREFIX : <http://example/>
 

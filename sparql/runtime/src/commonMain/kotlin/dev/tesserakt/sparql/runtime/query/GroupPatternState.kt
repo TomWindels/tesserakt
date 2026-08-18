@@ -28,7 +28,7 @@ class GroupPatternState private constructor(
         val hint = if (patterns !is EmptyJoinTree && unions !is EmptyJoinTree) {
             MappingArrayHint(partialHashAccess = true)
         } else {
-            MappingArrayHint.DEFAULT
+            MappingArrayHint()
         }
         this.patterns.reindex(common, hint)
         this.unions.reindex(common, hint)

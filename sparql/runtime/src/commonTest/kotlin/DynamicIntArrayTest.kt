@@ -1,8 +1,6 @@
+
 import dev.tesserakt.sparql.runtime.collection.integer.DynamicIntArray
-import kotlin.test.Test
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 class DynamicIntArrayTest {
 
@@ -41,6 +39,24 @@ class DynamicIntArrayTest {
         assertTrue { 2 in arr }
         assertEquals(2048, arr.capacity)
         assertEquals(1023, arr.free)
+    }
+
+    @Test
+    fun removal() {
+        val arr = DynamicIntArray()
+        // adding 0 .. 4 through an int array this time
+        arr.addAll(IntArray(5) { it })
+        println(arr)
+        assertEquals(5, arr.size)
+        assertEquals(1024, arr.capacity)
+        assertEquals(1019, arr.free)
+        // removing 0 & 1
+        arr.swapRemoveRange(0, 2)
+        assertEquals(3, arr.size)
+        assertEquals(1024, arr.capacity)
+        assertEquals(1021, arr.free)
+        // 'swap' remove, we maintain order of the last two elements, which have now been positioned at the front
+        assertContentEquals(listOf(3, 4, 2), arr)
     }
 
 }

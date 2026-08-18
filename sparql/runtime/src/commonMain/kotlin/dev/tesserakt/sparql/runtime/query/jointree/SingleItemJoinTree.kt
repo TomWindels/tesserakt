@@ -30,7 +30,7 @@ value class SingleItemJoinTree<J: MutableJoinState>(private val element: J): Joi
 
     init {
         // the internal element should have no indexes as we don't have joining with other elements
-        element.reindex(BindingIdentifierSet.EMPTY, MappingArrayHint.DEFAULT)
+        element.reindex(BindingIdentifierSet.EMPTY, MappingArrayHint())
     }
 
     override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {

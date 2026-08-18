@@ -2,6 +2,7 @@ package dev.tesserakt.sparql.runtime.stream
 
 import dev.tesserakt.sparql.runtime.collection.MappingArray
 import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
+import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.util.Cardinality
@@ -16,19 +17,126 @@ fun OptimisedStream<Mapping>.join(other: Stream<Mapping>): Stream<Mapping> =
     )
 
 fun Stream<Mapping>.join(other: OptimisedStream<Mapping>): Stream<Mapping> =
-    if (other.hasZeroCardinality() || this.hasZeroCardinality()) emptyStream() else StreamMultiJoin(
-        this,
-        other
-    )
+    when {
+        other.hasZeroCardinality() || this.hasZeroCardinality() -> emptyStream()
+        this is FixedShapeMappingArrayStream && other is SingleStream<Mapping> ->
+            FixedShapeMappingJoinStream(
+                left = this.backing,
+                right = other.element as BitsetMapping,
+            )
+        this is SingleStream<Mapping> && other is FixedShapeMappingArrayStream ->
+            FixedShapeMappingJoinStream(
+                left = other.backing,
+                right = this.element as BitsetMapping,
+            )
+        this is FixedShapeMappingArrayStream && other is FixedShapeMappingArrayStream ->
+            if (this.backing.size < other.backing.size) {
+                FixedShapeMappingMultiJoinStream(
+                    left = other.backing,
+                    right = this.backing,
+                )
+            } else {
+                FixedShapeMappingMultiJoinStream(
+                    left = this.backing,
+                    right = other.backing,
+                )
+            }
+        else -> StreamMultiJoin(
+            left = this,
+            right = other,
+        )
+    }
 
 fun OptimisedStream<Mapping>.join(other: OptimisedStream<Mapping>): Stream<Mapping> =
-    if (other.hasZeroCardinality() || this.hasZeroCardinality()) emptyStream() else StreamMultiJoin(
-        this,
-        other
-    )
+    when {
+        other.hasZeroCardinality() || this.hasZeroCardinality() -> emptyStream()
+        this is FixedShapeMappingArrayStream && other is SingleStream<Mapping> ->
+            FixedShapeMappingJoinStream(
+                left = this.backing,
+                right = other.element as BitsetMapping,
+            )
+        this is SingleStream<Mapping> && other is FixedShapeMappingArrayStream ->
+            FixedShapeMappingJoinStream(
+                left = other.backing,
+                right = this.element as BitsetMapping,
+            )
+        this is FixedShapeMappingArrayStream && other is FixedShapeMappingArrayStream ->
+            if (this.backing.size < other.backing.size) {
+                FixedShapeMappingMultiJoinStream(
+                    left = other.backing,
+                    right = this.backing,
+                )
+            } else {
+                FixedShapeMappingMultiJoinStream(
+                    left = this.backing,
+                    right = other.backing,
+                )
+            }
+        else ->
+            StreamMultiJoin(
+                left = this,
+                right = other,
+            )
+    }
 
-fun Stream<Mapping>.join(other: Mapping): Stream<Mapping> =
-    if (hasZeroCardinality()) emptyStream() else StreamSingleJoin(other, this)
+fun FixedShapeMappingStream.join(other: FixedShapeMappingStream): Stream<Mapping> =
+    when {
+        other.hasZeroCardinality() || this.hasZeroCardinality() -> emptyStream()
+        this is FixedShapeMappingArrayStream && other is FixedShapeMappingArrayStream -> {
+            if (this.backing.size < other.backing.size) {
+                FixedShapeMappingMultiJoinStream(
+                    left = other.backing,
+                    right = this.backing,
+                )
+            } else {
+                FixedShapeMappingMultiJoinStream(
+                    left = this.backing,
+                    right = other.backing,
+                )
+            }
+        }
+        this is OptimisedStream<*> -> {
+            @Suppress("UNCHECKED_CAST")
+            StreamMultiJoin(
+                left = other,
+                right = this as OptimisedStream<Mapping>,
+            )
+        }
+        other is OptimisedStream<*> -> {
+            @Suppress("UNCHECKED_CAST")
+            StreamMultiJoin(
+                left = this,
+                right = other as OptimisedStream<Mapping>,
+            )
+        }
+        else -> {
+            if (this.cardinality < other.cardinality) {
+                StreamMultiJoin(
+                    left = other,
+                    right = this.optimisedForReuse()
+                )
+            } else {
+                StreamMultiJoin(
+                    left = this,
+                    right = other.optimisedForReuse(),
+                )
+            }
+        }
+    }
+
+fun Stream<Mapping>.join(other: Mapping): Stream<Mapping> = when {
+    hasZeroCardinality() -> emptyStream()
+    this is FixedShapeMappingArrayStream -> {
+        println("!!!")
+        FixedShapeMappingJoinStream(
+            left = this.backing,
+            right = other as BitsetMapping,
+        )
+    }
+    else -> {
+        StreamSingleJoin(other, this)
+    }
+}
 
 fun Mapping.join(other: Stream<Mapping>): Stream<Mapping> =
     if (other.hasZeroCardinality()) emptyStream() else StreamSingleJoin(this, other)
@@ -263,7 +371,15 @@ inline fun <E : Any> Stream<E>.filtered(noinline predicate: (E) -> Boolean): Str
 }
 
 inline fun <E : Any> Stream<E>.collect(): CollectedStream<E> =
-    if (this is CollectedStream) this else CollectedStream(this)
+    when (this) {
+        is CollectedStream -> this
+        /* these stream types do not produce unique results, so they have to be copied manually */
+        is FixedShapeMappingStream-> {
+            @Suppress("UNCHECKED_CAST")
+            CollectedStream(FixedShapeMappingCopyStream(this)) as CollectedStream<E>
+        }
+        else -> CollectedStream(this)
+    }
 
 /**
  * Caches this stream into the target [stream], appending elements

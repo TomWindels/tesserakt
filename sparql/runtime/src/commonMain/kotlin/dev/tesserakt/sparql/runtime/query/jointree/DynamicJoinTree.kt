@@ -71,7 +71,7 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
             }
 
             override fun reindex(bindings: BindingIdentifierSet) {
-                state.reindex(bindings, hint = MappingArrayHint.DEFAULT)
+                state.reindex(bindings, hint = MappingArrayHint())
             }
 
             override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
@@ -90,6 +90,15 @@ value class DynamicJoinTree private constructor(private val root: Node): JoinTre
 
             override val bindings = left.bindings + right.bindings
 
+//            internal val buf = ReindexableMappingArray(
+//                bindings = indexes,
+//                hint = mappingArrayHint {
+//                    fixedShape = 0
+//                    bindings.asIntIterable().forEach { id ->
+//                        fixedShape = fixedShape or (1 shl id)
+//                    }
+//                }
+//            )
             internal val buf = ReindexableMappingArray(indexes)
             private val cache = StreamCache<DataDelta, MappingDelta>()
 
