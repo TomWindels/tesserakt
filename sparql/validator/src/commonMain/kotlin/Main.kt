@@ -18,6 +18,8 @@ suspend fun run(args: Array<String>) {
                 builtinTests()
                     .test(QueryExecutionTestValues::toIncrementalDeferredDeletionTest),
                 builtinTests()
+                    .test(QueryExecutionTestValues::toDeferredClearTest),
+                builtinTests()
                     .test(QueryExecutionTestValues::toRandomUpdateTest),
                 /* we then use larger sized, generated datasets & queries for performance-oriented evaluation */
                 compareIncrementalChainSelectOutput(seed = 1)

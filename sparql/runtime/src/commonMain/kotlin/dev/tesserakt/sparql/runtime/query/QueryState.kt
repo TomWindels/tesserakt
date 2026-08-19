@@ -9,11 +9,7 @@ import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.context.encode
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
-import dev.tesserakt.sparql.runtime.evaluation.mapping.hashable
-import dev.tesserakt.sparql.runtime.stream.CollectedStream
-import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.runtime.stream.toStream
-import dev.tesserakt.sparql.types.*
+import dev.tesserakt.sparql.types.QueryStructure
 import kotlin.jvm.JvmInline
 
 sealed class QueryState<ResultType, Q: QueryStructure>(
@@ -34,54 +30,6 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
             inline fun Mapping.into(context: QueryContext) = BindingsImpl(context, this)
         }
 
-    }
-
-    /**
-     * Based on the query body definition, it's possible mandatory stream post-processing is required to prevent
-     *  results temporarily going negative during evaluation
-     */
-    sealed interface StreamPostProcessor {
-
-        fun adapt(stream: Stream<MappingDelta>): Stream<MappingDelta>
-
-        data object None: StreamPostProcessor {
-            override fun adapt(stream: Stream<MappingDelta>): Stream<MappingDelta> {
-                return stream
-            }
-        }
-
-        data object Reordered: StreamPostProcessor {
-            override fun adapt(stream: Stream<MappingDelta>): Stream<MappingDelta> {
-                val combined = stream
-                    // we need to make it hashable for `groupingBy` to work correctly
-                    .groupingBy { it.value.hashable() }
-                    .fold({ _, _ -> 0 }) { _, count, delta ->
-                        val d = if (delta is MappingAddition) 1 else -1
-                        count + d
-                    }
-                return CollectedStream(
-                    // TODO perf:
-                    //  simply return another Iterable, so we don't need to create a potentially big array at the end
-                    data = combined.asIterable().flatMap { (mapping, count) ->
-                        when {
-                            count == 0 -> emptyList()
-                            count > 0 -> {
-                                List(count) { MappingAddition(mapping.inner, null) }
-                            }
-                            else -> {
-                                List(-count) { MappingDeletion(mapping.inner, null) }
-                            }
-                        }
-                    }
-                )
-            }
-        }
-
-    }
-
-    private val streamPostProcessor = when {
-        ast.body.requiresReordering() -> StreamPostProcessor.Reordered
-        else -> StreamPostProcessor.None
     }
 
     protected val context = QueryContext(source, ast)
@@ -113,19 +61,36 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
     }
 
     fun processAndGet(data: DataDelta): List<ResultChange<ResultType>> {
+        bgpState.enqueue(data)
         return bgpState
-            .insert(data)
-            .toStream()
-            .let { streamPostProcessor.adapt(it) }
+            .process()
             .onEach(::onNewBodyResult)
             .map(::transformNewBodyResult)
     }
 
     fun process(data: DataDelta) {
+        bgpState.enqueue(data)
         bgpState
-            .insert(data)
-            .toStream()
-            .let { streamPostProcessor.adapt(it) }
+            .process()
+            .onEach(::onNewBodyResult)
+    }
+
+    fun processAndGet(changes: Iterable<DataDelta>): List<ResultChange<ResultType>> {
+        changes.forEach { data ->
+            bgpState.enqueue(data)
+        }
+        return bgpState
+            .process()
+            .onEach(::onNewBodyResult)
+            .map(::transformNewBodyResult)
+    }
+
+    fun process(changes: Iterable<DataDelta>) {
+        changes.forEach { data ->
+            bgpState.enqueue(data)
+        }
+        bgpState
+            .process()
             .onEach(::onNewBodyResult)
     }
 
@@ -135,13 +100,7 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
         //  combinations (i.e. triple patterns such as "?a <p>* <b>", yielding ?a = <b>)
         bgpState
             // getting all current results by joining with an empty new mapping
-            .join(
-                MappingAddition(
-                    value = Mapping.EMPTY,
-                    origin = null
-                )
-            )
-            .let { streamPostProcessor.adapt(it) }
+            .join(MappingAddition(Mapping.EMPTY))
             .forEach(::onNewBodyResult)
     }
 
@@ -151,19 +110,6 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     fun stats(granularity: QueryStatistics.Granularity): Statistics {
         return bgpState.stats(context, granularity)
-    }
-
-    private fun GraphPattern.requiresReordering(): Boolean {
-        fun Union.requiresReordering(): Boolean {
-            return segments.any { segment ->
-                when (segment) {
-                    is GraphPatternSegment -> segment.pattern.requiresReordering()
-                    is SelectQuerySegment -> false
-                }
-            }
-        }
-        return filters.any { it !is Filter.Predicate } ||
-                statements.any { it is Optional || (it is Union && it.requiresReordering()) }
     }
 
 }

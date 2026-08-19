@@ -75,6 +75,31 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(
 
     private var state: QueryState<RT, *>? = null
 
+    private val EnqueuedChanges = object: Iterable<DataDelta> {
+
+        override fun iterator(): Iterator<DataDelta> = object: Iterator<DataDelta> {
+
+            private val src = queue.iterator()
+
+            override fun hasNext(): Boolean {
+                return src.hasNext()
+            }
+
+            override fun next(): DataDelta {
+                val (quad, change) = src.next()
+                return when (change) {
+                    EntryState.Addition -> DataAddition(quad)
+                    EntryState.Deletion -> DataDeletion(quad)
+                }
+            }
+
+            override fun toString(): String {
+                return "DeferredOngoingQueryEvaluationQueueConsumer(${hashCode()})"
+            }
+        }
+
+    }
+
     /**
      * Updates the internal state (creating it if necessary)
      */
@@ -91,15 +116,7 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(
             return new
         }
         // we have a prior state that needs to be updated
-        val iter = queue.iterator()
-        while (iter.hasNext()) {
-            val (quad, change) = iter.next()
-            val delta = when (change) {
-                EntryState.Addition -> DataAddition(quad)
-                EntryState.Deletion -> DataDeletion(quad)
-            }
-            state.process(delta)
-        }
+        state.process(EnqueuedChanges)
         queue.clear()
         return state
     }

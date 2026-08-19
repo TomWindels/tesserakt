@@ -9,15 +9,14 @@ import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
 import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.runtime.stream.optimisedForSingleUse
 import dev.tesserakt.sparql.types.Filter
 import dev.tesserakt.sparql.types.GraphPattern
 import dev.tesserakt.sparql.util.Cardinality
+import kotlin.jvm.JvmInline
 
-class BasicGraphPatternState private constructor(
-    val context: QueryContext,
+@JvmInline
+value class BasicGraphPatternState private constructor(
     private val body: MutableJoinState,
-    private val filters: GraphPatternFilterState,
 ): MutableJoinState {
 
     /**
@@ -31,18 +30,16 @@ class BasicGraphPatternState private constructor(
     override val cardinality: Cardinality
         get() = body.cardinality
 
-    override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-        // getting the max amount of mappings we can yield based on the inner group
-        return filters.peek(body, delta).optimisedForSingleUse()
+    override fun enqueue(delta: DataDelta) {
+        body.enqueue(delta)
     }
 
-    override fun process(delta: DataDelta) {
-        body.process(delta)
-        filters.process(delta)
+    override fun process(): OptimisedStream<MappingDelta> {
+        return body.process()
     }
 
     override fun join(delta: MappingDelta): Stream<MappingDelta> {
-        return filters.filter(body.join(delta))
+        return body.join(delta)
     }
 
     override fun reindex(
@@ -53,8 +50,7 @@ class BasicGraphPatternState private constructor(
     }
 
     override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics {
-        val base = body.stats(context, granularity)
-        return filters.stats(context, base, granularity)
+        return body.stats(context, granularity)
     }
 
     companion object {
@@ -83,10 +79,40 @@ class BasicGraphPatternState private constructor(
                 filters = filters,
                 externalBindings = externalBindings,
             )
+            val state = ast.filters.fold(body) { body, filter ->
+                when (filter) {
+                    is Filter.Predicate -> {
+                        // does not alter the state any further, these have been pushed down already
+                        body
+                    }
+                    is Filter.Exists -> {
+                        InclusionFilterState(
+                            inner = body,
+                            filter = BasicGraphPatternState(
+                                context = context,
+                                ast = filter.pattern,
+                                // these aren't passed down
+                                externalFilters = emptyList(),
+                                externalBindings = BindingIdentifierSet.EMPTY,
+                            )
+                        )
+                    }
+                    is Filter.NotExists -> {
+                        ExclusionFilterState(
+                            inner = body,
+                            filter = BasicGraphPatternState(
+                                context = context,
+                                ast = filter.pattern,
+                                // these aren't passed down
+                                externalFilters = emptyList(),
+                                externalBindings = BindingIdentifierSet.EMPTY,
+                            )
+                        )
+                    }
+                }
+            }
             return BasicGraphPatternState(
-                context = context,
-                body = body,
-                filters = GraphPatternFilterState(context, parent = body, filters = ast.filters),
+                body = state,
             )
         }
 

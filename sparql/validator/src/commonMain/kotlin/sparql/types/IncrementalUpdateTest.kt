@@ -38,39 +38,64 @@ class IncrementalUpdateTest(
             ongoing = input.query(query)
         }
         // checking the initial state (no data)
-        builder.add(
+        val success = builder.add(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
             strictOrdering = hasStrictOrdering,
             statistics = ongoing.stats()
         )
+        check(success) { "Initial state output mismatch!" }
         // building it up
-        store.forEach { quad ->
+        store.forEachIndexed { i, quad ->
             val current: List<Bindings>
             val elapsedTime = measureTime {
-                input.add(quad)
-                current = ongoing.results.toList()
+                try {
+                    input.add(quad)
+                    current = ongoing.results.toList()
+                } catch (t: Throwable) {
+                    val result = builder.build()
+                    throw RuntimeException(
+                        "Query failure after change #${i + 1}\nPrevious results:\n${result.outputs.takeLast(3).joinToString("\n")}",
+                        t
+                    )
+                }
             }
-            builder.add(
+            val success = builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
                 strictOrdering = hasStrictOrdering,
                 statistics = ongoing.stats()
             )
+            check(success) {
+                val result = builder.build()
+                "Output mismatch after change #${i + 1}\n${result.outputs.takeLast(3).joinToString("\n")}\n${result.outputs.last().exceptionOrNull()?.message ?: "Detailed contents unavailable"}"
+            }
         }
         // breaking it back down
-        store.forEach { quad ->
+        store.forEachIndexed { i, quad ->
             val current: List<Bindings>
             val elapsedTime = measureTime {
-                input.remove(quad)
-                current = ongoing.results.toList()
+                try {
+                    input.remove(quad)
+                    current = ongoing.results.toList()
+                } catch (t: Throwable) {
+                    val result = builder.build()
+                    throw RuntimeException(
+                        "Query failure after change #${store.size + i + 1}\nPrevious results:\n${result.outputs.takeLast(3).joinToString("\n")}",
+                        t
+                    )
+                }
             }
-            builder.add(
+            val success = builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
                 strictOrdering = hasStrictOrdering,
                 statistics = ongoing.stats()
             )
+            check(success) {
+                val result = builder.build()
+                "Output mismatch after change #${store.size + i + 1}\n${result.outputs.takeLast(3).joinToString("\n")}\n${result.outputs.last().exceptionOrNull()?.message ?: "Detailed contents unavailable"}"
+            }
         }
         builder.build()
     }
@@ -94,17 +119,17 @@ class IncrementalUpdateTest(
                 reference: Pair<Duration, List<Bindings>>,
                 strictOrdering: Boolean,
                 statistics: QueryStatistics,
-            ) {
-                list.add(
-                    compare(
-                        received = self.second,
-                        elapsedTime = self.first,
-                        expected = reference.second,
-                        referenceTime = reference.first,
-                        strictOrdering = strictOrdering,
-                        statistics = statistics
-                    )
+            ): Boolean {
+                val result = compare(
+                    received = self.second,
+                    elapsedTime = self.first,
+                    expected = reference.second,
+                    referenceTime = reference.first,
+                    strictOrdering = strictOrdering,
+                    statistics = statistics
                 )
+                list.add(result)
+                return result.isSuccess()
             }
 
             fun build() = Result(store = store, outputs = list)

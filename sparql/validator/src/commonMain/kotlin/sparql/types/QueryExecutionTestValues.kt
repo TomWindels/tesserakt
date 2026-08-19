@@ -15,6 +15,8 @@ data class QueryExecutionTestValues(
 
     fun toIncrementalDeferredDeletionTest() = IncrementalDeferredDeletionTest(query = query, store = store)
 
+    fun toDeferredClearTest() = DeferredClearTest(query = query, store = store)
+
     fun toRandomUpdateTest() = RandomUpdateTest(query = query, store = store)
 
 }

@@ -656,12 +656,6 @@ fun builtinTests() = tests {
         }
     """
 
-    // FIXME:
-    //  these queries misbehave as the `FILTER [NOT] EXISTS` yields changed state mappings that then
-    //  incorrectly interact with the 'optional join' semantics - this is unique to this type of query
-    //  as there's only a single OPTIONAL block making up the main query body, so the lack of results
-    //  is not properly detected throughout the remainder of the query body
-    /*
     using(numbers) test """
         PREFIX : <http://example.com/>
         SELECT * WHERE {
@@ -685,7 +679,6 @@ fun builtinTests() = tests {
             }
         }
     """
-    */
 
     using(numbers) test """
         PREFIX : <http://example.com/>

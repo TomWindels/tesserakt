@@ -46,13 +46,13 @@ class DynamicJoinTreeBuilderTest {
             return emptyStream()
         }
 
-        override fun peek(delta: DataDelta): OptimisedStream<MappingDelta> {
-            // nothing matches
-            return emptyStream()
+        override fun enqueue(delta: DataDelta) {
+            // no-op
         }
 
-        override fun process(delta: DataDelta) {
-            // no backing structure, no-op
+        override fun process(): OptimisedStream<MappingDelta> {
+            // nothing matches
+            return emptyStream()
         }
 
         override fun stats(context: QueryContext, granularity: QueryStatistics.Granularity) =
