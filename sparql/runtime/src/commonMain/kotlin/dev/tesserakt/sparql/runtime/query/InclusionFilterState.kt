@@ -73,7 +73,18 @@ object InclusionFilterState {
             require(commonBindingNames.intersectSize(inner.properties.guaranteed) == commonBindingNames.size) { "Invalid filter use detected!" }
 
             // we only need exact matches with our common binding names
-            inner.reindex(commonBindingNames, MappingArrayHint.DEFAULT)
+            inner.reindex(
+                bindings = commonBindingNames,
+                hint = MappingArrayHint.DEFAULT,
+            )
+            // we never join on the filter directly, so the indexes are not important for our own performance
+            // instead, we have it index itself on all its bindings, so deletions are performant
+            filter.reindex(
+                bindings = filter.properties.guaranteed,
+                hint = MappingArrayHint(
+                    partialHashAccess = false,
+                )
+            )
 
             filter
                 .join(MappingAddition(Mapping.EMPTY))
