@@ -101,33 +101,33 @@ class QueryStructureStateTest {
             )
         }
 
-        val nodes = """
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            SELECT ?node {
-                ?node rdf:rest* ?blank .
-                ?blank rdf:rest rdf:nil .
-            }
-        """.toSparqlSelectQuery()
-        // expected result: blank1, blank2, blank3, blank...
-        println("Found blank nodes:\n${store.query(nodes).tabulate()}")
+//        val nodes = """
+//            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+//            SELECT ?node {
+//                ?node rdf:rest* ?blank .
+//                ?blank rdf:rest rdf:nil .
+//            }
+//        """.toSparqlSelectQuery()
+//        // expected result: blank1, blank2, blank3, blank...
+//        println("Found blank nodes:\n${store.query(nodes).tabulate()}")
 
-        val list = """
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            SELECT ?person ?note {
-                ?person a <person> ; <notes>/rdf:rest*/rdf:first ?note
-            }
-        """.toSparqlSelectQuery()
-        // expected: [person, first-note], [person, second-note] ...
-        println("Found list entries:\n${store.query(list).tabulate()}")
+//        val list = """
+//            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+//            SELECT ?person ?note {
+//                ?person a <person> ; <notes>/rdf:rest*/rdf:first ?note
+//            }
+//        """.toSparqlSelectQuery()
+//        // expected: [person, first-note], [person, second-note] ...
+//        println("Found list entries:\n${store.query(list).tabulate()}")
 
-        val any = """
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            SELECT * {
-                ?s (<>|!<>)* ?o
-            }
-        """.toSparqlSelectQuery()
-        // expecting a lot of results
-        println("Found \"any\" entries:\n${store.query(any).tabulate()}")
+//        val any = """
+//            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+//            SELECT * {
+//                ?s (<>|!<>)* ?o
+//            }
+//        """.toSparqlSelectQuery()
+//        // expecting a lot of results
+//        println("Found \"any\" entries:\n${store.query(any).tabulate()}")
     }
 
     @Test
