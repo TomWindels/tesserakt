@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql
 
-import dev.tesserakt.rdf.types.EncodingContext
+import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.sparql.runtime.QueryState
 import dev.tesserakt.sparql.runtime.query.QueryState
 import dev.tesserakt.sparql.types.QueryStructure
@@ -13,10 +13,10 @@ value class Query<T> private constructor(internal val compiled: QueryStructure) 
 
     @Suppress("UNCHECKED_CAST")
     internal fun createState(
-        context: EncodingContext?,
+        source: Store?,
     ): QueryState<T, *> = QueryState(
         structure = compiled,
-        context = context,
+        source = source,
     ) as QueryState<T, *>
 
     companion object {

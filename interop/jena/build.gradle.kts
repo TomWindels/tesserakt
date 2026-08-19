@@ -5,7 +5,7 @@ plugins {
 kotlin {
     jvm()
     sourceSets {
-        val jvmMain by getting {
+        getByName("jvmMain") {
             dependencies {
                 api(project(":rdf"))
                 // contains DatasetFactory

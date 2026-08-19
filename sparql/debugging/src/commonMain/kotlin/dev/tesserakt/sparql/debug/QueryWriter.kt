@@ -197,10 +197,15 @@ abstract class QueryWriter<RT> {
             }
 
             is Optional -> {
-                when (element.segment) {
-                    is SelectQuerySegment -> { process(element.segment) }
-                    is GraphPatternSegment -> { process(element.segment) }
-                }
+                newline()
+                add(Token.Keyword.Optional)
+                add(Token.Symbol.CurlyBracketStart)
+                indent()
+                process(element.patterns)
+                element.filters.forEach { process(it) }
+                unindent()
+                newline()
+                add(Token.Symbol.CurlyBracketEnd)
             }
 
             is Union -> {
@@ -229,19 +234,13 @@ abstract class QueryWriter<RT> {
             }
 
             is GraphPattern -> {
-                process(element.patterns)
-                element.optional.forEach { optional ->
+                element.statements.forEach { statement ->
                     newline()
-                    add(Token.Keyword.Optional)
-                    add(Token.Symbol.CurlyBracketStart)
-                    indent()
-                    process(optional)
-                    unindent()
-                    newline()
-                    add(Token.Symbol.CurlyBracketEnd)
-                }
-                element.unions.forEach { union ->
-                    process(union)
+                    when (statement) {
+                        is Optional -> process(statement)
+                        is TriplePattern -> process(statement)
+                        is Union -> process(statement)
+                    }
                 }
                 element.filters.forEach { filter ->
                     process(filter)

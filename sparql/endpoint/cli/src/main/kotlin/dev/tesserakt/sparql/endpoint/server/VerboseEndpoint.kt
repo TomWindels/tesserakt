@@ -3,12 +3,7 @@ package dev.tesserakt.sparql.endpoint.server
 import dev.tesserakt.rdf.serialization.common.deserialize
 import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.TriG
-import dev.tesserakt.rdf.types.ObservableStore
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.ObservableStore
-import dev.tesserakt.rdf.types.factory.emptyStore
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.sparql.endpoint.core.data.SelectResponse
 import dev.tesserakt.sparql.endpoint.core.data.UpdateRequest
 import dev.tesserakt.sparql.endpoint.server.factory.SparqlEndpoint

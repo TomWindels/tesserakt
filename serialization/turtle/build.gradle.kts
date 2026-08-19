@@ -7,7 +7,7 @@ group = "serialization"
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 implementation(project(":utils"))
                 implementation(project(":serialization:core"))
@@ -15,14 +15,14 @@ kotlin {
                 api(project(":rdf"))
             }
         }
-        val commonTest by getting {
+        getByName("commonTest") {
             dependencies {
                 implementation(project(":rdf:dsl"))
                 implementation(project(":testing:tooling:environment"))
                 implementation(kotlin("test"))
             }
         }
-        val jvmTest by getting {
+        getByName("jvmTest") {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(project(":utils"))
@@ -31,7 +31,7 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.core)
             }
         }
-        val jsTest by getting {
+        getByName("jsTest") {
             dependencies {
                 implementation(libs.kotlinx.coroutines.test)
             }
@@ -42,17 +42,17 @@ kotlin {
 tasks.jvmTest {
     javaLauncher.set(
         javaToolchains.launcherFor {
-            languageVersion = JavaLanguageVersion.of(17)
+            languageVersion = JavaLanguageVersion.of(21)
         }
     )
 }
 
 // we want to target the JavaCompile task for the tests specifically, as those
-//  also need JVM >= 17 to function for a functional Jena (w/ its transitive dependencies) setup
+//  also need JVM >= 21 to function for a functional Jena (w/ its transitive dependencies) setup
 tasks.withType(JavaCompile::class.java) {
     if (!name.contains("jvmTest", ignoreCase = true)) {
         return@withType
     }
-    sourceCompatibility = "17"
-    targetCompatibility = "17"
+    sourceCompatibility = "21"
+    targetCompatibility = "21"
 }

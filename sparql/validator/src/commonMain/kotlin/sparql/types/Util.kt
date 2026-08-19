@@ -10,16 +10,25 @@ import orderedBindingComparisonOf
 import unorderedBindingComparisonOf
 import kotlin.time.Duration
 
-class TestBuilderEnv {
-
-    var filter: TestFilter = TestFilter.Default
-    val tests = mutableListOf<QueryExecutionTestValues>()
+class TestBuilderEnv(
+    var filter: TestFilter = TestFilter.Default,
+    val tests: MutableList<QueryExecutionTestValues> = mutableListOf(),
+) {
 
     fun using(store: Store) = TestBuilder(environment = this, store = store)
 
     fun test(mapper: (QueryExecutionTestValues) -> Test) = testEnv {
         filter = this@TestBuilderEnv.filter
         tests.forEach { add(mapper(it)) }
+    }
+
+    fun select(vararg index: Int): TestBuilderEnv {
+        return TestBuilderEnv(
+            filter = filter,
+            tests = index
+                .asIterable()
+                .mapNotNullTo(mutableListOf()) { tests.getOrNull(it) }
+        )
     }
 
 }

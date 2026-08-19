@@ -9,11 +9,15 @@ import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.query.QueryState
 
 
-internal class OngoingQueryEvaluationImpl<RT>(private val query: QueryState<RT, *>): OngoingQueryEvaluation<RT> {
+internal class OngoingQueryEvaluationImpl<RT>(
+    private val parent: ObservableStore,
+    private val query: QueryState<RT, *>,
+): OngoingQueryEvaluation<RT> {
 
     override val results get() = query.results
 
     private val listener = object: ObservableStore.Listener {
+
         override fun onQuadAddedEncoded(quad: EncodedQuad) {
             add(quad)
         }
@@ -21,17 +25,16 @@ internal class OngoingQueryEvaluationImpl<RT>(private val query: QueryState<RT, 
         override fun onQuadRemovedEncoded(quad: EncodedQuad) {
             remove(quad)
         }
+
     }
 
-    override fun subscribe(store: ObservableStore) {
-        store.encodedIterator().forEach { quad ->
-            query.process(DataAddition(quad))
-        }
-        store.addListener(listener)
+    init {
+        // our state is immediately initialized and is valid, so we only have to register our listener
+        parent.addListener(listener)
     }
 
-    override fun unsubscribe(store: ObservableStore) {
-        store.removeListener(listener)
+    override fun close() {
+        parent.removeListener(listener)
     }
 
     override fun stats(granularity: QueryStatistics.Granularity): Statistics {

@@ -3,8 +3,6 @@ package dev.tesserakt.stream.ldes
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.Store
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.util.mapTo
 

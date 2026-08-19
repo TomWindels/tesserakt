@@ -1,161 +1,95 @@
 package dev.tesserakt.sparql.runtime.evaluation
 
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
-import dev.tesserakt.sparql.util.SortedCounter
+import dev.tesserakt.util.bitIterator
+import kotlin.jvm.JvmInline
 
-// not a value class as we have a custom equals check based on the contents of the `IntArray`, instead of reference equality
-// TODO(perf):
-//  make this an interface, so support for 'small identifier sets' is possible
-//  when 'binding scopes' become a thing, make optimal use of the fact that binding IDs within a scope are in the 0..31
-//  range by making a 'LocalBindingIdentifierSet' type that uses a single Int to contain a bitmask of all IDs contained
-//  within the set; this then implements this interface
-//  to clarify what scope a local identifier set belongs to, X MSBs could be used to encode a 'scope id'; this way,
-//  incorrectly associating one binding identifier set with another without 'scope mapping lookup' can be
-//  detected (e.g. when creating a combined or union version of two identifier sets)
-class BindingIdentifierSet
-/**
- * The primary way of creating a binding identifier set.
- *
- * IMPORTANT: the [ids] have to be sorted, as binary search is used to look through the set of IDs!
- */
-constructor(
-    private val ids: IntArray
-) {
+@JvmInline
+value class BindingIdentifierSet private constructor(val mask: Int) {
+
+    constructor(vararg ids: Int) :
+            this(mask = ids.fold(0) { acc, i -> acc or (1 shl i) })
 
     constructor(ids: Iterable<Int>) :
-            this(ids = ids.distinct().sorted().toIntArray())
+            this(mask = ids.fold(0) { acc, i -> acc or (1 shl i) })
 
     constructor(context: QueryContext, names: Iterable<String>) :
-            this(ids = names.distinct().map { context.resolveBinding(it) }.sorted().toIntArray())
-
-    constructor(context: QueryContext, names: Set<String>) :
-            this(ids = names.map { context.resolveBinding(it) }.sorted().toIntArray())
+            this(mask = names.fold(0) { acc, name -> acc or (1 shl context.resolveBinding(name)) })
 
     val size: Int
-        get() = ids.size
+        get() = mask.countOneBits()
 
     fun isEmpty(): Boolean {
-        return size == 0
+        // identical to size == 0, without having to do a pop count
+        return mask == 0
     }
 
     fun isNotEmpty(): Boolean {
-        return size != 0
+        // identical to size != 0, without having to do a pop count
+        return mask != 0
     }
 
     fun asIntIterable() = object: Iterable<Int> {
         override fun iterator(): IntIterator {
-            return ids.iterator()
+            return mask.bitIterator()
         }
     }
 
     fun iterator(): IntIterator {
-        return ids.iterator()
+        return mask.bitIterator()
     }
 
     fun intersectSize(other: BindingIdentifierSet): Int {
-        if (this.size == 0 || other.size == 0) {
-            return 0
-        }
-        val smallest: BindingIdentifierSet
-        val largest: BindingIdentifierSet
-        if (this.size <= other.size) {
-            smallest = this
-            largest = other
-        } else {
-            smallest = other
-            largest = this
-        }
-        return smallest.asIntIterable().count { largest.contains(it) }
+        return (mask and other.mask).countOneBits()
     }
 
     fun unionSize(other: BindingIdentifierSet): Int {
-        // we counted our intersection double
-        return this.size + other.size - this.intersectSize(other)
+        return (mask or other.mask).countOneBits()
     }
 
     fun intersect(other: BindingIdentifierSet): BindingIdentifierSet {
-        if (this.size == 0 || other.size == 0) {
-            return EMPTY
-        }
-        val smallest: BindingIdentifierSet
-        val largest: BindingIdentifierSet
-        if (this.size <= other.size) {
-            smallest = this
-            largest = other
-        } else {
-            smallest = other
-            largest = this
-        }
-        val commonCount = smallest.asIntIterable().count { largest.contains(it) }
-        val iter = smallest.iterator()
-        return BindingIdentifierSet(
-            ids = IntArray(commonCount) {
-                var result = iter.next()
-                while (result !in largest) {
-                    result = iter.next()
-                }
-                result
-            }
-        )
+        return BindingIdentifierSet(mask and other.mask)
     }
 
     operator fun get(index: Int): BindingIdentifier {
-        return BindingIdentifier(id = ids[index])
+        // ensuring it exists
+        if (index < 0 || index >= size) {
+            throw IndexOutOfBoundsException("Invalid index $index for mask with $size element(s)")
+        }
+        val iter = mask.bitIterator()
+        repeat(index) {
+            iter.nextInt()
+        }
+        return BindingIdentifier(iter.nextInt())
     }
 
     operator fun contains(element: Int): Boolean {
-        // we can bin search, elements are sorted
-        var min = 0
-        var max = size - 1
-        while (min <= max) {
-            val mid = min + (max - min) / 2
-            val current = ids[mid]
-            when {
-                element == current -> return true
-                element < current -> max = mid - 1
-                current < element -> min = mid + 1
-            }
-        }
-        return false
+        return (1 shl element) and mask != 0
     }
 
     operator fun contains(elements: BindingIdentifierSet): Boolean {
-        if (elements.size > this.size) {
-            return false
-        }
-        return elements.asIntIterable().all { it in this }
+        return mask and elements.mask == elements.mask
     }
 
     operator fun plus(other: BindingIdentifierSet): BindingIdentifierSet {
-        // using the sorted counter type as that is a sorted map for the individual keys, meaning that we get
-        // * the sorted ID order we require
-        // * a distinct set of IDs present in either identifier set
-        val temp = SortedCounter<Int>()
-        this.asIntIterable().forEach { temp.increment(it) }
-        other.asIntIterable().forEach { temp.increment(it) }
-        val iter = temp.iterator()
-        val ids = IntArray(temp.size) { iter.next().key }
-        return BindingIdentifierSet(ids)
+        return BindingIdentifierSet(mask or other.mask)
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (other !is BindingIdentifierSet) {
-            return false
-        }
-        if (this.size != other.size) {
-            return false
-        }
-        return ids.contentEquals(other.ids)
+    operator fun minus(other: BindingIdentifierSet): BindingIdentifierSet {
+        return BindingIdentifierSet(mask and (other.mask.inv()))
     }
 
-    override fun hashCode(): Int {
-        return ids.contentHashCode()
-    }
-
-    override fun toString() = ids.joinToString(prefix = "BindingIdentifierSet {", postfix = "}")
+    override fun toString() = asIntIterable().joinToString(prefix = "BindingIdentifierSet {", postfix = "}")
 
     companion object {
-        val EMPTY = BindingIdentifierSet(ids = intArrayOf())
+
+        val EMPTY = BindingIdentifierSet(0)
+
+        // implemented as a companion object factory method to prevent overload ambiguity with the vararg variant,
+        //  which is more common
+        fun fromMask(mask: Int): BindingIdentifierSet {
+            return BindingIdentifierSet(mask)
+        }
     }
 
 }

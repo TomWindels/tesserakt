@@ -7,7 +7,7 @@ group = "sparql-endpoint"
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 // types used in sparql: bindings, quad elements, etc
                 api(project(":sparql:common"))

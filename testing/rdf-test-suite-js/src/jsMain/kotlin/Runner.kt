@@ -9,7 +9,7 @@ import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.serialization.trig.setBase
 import dev.tesserakt.rdf.serialization.turtle.Turtle
 import dev.tesserakt.rdf.serialization.turtle.setBase
-import dev.tesserakt.rdf.types.factory.Store
+import dev.tesserakt.rdf.types.Store
 import dev.tesserakt.rdf.types.toStore
 import dev.tesserakt.sparql.Compiler
 import dev.tesserakt.sparql.Query

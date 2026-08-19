@@ -1,10 +1,7 @@
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
-import dev.tesserakt.sparql.runtime.evaluation.mapping.IntPairMapping
 
 class TestQueryContext: QueryContext {
 
@@ -49,18 +46,6 @@ class TestQueryContext: QueryContext {
 
     override fun resolveTerm(id: Int): Quad.Element {
         return termsLut[id]
-    }
-
-    override fun mappingFromValues(terms: Iterable<Pair<String, Quad.Element>>): IntPairMapping {
-        return IntPairMapping(this, terms)
-    }
-
-    override fun mappingFromIdentifiers(terms: Iterable<Pair<BindingIdentifier, TermIdentifier>>): IntPairMapping {
-        return IntPairMapping(terms)
-    }
-
-    override fun emptyMapping(): IntPairMapping {
-        return IntPairMapping.EMPTY
     }
 
 }

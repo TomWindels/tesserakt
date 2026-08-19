@@ -8,10 +8,7 @@ suspend fun run(args: Array<String>) {
         0 -> {
             println("Running built-in tests")
             val results = listOf(
-                compareIncrementalChainSelectOutput(seed = 1)
-                    .test(QueryExecutionTestValues::toOutputComparisonTest),
-                compareIncrementalStarSelectOutput(seed = 1)
-                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+                /* we first evaluate validation-like tests */
                 builtinTests()
                     .test(QueryExecutionTestValues::toOutputComparisonTest),
                 builtinTests()
@@ -19,7 +16,18 @@ suspend fun run(args: Array<String>) {
                 builtinTests()
                     .test(QueryExecutionTestValues::toIncrementalDeferredUpdateTest),
                 builtinTests()
+                    .test(QueryExecutionTestValues::toIncrementalDeferredDeletionTest),
+                builtinTests()
+                    .test(QueryExecutionTestValues::toDeferredClearTest),
+                builtinTests()
                     .test(QueryExecutionTestValues::toRandomUpdateTest),
+                /* we then use larger sized, generated datasets & queries for performance-oriented evaluation */
+                compareIncrementalChainSelectOutput(seed = 1)
+                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+                compareIncrementalStarSelectOutput(seed = 1)
+                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+                compareIncrementalImbalancedStarSelectOutput(seed = 1)
+                    .test(QueryExecutionTestValues::toOutputComparisonTest),
             ).map { it.run() }
             results.forEach { it.report() }
             if (results.any { !it.isSuccess() }) {

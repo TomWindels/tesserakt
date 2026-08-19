@@ -6,7 +6,7 @@ group = "sparql-endpoint"
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 // shared types to interact with sparql endpoints through ktor
                 implementation(project(":sparql:endpoint:ktor:core"))

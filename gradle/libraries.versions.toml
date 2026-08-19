@@ -3,17 +3,17 @@
 # `AutoCloseable`, used throughout the code base (mainly serialization) is only available starting from Android SDk 19
 minSdk = "19"
 compileSdk = "36"
-android-plugin = "8.12.3"
-kotlin = "2.2.21"
-kotlinx-benchmark = "0.4.14"
-kotlinx-coroutines = "1.10.2"
-kotlinx-serialization = "1.9.0"
-ktor = "3.3.3"
-graalvm = "0.11.3"
-clikt = "5.0.3"
-dokka = "2.1.0"
-maven-publish = "0.35.0"
-jena = "5.6.0"
+android-plugin = "9.0.1"
+kotlin = "2.4.10"
+kotlinx-benchmark = "0.4.17"
+kotlinx-coroutines = "1.11.0"
+kotlinx-serialization = "1.11.0"
+ktor = "3.5.1"
+graalvm = "1.1.6"
+clikt = "5.1.0"
+dokka = "2.2.0"
+maven-publish = "0.37.0"
+jena = "6.1.0"
 
 [libraries]
 

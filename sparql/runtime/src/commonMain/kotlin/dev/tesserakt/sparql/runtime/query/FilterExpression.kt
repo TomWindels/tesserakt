@@ -2,7 +2,6 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
 import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
@@ -108,10 +107,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
 
                     is FuncCall -> BuiltinFunction.from(context, expr)
                     is Negative -> TODO()
-                    is NumericLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
+                    is NumericLiteralValue -> ConstantValueOperation(Quad.Literal(expr.value).into())
                     is DateLiteralValue -> ConstantValueOperation(expr.timestamp.into())
-                    is BooleanLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
-                    is StringLiteralValue -> ConstantValueOperation(expr.value.asLiteralTerm().into())
+                    is BooleanLiteralValue -> ConstantValueOperation(Quad.Literal(expr.value).into())
+                    is StringLiteralValue -> ConstantValueOperation(Quad.Literal(expr.value).into())
                 }
             }
         }
@@ -127,8 +126,9 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             }
 
             override fun eval(input: OperationValue): OperationValue {
-                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
-                return (comparison == 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return Quad.Literal(false)
+                    .into()
+                return Quad.Literal((comparison == 0)).into()
             }
 
             override fun toString(): String {
@@ -144,8 +144,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             }
 
             override fun eval(input: OperationValue): OperationValue {
-                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
-                return (comparison != 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return Quad.Literal(false).into()
+                return Quad.Literal((comparison != 0)).into()
             }
 
             override fun toString(): String {
@@ -161,8 +161,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             }
 
             override fun eval(input: OperationValue): OperationValue {
-                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
-                return (comparison < 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return Quad.Literal(false).into()
+                return Quad.Literal(comparison < 0).into()
             }
 
             override fun toString(): String {
@@ -179,8 +179,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             }
 
             override fun eval(input: OperationValue): OperationValue {
-                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
-                return (comparison > 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return Quad.Literal(false).into()
+                return Quad.Literal(comparison > 0).into()
             }
 
             override fun toString(): String {
@@ -196,8 +196,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             }
 
             override fun eval(input: OperationValue): OperationValue {
-                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
-                return (comparison <= 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return Quad.Literal(false).into()
+                return Quad.Literal(comparison <= 0).into()
             }
 
             override fun toString(): String {
@@ -213,8 +213,8 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
             }
 
             override fun eval(input: OperationValue): OperationValue {
-                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return false.asLiteralTerm().into()
-                return (comparison >= 0).asLiteralTerm().into()
+                val comparison = compare(context, left.eval(input), right.eval(input)) ?: return Quad.Literal(false).into()
+                return Quad.Literal(comparison >= 0).into()
             }
 
             override fun toString(): String {
@@ -304,7 +304,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         final override fun eval(input: OperationValue): OperationValue {
             val left = lhs.eval(input).getTerm(context)?.typedLiteral?.numericalValue ?: return OperationValue.Unbound
             val right = rhs.eval(input).getTerm(context)?.typedLiteral?.numericalValue ?: return OperationValue.Unbound
-            return eval(left, right).asLiteralTerm().into()
+            return Quad.Literal(eval(left, right)).into()
         }
 
         final override fun bindings(): BindingIdentifierSet {
@@ -364,7 +364,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         }
 
         override fun eval(input: OperationValue): OperationValue {
-            return (lhs.eval(input).isTrue() && rhs.eval(input).isTrue()).asLiteralTerm().into()
+            return Quad.Literal(lhs.eval(input).isTrue() && rhs.eval(input).isTrue()).into()
         }
 
         override fun toString(): String {
@@ -380,7 +380,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
         }
 
         override fun eval(input: OperationValue): OperationValue {
-            return (lhs.eval(input).isTrue() || rhs.eval(input).isTrue()).asLiteralTerm().into()
+            return Quad.Literal(lhs.eval(input).isTrue() || rhs.eval(input).isTrue()).into()
         }
 
         override fun toString(): String {
@@ -456,7 +456,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
     val bindings = root.parent.bindings()
 
     fun test(mapping: Mapping): Boolean {
-        return root.eval(mapping.into()).getTerm(context) == true.asLiteralTerm()
+        return root.eval(mapping.into()).getTerm(context) == Quad.Literal(true)
     }
 
     override fun toString(): String {
@@ -507,7 +507,7 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 if (term !is Quad.LangString) {
                     return OperationValue.Unbound
                 }
-                return term.language.asLiteralTerm().into()
+                return Quad.Literal(term.language).into()
             }
 
             override fun toString(): String {
@@ -539,10 +539,10 @@ class FilterExpression(val context: QueryContext, expr: Expression) {
                 // now regular matching can be applied
                 // special case first, where "*" matches all (non-empty!) language tags
                 return if (range == "*") {
-                    tag.isNotEmpty().asLiteralTerm().into()
+                    Quad.Literal(tag.isNotEmpty()).into()
                 } else {
                     val currentLang = tag.substringBefore('-')
-                    currentLang.contentEquals(range, ignoreCase = true).asLiteralTerm().into()
+                    Quad.Literal(currentLang.contentEquals(range, ignoreCase = true)).into()
                 }
             }
 
@@ -625,7 +625,7 @@ private val Quad.TypedLiteral.numericalValue: Double
 
 private fun FilterExpression.OperationValue.isTrue(): Boolean = when (this) {
     is FilterExpression.OperationValue.SingleMapping -> false
-    is FilterExpression.OperationValue.SingleValue -> term == true.asLiteralTerm()
+    is FilterExpression.OperationValue.SingleValue -> term == Quad.Literal(true)
     is FilterExpression.OperationValue.SingleValueIdentifier -> false
     is FilterExpression.OperationValue.DateValue -> false
     FilterExpression.OperationValue.Unbound -> false

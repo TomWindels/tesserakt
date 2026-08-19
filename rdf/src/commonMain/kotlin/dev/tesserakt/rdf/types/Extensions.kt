@@ -2,8 +2,6 @@ package dev.tesserakt.rdf.types
 
 import dev.tesserakt.SuspendingIterator
 import dev.tesserakt.forEach
-import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.Store
 import dev.tesserakt.rdf.types.impl.StoreImpl
 
 fun Iterable<Quad>.toStore(): Store {

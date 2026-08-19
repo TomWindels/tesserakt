@@ -1,20 +1,23 @@
 package dev.tesserakt.sparql.runtime.stream
 
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.util.Cardinality
-import dev.tesserakt.sparql.util.Counter
 
-class StreamReduction<E: Any>(
-    private val source: Stream<E>,
-    removed: Iterable<E>
-): Stream<E> {
+/**
+ * Special variant of the [MappingStreamReduction] where exactly *1 element value* needs to be removed *once*
+ */
+class MappingStreamSingleElementReduction(
+    private val source: Stream<Mapping>,
+    private val removed: Mapping,
+): Stream<Mapping> {
 
     // necessary type lower bound for the Counter type
-    private class Iter<E : Any>(
-        private val source: Iterator<E>,
-        private val remove: Counter<E>
-    ): Iterator<E> {
+    private class Iter(
+        private val source: Iterator<Mapping>,
+        private var remove: Mapping?
+    ): Iterator<Mapping> {
 
-        private var next: E? = null
+        private var next: Mapping? = null
 
         override fun hasNext(): Boolean {
             if (next != null) {
@@ -24,17 +27,19 @@ class StreamReduction<E: Any>(
             return next != null
         }
 
-        override fun next(): E {
+        override fun next(): Mapping {
             val current = next ?: getNext()
             next = null
             return current ?: throw NoSuchElementException()
         }
 
-        private fun getNext(): E? {
+        private fun getNext(): Mapping? {
             while (source.hasNext()) {
                 val result = source.next()
-                if (result in remove) {
-                    remove.decrement(result)
+                val remove = remove ?: return result
+                if (result.matches(remove)) {
+                    // we no longer need to remove any element
+                    this.remove = null
                     continue
                 }
                 return result
@@ -43,8 +48,6 @@ class StreamReduction<E: Any>(
         }
 
     }
-
-    private val counter = Counter(removed)
 
     override val cardinality: Cardinality
         // not removing the dropped ones from the cardinality, as it's not guaranteed they're present in the first place
@@ -55,11 +58,12 @@ class StreamReduction<E: Any>(
     }
 
     override fun supportsEfficientIteration(): Boolean {
-        return false
+        // we're simple enough in this case compared to the more complete single item stream reduction
+        return source.supportsEfficientIteration()
     }
 
-    override fun iterator(): Iterator<E> {
-        return Iter(source = source.iterator(), remove = counter.clone())
+    override fun iterator(): Iterator<Mapping> {
+        return Iter(source = source.iterator(), remove = removed)
     }
 
     override fun supportsReuse(): Boolean {

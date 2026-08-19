@@ -12,7 +12,7 @@ class FileStreamDataSource(private val filepath: String): SuspendingDataSource {
     override suspend fun open(): SuspendingDataStream {
         val opts: dynamic = Any()
         opts.encoding = "utf8"
-        val stream = fs.createReadStream(filepath, opts)
+        val stream = FileSystem.createReadStream(filepath, opts)
         return NodeStreamDataSource(stream).open()
     }
 

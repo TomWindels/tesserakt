@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import com.vanniktech.maven.publish.SourcesJar
 
 plugins {
     id("base-config")
@@ -20,7 +21,7 @@ mavenPublishing {
         // - `JavadocJar.Javadoc()` to publish standard javadocs
         javadocJar = JavadocJar.Empty(),
         // whether to publish a sources jar
-        sourcesJar = true,
+        sourcesJar = SourcesJar.Sources(),
         // configure which Android library variants to publish if this project has an Android target
         // defaults to "release" when using the main plugin and nothing for the base plugin
         androidVariantsToPublish = if (SNAPSHOT) listOf("debug") else listOf("release"),

@@ -45,4 +45,4 @@ inline fun <E: Any> Collection<E>.toStream(): OptimisedStream<E> = when {
     else -> toStream(cardinality = size)
 }
 
-inline fun <E: Any> List<E>.toStream(): CollectedStream<E> = CollectedStream(this)
+inline fun <E: Any> List<E>.toStream(): OptimisedStream<E> = if (this.isEmpty()) emptyStream() else CollectedStream(this)

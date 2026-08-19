@@ -1,24 +1,23 @@
 package dev.tesserakt.rdf.dsl
 
-import dev.tesserakt.rdf.dsl.RDF.Environment
+import dev.tesserakt.rdf.dsl.RDFContext.Environment
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.MutableStore
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-typealias RDF_DSL = RDF.() -> Unit
+typealias RDF_DSL = RDFContext.() -> Unit
 
 @OptIn(ExperimentalContracts::class)
 fun RDF_DSL.extractPrefixes(): Map<String, String> {
     contract {
         callsInPlace(this@extractPrefixes, InvocationKind.EXACTLY_ONCE)
     }
-    return RDF(
+    return RDFContext(
         environment = Environment(""),
-        consumer = object: RDF.Consumer {
+        consumer = object: RDFContext.Consumer {
             override fun process(
                 subject: Quad.Subject,
                 predicate: Quad.Predicate,
@@ -43,7 +42,7 @@ fun RDF_DSL.extractPrefixes(): Map<String, String> {
 }
 
 @OptIn(ExperimentalContracts::class)
-fun buildStore(path: String = "", block: RDF.() -> Unit): Store {
+fun buildStore(path: String = "", block: RDFContext.() -> Unit): Store {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
@@ -51,7 +50,7 @@ fun buildStore(path: String = "", block: RDF.() -> Unit): Store {
 }
 
 @OptIn(ExperimentalContracts::class)
-fun buildStore(environment: Environment, block: RDF.() -> Unit): Store {
+fun buildStore(environment: Environment, block: RDFContext.() -> Unit): Store {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
@@ -59,11 +58,11 @@ fun buildStore(environment: Environment, block: RDF.() -> Unit): Store {
 }
 
 @OptIn(ExperimentalContracts::class)
-fun MutableStore.insert(environment: Environment = Environment(path = ""), block: RDF.() -> Unit): MutableStore {
+fun MutableStore.insert(environment: Environment = Environment(path = ""), block: RDFContext.() -> Unit): MutableStore {
     contract {
         callsInPlace(block, InvocationKind.EXACTLY_ONCE)
     }
-    RDF(
+    RDFContext(
         environment = environment,
         consumer = StoreAdapter(this)
     )
