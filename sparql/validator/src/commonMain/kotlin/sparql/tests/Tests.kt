@@ -1447,6 +1447,26 @@ fun builtinTests() = tests {
 
     using(unions) test """
         PREFIX : <http://www.example.org/>
+        SELECT * WHERE {
+            {
+                :a :p1 ?b .
+                BIND("1" as ?result1)
+            } UNION {
+                :a :p2 ?b .
+                BIND("2" as ?result1)
+            }
+            {
+                ?b :p3 ?s .
+                BIND("1" as ?result2)
+            } UNION {
+                ?b :p4 ?s .
+                BIND("2" as ?result2)
+            }
+        }
+    """
+
+    using(unions) test """
+        PREFIX : <http://www.example.org/>
         SELECT ?s WHERE {
             {
                 :a :p1 ?b .

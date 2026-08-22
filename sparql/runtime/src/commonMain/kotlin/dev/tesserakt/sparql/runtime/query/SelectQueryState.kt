@@ -31,6 +31,7 @@ class SelectQueryState(
     }
 
     override fun onNewBodyResult(change: MappingDelta) {
+        println("Change: $change")
         val projected = change.value.retain(projectionSet)
         when (change) {
             is MappingAddition -> {
