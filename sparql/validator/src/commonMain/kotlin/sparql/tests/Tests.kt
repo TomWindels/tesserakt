@@ -234,6 +234,17 @@ fun builtinTests() = tests {
 
         SELECT * WHERE {
             ?s a :Example ; :count ?c .
+            BIND(?c * ?c AS ?c2)
+            FILTER(?c > 2)
+            FILTER(?c < 5)
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example ; :count ?c .
             FILTER(?c > 2) .
             FILTER(?c < 5) .
         }
@@ -252,6 +263,23 @@ fun builtinTests() = tests {
                 ?s :count ?c2 .
                 FILTER(?c2 < 5)
             }
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            ?s a :Example .
+            OPTIONAL {
+                ?s :count ?c1 .
+                FILTER(?c1 > 2)
+            }
+            OPTIONAL {
+                ?s :count ?c2 .
+                FILTER(?c2 < 5)
+            }
+            BIND(?c1 + ?c2 AS ?c3)
         }
     """
 
@@ -289,6 +317,26 @@ fun builtinTests() = tests {
             FILTER(?s1 != ?s2) .
             FILTER(?s2 != ?s3) .
             FILTER(?s3 != ?s4) .
+        }
+    """
+
+    using(counts) test """
+        PREFIX : <http://example/>
+
+        SELECT * WHERE {
+            # getting enough subject - count pairs to get a more complex join tree hierarchy
+            # we have no filter going across a connected node; this solely checks disconnected nodes with filters
+            ?s1 a :Example ; :count ?c1 .
+            ?s2 a :Example ; :count ?c2 .
+            ?s3 a :Example ; :count ?c3 .
+            ?s4 a :Example ; :count ?c4 .
+            FILTER(?c1 >= ?c2) .
+            FILTER(?c2 >= ?c3) .
+            FILTER(?c3 >= ?c4) .
+            FILTER(?s1 != ?s2) .
+            FILTER(?s2 != ?s3) .
+            FILTER(?s3 != ?s4) .
+            BIND(?c1 + ?c2 + ?c3 + ?c4 AS ?c5)
         }
     """
 
@@ -1393,6 +1441,26 @@ fun builtinTests() = tests {
                 ?b :p3 ?s .
             } UNION {
                 ?b :p4 ?s .
+            }
+        }
+    """
+
+    using(unions) test """
+        PREFIX : <http://www.example.org/>
+        SELECT * WHERE {
+            {
+                :a :p1 ?b .
+                BIND("1" as ?result1)
+            } UNION {
+                :a :p2 ?b .
+                BIND("2" as ?result1)
+            }
+            {
+                ?b :p3 ?s .
+                BIND("1" as ?result2)
+            } UNION {
+                ?b :p4 ?s .
+                BIND("2" as ?result2)
             }
         }
     """
