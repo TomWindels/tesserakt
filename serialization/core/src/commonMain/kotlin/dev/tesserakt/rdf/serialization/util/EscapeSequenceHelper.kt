@@ -12,8 +12,19 @@ object EscapeSequenceHelper {
      *  sequences
      */
     fun decodeNumericEscapes(input: String): String {
-        val result = StringBuilder()
+        // we first do a quick scan - if there aren't any `\u` or `\U` patterns present, we don't need to copy the
+        //  contents into a new string
         var i = 0
+        while (i < input.length - 1 && input[i] != '\\' && (input[i + 1] != 'u' || input[i + 1] != 'U')) {
+            ++i
+        }
+        if (i == input.length - 1) {
+            return input
+        }
+        // we have to decode the input
+        // input[i] is at `\\`, so we copy everything leading up to it, letting the rest of the logic take over
+        val result = StringBuilder(input.length)
+        result.appendRange(input, 0, i - 1)
         while (i < input.length - 1) {
             val first = input[i]
             if (first == '\\') {
@@ -24,7 +35,7 @@ object EscapeSequenceHelper {
                         }
                         val code = input.substring(i + 2, i + 6).toInt(16)
                         i += 6
-                        result.append(decode(code))
+                        result.appendCodePoint(code)
                     }
                     'U' -> {
                         if (i + 10 > input.length) {
@@ -32,7 +43,7 @@ object EscapeSequenceHelper {
                         }
                         val code = input.substring(i + 2, i + 10).toInt(16)
                         i += 10
-                        result.append(decode(code))
+                        result.appendCodePoint(code)
                     }
                     else -> {
                         throw IllegalArgumentException("Invalid escape sequence at ${i + 1} for input `${input}`: \\${input[i + 1]}")
@@ -50,6 +61,40 @@ object EscapeSequenceHelper {
     }
 
     /**
+     * Replaces the numeric escape sequence `\uXXXX` at the tail position of [buf] with the decoded value.
+     * Throws [IllegalArgumentException] if [buf]s contents do not end with a valid numeric escape sequence.
+     */
+    fun decodeShortNumericEscapeAtTail(buf: StringBuilder) {
+        // `\` is either 6 or 10 spots before the end of the buffer
+        val end = buf.length
+        require(end >= 6)
+        if (buf[end - 6] == '\\') {
+            check(buf[end - 5] == 'u')
+            val code = buf.substring(end - 4, end).toInt(16)
+            buf.setLength(end - 6)
+            buf.appendCodePoint(code)
+            return
+        }
+    }
+
+    /**
+     * Replaces the numeric escape sequence `\UXXXXXXXX` at the tail position of [buf] with the decoded value.
+     * Throws [IllegalArgumentException] if [buf]s contents do not end with a valid numeric escape sequence.
+     */
+    fun decodeLongNumericEscapeAtTail(buf: StringBuilder) {
+        val end = buf.length
+        require(end >= 10)
+        if (buf[end - 10] == '\\') {
+            check(buf[end - 9] == 'U')
+            val code = buf.substring(end - 8, end).toInt(16)
+            buf.setLength(end - 10)
+            buf.appendCodePoint(code)
+            return
+        }
+        throw IllegalArgumentException()
+    }
+
+    /**
      * Decodes numeric escape sequences into their code point values and mapped character escapes into their target
      *  representation in the resulting string.
      *
@@ -60,8 +105,20 @@ object EscapeSequenceHelper {
         input: String,
         mapping: Map<Char, Char> = DefaultReservedCharacterEscapes
     ): String {
-        val result = StringBuilder()
+        // we first do a quick scan - if there aren't any `\` characters present, we don't need to copy the
+        //  contents into a new string
         var i = 0
+        while (i < input.length - 1 && input[i] != '\\') {
+            ++i
+        }
+        // if this condition holds, i = input.length - 1, meaning we checked the entire length successfully
+        if (input[i] != '\\') {
+            return input
+        }
+        // we have to decode the input
+        // input[i] is at `\\`, so we copy everything leading up to it, letting the rest of the logic take over
+        val result = StringBuilder(input.length)
+        result.appendRange(input, 0, i - 1)
         while (i < input.length - 1) {
             val first = input[i]
             if (first == '\\') {
@@ -73,7 +130,7 @@ object EscapeSequenceHelper {
                         }
                         val code = input.substring(i + 2, i + 6).toInt(16)
                         i += 6
-                        result.append(decode(code))
+                        result.appendCodePoint(code)
                     }
                     'U' -> {
                         if (i + 10 > input.length) {
@@ -81,7 +138,7 @@ object EscapeSequenceHelper {
                         }
                         val code = input.substring(i + 2, i + 10).toInt(16)
                         i += 10
-                        result.append(decode(code))
+                        result.appendCodePoint(code)
                     }
                     else -> {
                         val mapped = mapping[second]
@@ -134,7 +191,7 @@ object EscapeSequenceHelper {
 
 }
 
-internal expect fun decode(codepoint: Int): String
+internal expect fun StringBuilder.appendCodePoint(codepoint: Int)
 
 /**
  * A helper function to transform [codepoint] into a [String] by transforming it into its UTF-8 representation and

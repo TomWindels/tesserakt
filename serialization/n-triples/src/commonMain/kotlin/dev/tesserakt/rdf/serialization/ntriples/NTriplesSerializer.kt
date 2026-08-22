@@ -1,16 +1,21 @@
 package dev.tesserakt.rdf.serialization.ntriples
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
+import dev.tesserakt.rdf.serialization.common.DataSource
 import dev.tesserakt.rdf.serialization.common.Serializer
-import dev.tesserakt.rdf.serialization.core.DataStream
-import dev.tesserakt.rdf.serialization.util.BufferedString
+import dev.tesserakt.rdf.serialization.util.BufferedCharStream
 import dev.tesserakt.rdf.types.Quad
 
 internal object NTriplesSerializer: Serializer() {
 
     @OptIn(InternalSerializationApi::class)
-    override fun deserialize(input: DataStream): Iterator<Quad> {
-        return NTriplesDeserializer(BufferedString(input))
+    override fun deserialize(input: DataSource): DeserializationProcess {
+        val source = BufferedCharStream(input)
+        val deserializer = NTriplesDeserializer(source)
+        return DeserializationProcess(
+            source = source,
+            inner = deserializer
+        )
     }
 
     override fun serialize(data: Iterator<Quad>): Iterator<String> = iterator {

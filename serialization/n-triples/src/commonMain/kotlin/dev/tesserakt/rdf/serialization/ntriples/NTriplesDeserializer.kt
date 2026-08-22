@@ -1,14 +1,14 @@
 package dev.tesserakt.rdf.serialization.ntriples
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
-import dev.tesserakt.rdf.serialization.util.BufferedString
+import dev.tesserakt.rdf.serialization.util.BufferedCharStream
 import dev.tesserakt.rdf.serialization.util.bail
 import dev.tesserakt.rdf.serialization.util.consumeWhile
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.util.isNullOr
 
 @InternalSerializationApi
-internal class NTriplesDeserializer(private val source: BufferedString) : Iterator<Quad> {
+internal class NTriplesDeserializer(private val source: BufferedCharStream) : Iterator<Quad> {
 
     private val lut = mutableMapOf<String, Int>()
     private var next: Quad? = null

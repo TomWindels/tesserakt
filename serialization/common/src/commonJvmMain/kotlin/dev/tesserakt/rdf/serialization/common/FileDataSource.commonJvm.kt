@@ -6,7 +6,7 @@ import dev.tesserakt.rdf.serialization.core.DataStream
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-actual class FileDataSource(private val file: java.io.File) : DataSource {
+actual class FileDataSource(val file: java.io.File) : DataSource {
 
     actual constructor(filepath: String): this(file = java.io.File(filepath))
 

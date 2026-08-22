@@ -35,6 +35,37 @@ class CircularCharBuffer(capacity: Int = 1024) {
     private val buffer = CharArray(mask + 1)
 
     /**
+     * A cached iterator that goes through the still-available contents of the backing [buffer].
+     */
+    private val iterator = object: CharIterator() {
+
+        private var pos = offset
+        private var remaining = size
+
+        override fun nextChar(): Char {
+            if (remaining == 0) {
+                throw NoSuchElementException()
+            }
+            val c = buffer[pos++]
+            --remaining
+            if (pos == buffer.size) {
+                pos = 0
+            }
+            return c
+        }
+
+        override fun hasNext(): Boolean {
+            return remaining != 0
+        }
+
+        fun reset() {
+            pos = offset
+            remaining = size
+        }
+
+    }
+
+    /**
      * The total size of the backing buffer. The [size] can never exceed this value.
      */
     val capacity: Int
@@ -74,6 +105,33 @@ class CircularCharBuffer(capacity: Int = 1024) {
         require(count <= size) { "Trying to consume more data than is currently read in: $count > $size" }
         offset = (offset + count) and mask
         size -= count
+    }
+
+    fun consumeInto(target: StringBuilder, count: Int) {
+        require(size >= count)
+        if (offset + count > buffer.size) {
+            // we need to do two inserts
+            target.appendRange(buffer, offset, buffer.size)
+            target.appendRange(buffer, 0, count - (buffer.size - offset))
+        } else {
+            // simple insert suffices
+            target.appendRange(buffer, offset, offset + count)
+        }
+        // we now completely consume the contents by updating our state
+        offset = (offset + count) and mask
+        size -= count
+    }
+
+    /**
+     * Returns a specialised iterator for faster element access.
+     *
+     * Uses a single cached instance, meaning that you cannot have multiple active at the same time.
+     *
+     * Buffer modification is not allowed whilst the iterator instance is in use.
+     */
+    fun iterator(): CharIterator {
+        iterator.reset()
+        return iterator
     }
 
     /**

@@ -5,8 +5,10 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
 
+// TODO remove this method
+@Deprecated("This method will be removed")
 @InternalSerializationApi
-inline fun BufferedString.consumeWhile(invalid: (Char) -> Boolean, predicate: (Char) -> Boolean): String {
+inline fun BufferedCharStream.consumeWhile(invalid: (Char) -> Boolean, predicate: (Char) -> Boolean): String {
     val result = StringBuilder()
     var c = peek() ?: throw NoSuchElementException("Unexpected EOF reached! Last received data: `$result`")
     while (true) {
@@ -25,7 +27,7 @@ inline fun BufferedString.consumeWhile(invalid: (Char) -> Boolean, predicate: (C
 }
 
 @InternalSerializationApi
-inline fun BufferedString.consumeWhile(predicate: (Char) -> Boolean): String {
+inline fun BufferedCharStream.consumeWhile(predicate: (Char) -> Boolean): String {
     val result = StringBuilder()
     var c = peek() ?: throw NoSuchElementException("Unexpected EOF reached! Last received data: `$result`")
     while (predicate(c)) {
@@ -38,7 +40,7 @@ inline fun BufferedString.consumeWhile(predicate: (Char) -> Boolean): String {
 
 @InternalSerializationApi
 @OptIn(ExperimentalContracts::class)
-inline fun BufferedString.expect(condition: Boolean, message: () -> String) {
+inline fun BufferedCharStream.expect(condition: Boolean, message: () -> String) {
     contract {
         returns() implies condition
     }
@@ -49,17 +51,17 @@ inline fun BufferedString.expect(condition: Boolean, message: () -> String) {
 }
 
 @OptIn(InternalSerializationApi::class)
-inline fun BufferedString.expect(char: Char, offset: Int = 0) {
+inline fun BufferedCharStream.expect(char: Char, offset: Int = 0) {
     val c = peek(offset)
     expect(c == char) { "`$char` expected, got ${if (c != null) "`$c`" else "<EOF>"}" }
 }
 
 @InternalSerializationApi
-inline fun BufferedString.bail(message: String, range: IntRange): Nothing {
+inline fun BufferedCharStream.bail(message: String, range: IntRange): Nothing {
     throw IllegalStateException("${message}\nError occurred here\n${report(start = range.first, end = range.last)}")
 }
 
 @InternalSerializationApi
-inline fun BufferedString.bail(message: String): Nothing {
+inline fun BufferedCharStream.bail(message: String): Nothing {
     throw IllegalStateException("${message}\nError occurred here\n${report()}")
 }

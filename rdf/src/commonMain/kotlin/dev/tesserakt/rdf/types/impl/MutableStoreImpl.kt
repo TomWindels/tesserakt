@@ -1,29 +1,39 @@
 package dev.tesserakt.rdf.types.impl
 
 import dev.tesserakt.rdf.types.EncodedQuad
+import dev.tesserakt.rdf.types.MutableEncodingContext
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.Quad
 
-internal class MutableStoreImpl(quads: Collection<Quad> = emptyList()): AbstractStore(), MutableStore {
+internal class MutableStoreImpl: AbstractStore, MutableStore {
 
     // we first create our encoding context; without any initial state
-    override val context = MutableEncodingContextImpl()
+    override val context: MutableEncodingContext
 
-    // then we create our actual set of *encoded* quads
-    // the fact they're encoded makes checking for 'contains' etc. faster, as we mainly pay the price for initial lookup
-    //  of the individual terms, and can then compare the encoded variants faster
-    private val quads = run {
-        val result = mutableSetOf<EncodedQuad>()
-        quads.forEach { quad ->
-            // we are guaranteed to be able to encode it as we're a mutable collection
-            val encoded = EncodedQuad(context, quad)
-            result.add(encoded)
-        }
-        result
-    }
+    private val quads: MutableSet<EncodedQuad>
 
     override val size: Int
         get() = quads.size
+
+    constructor() {
+        context = MutableEncodingContextImpl()
+        quads = mutableSetOf()
+    }
+
+    constructor(quads: Collection<Quad>) {
+        this.context = MutableEncodingContextImpl()
+        this.quads = HashSet(quads.size)
+        quads.forEach { quad ->
+            // we are guaranteed to be able to encode it as we're a mutable collection
+            val encoded = EncodedQuad(context, quad)
+            this.quads.add(encoded)
+        }
+    }
+
+    constructor(capacity: Int) {
+        this.context = MutableEncodingContextImpl()
+        this.quads = HashSet(capacity)
+    }
 
     override fun iterator() = MutableDecodingIterator(src = quads.iterator(), context = context)
 

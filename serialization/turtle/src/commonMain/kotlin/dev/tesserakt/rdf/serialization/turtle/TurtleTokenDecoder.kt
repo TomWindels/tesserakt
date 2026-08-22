@@ -4,12 +4,10 @@ import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.*
 import dev.tesserakt.util.isNullOr
-import kotlin.jvm.JvmInline
 import kotlin.text.isWhitespace
 
 @InternalSerializationApi
-@JvmInline
-internal value class TurtleTokenDecoder(private val source: BufferedString) : Iterator<TurtleToken> {
+internal class TurtleTokenDecoder(private val source: BufferedCharStream) : Iterator<TurtleToken> {
 
     override fun hasNext(): Boolean {
         consumeWhitespace()
@@ -61,8 +59,7 @@ internal value class TurtleTokenDecoder(private val source: BufferedString) : It
     private fun consumeTerm(): TurtleToken.TermToken {
         source.expect('<')
         source.consume() // '<'
-        val content = source.consumeWhile(invalid = Char::isWhitespace) { it != '>' }
-            .let { EscapeSequenceHelper.decodeNumericEscapes(it) }
+        val content = source.consumeAndDecodeWithoutWhitespaceUntil('>')
         source.consume() // '>'
         // valid non-relative terms start with `mailto:`, `http(s)://`, etc.
         return if (':' !in content) {

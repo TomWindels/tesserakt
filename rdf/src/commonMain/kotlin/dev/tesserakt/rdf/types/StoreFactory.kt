@@ -4,6 +4,8 @@ import dev.tesserakt.rdf.types.impl.*
 
 fun MutableStore(): MutableStore = MutableStoreImpl()
 
+fun MutableStore(capacity: Int): MutableStore = MutableStoreImpl(capacity)
+
 fun MutableStore(data: Collection<Quad>): MutableStore = MutableStoreImpl(data)
 
 fun ObservableStore(): ObservableStore = ObservableStoreImpl()
