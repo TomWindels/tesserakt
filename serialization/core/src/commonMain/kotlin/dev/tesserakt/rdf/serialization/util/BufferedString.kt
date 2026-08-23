@@ -21,17 +21,17 @@ class BufferedString(
     private val scratch = StringBuilder(200)
 
     /**
-     * Reads the current top character, returning `null` if EOF has been reached.
+     * Reads the current top character [Char.code], returning `-1` if EOF has been reached.
      */
-    override fun peek(): Char? {
+    override fun peek(): Int {
         // we have to make sure there's enough data in the buffer
         ensureBufferSize(1)
         // if the buffer is exhausted, and we're looking for a character past it's size, we can conclusively say we've
         //  reached EOF
         if (buffer.size == 0) {
-            return null
+            return -1
         }
-        return buffer.first()
+        return buffer.first().code
     }
 
     private fun ensureBufferSize(size: Int) {
@@ -169,12 +169,12 @@ class BufferedString(
     }
 
     /**
-     * Reads the current top + [offset] character (cannot be negative!), returning `null` if EOF has been
+     * Reads the current top + [offset] character (cannot be negative!), returning `-1` if EOF has been
      *  reached. Automatically reads as much data in from the [source] depending on the offset.
      *
      * Throws an exception if [offset] exceeds the internal [CircularCharBuffer.capacity].
      */
-    override fun peek(offset: Int): Char? {
+    override fun peek(offset: Int): Int {
         if (offset >= buffer.capacity) {
             throw IllegalArgumentException("The offset cannot exceed the buffer's capacity (${offset} >= ${buffer.capacity})")
         }
@@ -185,9 +185,9 @@ class BufferedString(
         // if the buffer is exhausted, and we're looking for a character past it's size, we can conclusively say we've
         //  reached EOF
         if (offset >= buffer.size) {
-            return null
+            return -1
         }
-        return buffer[offset]
+        return buffer[offset].code
     }
 
     /**
@@ -207,9 +207,9 @@ class BufferedString(
      * if (c != null) consume(1)
      * ```
      */
-    override fun pop(): Char? {
+    override fun pop(): Int {
         val c = peek(0)
-        if (c != null) {
+        if (c != -1) {
             consume()
         }
         return c

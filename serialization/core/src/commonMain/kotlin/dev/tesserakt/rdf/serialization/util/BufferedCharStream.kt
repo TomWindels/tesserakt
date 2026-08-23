@@ -6,9 +6,9 @@ import dev.tesserakt.rdf.serialization.InternalSerializationApi
 interface BufferedCharStream: AutoCloseable {
 
     /**
-     * Reads the current top character, returning `null` if EOF has been reached.
+     * Reads the current top character, returning `-1` if EOF has been reached, or a valid [Char] code.
      */
-    fun peek(): Char?
+    fun peek(): Int
 
     /**
      * Consumes data from this backing buffer, decoding `\uXXXX` and `\UXXXXXXXX` segments, returning the read string
@@ -31,12 +31,12 @@ interface BufferedCharStream: AutoCloseable {
     fun consumeWhile(predicate: (Char) -> Boolean): String
 
     /**
-     * Reads the current top + [offset] character (cannot be negative!), returning `null` if EOF has been
+     * Reads the current top + [offset] character (cannot be negative!), returning `-1` if EOF has been
      *  reached. Automatically reads as much data in from the source depending on the offset.
      *
      * Throws an exception if [offset] exceeds the internal [CircularCharBuffer.capacity].
      */
-    fun peek(offset: Int): Char?
+    fun peek(offset: Int): Int
 
     /**
      * Consumes [count] characters from the underlying data stream, shifting the data returned by [peek].
@@ -53,7 +53,7 @@ interface BufferedCharStream: AutoCloseable {
      * if (c != null) consume(1)
      * ```
      */
-    fun pop(): Char?
+    fun pop(): Int
 
     fun report(index: Int = 0): String
 

@@ -118,25 +118,25 @@ class FileCharStream(
         return consumeUntilUsingScratchBuffer(predicate)
     }
 
-    override fun peek(): Char? {
+    override fun peek(): Int {
         ensureBufferSize(1)
         if (size == 0) {
-            return null
+            return -1
         }
-        return buf[head]
+        return buf[head].code
     }
 
-    override fun peek(offset: Int): Char? {
+    override fun peek(offset: Int): Int {
         ensureBufferSize(offset + 1)
         if (size < offset) {
-            return null
+            return -1
         }
-        return buf[head + offset]
+        return buf[head + offset].code
     }
 
-    override fun pop(): Char? {
+    override fun pop(): Int {
         val c = peek()
-        if (c != null) {
+        if (c != -1) {
             consume()
         }
         return c

@@ -18,8 +18,41 @@ inline fun BufferedCharStream.expect(condition: Boolean, message: () -> String) 
 
 @OptIn(InternalSerializationApi::class)
 inline fun BufferedCharStream.expect(char: Char, offset: Int = 0) {
-    val c = peek(offset)
-    expect(c == char) { "`$char` expected, got ${if (c != null) "`$c`" else "<EOF>"}" }
+    val code = peek(offset)
+    if (code == -1) {
+        bail("Expected `$char`, got <EOF>")
+    }
+    val actual = Char(code)
+    expect(Char(code) == char) { "`$char` expected, got `$actual`" }
+}
+
+@OptIn(InternalSerializationApi::class)
+inline fun BufferedCharStream.nextIs(char: Char, offset: Int = 0): Boolean {
+    val code = peek(offset)
+    if (code == -1) {
+        return false
+    }
+    val actual = Char(code)
+    return char == actual
+}
+
+@OptIn(InternalSerializationApi::class)
+inline fun BufferedCharStream.nextIsEofOr(predicate: (Char) -> Boolean): Boolean {
+    val code = peek()
+    if (code == -1) {
+        return true
+    }
+    val actual = Char(code)
+    return predicate(actual)
+}
+
+@OptIn(InternalSerializationApi::class)
+inline fun BufferedCharStream.peekOrBail(): Char {
+    val code = peek()
+    if (code == -1) {
+        bail("Unexpected EOF reached!")
+    }
+    return Char(code)
 }
 
 @InternalSerializationApi

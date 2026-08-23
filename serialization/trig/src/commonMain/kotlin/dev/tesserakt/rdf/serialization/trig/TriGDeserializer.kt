@@ -544,7 +544,9 @@ internal class TriGDeserializer(
             TriGToken.Keyword.PrefixAnnotationA,
             TriGToken.Keyword.PrefixAnnotationB -> {
                 val prefix = source.consume()
-                check(prefix is TriGToken.PrefixedTerm && prefix.value.isEmpty())
+                check(prefix is TriGToken.PrefixedTerm && prefix.value.isEmpty()) {
+                    "Invalid structure encountered: ${if (prefix is TriGToken.PrefixedTerm) "`${prefix.value}` should be empty!" else "`${prefix}` is not a valid prefix element!"}"
+                }
                 prefixes[prefix.prefix] = when (val uri = source.consume()) {
                     is TriGToken.Term -> uri.value
 
