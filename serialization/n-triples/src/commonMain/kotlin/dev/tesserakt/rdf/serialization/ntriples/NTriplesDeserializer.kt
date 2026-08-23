@@ -3,7 +3,6 @@ package dev.tesserakt.rdf.serialization.ntriples
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.util.BufferedCharStream
 import dev.tesserakt.rdf.serialization.util.bail
-import dev.tesserakt.rdf.serialization.util.consumeWhile
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.util.isNullOr
 
@@ -46,9 +45,9 @@ internal class NTriplesDeserializer(private val source: BufferedCharStream) : It
     private fun consumeTerm(): Quad.Element? {
         consumeWhitespace()
         return when (val c = source.pop()) {
-            null -> return null
+            null -> null
             '<' -> {
-                val inner = source.consumeWhile(Char::isWhitespace) { it != '>' }
+                val inner = source.consumeAndDecodeWithoutWhitespaceUntil('>')
                 source.consume() // '>'
                 Quad.NamedTerm(inner)
             }
@@ -56,7 +55,7 @@ internal class NTriplesDeserializer(private val source: BufferedCharStream) : It
             '_' -> {
                 check(source.peek() == ':')
                 source.consume()
-                val label = source.consumeWhile { !it.isWhitespace() }
+                val label = source.consumeUntilWhitespace()
                 Quad.BlankTerm(id = label.asBlankNodeId())
             }
 
@@ -73,7 +72,7 @@ internal class NTriplesDeserializer(private val source: BufferedCharStream) : It
                 } else if (source.peek() == '@') {
                     // getting rid of the '@'
                     source.consume()
-                    val lang = source.consumeWhile { !it.isWhitespace() }
+                    val lang = source.consumeUntilWhitespace()
                     Quad.Literal(value = value, language = lang)
                 } else {
                     Quad.Literal(value = value)

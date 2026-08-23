@@ -10,9 +10,25 @@ interface BufferedCharStream: AutoCloseable {
      */
     fun peek(): Char?
 
+    /**
+     * Consumes data from this backing buffer, decoding `\uXXXX` and `\UXXXXXXXX` segments, returning the read string
+     *  instance. Throws an exception (halting the deserialization process) if encountering
+     *  a [Char.isWhitespace] character
+     */
     fun consumeAndDecodeWithoutWhitespaceUntil(
         delimiter: Char,
     ): String
+
+    /**
+     * Simpler version of [consumeAndDecodeWithoutWhitespaceUntil], consuming and returning the data until the first
+     * [Char.isWhitespace] is encountered.
+     */
+    fun consumeUntilWhitespace(): String
+
+    /**
+     * Generic version of [consumeUntilWhitespace]
+     */
+    fun consumeWhile(predicate: (Char) -> Boolean): String
 
     /**
      * Reads the current top + [offset] character (cannot be negative!), returning `null` if EOF has been

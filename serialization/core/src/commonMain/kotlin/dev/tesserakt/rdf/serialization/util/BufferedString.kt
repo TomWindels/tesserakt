@@ -109,7 +109,62 @@ class BufferedString(
             if (buffer.size == 0) {
                 bail("Unexpected EOF reached! Got `$scratch`")
             }
-            // the iterator gets as we're going back up top
+            // the iterator gets reset as we're going back up top
+        }
+    }
+
+    override fun consumeUntilWhitespace(): String {
+        scratch.setLength(0)
+        ensureBufferSize(1)
+        if (buffer.size == 0) {
+            bail("Unexpected EOF reached! No data remaining!")
+        }
+        while (true) {
+            var i = 0
+            val iter = buffer.iterator()
+            check(iter.hasNext()) { "$iter failed!"}
+            while (iter.hasNext()) {
+                val c = iter.nextChar()
+                if (c.isWhitespace()) {
+                    buffer.consumeInto(scratch, i)
+                    return scratch.toString()
+                }
+                ++i
+            }
+            // flushing everything we currently have and resetting our position
+            buffer.consumeInto(scratch, i)
+            ensureBufferSize(1)
+            if (buffer.size == 0) {
+                bail("Unexpected EOF reached! Got `$scratch`")
+            }
+            // the iterator gets reset as we're going back up top
+        }
+    }
+
+    override fun consumeWhile(predicate: (Char) -> Boolean): String {
+        scratch.setLength(0)
+        ensureBufferSize(1)
+        if (buffer.size == 0) {
+            bail("Unexpected EOF reached! No data remaining!")
+        }
+        while (true) {
+            var i = 0
+            val iter = buffer.iterator()
+            check(iter.hasNext()) { "$iter failed!"}
+            while (iter.hasNext()) {
+                if (!predicate(iter.nextChar())) {
+                    buffer.consumeInto(scratch, i)
+                    return scratch.toString()
+                }
+                ++i
+            }
+            // flushing everything we currently have and resetting our position
+            buffer.consumeInto(scratch, i)
+            ensureBufferSize(1)
+            if (buffer.size == 0) {
+                bail("Unexpected EOF reached! Got `$scratch`")
+            }
+            // the iterator gets reset as we're going back up top
         }
     }
 
