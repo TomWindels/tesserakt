@@ -4,94 +4,55 @@ import kotlin.experimental.or
 
 object EscapeSequenceHelper {
 
-    /**
-     * Decodes numeric escape sequences into their code point values and mapped character escapes into their target
-     *  representation in the resulting string.
-     *
-     * IMPORTANT: this method **throws an IllegalArgumentException** upon encountering unknown or invalid escape
-     *  sequences
-     */
-    fun decodeNumericEscapes(input: String): String {
-        // we first do a quick scan - if there aren't any `\u` or `\U` patterns present, we don't need to copy the
-        //  contents into a new string
-        var i = 0
-        while (i < input.length - 1 && input[i] != '\\' && (input[i + 1] != 'u' || input[i + 1] != 'U')) {
-            ++i
+    // we want to prevent temporary object allocations
+    @Suppress("ConvertTwoComparisonsToRangeCheck")
+    fun hexToInt(char: Char): Int {
+        if (char >= '0' && char <= '9') {
+            return char - '0'
         }
-        if (i == input.length - 1) {
-            return input
+        if (char >= 'A' && char <= 'F') {
+            return char - 'A' + 10
         }
-        // we have to decode the input
-        // input[i] is at `\\`, so we copy everything leading up to it, letting the rest of the logic take over
-        val result = StringBuilder(input.length)
-        result.appendRange(input, 0, i - 1)
-        while (i < input.length - 1) {
-            val first = input[i]
-            if (first == '\\') {
-                when (input[i + 1]) {
-                    'u' -> {
-                        if (i + 6 > input.length) {
-                            throw IllegalArgumentException("Incomplete escape sequence at ${i + 1} for input `${input}`")
-                        }
-                        val code = input.substring(i + 2, i + 6).toInt(16)
-                        i += 6
-                        result.appendCodePoint(code)
-                    }
-                    'U' -> {
-                        if (i + 10 > input.length) {
-                            throw IllegalArgumentException("Incomplete escape sequence at ${i + 1} for input `${input}`")
-                        }
-                        val code = input.substring(i + 2, i + 10).toInt(16)
-                        i += 10
-                        result.appendCodePoint(code)
-                    }
-                    else -> {
-                        throw IllegalArgumentException("Invalid escape sequence at ${i + 1} for input `${input}`: \\${input[i + 1]}")
-                    }
-                }
-            } else {
-                result.append(first)
-                ++i
-            }
+        if (char >= 'a' && char <= 'f') {
+            return char - 'a' + 10
         }
-        if (i == input.length - 1) {
-            result.append(input.last())
-        }
-        return result.toString()
+        throw IllegalArgumentException("Invalid hexadecimal value: `${char}`")
     }
 
     /**
-     * Replaces the numeric escape sequence `\uXXXX` at the tail position of [buf] with the decoded value.
-     * Throws [IllegalArgumentException] if [buf]s contents do not end with a valid numeric escape sequence.
+     * Returns the byte value (0..255) that is represented by the `0x00` representation [first] & [second].
      */
-    fun decodeShortNumericEscapeAtTail(buf: StringBuilder) {
-        // `\` is either 6 or 10 spots before the end of the buffer
-        val end = buf.length
-        require(end >= 6)
-        if (buf[end - 6] == '\\') {
-            check(buf[end - 5] == 'u')
-            val code = buf.substring(end - 4, end).toInt(16)
-            buf.setLength(end - 6)
-            buf.appendCodePoint(code)
-            return
-        }
+    fun hexToInt(first: Char, second: Char): Int {
+        return (hexToInt(first) shl 4) or hexToInt(second)
     }
 
     /**
-     * Replaces the numeric escape sequence `\UXXXXXXXX` at the tail position of [buf] with the decoded value.
-     * Throws [IllegalArgumentException] if [buf]s contents do not end with a valid numeric escape sequence.
+     * Converts the hexadecimal representation represented by `\uXXXX` (passed in as [one] through [four] characters),
+     *  returning the decoded code point value
      */
-    fun decodeLongNumericEscapeAtTail(buf: StringBuilder) {
-        val end = buf.length
-        require(end >= 10)
-        if (buf[end - 10] == '\\') {
-            check(buf[end - 9] == 'U')
-            val code = buf.substring(end - 8, end).toInt(16)
-            buf.setLength(end - 10)
-            buf.appendCodePoint(code)
-            return
-        }
-        throw IllegalArgumentException()
+    fun hexToInt(one: Char, two: Char, three: Char, four: Char): Int {
+        val upper = hexToInt(one, two)
+        val lower = hexToInt(three, four)
+        return (upper shl 8) or lower
+    }
+
+    /**
+     * Converts the hexadecimal representation represented by `\UXXXXXXXX` (passed in as [one] through [eight] characters),
+     *  returning the decoded code point value
+     */
+    fun hexToInt(
+        one: Char,
+        two: Char,
+        three: Char,
+        four: Char,
+        five: Char,
+        six: Char,
+        seven: Char,
+        eight: Char,
+    ): Int {
+        val upper = hexToInt(one, two, three, four)
+        val lower = hexToInt(five, six, seven, eight)
+        return (upper shl 16) or lower
     }
 
     /**
@@ -118,7 +79,7 @@ object EscapeSequenceHelper {
         // we have to decode the input
         // input[i] is at `\\`, so we copy everything leading up to it, letting the rest of the logic take over
         val result = StringBuilder(input.length)
-        result.appendRange(input, 0, i - 1)
+        result.appendRange(input, 0, i)
         while (i < input.length - 1) {
             val first = input[i]
             if (first == '\\') {

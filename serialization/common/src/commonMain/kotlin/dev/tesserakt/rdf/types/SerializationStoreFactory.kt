@@ -16,8 +16,7 @@ fun Store(source: DataSource, format: Format<*>): Store {
  *  provided [format]
  */
 suspend fun Store(source: SuspendingDataSource, format: Format<*>): Store {
-    TODO()
-//    return serializer(format).deserialize(source).toStore()
+    return serializer(format).deserialize(source).toStore()
 }
 
 /**

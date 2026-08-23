@@ -100,7 +100,9 @@ abstract class Serializer {
      * serializer(/* format */).deserialize(source).toStore(store)
      * ```
      */
-    class SuspendingDeserializationProcess internal constructor(
+    class SuspendingDeserializationProcess
+    @InternalSerializationApi
+    constructor(
         @OptIn(InternalSerializationApi::class)
         private val source: SuspendingDataStream,
         private val inner: Iterator<Quad>
@@ -183,18 +185,6 @@ abstract class Serializer {
      *
      * Can throw [DeserializationException] if an error occurs, upon which the [SuspendingDataStream] will be closed.
      */
-    // TODO
-//    suspend fun deserialize(input: SuspendingDataSource): SuspendingDeserializationProcess = try {
-//        @OptIn(InternalSerializationApi::class)
-//        val source = input.open()
-//        @OptIn(InternalSerializationApi::class)
-//        SuspendingDeserializationProcess(
-//            source = source,
-//            inner = createDeserializer(input),
-//        )
-//    } catch (t: Throwable) {
-//        @OptIn(InternalSerializationApi::class)
-//        throw DeserializationException("Failed to initiate deserialization", t)
-//    }
+    abstract suspend fun deserialize(input: SuspendingDataSource): SuspendingDeserializationProcess
 
 }

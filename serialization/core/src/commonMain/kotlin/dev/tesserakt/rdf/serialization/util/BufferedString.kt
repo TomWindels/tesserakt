@@ -67,19 +67,36 @@ class BufferedString(
                     ensureBufferSize(10)
                     // making sure our index is also up to date
                     i = 0
-                    val next = buffer[1]
-                    if (next == 'u') {
-                        TODO()
-                        repeat(4) {
-                            bail("Unexpected EOF reached! Last received data: `$scratch`")
+                    when (iter.nextChar()) {
+                        'u' -> {
+                            val codePoint = EscapeSequenceHelper.hexToInt(
+                                one = iter.nextChar(),
+                                two = iter.nextChar(),
+                                three = iter.nextChar(),
+                                four = iter.nextChar(),
+                            )
+                            scratch.appendCodePoint(codePoint)
+                            // consumed
+                            buffer.consume(6)
                         }
-                        EscapeSequenceHelper.decodeShortNumericEscapeAtTail(scratch)
-                    } else if (next == 'U') {
-                        TODO()
-                        repeat(8) {
-                            bail("Unexpected EOF reached! Last received data: `$scratch`")
+                        'U' -> {
+                            val codePoint = EscapeSequenceHelper.hexToInt(
+                                one = iter.nextChar(),
+                                two = iter.nextChar(),
+                                three = iter.nextChar(),
+                                four = iter.nextChar(),
+                                five = iter.nextChar(),
+                                six = iter.nextChar(),
+                                seven = iter.nextChar(),
+                                eight = iter.nextChar(),
+                            )
+                            scratch.appendCodePoint(codePoint)
+                            // consumed
+                            buffer.consume(10)
                         }
-                        EscapeSequenceHelper.decodeLongNumericEscapeAtTail(scratch)
+                        else -> {
+                            bail("Invalid escape sequence encountered!", 0..1)
+                        }
                     }
                     // as we mutated the buffer, we have to get out of this loop iteration
                     break

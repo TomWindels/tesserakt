@@ -82,19 +82,36 @@ class FileCharStream(
                     head = i
                     // we also need to look ahead a bit more, if possible
                     ensureBufferSize(10)
-                    val next = buf[i + 1]
-                    if (next == 'u') {
-                        TODO()
-                        repeat(4) {
-                            bail("Unexpected EOF reached! Last received data: `$scratch`")
+                    when (buf[i + 1]) {
+                        'u' -> {
+                            val codePoint = EscapeSequenceHelper.hexToInt(
+                                one = buf[i + 2],
+                                two = buf[i + 3],
+                                three = buf[i + 4],
+                                four = buf[i + 5],
+                            )
+                            scratch.appendCodePoint(codePoint)
+                            // consumed
+                            head = i + 6
                         }
-                        EscapeSequenceHelper.decodeShortNumericEscapeAtTail(scratch)
-                    } else if (next == 'U') {
-                        TODO()
-                        repeat(8) {
-                            bail("Unexpected EOF reached! Last received data: `$scratch`")
+                        'U' -> {
+                            val codePoint = EscapeSequenceHelper.hexToInt(
+                                one = buf[i + 2],
+                                two = buf[i + 3],
+                                three = buf[i + 4],
+                                four = buf[i + 5],
+                                five = buf[i + 6],
+                                six = buf[i + 7],
+                                seven = buf[i + 8],
+                                eight = buf[i + 9],
+                            )
+                            scratch.appendCodePoint(codePoint)
+                            // consumed
+                            head = i + 10
                         }
-                        EscapeSequenceHelper.decodeLongNumericEscapeAtTail(scratch)
+                        else -> {
+                            bail("Invalid escape sequence encountered!", 0..1)
+                        }
                     }
                     // as we mutated the buffer, we have to get out of this loop iteration
                     break
