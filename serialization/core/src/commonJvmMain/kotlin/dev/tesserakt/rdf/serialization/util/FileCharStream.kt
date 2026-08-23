@@ -7,13 +7,21 @@ import java.io.InputStreamReader
 @InternalSerializationApi
 class FileCharStream(
     private val source: InputStreamReader,
-): BufferedCharStream {
+): BufferedCharStream, DeserializationContextProvider {
 
     private val buf = CharArray(8192)
     private var head = 0
     private var tail = 0
-    private val size get() = tail - head
+
+    override val size get() = tail - head
+
     private var eof = false
+
+    override val capacity: Int
+        get() = buf.size
+
+    override val offset: Int
+        get() = head
 
     // used in `consumeAndDecodeWithoutWhitespaceUntil`
     private val scratch = StringBuilder(200)
@@ -117,12 +125,7 @@ class FileCharStream(
         if (size < offset) {
             return null
         }
-        // TODO remove try catch
-        return try {
-            buf[head + offset]
-        } catch (t: Throwable) {
-            throw IllegalStateException("head=$head, tail=$tail, size=$size, offset=$offset", t)
-        }
+        return buf[head + offset]
     }
 
     override fun pop(): Char? {
@@ -138,12 +141,41 @@ class FileCharStream(
         eof = true
     }
 
+
     override fun report(index: Int): String {
-        TODO("Not yet implemented")
+        return highlight(index)?.prependIndent("| ") ?: "No report available"
     }
 
     override fun report(start: Int, end: Int): String {
-        TODO("Not yet implemented")
+        return highlight(start, end)?.prependIndent("| ") ?: "No report available"
+    }
+
+    override fun getRaw(index: Int): Char {
+        // we aren't circular, so direct lookup
+        return buf[index]
+    }
+
+    override fun findContextWindow(indexStart: Int, indexEnd: Int, context: DeserializationContextProvider.ContextWindow): Pair<Int, Int> {
+        var startOffset = 0
+        var endOffset = 0
+
+        while (
+            indexStart - startOffset > 0 &&
+            // making sure there's actual data here
+            buf[indexStart - startOffset].code != 0 &&
+            context.includeBefore(startOffset, buf[indexStart - startOffset])
+        ) {
+            ++startOffset
+        }
+
+        while (
+            indexEnd + endOffset < tail &&
+            context.includeAfter(endOffset, buf[indexEnd + endOffset])
+        ) {
+            ++endOffset
+        }
+
+        return (indexStart - startOffset + 1) to (indexEnd + endOffset - 1)
     }
 
     private fun ensureBufferSize(targetSize: Int) {
