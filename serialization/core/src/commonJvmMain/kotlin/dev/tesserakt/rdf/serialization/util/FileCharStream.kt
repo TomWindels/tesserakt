@@ -1,6 +1,7 @@
 package dev.tesserakt.rdf.serialization.util
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
+import jdk.incubator.vector.ShortVector
 import java.io.InputStreamReader
 
 
@@ -37,33 +38,95 @@ class FileCharStream(
         // if we have 1 continuous chunk of our inner buffer that we can copy straight into the resulting string,
         //  without having to alter the contents (no decoding necessary), we can skip the copy to scratch directly
         ensureBufferSize(1)
-        var i = head
-        while (i < tail) {
-            val c = buf[i]
-            if (c == delimiter) {
-                // happy path: we can copy our buffer straight into the string, and consider these characters consumed
-                val result = String(buf, head, i - head)
-                head = i
-                return result
-            } else if (c.isWhitespace()) {
-                // we haven't consumed the bad character yet, but we also have to highlight it, so range ends at `1`
-                bail("Invalid character encountered: `$c`", -scratch.length .. 1)
-            } else if (c == '\\') {
-                // unhappy path: we will likely have to decode our input, so we need to use the scratch buffer
-                break
+        val pos = findWhitespaceEscapeSequenceOr(delimiter)
+//        val pos = findWhitespaceEscapeSequenceOrScalar(delimiter)
+        when {
+            pos == tail || buf[pos] == '\\' -> {
+                // if we reached here, we're either looking at a `\\` character, or we've reached the end of the buffer
+                // both cases require us to use the scratch buffer, with all characters we've read up until this point
+                //  consumed
+                scratch.setLength(0)
+                scratch.appendRange(buf, head, pos)
+                // we now consider them consumed, and continue
+                head = pos
             }
-            ++i
+            buf[pos] == delimiter -> {
+                // happy path: we can copy our buffer straight into the string, and consider these characters consumed
+                val result = String(buf, head, pos - head)
+                head = pos
+                return result
+            }
+            else /* buf[pos].isWhitespace() */ -> {
+                // we haven't consumed the bad character yet, but we also have to highlight it, so range ends at `1`
+                bail("Invalid character encountered: `${buf[pos]}`", 0 .. pos - head)
+            }
         }
-        // if we reached here, we're either looking at a `\\` character, or we've reached the end of the buffer
-        // both cases require us to use the scratch buffer, with all characters we've read up until this point
-        //  consumed
-        scratch.setLength(0)
-        scratch.appendRange(buf, head, i)
-        // we now consider them consumed, and continue
-        head = i
         ensureBufferSize(1)
         // we continue reading, appending to our initial value of the scratch buffer
         return consumeAndDecodeWithoutWhitespaceUntilUsingScratchBuffer(delimiter)
+    }
+
+    private val SPECIES = ShortVector.SPECIES_PREFERRED
+
+    private fun findWhitespaceEscapeSequenceOrVectorized(buf: CharArray, pos: Int, delim: Short): Int {
+        val data = ShortVector.fromCharArray(SPECIES, buf, pos)
+        return data.eq(delim)
+            // in case we need to deal with an escape sequence
+            .or(data.eq('\\'.code.toShort()))
+            // in case we encounter a whitespace character
+            .or(data.eq(' '.code.toShort()))
+            .or(data.eq('\n'.code.toShort()))
+            .or(data.eq('\t'.code.toShort()))
+            .or(data.eq('\u000B'.code.toShort()))
+            .or(data.eq('\u000C'.code.toShort()))
+            .or(data.eq('\r'.code.toShort()))
+            .or(data.eq('\u001C'.code.toShort()))
+            .or(data.eq('\u001D'.code.toShort()))
+            .or(data.eq('\u001E'.code.toShort()))
+            .or(data.eq('\u001F'.code.toShort()))
+            .firstTrue()
+    }
+
+    private fun findWhitespaceEscapeSequenceOr(delimiter: Char): Int {
+        var i = head
+        val end = tail
+
+        // if we don't have a single full batch of data, we need to fall back to regular scanning;
+        // otherwise, we risk matching with data that doesn't belong to our search area
+        if (i > end - SPECIES.length()) {
+            return findWhitespaceEscapeSequenceOrScalar(delimiter)
+        }
+
+        val buf = buf
+
+        val delim = delimiter.code.toShort()
+
+        while (i < end - SPECIES.length() + 1) {
+            val match = findWhitespaceEscapeSequenceOrVectorized(buf, i, delim)
+            if (match != SPECIES.length()) {
+                return i + match
+            }
+            i += SPECIES.length()
+        }
+        // we put `i` a bit back so we have a full vector of values we can check against,
+        // even though there's some overlap
+        i = end - SPECIES.length()
+        // automatically correct; if no match is found, `SPECIES.length()` is added,
+        //  and we have the result point beyond the buffer
+        return i + findWhitespaceEscapeSequenceOrVectorized(buf, i, delim)
+    }
+
+    private fun findWhitespaceEscapeSequenceOrScalar(delimiter: Char): Int {
+        var i = head
+        val end = tail
+        while (i < end) {
+            val c = buf[i]
+            if (c == delimiter || c.isWhitespace() || c == '\\') {
+                return i
+            }
+            ++i
+        }
+        return i
     }
 
     override fun consumeUntilWhitespace(): String {// if we have 1 continuous chunk of our inner buffer that we can copy straight into the resulting string,

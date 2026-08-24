@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+
 plugins {
     // not distributed as a package
     id("kmp-package")
@@ -18,5 +20,11 @@ kotlin {
                 implementation(kotlin("test"))
             }
         }
+    }
+}
+
+tasks.withType<KotlinJvmCompile> {
+    compilerOptions {
+        freeCompilerArgs.set(listOf("-Xadd-modules=jdk.incubator.vector"))
     }
 }
