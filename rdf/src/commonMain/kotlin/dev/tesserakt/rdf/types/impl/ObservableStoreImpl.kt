@@ -44,10 +44,6 @@ internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): Abstr
         return inner.isEmpty()
     }
 
-    override fun containsAll(elements: Collection<Quad>): Boolean {
-        return inner.containsAll(elements)
-    }
-
     override fun contains(element: Quad): Boolean {
         return inner.contains(element)
     }

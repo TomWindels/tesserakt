@@ -1,12 +1,12 @@
 package dev.tesserakt.rdf.serialization.util
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
-import java.io.InputStreamReader
+import java.io.Reader
 
 
 @InternalSerializationApi
 class FileCharStream(
-    private val source: InputStreamReader,
+    private val source: Reader,
 ): BufferedCharStream, DeserializationContextProvider {
 
     private val buf = CharArray(8192)
@@ -37,33 +37,37 @@ class FileCharStream(
         // if we have 1 continuous chunk of our inner buffer that we can copy straight into the resulting string,
         //  without having to alter the contents (no decoding necessary), we can skip the copy to scratch directly
         ensureBufferSize(1)
+        val i = findWhitespaceOrEscapeSequenceOrDelimiter(delimiter)
+        if (i >= tail) {
+            return consumeAndDecodeWithoutWhitespaceUntilUsingScratchBuffer(i, delimiter)
+        }
+        val c = buf[i]
+        if (c == delimiter) {
+            // happy path: we can copy our buffer straight into the string, and consider these characters consumed
+            val result = String(buf, head, i - head)
+            head = i
+            return result
+        }
+        if (c.isWhitespace()) {
+            // we haven't consumed the bad character yet, but we also have to highlight it, so range ends at `1`
+            bail("Invalid character encountered: `${buf[i]}`", -scratch.length .. 1)
+        }
+        return consumeAndDecodeWithoutWhitespaceUntilUsingScratchBuffer(i, delimiter)
+    }
+
+    private fun findWhitespaceOrEscapeSequenceOrDelimiter(delimiter: Char): Int {
         var i = head
         while (i < tail) {
             val c = buf[i]
-            if (c == delimiter) {
-                // happy path: we can copy our buffer straight into the string, and consider these characters consumed
-                val result = String(buf, head, i - head)
-                head = i
-                return result
-            } else if (c.isWhitespace()) {
-                // we haven't consumed the bad character yet, but we also have to highlight it, so range ends at `1`
-                bail("Invalid character encountered: `$c`", -scratch.length .. 1)
-            } else if (c == '\\') {
-                // unhappy path: we will likely have to decode our input, so we need to use the scratch buffer
-                break
+            when {
+                c == delimiter ||
+                c == '\\' ||
+                c.isWhitespace() -> return i
+                else -> ++i
             }
-            ++i
         }
-        // if we reached here, we're either looking at a `\\` character, or we've reached the end of the buffer
-        // both cases require us to use the scratch buffer, with all characters we've read up until this point
-        //  consumed
-        scratch.setLength(0)
-        scratch.appendRange(buf, head, i)
-        // we now consider them consumed, and continue
-        head = i
-        ensureBufferSize(1)
-        // we continue reading, appending to our initial value of the scratch buffer
-        return consumeAndDecodeWithoutWhitespaceUntilUsingScratchBuffer(delimiter)
+        // == tail
+        return i
     }
 
     override fun consumeUntilWhitespace(): String {// if we have 1 continuous chunk of our inner buffer that we can copy straight into the resulting string,
@@ -185,7 +189,16 @@ class FileCharStream(
 
     /* helpers */
 
-    private fun consumeAndDecodeWithoutWhitespaceUntilUsingScratchBuffer(delimiter: Char): String {
+    private fun consumeAndDecodeWithoutWhitespaceUntilUsingScratchBuffer(i: Int, delimiter: Char): String {
+        // if we reached here, we're either looking at a `\\` character, or we've reached the end of the buffer
+        // both cases require us to use the scratch buffer, with all characters we've read up until this point
+        //  consumed
+        scratch.setLength(0)
+        scratch.appendRange(buf, head, i)
+        // we now consider them consumed, and continue
+        head = i
+        ensureBufferSize(1)
+        // we continue reading, appending to our initial value of the scratch buffer
         if (size == 0) {
             bail("Unexpected EOF reached! No data remaining!")
         }
@@ -321,7 +334,10 @@ class FileCharStream(
         if (this.size >= targetSize) {
             return
         }
-        check(targetSize <= buf.size)
+        growBufferSize(targetSize)
+    }
+
+    private fun compact(targetSize: Int) {
         if (head == tail) {
             head = 0
             tail = 0
@@ -338,6 +354,11 @@ class FileCharStream(
             tail -= head
             head = 0
         }
+    }
+
+    private fun growBufferSize(targetSize: Int) {
+        check(targetSize <= buf.size)
+        compact(targetSize)
         while (!eof && this.size < targetSize) {
             val read = source.read(buf, tail, buf.size - tail)
             if (read < 0) {

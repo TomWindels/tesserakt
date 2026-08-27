@@ -1,5 +1,6 @@
 package dev.tesserakt.rdf.types.impl
 
+import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.rdf.types.EncodingContext
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.util.getOrInsert
@@ -29,40 +30,43 @@ internal class ImmutableEncodingContextImpl private constructor(
     companion object {
 
         /**
-         * Constructs a new [ImmutableEncodingContextImpl] that can encode and decode all of the requested [elements].
+         * Constructs a new [ImmutableEncodingContextImpl] that can encode and decode all of the requested [quads].
+         * Outputs the encoded representation to [output], so that an additional lookup can be prevented
          */
-        @JvmName("fromQuadElements")
-        operator fun invoke(elements: Iterable<Quad.Element>): ImmutableEncodingContextImpl {
-            val encoded = mutableMapOf<Quad.Element, Int>()
-            var i = 0
-            elements.forEach { element ->
-                encoded.getOrInsert(element) { i++ }
+        @JvmName("fromQuads")
+        operator fun invoke(quads: Iterable<Quad>, output: MutableSet<EncodedQuad>): ImmutableEncodingContextImpl {
+            val encoded: MutableMap<Quad.Element, Int>
+            val decoded: MutableList<Quad.Element>
+            if (quads is Collection<*>) {
+                // we approximate an initial capacity, expecting various subject / objects
+                //  to be unique, whilst most predicate and graph terms to be reused frequently
+                val cap = quads.size * 2
+                encoded = HashMap(cap)
+                decoded = ArrayList(cap)
+            } else {
+                encoded = mutableMapOf()
+                decoded = mutableListOf()
             }
-            val decoded = MutableList<Quad.Element?>(encoded.size) { null }
-            encoded.forEach { (element, encoded) -> decoded[encoded] = element }
+            fun encode(element: Quad.Element): Int {
+                return encoded.getOrInsert(element) {
+                    val pos = decoded.size
+                    decoded.add(element)
+                    pos
+                }
+            }
+            quads.forEach { quad ->
+                val encoded = EncodedQuad(
+                    s = encode(quad.s),
+                    p = encode(quad.p),
+                    o = encode(quad.o),
+                    g = encode(quad.g),
+                )
+                output.add(encoded)
+            }
             // they have now all been set so we know none of the elements are `null`
-            @Suppress("UNCHECKED_CAST")
-            decoded as List<Quad.Element>
             return ImmutableEncodingContextImpl(
                 encoder = encoded,
                 decoder = decoded,
-            )
-        }
-
-        /**
-         * Constructs a new [ImmutableEncodingContextImpl] that can encode and decode all of the requested [quads].
-         */
-        @JvmName("fromQuads")
-        operator fun invoke(quads: Iterable<Quad>): ImmutableEncodingContextImpl {
-            return invoke(
-                elements = sequence {
-                    quads.forEach { quad ->
-                        yield(quad.s)
-                        yield(quad.p)
-                        yield(quad.o)
-                        yield(quad.g)
-                    }
-                }.asIterable()
             )
         }
 

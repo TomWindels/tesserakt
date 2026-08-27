@@ -45,10 +45,6 @@ internal class MutableStoreImpl: AbstractStore, MutableStore {
         return quads.isEmpty()
     }
 
-    override fun containsAll(elements: Collection<Quad>): Boolean {
-        return elements.all { this.contains(it) }
-    }
-
     override fun contains(element: Quad): Boolean {
         // two possible scenarios where we don't contain a given quad:
         // * either our immutable context doesn't have it, in which case we don't contain a quad element this quad uses,
