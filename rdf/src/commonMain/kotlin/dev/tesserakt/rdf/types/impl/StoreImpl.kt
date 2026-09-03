@@ -1,33 +1,29 @@
 package dev.tesserakt.rdf.types.impl
 
 import dev.tesserakt.rdf.types.EncodedQuad
+import dev.tesserakt.rdf.types.EncodingContext
 import dev.tesserakt.rdf.types.Quad
 
 // not required here: we optimized hash code as we're readonly, but the equals check stays in place
 @Suppress("EqualsOrHashCode")
-internal class StoreImpl(data: Collection<Quad>): AbstractStore() {
+internal class StoreImpl: AbstractStore {
 
-    // we first create our encoding context
-    override val context = ImmutableEncodingContextImpl(data)
-
-    // then we create our actual set of *encoded* quads
-    // the fact they're encoded makes checking for 'contains' etc. faster, as we mainly pay the price for initial lookup
-    //  of the individual terms, and can then compare the encoded variants faster
-    private val quads = run {
-        val result = mutableSetOf<EncodedQuad>()
-        data.forEach { quad ->
-            // we can guarantee that our encoding context has all necessary terms as it was made with the same quad
-            //  collection as an argument
-            val encoded = EncodedQuad(context, quad)
-                ?: throw IllegalStateException("Encoding context did not uphold contract!")
-            result.add(encoded)
-        }
-        // we hide the fact that we're mutable
-        result as Set<EncodedQuad>
-    }
+    private val quads: Set<EncodedQuad>
+    override val context: EncodingContext
 
     // considering the contents don't change, we can cache the collection's hash code
     private val hashCode by lazy { super.hashCode() }
+
+    constructor(data: Collection<Quad>) {
+        val quads = HashSet<EncodedQuad>(data.size)
+        this.context = ImmutableEncodingContextImpl(data, quads)
+        this.quads = quads
+    }
+
+    constructor(context: EncodingContext, quads: Set<EncodedQuad>) {
+        this.context = context
+        this.quads = quads
+    }
 
     override val size: Int
         get() = quads.size
@@ -36,10 +32,6 @@ internal class StoreImpl(data: Collection<Quad>): AbstractStore() {
 
     override fun isEmpty(): Boolean {
         return quads.isEmpty()
-    }
-
-    override fun containsAll(elements: Collection<Quad>): Boolean {
-        return elements.all { this.contains(it) }
     }
 
     override fun contains(element: Quad): Boolean {

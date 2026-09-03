@@ -65,4 +65,10 @@ interface Store : Set<Quad> {
         )
     }
 
+    /**
+     * Returns an encoded view of this [Store]. Changes made to this instance (in case of a [MutableStore]) are also
+     *  reflected in this set
+     */
+    fun asEncodedSet(): Set<EncodedQuad>
+
 }

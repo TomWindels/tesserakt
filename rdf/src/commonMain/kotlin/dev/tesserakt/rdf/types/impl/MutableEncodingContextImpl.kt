@@ -3,32 +3,29 @@ package dev.tesserakt.rdf.types.impl
 import dev.tesserakt.rdf.types.EncodingContext
 import dev.tesserakt.rdf.types.MutableEncodingContext
 import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.util.SimpleList
 import dev.tesserakt.util.getOrInsert
 
-internal class MutableEncodingContextImpl private constructor(
+internal class MutableEncodingContextImpl(
     private val encoder: MutableMap<Quad.Element, Int>,
     // as we currently do not support the deletion of encoded quad terms, encoded values always increment
-    private val decoder: MutableList<Quad.Element>,
+    private val decoder: SimpleList<Quad.Element>,
 ): MutableEncodingContext {
 
     constructor(): this(
-        encoder = mutableMapOf(),
-        decoder = mutableListOf(),
+        encoder = HashMap(),
+        decoder = SimpleList(),
     )
-
-    override val size: Int
-        get() = decoder.size
 
     override fun encode(element: Quad.Element): Int {
         return encoder.getOrInsert(element) {
-            val i = decoder.size
-            decoder.add(element)
+            val i = decoder.add(element)
             i
         }
     }
 
     override fun decode(encoded: Int): Quad.Element? {
-        if (encoded !in decoder.indices) {
+        if (encoded !in 0 ..< decoder.size) {
             return null
         }
         return decoder[encoded]
@@ -45,7 +42,7 @@ internal class MutableEncodingContextImpl private constructor(
     }
 
     // internal is technically not required as we're already inside an internal class
-    internal fun decoder(): List<Quad.Element> {
+    internal fun decoder(): SimpleList<Quad.Element> {
         return decoder
     }
 
@@ -58,3 +55,5 @@ internal class MutableEncodingContextImpl private constructor(
     }
 
 }
+
+internal expect fun ConcurrentMutableEncodingContextImpl(): MutableEncodingContextImpl

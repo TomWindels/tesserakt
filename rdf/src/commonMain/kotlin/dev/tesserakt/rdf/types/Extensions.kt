@@ -15,7 +15,15 @@ fun Iterable<Quad>.toStore(): Store {
  * Consumes `this` [Iterator], creating a [Store] that contains all (remaining) [Quad]s.
  */
 fun Iterator<Quad>.toStore(): Store {
-    return toStore(MutableStore())
+    return Store(this.asIterable())
+}
+
+private fun Iterator<Quad>.asIterable(): Iterable<Quad> {
+    return object: Iterable<Quad> {
+        override fun iterator(): Iterator<Quad> {
+            return this@asIterable
+        }
+    }
 }
 
 /**

@@ -9,6 +9,8 @@ kotlin {
         getByName("commonMain") {
             dependencies {
                 api(project(":rdf"))
+
+                implementation(project(":utils"))
             }
         }
     }

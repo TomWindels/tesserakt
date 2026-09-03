@@ -1,14 +1,16 @@
 package dev.tesserakt.rdf.serialization.ntriples
 
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
-import dev.tesserakt.rdf.serialization.util.BufferedString
-import dev.tesserakt.rdf.serialization.util.bail
-import dev.tesserakt.rdf.serialization.util.consumeWhile
+import dev.tesserakt.rdf.serialization.util.BufferedCharStream
+import dev.tesserakt.rdf.serialization.util.expect
+import dev.tesserakt.rdf.serialization.util.nextIs
+import dev.tesserakt.rdf.serialization.util.nextIsEofOr
+import dev.tesserakt.rdf.serialization.util.peekOrBail
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.util.isNullOr
+import kotlin.text.isWhitespace
 
 @InternalSerializationApi
-internal class NTriplesDeserializer(private val source: BufferedString) : Iterator<Quad> {
+internal class NTriplesDeserializer(private val source: BufferedCharStream) : Iterator<Quad> {
 
     private val lut = mutableMapOf<String, Int>()
     private var next: Quad? = null
@@ -36,7 +38,7 @@ internal class NTriplesDeserializer(private val source: BufferedString) : Iterat
         val o = consumeTerm() ?: throw IllegalStateException("Object is missing!")
         check(o is Quad.Object)
         consumeWhitespace()
-        check(source.peek() == '.') {
+        check(source.nextIs('.')) {
             "Failed reaching the end of the statement. Read terms $s $p $o"
         }
         source.consume()
@@ -45,35 +47,38 @@ internal class NTriplesDeserializer(private val source: BufferedString) : Iterat
 
     private fun consumeTerm(): Quad.Element? {
         consumeWhitespace()
-        return when (val c = source.pop()) {
-            null -> return null
+        val code = source.pop()
+        if (code == -1) {
+            return null
+        }
+        return when (val c = Char(code)) {
             '<' -> {
-                val inner = source.consumeWhile(Char::isWhitespace) { it != '>' }
+                val inner = source.consumeAndDecodeWithoutWhitespaceUntil('>')
                 source.consume() // '>'
                 Quad.NamedTerm(inner)
             }
 
             '_' -> {
-                check(source.peek() == ':')
+                source.expect(':')
                 source.consume()
-                val label = source.consumeWhile { !it.isWhitespace() }
+                val label = source.consumeUntilWhitespace()
                 Quad.BlankTerm(id = label.asBlankNodeId())
             }
 
             '"' -> {
                 val value = consumeUntilUnescaped('"')
                 source.consume()
-                if (source.peek() == '^') {
+                if (source.nextIs('^')) {
                     source.consume()
-                    check(source.peek() == '^')
+                    source.expect('^')
                     source.consume()
                     val dt = consumeTerm()
                     check(dt is Quad.NamedTerm) { "$dt is not a valid data type for a literal!" }
                     Quad.Literal(value = value, type = dt)
-                } else if (source.peek() == '@') {
+                } else if (source.nextIs('@')) {
                     // getting rid of the '@'
                     source.consume()
-                    val lang = source.consumeWhile { !it.isWhitespace() }
+                    val lang = source.consumeUntilWhitespace()
                     Quad.Literal(value = value, language = lang)
                 } else {
                     Quad.Literal(value = value)
@@ -88,13 +93,13 @@ internal class NTriplesDeserializer(private val source: BufferedString) : Iterat
 
     private fun consumeWhitespace() {
         while (true) {
-            if (source.peek() == '#') {
-                while (source.peek().let { it != null && it != '\n' }) {
+            if (source.nextIs('#')) {
+                while (source.peek().let { it != -1 && Char(it) != '\n' }) {
                     source.consume()
                 }
                 source.consume()
             }
-            if (source.peek().isNullOr { !it.isWhitespace() }) {
+            if (source.nextIsEofOr { !it.isWhitespace() }) {
                 break
             }
             source.consume()
@@ -103,13 +108,13 @@ internal class NTriplesDeserializer(private val source: BufferedString) : Iterat
 
     private inline fun consumeUntilUnescaped(char: Char): String {
         val result = StringBuilder()
-        var c = source.peek(0) ?: source.bail("Unexpected EOF reached!")
+        var c = source.peekOrBail()
         var escaped = false
         while (escaped || c != char) {
-            result.append(source.peek(0))
+            result.append(c)
             source.consume()
             escaped = !escaped && c == '\\'
-            c = source.peek(0) ?: source.bail("Unexpected EOF reached!", -result.length .. 0)
+            c = source.peekOrBail()
         }
         return result.toString()
     }

@@ -98,7 +98,6 @@ class StoreTest {
         assertEquals(data.size, storeA.size)
         assertEquals(data.size, storeB.size)
         assertEquals(storeA.size, storeB.size)
-        assertEquals(storeA.context.size, storeB.context.size)
 
         // reflectivity
         assertEquals(storeA, storeA)
@@ -130,7 +129,6 @@ class StoreTest {
         assertEquals(data.size, storeA.size)
         assertEquals(data.size, storeB.size)
         assertEquals(storeA.size, storeB.size)
-        assertEquals(storeA.context.size, storeB.context.size)
 
         // reflectivity
         assertEquals(storeA, storeA)
@@ -162,7 +160,6 @@ class StoreTest {
         assertEquals(data.size, storeA.size)
         assertEquals(data.size, storeB.size)
         assertEquals(storeA.size, storeB.size)
-        assertEquals(storeA.context.size, storeB.context.size)
 
         // reflectivity
         assertEquals(storeA, storeA)
