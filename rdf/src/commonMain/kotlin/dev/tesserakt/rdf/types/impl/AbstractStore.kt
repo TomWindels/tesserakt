@@ -37,30 +37,11 @@ abstract class AbstractStore : Store {
     }
 
     override fun containsAll(elements: Collection<Quad>): Boolean {
-        if (elements is Store) {
-            // as this is a store, it uses set semantics;
-            //  if, after set semantics, it contains more quads than we do, we cannot possibly contain all of them
-            if (size < elements.size) {
-                return false
-            }
-            // we construct a mapping context between us and the other store, but only if the elements we need to look
-            //  up count-wise 'is worth it' (as the mapper looks up the entire context immediately)
-            if (this.context.size > elements.size * 3) {
-                // our context is too large w.r.t. the amount of lookups we need to do;
-                //  we do the lookups as is needed instead
-                return elements.all { it in this }
-            }
-            val mapper = ContextMapper(source = elements.context, target = this.context)
-            elements.encodedIterator().forEach { encodedQuad ->
-                val reencoded = mapper.reencode(encodedQuad) ?: return false
-                if (reencoded !in this) {
-                    return false
-                }
-            }
-            // all elements matched after reencoding, so we contain all elements from the other store
-            return true
+        // if there's a distinct set of elements, and that number exceeds our own distinct set of elements in size,
+        //  we cannot possibly contain them all
+        if (elements is Set<*> && elements.size > this.size) {
+            return false
         }
-
         return elements.all { it in this }
     }
 

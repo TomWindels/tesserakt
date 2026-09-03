@@ -1,21 +1,27 @@
 package dev.tesserakt.rdf.types.impl
 
 import dev.tesserakt.rdf.types.EncodedQuad
+import dev.tesserakt.rdf.types.EncodingContext
 import dev.tesserakt.rdf.types.Quad
 
 // not required here: we optimized hash code as we're readonly, but the equals check stays in place
 @Suppress("EqualsOrHashCode")
-internal class StoreImpl(data: Collection<Quad>): AbstractStore() {
+internal class StoreImpl: AbstractStore {
 
     private val quads: Set<EncodedQuad>
-    override val context: ImmutableEncodingContextImpl
+    override val context: EncodingContext
 
     // considering the contents don't change, we can cache the collection's hash code
     private val hashCode by lazy { super.hashCode() }
 
-    init {
+    constructor(data: Collection<Quad>) {
         val quads = HashSet<EncodedQuad>(data.size)
         this.context = ImmutableEncodingContextImpl(data, quads)
+        this.quads = quads
+    }
+
+    constructor(context: EncodingContext, quads: Set<EncodedQuad>) {
+        this.context = context
         this.quads = quads
     }
 

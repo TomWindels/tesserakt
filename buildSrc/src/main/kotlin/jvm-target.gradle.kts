@@ -27,14 +27,14 @@ kotlin {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 tasks.withType(KotlinJvmCompile::class.java).configureEach {
-    compilerOptions.jvmTarget = JvmTarget.JVM_1_8
+    compilerOptions.jvmTarget = JvmTarget.JVM_11
     // src: https://jakewharton.com/kotlins-jdk-release-compatibility-flag/
-    compilerOptions.freeCompilerArgs.add("-Xjdk-release=1.8")
+    compilerOptions.freeCompilerArgs.add("-Xjdk-release=11")
 }
 
 tasks.withType(Jar::class.java) {

@@ -2,7 +2,6 @@ package dev.tesserakt.rdf.types
 
 import dev.tesserakt.SuspendingIterator
 import dev.tesserakt.forEach
-import dev.tesserakt.rdf.types.impl.MutableStoreImpl
 import dev.tesserakt.rdf.types.impl.StoreImpl
 
 fun Iterable<Quad>.toStore(): Store {
@@ -15,8 +14,16 @@ fun Iterable<Quad>.toStore(): Store {
 /**
  * Consumes `this` [Iterator], creating a [Store] that contains all (remaining) [Quad]s.
  */
-fun Iterator<Quad>.toStore(capacityHint: Int = 10): Store {
-    return toStore(MutableStoreImpl(capacityHint))
+fun Iterator<Quad>.toStore(): Store {
+    return Store(this.asIterable())
+}
+
+private fun Iterator<Quad>.asIterable(): Iterable<Quad> {
+    return object: Iterable<Quad> {
+        override fun iterator(): Iterator<Quad> {
+            return this@asIterable
+        }
+    }
 }
 
 /**

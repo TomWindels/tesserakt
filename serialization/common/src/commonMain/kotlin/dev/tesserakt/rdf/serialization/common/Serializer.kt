@@ -58,7 +58,6 @@ abstract class Serializer {
         }
 
         override fun close() {
-            @OptIn(InternalSerializationApi::class)
             source.close()
         }
 

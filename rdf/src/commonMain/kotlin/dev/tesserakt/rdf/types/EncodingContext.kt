@@ -2,8 +2,8 @@ package dev.tesserakt.rdf.types
 
 /**
  * The encoded representation of a [Quad.Element] managed by an [EncodingContext]. The valid integer range of an encoded
- *  quad element is limited to `0..`[Int.MAX_VALUE]. The negative range is reserved for use 'external to [Store]s', e.g.
- *  encoding terms found in SPARQL queries.
+ *  quad element is limited to ][Int.MIN_VALUE], [Int.MAX_VALUE]]. [Int.MIN_VALUE] itself is reserved as sentinel value
+ *  for encoding, or 'wildcard' during lookup.
  */
 typealias EncodedQuadElement = Int
 
@@ -19,16 +19,7 @@ typealias EncodedQuadElement = Int
 interface EncodingContext {
 
     /**
-     * The number of elements currently encoded. It is guaranteed that all [encode]d terms yielded by this context
-     *  are in the `0..<`[size] range.
-     *
-     * NOTE: if the implementation is mutable (implements the [MutableEncodingContext] interface), this value can
-     *  change! See [MutableEncodingContext.size] for more details.
-     */
-    val size: Int
-
-    /**
-     * Encodes the [element] into an [EncodedQuadElement] in the `0..`[size] range. Returns `null` if this context is
+     * Encodes the [element] into an [EncodedQuadElement]. Returns `null` if this context is
      *  immutable and the requested [element] was not made encodable by this context.
      */
     fun encode(element: Quad.Element): EncodedQuadElement?

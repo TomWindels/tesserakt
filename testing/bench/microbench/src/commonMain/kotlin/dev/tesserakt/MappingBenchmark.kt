@@ -4,7 +4,6 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
-import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.Scope
 import kotlinx.benchmark.Setup
 import kotlinx.benchmark.State
@@ -62,13 +61,13 @@ class MappingBenchmark {
         mappingRight = right.map { Mapping(context, it) }
     }
 
-    @Benchmark
+//    @Benchmark
     fun joinRegular(): List<MapMapping> {
         return left.flatMap { l -> right.mapNotNull { r -> join(l, r) } }
             .also { println("Result size regular: ${it.size}") }
     }
 
-    @Benchmark
+//    @Benchmark
     fun joinMapping(): List<Mapping> {
         return mappingLeft.flatMap { l -> mappingRight.mapNotNull { r -> l.join(r) } }
             .also { println("Result size new 2: ${it.size}") }

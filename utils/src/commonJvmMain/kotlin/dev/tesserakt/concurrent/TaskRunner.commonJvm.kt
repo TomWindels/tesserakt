@@ -3,6 +3,7 @@ package dev.tesserakt.concurrent
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicInteger
 
 class ThreadedTaskRunner(
     private val executor: ExecutorService
@@ -24,11 +25,8 @@ class ThreadedTaskRunner(
         return FutureResult(executor.submit(callable))
     }
 
-    override fun <T> buffered(
-        source: Iterator<T>,
-        capacity: Int,
-    ): TaskRunner.BufferedIterator<T> {
-        val iterator = SpinLockBufferedIterator(source, capacity)
+    override fun <T : Any> buffered(source: Iterator<T>): TaskRunner.BufferedIterator<T> {
+        val iterator = SpinLockBufferedIterator(source)
         // we need to make sure the loop is actually producing data; if there's no threads available, we need to fall
         //  back to a single threaded variant to prevent a deadlock on a resource that never comes
         var started = false
@@ -37,7 +35,9 @@ class ThreadedTaskRunner(
             started = true
             // we need to make sure this iterator is actually getting used; we wait until we get the go-ahead
             var remaining = 100_000
-            while (!beginProducing && --remaining > 0);
+            while (!beginProducing && --remaining > 0) {
+                spinLoopHint()
+            }
             if (remaining == 0) {
                 // we executed successfully, but we were not
                 return@submit
@@ -65,30 +65,27 @@ class ThreadedTaskRunner(
         return TaskRunner.SingleThreaded.buffered(source)
     }
 
-    // sentinel object used to mark the source as exhausted
-    private object Done
-
-    private class SpinLockBufferedIterator<T>(
+    private class SpinLockBufferedIterator<T : Any>(
         private val source: Iterator<T>,
-        capacity: Int,
     ): TaskRunner.BufferedIterator<T> {
 
         @Volatile
         private var alive = true
-        // allowing `null` support by using custom objects as state indicators
-        private val buffer = Array<Any?>(capacity) { null }
-        private val mask = buffer.size - 1
 
-        // modified by `next()`
+        // in case a failure occurred, we re-throw it for every reader
         @Volatile
-        private var head = 0
+        private var error: Throwable? = null
 
-        // modified by `producerLoop()`
-        @Volatile
-        private var tail = 0
+        // we buffer up to 32 elements - we claim these per reader using our state below
+        private val buffer = Array<Any?>(32) { null }
+        // state tracking which slots are claimed by a reader
+        private val read = AtomicInteger(0)
+        // state tracking which slots are occupied by the writer
+        private val write = AtomicInteger(0)
 
-        init {
-            check(capacity.countOneBits() == 1) { "Invalid capacity provided: expected a power of 2!" }
+        override fun supportsConcurrentAccess(): Boolean {
+            // our use of atomics allows for multiple readers to concurrently advance the buffer state
+            return true
         }
 
         /**
@@ -97,67 +94,80 @@ class ThreadedTaskRunner(
          */
         fun producerLoop() {
             while (alive) {
-                // we can fill between [tail .. head - 1]
-                // we are the only source that mutates the tail, so we can keep it local here
-                val pos = tail
-                val next = (tail + 1) and mask
-                // we now wait until the head position has moved so that our writing target is available
-                while (alive && pos == ((head - 1) and mask));
+                // we wait until we get a slot we can fill up
+                while (alive && write.get() == Int.MAX_VALUE) {
+                    spinLoopHint()
+                }
                 if (!alive) {
                     return
                 }
-                // we update the tail regardless, so that the `Done` slot also comes into the reader's range
+                // we find an index we can occupy
+                val i = write.get().inv().takeLowestOneBit().countTrailingZeroBits()
+                // we get the next element, or the fact that we're EOF
                 if (source.hasNext()) {
                     runCatching {
                         source.next()
                     }.fold(
                         onSuccess = { value ->
-                            buffer[pos] = value
-                            tail = next
+                            buffer[i] = value
+                            // we mark this slot now as occupied using CAS
+                            var available = write.get()
+                            while (!this.write.compareAndSet(available, available or 1 shl i)) {
+                                spinLoopHint()
+                                available = this.write.get()
+                            }
                         },
                         onFailure = { exception ->
-                            // we want the consumer to 'receive' the exception, so we put the exception in there,
-                            //  and terminate ourselves
-                            buffer[pos] = exception
-                            tail = next
+                            // we want the consumer to 'receive' the exception, so we keep the exception,
+                            //  so all consumers become aware, and terminate
+                            this.error = exception
+                            // because we no longer mark ourselves 'alive', the fact that we didn't mark it as
+                            //  available is not a problem - consumers are also exiting their spin loop
                             alive = false
                             return
                         }
                     )
-                } else {
-                    buffer[pos] = Done
-                    tail = next
-                    alive = false
-                    return
                 }
             }
         }
 
-        override fun hasNext(): Boolean {
-            // we have to wait until the state advances
-            while (alive && head == tail);
-            // if it has advanced to something other than 'done', we know there's at least this next item
-            //  to yield
-            return alive && head != tail && buffer[head] !== Done
-        }
-
-        override fun next(): T {
-            // we have to wait until the state advances
-            while (alive && head == tail);
-            val next = buffer[head]
-            // next is either
-            // * 'T' in the typical case
-            // * 'Pending' (but we made sure it wasn't, and only we change it if it is an element instance)
-            // * 'Done' if we reached the end
-            if (next === Done) {
-                throw NoSuchElementException()
+        override fun getNext(): T? {
+            // we claim an available index to read: written to but not yet being read from
+            var read = this.read.get()
+            var write = this.write.get()
+            var i = write and read.inv()
+            while (!this.read.compareAndSet(read, read or 1 shl i)) {
+                spinLoopHint()
+                if (!alive) {
+                    // we failed to acquire the index, and we're no longer alive:
+                    //  either the producer reached the end or there's no more input
+                    val err = this.error
+                    if (err != null) {
+                        throw err
+                    }
+                    return null
+                }
+                // we're still alive but are being read concurrently
+                read = this.read.get()
+                write = this.write.get()
+                i = write and read.inv()
             }
-            if (next is Throwable) {
-                // we need to terminate early, and do not advance the head position, as the producer ended in failure
-                throw next
+            // we claimed an index; we get its result and mark it available for writing again
+            // followed by marking its slot available for reading again as well, as we got our result
+            val next = buffer[i]
+            // we put its index back to 0
+            val mask = (1 shl i).inv()
+            write = this.write.get()
+            while (!this.write.compareAndSet(write, write and mask)) {
+                spinLoopHint()
+                write = this.write.get()
             }
-            // advancing the head, so that the task can reuse this slot
-            head = (head + 1) and mask
+            read = this.read.get()
+            while (!this.read.compareAndSet(read, read and mask)) {
+                spinLoopHint()
+                read = this.read.get()
+            }
+            // and we can return the result
             @Suppress("UNCHECKED_CAST")
             return next as T
         }
