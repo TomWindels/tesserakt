@@ -31,7 +31,8 @@ internal class MutableStoreImpl: AbstractStore, MutableStore {
     }
 
     constructor(capacity: Int) {
-        this.context = MutableEncodingContextImpl()
+        // we expect about twice as many unique terms compared to the number of quads
+        this.context = MutableEncodingContextImpl(capacity * 2)
         this.quads = HashSet(capacity)
     }
 
