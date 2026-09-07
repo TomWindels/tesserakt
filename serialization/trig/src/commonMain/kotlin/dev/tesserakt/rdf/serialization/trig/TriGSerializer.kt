@@ -30,6 +30,7 @@ internal class TriGSerializer(private val config: TriGConfig): Serializer() {
         return DeserializationProcess(
             source = source,
             inner = deserializer,
+            estimatedSize = input.estimatedSize(),
         )
     }
 
@@ -74,6 +75,7 @@ internal class TriGSerializer(private val config: TriGConfig): Serializer() {
             return DeserializationProcess(
                 source = source,
                 inner = deserializer,
+                estimatedSize = input.estimatedSize(),
             )
         }
 

@@ -17,7 +17,8 @@ internal object NTriplesSerializer: Serializer() {
         val deserializer = NTriplesDeserializer(source)
         return DeserializationProcess(
             source = source,
-            inner = deserializer
+            inner = deserializer,
+            estimatedSize = input.estimatedSize(),
         )
     }
 

@@ -21,4 +21,10 @@ actual class FileDataSource(val file: java.io.File, val encoding: Charset) : Dat
         return BufferedDataStream(java.io.BufferedReader(stream))
     }
 
+    override fun estimatedSize(): Int {
+        val fileSize = file.length()
+        val capacityHint = (fileSize / 1000L).toInt()
+        return capacityHint
+    }
+
 }

@@ -1,4 +1,4 @@
-package dev.tesserakt
+package dev.tesserakt.types
 
 /**
  * A variant of [Iterator], which can suspend between obtaining new elements.

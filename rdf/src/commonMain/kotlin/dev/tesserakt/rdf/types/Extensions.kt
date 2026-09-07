@@ -1,9 +1,9 @@
 package dev.tesserakt.rdf.types
 
-import dev.tesserakt.SuspendingIterator
-import dev.tesserakt.forEach
-import dev.tesserakt.rdf.types.impl.MutableStoreImpl
 import dev.tesserakt.rdf.types.impl.StoreImpl
+import dev.tesserakt.types.SizeAwareIterator
+import dev.tesserakt.types.SuspendingIterator
+import dev.tesserakt.types.forEach
 
 fun Iterable<Quad>.toStore(): Store {
     return when (this) {
@@ -15,8 +15,24 @@ fun Iterable<Quad>.toStore(): Store {
 /**
  * Consumes `this` [Iterator], creating a [Store] that contains all (remaining) [Quad]s.
  */
-fun Iterator<Quad>.toStore(capacityHint: Int = 10): Store {
-    return toStore(MutableStoreImpl(capacityHint))
+fun Iterator<Quad>.toStore(capacityHint: Int? = null): Store {
+    val sizeHint = when {
+        capacityHint != null -> capacityHint
+        this is SizeAwareIterator<*> -> this.estimatedSize
+        // default parameter value
+        else -> 10
+    }
+    // we use the platform-aware store factory method, so we
+    //  can use concurrency if possible
+    return Store(this.asIterable(), sizeHint = sizeHint)
+}
+
+private fun Iterator<Quad>.asIterable(): Iterable<Quad> {
+    return object: Iterable<Quad> {
+        override fun iterator(): Iterator<Quad> {
+            return this@asIterable
+        }
+    }
 }
 
 /**
