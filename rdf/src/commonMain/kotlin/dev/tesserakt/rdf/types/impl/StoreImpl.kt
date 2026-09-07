@@ -20,6 +20,19 @@ internal class StoreImpl: AbstractStore {
         this.quads = quads
     }
 
+    constructor(quads: Iterable<Quad>, sizeHint: Int) {
+        val set = HashSet<EncodedQuad>(sizeHint)
+        val ctx = MutableEncodingContextImpl(sizeHint)
+        val iter = quads.iterator()
+        while (iter.hasNext()) {
+            val q = iter.next()
+            val encoded = EncodedQuad(ctx, q)
+            set.add(encoded)
+        }
+        this.quads = set
+        this.context = ctx
+    }
+
     constructor(context: EncodingContext, quads: Set<EncodedQuad>) {
         this.context = context
         this.quads = quads

@@ -29,7 +29,8 @@ internal class TurtleSerializer(private val config: TurtleConfig): Serializer() 
         )
         return DeserializationProcess(
             source = source,
-            inner = deserializer
+            inner = deserializer,
+            estimatedSize = input.estimatedSize(),
         )
     } catch (t: Throwable) {
         throw DeserializationException("Failed to initiate deserialization", t)
@@ -75,7 +76,8 @@ internal class TurtleSerializer(private val config: TurtleConfig): Serializer() 
             )
             return DeserializationProcess(
                 source = source,
-                inner = deserializer
+                inner = deserializer,
+                estimatedSize = input.estimatedSize(),
             )
         }
 

@@ -27,8 +27,12 @@ class MultiThreaded(val pool: ExecutorService) : ConcurrencyMode() {
      */
     companion object: ConcurrencyMode() {
 
+        // we make sure we reuse the pool if this default configuration instance is used at least once
+        private val pool by lazy {
+            Executors.newCachedThreadPool { task -> Thread(task).apply { isDaemon = true } }
+        }
+
         override fun toTaskRunner(): TaskRunner {
-            val pool = Executors.newCachedThreadPool { task -> Thread(task).apply { isDaemon = true } }
             return ThreadedTaskRunner(pool)
         }
 

@@ -1,11 +1,12 @@
 package dev.tesserakt.rdf.serialization.common
 
-import dev.tesserakt.SuspendingIterator
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.core.DataStream
 import dev.tesserakt.rdf.serialization.core.SuspendingDataStream
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.types.SizeAwareIterator
+import dev.tesserakt.types.SuspendingIterator
 
 abstract class Serializer {
 
@@ -36,8 +37,15 @@ abstract class Serializer {
     @InternalSerializationApi
     constructor(
         private val source: AutoCloseable,
-        private val inner: Iterator<Quad>
-    ): Iterator<Quad>, AutoCloseable {
+        private val inner: Iterator<Quad>,
+        /**
+         * The number of quads that are estimated to be obtained from this deserialization process.
+         *
+         * Note that this estimate is purely size driven (e.g. the size of the input file), and may thus be completely
+         *  off in certain cases.
+         */
+        override val estimatedSize: Int,
+    ): SizeAwareIterator<Quad>, AutoCloseable {
 
         private var curr: Quad? = null
 
@@ -58,7 +66,6 @@ abstract class Serializer {
         }
 
         override fun close() {
-            @OptIn(InternalSerializationApi::class)
             source.close()
         }
 
