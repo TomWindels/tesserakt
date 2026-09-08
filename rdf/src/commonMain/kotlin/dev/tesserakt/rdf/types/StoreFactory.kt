@@ -16,9 +16,19 @@ fun IndexedStore(data: Collection<Quad>): IndexedStore = IndexedStoreImpl(data)
 
 fun Store(): Store = EmptyStoreImpl
 
-expect fun Store(quads: Collection<Quad>): Store
+fun Store(quads: Collection<Quad>): Store {
+    if (quads.isEmpty()) {
+        return EmptyStoreImpl
+    }
+    return StoreImpl(quads)
+}
 
-expect fun Store(quads: Iterable<Quad>, sizeHint: Int = 10): Store
+fun Store(quads: Iterable<Quad>, sizeHint: Int = 10): Store {
+    if (quads is Collection<Quad>) {
+        return Store(quads)
+    }
+    return StoreImpl(quads, sizeHint)
+}
 
 fun storeOf(): Store = EmptyStoreImpl
 

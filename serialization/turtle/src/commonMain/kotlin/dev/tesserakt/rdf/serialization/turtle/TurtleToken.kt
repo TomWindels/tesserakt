@@ -95,11 +95,20 @@ internal sealed interface TurtleToken {
          */
         val value: String,
         val type: NonLiteralTerm,
-    ): TurtleToken, TermToken {
         /**
          * The raw value, but escaped, as would be seen in turtle documents
          */
-        val escaped = EscapeSequenceHelper.encodeMappedCharacterEscapes(value)
+        val rawValue: String,
+    ): TurtleToken, TermToken {
+
+        constructor(
+            value: String,
+            type: NonLiteralTerm,
+        ): this(
+            value = value,
+            type = type,
+            rawValue = EscapeSequenceHelper.encodeMappedCharacterEscapes(value)
+        )
 
         private fun matchesXsd(localName: String): Boolean = when (type) {
             is Term -> type.value == "http://www.w3.org/2001/XMLSchema#$localName"
@@ -108,11 +117,11 @@ internal sealed interface TurtleToken {
         }
 
         override val syntax get() = when {
-            matchesXsd("string") -> "\"$escaped\""
+            matchesXsd("string") -> "\"$rawValue\""
             matchesXsd("integer") -> value
             matchesXsd("decimal") -> value
             matchesXsd("boolean") -> value
-            else -> "\"$escaped\"^^${type.syntax}"
+            else -> "\"$rawValue\"^^${type.syntax}"
         }
         override fun toString(): String = "literal `$syntax`"
     }

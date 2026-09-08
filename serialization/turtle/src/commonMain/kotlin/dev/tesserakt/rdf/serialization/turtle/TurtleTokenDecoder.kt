@@ -100,8 +100,8 @@ internal class TurtleTokenDecoder(private val source: BufferedCharStream) : Iter
         source.expect(terminator)
         source.consume() // terminator
         var escaped = false
-        val value = source.consumeWhile { c -> (escaped || c != terminator).also { escaped = !escaped && c == '\\' } }
-            .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
+        val rawValue = source.consumeWhile { c -> (escaped || c != terminator).also { escaped = !escaped && c == '\\' } }
+        val value = EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = rawValue)
         source.consume() // terminator
         if (source.nextIs('@')) {
             source.consume()
@@ -114,9 +114,9 @@ internal class TurtleTokenDecoder(private val source: BufferedCharStream) : Iter
             source.consume() // '^'
             val type = next()
             source.expect(type is TurtleToken.NonLiteralTerm) { "Invalid literal type: $type" }
-            return TurtleToken.LiteralTerm(value, type)
+            return TurtleToken.LiteralTerm(value, type, rawValue)
         } else {
-            return TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value))
+            return TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value), rawValue)
         }
     }
 
@@ -124,8 +124,8 @@ internal class TurtleTokenDecoder(private val source: BufferedCharStream) : Iter
         source.expect(matches(terminator)) { "`$terminator` sequence expected" }
         source.consume(terminator.length)
         var escaped = false
-        val value = source.consumeWhile { c -> (escaped || !matches(terminator)).also { escaped = !escaped && c == '\\' } }
-            .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
+        val rawValue = source.consumeWhile { c -> (escaped || !matches(terminator)).also { escaped = !escaped && c == '\\' } }
+        val value = EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = rawValue)
         source.consume(terminator.length)
         return if (source.nextIs('@')) {
             source.consume()
@@ -133,7 +133,7 @@ internal class TurtleTokenDecoder(private val source: BufferedCharStream) : Iter
             val language = consumeLanguageTag()
             TurtleToken.LocalizedLiteralTerm(value, language)
         } else {
-            TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value))
+            TurtleToken.LiteralTerm(value, TurtleToken.Term(XSD.string.value), rawValue)
         }
     }
 
@@ -155,15 +155,21 @@ internal class TurtleTokenDecoder(private val source: BufferedCharStream) : Iter
             }
 
             result.any { it == 'e' || it == 'E' } -> {
-                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.double.value))
+                // can't contain any value that needs further escaping
+                val value = result.toString()
+                TurtleToken.LiteralTerm(value = value, type = TurtleToken.Term(XSD.double.value), rawValue = value)
             }
 
             result.any { it == '.' } -> {
-                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.decimal.value))
+                // can't contain any value that needs further escaping
+                val value = result.toString()
+                TurtleToken.LiteralTerm(value = value, type = TurtleToken.Term(XSD.decimal.value), rawValue = value)
             }
 
             else -> {
-                TurtleToken.LiteralTerm(value = result.toString(), type = TurtleToken.Term(XSD.int.value))
+                // can't contain any value that needs further escaping
+                val value = result.toString()
+                TurtleToken.LiteralTerm(value = value, type = TurtleToken.Term(XSD.int.value), rawValue = value)
             }
         }
     }

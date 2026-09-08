@@ -45,10 +45,15 @@ interface TaskRunner {
             return TaskResultImpl(value = runCatching { task() })
         }
 
+        override fun parallelize(maxCount: Int, block: () -> Unit): TaskResult<Unit> {
+            return dispatch(block)
+        }
+
         override fun <T : Any> buffered(source: Iterator<T>): BufferedIterator<T> {
             // we cannot dispatch the task to any runner that could buffer the results in a meaningful way
             return BufferedIteratorImpl(source)
         }
+
     }
 
     interface TaskResult<T> {
@@ -86,7 +91,27 @@ interface TaskRunner {
 
     }
 
+    /**
+     * Dispatches the given [task] for immediate execution. May block this thread to run the block locally.
+     *
+     * The result can then be obtained through the returned [TaskResult], which should be [TaskResult.await]ed
+     *  regardless of whether the result is required.
+     */
     fun <T> dispatch(task: () -> T): TaskResult<T>
+
+    /**
+     * Runs the [block] over at most [maxCount] (upper bound) concurrent workers, returning a result that can be awaited
+     *  with a possible failure.
+     *
+     * Note that, just like [dispatch], this method may block to run (parts of) the logic in the same thread as the
+     *  caller.
+     *
+     * Just like [dispatch], the [TaskResult] should be [TaskResult.await]ed to ensure all workers have finished
+     *  executing.
+     *
+     * Throws [IllegalArgumentException] if [maxCount] is set to 0 (or negative value)
+     */
+    fun parallelize(maxCount: Int = Int.MAX_VALUE, block: () -> Unit): TaskResult<Unit>
 
     /**
      * Buffers the [source] iterator into a buffer, allowing the source and sink to be executed concurrently,

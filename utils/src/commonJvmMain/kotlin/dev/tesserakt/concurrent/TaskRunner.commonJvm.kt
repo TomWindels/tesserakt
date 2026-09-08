@@ -3,18 +3,54 @@ package dev.tesserakt.concurrent
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.TimeSource
 
-class ThreadedTaskRunner(
-    private val executor: ExecutorService
+class ThreadedTaskRunner private constructor(
+    private val executor: ExecutorService,
+    private val threadCount: Int,
 ): TaskRunner {
 
+    companion object {
+
+        operator fun invoke(executor: ExecutorService): TaskRunner {
+            val cpuCount = Runtime.getRuntime().availableProcessors()
+            val threadCount = if (executor is ThreadPoolExecutor) {
+                executor.maximumPoolSize
+            } else {
+                // we assume an unbounded executor service, spawning threads as is
+                //  necessary to process tasks
+                Int.MAX_VALUE
+            }.coerceAtMost(cpuCount)
+            // can't really be negative, but if we get a weird pool that has no threads
+            //  available, or we end up on a machine that somehow only has 1 physical core
+            //  (e.g. a VM) we don't want to use any of our threading logic
+            return if (threadCount <= 0 || cpuCount == 1) {
+                TaskRunner.SingleThreaded
+            } else {
+                ThreadedTaskRunner(executor, threadCount)
+            }
+        }
+
+    }
+
     @JvmInline
-    value class FutureResult<T>(val inner: Future<Result<T>>): TaskRunner.TaskResult<T> {
+    private value class FutureResult<T>(val inner: Future<Result<T>>): TaskRunner.TaskResult<T> {
         override fun await(): Result<T> {
             return inner.get()
+        }
+    }
+
+    @JvmInline
+    private value class FutureCollectionResult(val inner: Collection<TaskRunner.TaskResult<Unit>>): TaskRunner.TaskResult<Unit> {
+        override fun await(): Result<Unit> {
+            val results = inner.map { it.await() }
+            val failure = results.firstNotNullOfOrNull { it.exceptionOrNull() }
+            return if (failure != null) {
+                Result.failure(failure)
+            } else {
+                Result.success(Unit)
+            }
         }
     }
 
@@ -27,45 +63,34 @@ class ThreadedTaskRunner(
         return FutureResult(executor.submit(callable))
     }
 
+    override fun parallelize(maxCount: Int, block: () -> Unit): TaskRunner.TaskResult<Unit> {
+        if (maxCount <= 0) {
+            throw IllegalArgumentException("At least one worker is required, got ${maxCount}!")
+        }
+        // we can't count ourselves as a background worker
+        val backgroundWorkers = (threadCount - 1).coerceAtMost(maxCount - 1)
+        if (backgroundWorkers <= 0) {
+            // we're the only one running
+            return TaskRunner.SingleThreaded.dispatch(block)
+        }
+        val dispatchedResults = List(backgroundWorkers) { dispatch(block) }
+        return FutureCollectionResult(
+            // we both dispatch our background workers, as well as the calling thread,
+            //  so we get some extra parallelization going without scheduling overhead
+            inner = dispatchedResults + TaskRunner.SingleThreaded.dispatch(block)
+        )
+    }
+
     override fun <T : Any> buffered(source: Iterator<T>): TaskRunner.BufferedIterator<T> {
         val iterator = SpinLockBufferedIterator(source)
-        // we need to make sure the loop is actually producing data; if there's no threads available, we need to fall
-        //  back to a single threaded variant to prevent a deadlock on a resource that never comes
-        var started = false
-        var beginProducing = false
-        val task = executor.submit {
-            started = true
-            // we need to make sure this iterator is actually getting used; we wait until we get the go-ahead
-            val start = TimeSource.Monotonic.markNow()
-            while (!beginProducing && start.elapsedNow() < 1.milliseconds) {
-                spinLoopHint()
-            }
-            if (start.elapsedNow() >= 1.milliseconds) {
-                // we executed successfully, but this was not detected properly, so we fell back to single threaded
-                //  anyway
-                return@submit
-            }
+        executor.submit {
             iterator.producerLoop()
             // we reached here, so we can safely close the input source if necessary
             if (source is AutoCloseable) {
                 source.close()
             }
         }
-        val start = TimeSource.Monotonic.markNow()
-        while (start.elapsedNow() < 1.milliseconds && !started) {
-            spinLoopHint()
-        }
-        if (started) {
-            // the thread started successfully, and we intend to use this parallel iterator, so we allow the producer
-            //  loop to start
-            beginProducing = true
-            return iterator
-        }
-        // the iterator failed to start, so we shut it down and fall back to single threaded eval
-        iterator.close()
-        // we won't use the buffered iterator anymore, so we can cancel its task
-        task.cancel(false)
-        return TaskRunner.SingleThreaded.buffered(source)
+        return iterator
     }
 
     internal class SpinLockBufferedIterator<T : Any>(

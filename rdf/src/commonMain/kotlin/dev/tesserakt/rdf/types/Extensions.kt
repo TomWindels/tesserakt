@@ -8,7 +8,9 @@ import dev.tesserakt.types.forEach
 fun Iterable<Quad>.toStore(): Store {
     return when (this) {
         is Collection<Quad> -> Store(this)
-        else -> StoreImpl(toMutableSet())
+        // better to use a small size hint that allows for growth than it is to convert
+        //  it to an intermediate collection
+        else -> StoreImpl(this, sizeHint = 10)
     }
 }
 
@@ -22,8 +24,6 @@ fun Iterator<Quad>.toStore(capacityHint: Int? = null): Store {
         // default parameter value
         else -> 10
     }
-    // we use the platform-aware store factory method, so we
-    //  can use concurrency if possible
     return Store(this.asIterable(), sizeHint = sizeHint)
 }
 

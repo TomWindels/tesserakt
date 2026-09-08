@@ -1,7 +1,10 @@
 package dev.tesserakt.rdf.types.impl
 
+import dev.tesserakt.concurrent.ConcurrentSet
+import dev.tesserakt.concurrent.globalTaskRunner
 import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.rdf.types.EncodingContext
+import dev.tesserakt.rdf.types.MutableEncodingContext
 import dev.tesserakt.rdf.types.Quad
 
 // not required here: we optimized hash code as we're readonly, but the equals check stays in place
@@ -15,19 +18,75 @@ internal class StoreImpl: AbstractStore {
     private val hashCode by lazy { super.hashCode() }
 
     constructor(data: Collection<Quad>) {
-        val quads = HashSet<EncodedQuad>(data.size)
-        this.context = ImmutableEncodingContextImpl(data, quads)
-        this.quads = quads
+        // if the collection is big enough, we do it concurrently, for faster context encoding
+        val ctx: MutableEncodingContext
+        val set: Set<EncodedQuad>
+        val runner = globalTaskRunner
+        runner.buffered(data.iterator()).use { iter ->
+            if (iter.supportsConcurrentAccess() && data.size > 10_000) {
+                set = ConcurrentSet(data.size)
+                ctx = MutableEncodingContext {
+                    initialCapacity = data.size
+                    concurrent = true
+                }
+                // the quad encoding & storing process is at worst 2x slower than
+                //  a very fast source iterator (e.g. reading from disk)
+                //  so we limit our reading parallelization to 2
+                runner.parallelize(2) {
+                    while (true) {
+                        val q = iter.getNext() ?: break
+                        val encoded = EncodedQuad(ctx, q)
+                        set.add(encoded)
+                    }
+                }.await()
+            } else {
+                // regular evaluation
+                set = HashSet()
+                ctx = MutableEncodingContext {
+                    initialCapacity = data.size
+                }
+                while (true) {
+                    val q = iter.getNext() ?: break
+                    val encoded = EncodedQuad(ctx, q)
+                    set.add(encoded)
+                }
+            }
+        }
+        this.quads = set
+        this.context = ctx
     }
 
     constructor(quads: Iterable<Quad>, sizeHint: Int) {
-        val set = HashSet<EncodedQuad>(sizeHint)
-        val ctx = MutableEncodingContextImpl(sizeHint)
-        val iter = quads.iterator()
-        while (iter.hasNext()) {
-            val q = iter.next()
-            val encoded = EncodedQuad(ctx, q)
-            set.add(encoded)
+        val ctx: MutableEncodingContext
+        val set: Set<EncodedQuad>
+        val runner = globalTaskRunner
+        runner.buffered(quads.iterator()).use { iter ->
+            if (iter.supportsConcurrentAccess()) {
+                set = ConcurrentSet(sizeHint)
+                ctx = MutableEncodingContext {
+                    initialCapacity = sizeHint
+                    concurrent = true
+                }
+                // the quad encoding & storing process is at worst 2x slower than
+                //  a very fast source iterator (e.g. reading from disk)
+                //  so we limit our reading parallelization to 2
+                runner.parallelize(2) {
+                    while (true) {
+                        val q = iter.getNext() ?: break
+                        val encoded = EncodedQuad(ctx, q)
+                        set.add(encoded)
+                    }
+                }.await()
+            } else {
+                // regular evaluation
+                set = HashSet(sizeHint)
+                ctx = MutableEncodingContextImpl(sizeHint)
+                while (true) {
+                    val q = iter.getNext() ?: break
+                    val encoded = EncodedQuad(ctx, q)
+                    set.add(encoded)
+                }
+            }
         }
         this.quads = set
         this.context = ctx
