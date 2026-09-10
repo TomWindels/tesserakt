@@ -193,7 +193,7 @@ data class Quad(
         fun Literal(value: String): Literal = SimpleLiteral(value)
 
         @JvmStatic
-        fun Literal(value: Int): Literal = Literal(value = value.toString(), type = XSD.int)
+        fun Literal(value: Int): Literal = Literal(value = value.toString(), type = XSD.integer)
 
         @JvmStatic
         fun Literal(value: Long): Literal = Literal(value = value.toString(), type = XSD.long)

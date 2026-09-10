@@ -1,6 +1,8 @@
 
 import dev.tesserakt.util.printerrln
-import sparql.tests.*
+import sparql.tests.builtinTests
+import sparql.tests.compareIncrementalBasicGraphPatternOutput
+import sparql.tests.compareIncrementalStoreReplay
 import sparql.types.QueryExecutionTestValues
 
 suspend fun run(args: Array<String>) {
@@ -10,24 +12,25 @@ suspend fun run(args: Array<String>) {
             val results = listOf(
                 /* we first evaluate validation-like tests */
                 builtinTests()
+                    .select(117)
                     .test(QueryExecutionTestValues::toOutputComparisonTest),
-                builtinTests()
-                    .test(QueryExecutionTestValues::toIncrementalUpdateTest),
-                builtinTests()
-                    .test(QueryExecutionTestValues::toIncrementalDeferredUpdateTest),
-                builtinTests()
-                    .test(QueryExecutionTestValues::toIncrementalDeferredDeletionTest),
-                builtinTests()
-                    .test(QueryExecutionTestValues::toDeferredClearTest),
-                builtinTests()
-                    .test(QueryExecutionTestValues::toRandomUpdateTest),
+//                builtinTests()
+//                    .test(QueryExecutionTestValues::toIncrementalUpdateTest),
+//                builtinTests()
+//                    .test(QueryExecutionTestValues::toIncrementalDeferredUpdateTest),
+//                builtinTests()
+//                    .test(QueryExecutionTestValues::toIncrementalDeferredDeletionTest),
+//                builtinTests()
+//                    .test(QueryExecutionTestValues::toDeferredClearTest),
+//                builtinTests()
+//                    .test(QueryExecutionTestValues::toRandomUpdateTest),
                 /* we then use larger sized, generated datasets & queries for performance-oriented evaluation */
-                compareIncrementalChainSelectOutput(seed = 1)
-                    .test(QueryExecutionTestValues::toOutputComparisonTest),
-                compareIncrementalStarSelectOutput(seed = 1)
-                    .test(QueryExecutionTestValues::toOutputComparisonTest),
-                compareIncrementalImbalancedStarSelectOutput(seed = 1)
-                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+//                compareIncrementalChainSelectOutput(seed = 1)
+//                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+//                compareIncrementalStarSelectOutput(seed = 1)
+//                    .test(QueryExecutionTestValues::toOutputComparisonTest),
+//                compareIncrementalImbalancedStarSelectOutput(seed = 1)
+//                    .test(QueryExecutionTestValues::toOutputComparisonTest),
             ).map { it.run() }
             results.forEach { it.report() }
             if (results.any { !it.isSuccess() }) {

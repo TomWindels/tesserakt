@@ -2,36 +2,31 @@ package dev.tesserakt.sparql.runtime.query
 
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
-import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
-import dev.tesserakt.sparql.runtime.evaluation.DataDelta
-import dev.tesserakt.sparql.runtime.evaluation.MappingDelta
-import dev.tesserakt.sparql.runtime.evaluation.Statistics
+import dev.tesserakt.sparql.runtime.evaluation.*
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
-import dev.tesserakt.sparql.runtime.stream.OptimisedStream
-import dev.tesserakt.sparql.runtime.stream.Stream
-import dev.tesserakt.sparql.runtime.stream.toStream
-import dev.tesserakt.sparql.runtime.stream.transform
+import dev.tesserakt.sparql.runtime.stream.*
 import dev.tesserakt.sparql.types.GraphPatternSegment
 import dev.tesserakt.sparql.types.SelectQuerySegment
 import dev.tesserakt.sparql.types.Union
 import dev.tesserakt.sparql.util.Cardinality
-import kotlin.jvm.JvmInline
 
 class UnionState private constructor(private val state: List<Segment>): MutableJoinState {
 
     private sealed interface Segment {
 
-        @JvmInline
-        value class GraphPatternSegmentState private constructor(
+        class GraphPatternSegmentState private constructor(
+            private val origin: Int,
             private val state: MutableJoinState,
         ): Segment {
 
             constructor(
+                origin: Int,
                 context: QueryContext,
                 parent: GraphPatternSegment,
                 externalFilters: List<FilterExpression>,
                 externalBindings: BindingIdentifierSet,
             ): this(
+                origin = origin,
                 state = BasicGraphPatternState(
                     context = context,
                     ast = parent.pattern,
@@ -50,11 +45,11 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
             }
 
             override fun process(): OptimisedStream<MappingDelta> {
-                return state.process()
+                return state.process().mapped { it.map { mapping -> mapping.withOrigin(origin) } }
             }
 
             override fun join(delta: MappingDelta): Stream<MappingDelta> {
-                return state.join(delta)
+                return state.join(delta).mapped { it.map { mapping -> mapping.withOrigin(origin) } }
             }
 
             override fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint) {
@@ -111,21 +106,6 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
         fun stats(context: QueryContext, granularity: QueryStatistics.Granularity): Statistics
 
     }
-
-    constructor(
-        context: QueryContext,
-        union: Union,
-        filters: List<FilterExpression>,
-        externalBindings: BindingIdentifierSet,
-    ): this(
-        state = union.map {
-            it.createIncrementalSegmentState(
-                context = context,
-                filters = filters,
-                externalBindings = externalBindings,
-            )
-        },
-    )
 
     override val properties = if (state.isEmpty()) {
         MutableJoinState.Properties.EMPTY
@@ -194,15 +174,36 @@ class UnionState private constructor(private val state: List<Segment>): MutableJ
 
     companion object {
 
+        operator fun invoke(
+            context: QueryContext,
+            union: Union,
+            filters: List<FilterExpression>,
+            externalBindings: BindingIdentifierSet,
+        ): UnionState {
+            return UnionState(
+                // FIXME `id` has to be transformed based on the # of unions
+                state = union.mapIndexed { id, segment ->
+                    segment.createIncrementalSegmentState(
+                        origin = id,
+                        context = context,
+                        filters = filters,
+                        externalBindings = externalBindings,
+                    )
+                },
+            )
+        }
+
         /* helpers */
 
         private fun dev.tesserakt.sparql.types.Segment.createIncrementalSegmentState(
+            origin: Int,
             context: QueryContext,
             filters: List<FilterExpression>,
             externalBindings: BindingIdentifierSet,
         ) = when (this) {
             is SelectQuerySegment -> Segment.SubqueryState(context, this)
             is GraphPatternSegment -> Segment.GraphPatternSegmentState(
+                origin = origin,
                 context = context,
                 parent = this,
                 externalFilters = filters,

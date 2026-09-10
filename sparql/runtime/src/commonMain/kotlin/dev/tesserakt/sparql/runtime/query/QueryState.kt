@@ -27,7 +27,17 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
         value class Removed<T>(override val value: T): ResultChange<T>
 
         companion object {
-            inline fun Mapping.into(context: QueryContext) = BindingsImpl(context, this)
+
+            /**
+             * Materializes a solution into a representation that has its binding names and term values decoded.
+             * Also executes [expressions] that require the full term values, resulting in new terms not necessarily
+             *  present in the accompanying [QueryContext].
+             */
+            inline fun Mapping.materialize(
+                context: QueryContext,
+                expressions: Collection<BindingExpression>,
+            ) = BindingsImpl(context, this, expressions)
+
         }
 
     }
@@ -108,7 +118,7 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
 
     protected abstract fun transformNewBodyResult(change: MappingDelta): ResultChange<ResultType>
 
-    fun stats(granularity: QueryStatistics.Granularity): Statistics {
+    open fun stats(granularity: QueryStatistics.Granularity): Statistics {
         return bgpState.stats(context, granularity)
     }
 

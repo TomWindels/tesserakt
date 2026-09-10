@@ -4,33 +4,46 @@ import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
+import dev.tesserakt.sparql.runtime.query.BindingExpression
+import dev.tesserakt.sparql.runtime.query.Expression.getTerm
 
-class BindingsImpl(private val context: QueryContext, private val mapping: Mapping): Bindings {
+class BindingsImpl(
+    context: QueryContext,
+    private val mapping: Mapping,
+    expressions: Collection<BindingExpression>
+): Bindings {
 
-    private val iterable = mapping.asIterable(context)
+    // we don't care about the result of the expressions as these are considered to be consistent for the same
+    //  exact term values
+    private val hashCode = mapping.data.contentHashCode()
 
-    override fun iterator(): Iterator<Pair<String, Quad.Element>> = iterable.iterator()
+    private val terms = buildList(mapping.count + expressions.size) {
+        mapping.asIterable().forEach { (bId, tId) ->
+            val binding = bId.name ?: context.resolveBinding(bId.id)
+            add(binding to context.resolveTerm(tId.id))
+        }
+        expressions.forEach { expression ->
+            val binding = expression.target.name
+            val term = expression.operation.eval(mapping).getTerm(context)
+                // unbound terms are not added to our list
+                ?: return@forEach
+            add(binding to term)
+        }
+    }
 
-    fun retain(names: Set<String>) = BindingsImpl(context, mapping = mapping.retain(BindingIdentifierSet(context, names)))
+    override fun iterator(): Iterator<Pair<String, Quad.Element>> = terms.iterator()
 
     override fun hashCode(): Int {
-        return mapping.hashCode()
+        return hashCode
     }
 
     override fun equals(other: Any?): Boolean {
         if (other !is BindingsImpl) {
             return false
         }
-        val a = mapping.asIterable().iterator()
-        val b = other.mapping.asIterable().iterator()
-        while (a.hasNext() && b.hasNext()) {
-            if (a.next() != b.next()) {
-                return false
-            }
-        }
-        return !a.hasNext() && !b.hasNext()
+        return this.mapping.matches(other.mapping)
     }
 
-    override fun toString() = iterable.joinToString(prefix = "{", postfix = "}") { "${it.first} = ${it.second}" }
+    override fun toString() = terms.joinToString(prefix = "{", postfix = "}") { "${it.first} = ${it.second}" }
 
 }
