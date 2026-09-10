@@ -1,6 +1,6 @@
 package dev.tesserakt.stream.ldes
 
-import dev.tesserakt.rdf.types.factory.IndexedStore
+import dev.tesserakt.rdf.types.IndexedStore
 
 
 fun <StreamElement> MutableVersionedLinkedDataEventStream<StreamElement>.toReadOnlyIndexedStream(): IndexedVersionedLinkedDataEventStream<StreamElement> {

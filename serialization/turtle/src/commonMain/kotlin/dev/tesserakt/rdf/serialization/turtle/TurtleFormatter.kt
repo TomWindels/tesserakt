@@ -1,7 +1,7 @@
 package dev.tesserakt.rdf.serialization.turtle
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.util.addFront
 import dev.tesserakt.util.fit
 import dev.tesserakt.util.removeFirstElement
@@ -101,14 +101,14 @@ data class PrettyTurtleFormatter(
 
         private fun TurtleToken.mapped(prefixes: Prefixes): TurtleToken = when (this) {
             is TurtleToken.Term -> prefixes
-                .format(value.asNamedTerm())
+                .format(NamedTerm(value))
                 ?.let { TurtleToken.PrefixedTerm(prefix = it.prefix, value = it.value) }
                 ?: this
 
             is TurtleToken.LiteralTerm -> {
                 if (type is TurtleToken.Term) {
                     prefixes
-                        .format(type.value.asNamedTerm())
+                        .format(NamedTerm(type.value))
                         ?.let {
                             TurtleToken.LiteralTerm(
                                 value = value,

@@ -495,7 +495,9 @@ internal class TurtleDeserializer(
             TurtleToken.Keyword.PrefixAnnotationA,
             TurtleToken.Keyword.PrefixAnnotationB -> {
                 val prefix = source.consume()
-                check(prefix is TurtleToken.PrefixedTerm && prefix.value.isEmpty())
+                check(prefix is TurtleToken.PrefixedTerm && prefix.value.isEmpty()) {
+                    "Invalid structure encountered: ${if (prefix is TurtleToken.PrefixedTerm) "`${prefix.value}` should be empty!" else "`${prefix}` is not a valid prefix element!"}"
+                }
                 prefixes[prefix.prefix] = when (val uri = source.consume()) {
                     is TurtleToken.Term -> uri.value
 
@@ -541,9 +543,9 @@ internal class TurtleDeserializer(
 
     fun onUnexpectedToken(token: TurtleToken?): Nothing {
         if (token == null) {
-            throw IllegalStateException("Unexpected end of input")
+            source.bail("Unexpected end of input")
         }
-        throw IllegalStateException("Unexpected token $token. Buffer: $source")
+        source.bail("Unexpected token $token")
     }
 
     companion object {

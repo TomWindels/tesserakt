@@ -12,7 +12,7 @@ kotlin {
     }
     sourceSets {
         // dependency is used in the task below; is a main SourceSet for task management purposes
-        val jsMain by getting {
+        getByName("jsMain") {
             dependencies {
                 // the script used for interacting with the external testing suite
                 implementation(npm("rdf-test-suite", "1.25.0"))

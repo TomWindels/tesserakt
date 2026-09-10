@@ -14,8 +14,8 @@ class StreamSingleJoin(
         private val source: Iterator<Mapping>,
     ): Iterator<Mapping> {
 
-        // the empty mapping is never read from, so this is not an error (instant `increment()` call)
-        private lateinit var right: Mapping
+        // the initial `empty` mapping is never read from, so this is not an error (instant `increment()` call)
+        private var right: Mapping = Mapping.EMPTY
 
         private var next: Mapping? = null
 

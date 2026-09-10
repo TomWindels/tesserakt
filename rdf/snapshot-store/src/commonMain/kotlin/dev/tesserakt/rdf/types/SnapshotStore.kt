@@ -1,9 +1,6 @@
 package dev.tesserakt.rdf.types
 
 import dev.tesserakt.rdf.ontology.XSD
-import dev.tesserakt.rdf.types.factory.IndexedStore
-import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.indexedStoreOf
 import dev.tesserakt.stream.ldes.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant

@@ -1,9 +1,6 @@
 package dev.tesserakt.rdf.types.impl
 
-import dev.tesserakt.rdf.types.EncodedQuad
-import dev.tesserakt.rdf.types.EncodedQuadElement
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.util.fit
 
 /**
@@ -40,31 +37,37 @@ abstract class AbstractStore : Store {
     }
 
     override fun containsAll(elements: Collection<Quad>): Boolean {
-        if (elements is Store) {
-            // as this is a store, it uses set semantics;
-            //  if, after set semantics, it contains more quads than we do, we cannot possibly contain all of them
-            if (size < elements.size) {
-                return false
-            }
-            // we construct a mapping context between us and the other store, but only if the elements we need to look
-            //  up count-wise 'is worth it' (as the mapper looks up the entire context immediately)
-            if (this.context.size > elements.size * 3) {
-                // our context is too large w.r.t. the amount of lookups we need to do;
-                //  we do the lookups as is needed instead
-                return elements.all { it in this }
-            }
-            val mapper = ContextMapper(source = elements.context, target = this.context)
-            elements.encodedIterator().forEach { encodedQuad ->
-                val reencoded = mapper.reencode(encodedQuad) ?: return false
-                if (reencoded !in this) {
-                    return false
-                }
-            }
-            // all elements matched after reencoding, so we contain all elements from the other store
-            return true
+        // if there's a distinct set of elements, and that number exceeds our own distinct set of elements in size,
+        //  we cannot possibly contain them all
+        if (elements is Set<*> && elements.size > this.size) {
+            return false
         }
-
         return elements.all { it in this }
+    }
+
+    override fun asEncodedSet(): Set<EncodedQuad> {
+        return object: Set<EncodedQuad> {
+
+            override val size: Int
+                get() = this@AbstractStore.size
+
+            override fun contains(element: EncodedQuad): Boolean {
+                return element in this@AbstractStore
+            }
+
+            override fun containsAll(elements: Collection<EncodedQuad>): Boolean {
+                return elements.all { it in this@AbstractStore }
+            }
+
+            override fun isEmpty(): Boolean {
+                return this@AbstractStore.isEmpty()
+            }
+
+            override fun iterator(): Iterator<EncodedQuad> {
+                return this@AbstractStore.encodedIterator()
+            }
+
+        }
     }
 
     override fun toString() = if (isEmpty()) "<empty store>" else buildString {
@@ -107,11 +110,32 @@ abstract class AbstractStore : Store {
         if (other !is Set<*>) {
             return false
         }
-        return this.size == other.size && containsAll(other)
+        if (this.size != other.size) {
+            return false
+        }
+        if (other is Store) {
+            // we check hash code before content first, as read-only stores tend to cache this value, and thus can do
+            //  this much faster
+            if (this !is MutableStore && other !is MutableStore) {
+                if (this.hashCode() != other.hashCode()) {
+                    return false
+                }
+            }
+            // we can use the context-mapper based 'contains all' check
+            return containsAll(other)
+        }
+        // we're dealing with a regular set implementation, so we have to do a regular value-based lookup
+        // we prefer decoding values over encoding them, so we check the contents of our own for presence in the
+        //  other collection; considering it implements the `Set` interface, we expect the other type to have
+        //  a direct lookup strategy (eg hash based) available
+        return this.all { quad -> quad in other }
     }
 
     override fun hashCode(): Int {
         // going for accuracy instead of speed; non-mutable stores can cache this value
+        // we use the hash code of the non-encoded representation so hash codes between different store implementations,
+        //  using different encoding context implementations / instances, can still share a hash code (as they would
+        //  be equal too)
         var result = 0
         forEach { quad -> result += quad.hashCode() }
         return result

@@ -14,7 +14,7 @@ kotlin {
     // jvm and native are already configured through the convention plugins
     sourceSets {
         // core modules tested by all test targets
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 implementation(project(":utils"))
             }

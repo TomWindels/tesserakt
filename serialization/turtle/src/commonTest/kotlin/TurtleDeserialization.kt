@@ -47,7 +47,6 @@ class TurtleDeserialization {
 
     }
 
-    @OptIn(DelicateSerializationApi::class)
     @Test
     fun badInput() {
         val input = """
@@ -60,7 +59,6 @@ class TurtleDeserialization {
         source.assertClosed()
     }
 
-    @OptIn(DelicateSerializationApi::class)
     @Test
     fun goodInput() {
         val input = """
@@ -71,6 +69,46 @@ class TurtleDeserialization {
         val store = serializer.deserialize(source).toStore()
         source.assertClosed()
         assertContains(store, Quad(Quad.NamedTerm("http://example.org/User"), Quad.NamedTerm("http://example.org/name"), Quad.Literal("User", XSD.string)))
+    }
+
+    @Test
+    fun rawString1() {
+        val input = "<http://example.org/User> <http://example.org/name> \"\"\"User\"\"\" ."
+        val serializer = serializer(Turtle)
+        val source = TestSource(input)
+        val store = serializer.deserialize(source).toStore()
+        source.assertClosed()
+        assertContains(store, Quad(Quad.NamedTerm("http://example.org/User"), Quad.NamedTerm("http://example.org/name"), Quad.Literal("User", XSD.string)))
+    }
+
+    @Test
+    fun rawString2() {
+        val input = "<http://example.org/User> <http://example.org/name> \"\"\"User \'Test\'\"\"\" ."
+        val serializer = serializer(Turtle)
+        val source = TestSource(input)
+        val store = serializer.deserialize(source).toStore()
+        source.assertClosed()
+        assertContains(store, Quad(Quad.NamedTerm("http://example.org/User"), Quad.NamedTerm("http://example.org/name"), Quad.Literal("User \'Test\'", XSD.string)))
+    }
+
+    @Test
+    fun rawString3() {
+        val input = "<http://example.org/User> <http://example.org/name> \"\"\"User \'Test\'\"\"\"@en ."
+        val serializer = serializer(Turtle)
+        val source = TestSource(input)
+        val store = serializer.deserialize(source).toStore()
+        source.assertClosed()
+        assertContains(store, Quad(Quad.NamedTerm("http://example.org/User"), Quad.NamedTerm("http://example.org/name"), Quad.Literal("User \'Test\'", "en")))
+    }
+
+    @Test
+    fun badStart() {
+        val input = "<http://example.com/ test> a \"Failure\""
+        val serializer = serializer(Turtle)
+        val source = TestSource(input)
+        assertFailsWith<DeserializationException> { serializer.deserialize(source).toStore() }
+            .also { it.printStackTrace() }
+        source.assertClosed()
     }
 
 }

@@ -6,9 +6,11 @@ group = "serialization"
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 api(project(":rdf"))
+
+                implementation(project(":utils"))
             }
         }
     }

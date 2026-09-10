@@ -13,7 +13,7 @@ class Counter<T : Any> private constructor(private val map: MutableMap<T, Int>):
     /**
      * The total number of inserted items (= sum of all individual counts)
      */
-    var count = 0
+    var count = map.asIterable().sumOf { it.value }
         private set
 
     val current: Set<T> get() = map.keys

@@ -6,19 +6,19 @@ group = "testing"
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 api(project(":rdf:snapshot-store"))
                 implementation(project(":rdf:dsl"))
                 implementation(project(":serialization:trig"))
             }
         }
-        val jsMain by getting {
+        getByName("jsMain") {
             dependencies {
                 api(project(":interop:rdfjs"))
             }
         }
-        val commonTest by getting {
+        getByName("commonTest") {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(project(":utils"))

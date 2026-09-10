@@ -1,6 +1,6 @@
 package dev.tesserakt.sparql.endpoint.client
 
-import dev.tesserakt.rdf.dsl.RDF
+import dev.tesserakt.rdf.dsl.RDFContext
 import dev.tesserakt.rdf.dsl.buildStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
@@ -10,7 +10,7 @@ import dev.tesserakt.rdf.types.Store
  * Inserts all quads that are generated inside the [builder] block. Quads also present in the DELETE operation
  *  cancel each other out.
  */
-fun SparqlUpdateRequestBuilder.insert(builder: RDF.() -> Unit) {
+fun SparqlUpdateRequestBuilder.insert(builder: RDFContext.() -> Unit) {
     additions.addAll(buildStore(block = builder))
 }
 
@@ -18,7 +18,7 @@ fun SparqlUpdateRequestBuilder.insert(builder: RDF.() -> Unit) {
  * Deletes all quads that are generated inside the [builder] block. Quads also present in the INSERT operation
  *  cancel each other out.
  */
-fun SparqlUpdateRequestBuilder.delete(builder: RDF.() -> Unit) {
+fun SparqlUpdateRequestBuilder.delete(builder: RDFContext.() -> Unit) {
     deletions.addAll(buildStore(block = builder))
 }
 

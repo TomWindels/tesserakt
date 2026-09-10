@@ -45,7 +45,7 @@ internal class CachingSparqlEndpointImpl(
             //  leak memory
             // as `onEviction` is called during an insertion of a new K-V pair, we assume
             //  we already hold the queryCacheLock
-            evaluation.unsubscribe(store)
+            evaluation.close()
         }
     )
 
@@ -80,7 +80,7 @@ internal class CachingSparqlEndpointImpl(
                 queryCacheLock.withLock {
                     // ensuring we don't leak these states through the ongoing store instance
                     queryCache.forEach {
-                        it.value.unsubscribe(store)
+                        it.value.close()
                     }
                     queryCache.clear()
                 }

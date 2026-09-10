@@ -16,15 +16,8 @@ kotlin {
         minSdk = libs.get("minSdk").toInt()
         compileSdk = libs.get("compileSdk").toInt()
         namespace = getNamespace()
-        compilations.configureEach {
-            // the suggested change makes the JVM-specific compiler options unavailable as the compiler
-            //  task only provides the compiler options for the common sourceset...
-            @Suppress("DEPRECATION")
-            compilerOptions.configure {
-                jvmTarget.set(
-                    org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
-                )
-            }
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
         }
         lint {
             abortOnError = true

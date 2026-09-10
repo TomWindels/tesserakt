@@ -1,5 +1,8 @@
 package dev.tesserakt.rdf.serialization.turtle
 
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
+import dev.tesserakt.rdf.serialization.common.DeserializationException
+
 internal class TurtleTokenBuffer(private val source: Iterator<TurtleToken>) {
 
     private var current: TurtleToken = if (source.hasNext()) source.next() else TurtleToken.EOF
@@ -24,6 +27,15 @@ internal class TurtleTokenBuffer(private val source: Iterator<TurtleToken>) {
 
     fun hasNext(): Boolean {
         return current != TurtleToken.EOF
+    }
+
+    fun bail(message: String): Nothing {
+        @OptIn(InternalSerializationApi::class)
+        if (source is TurtleTokenDecoder) {
+            source.bail(message)
+        } else {
+            throw DeserializationException(message, null)
+        }
     }
 
     override fun toString(): String = "TokenBuffer { current = $current, source = $source }"

@@ -13,7 +13,7 @@ kotlin {
     }
 
     sourceSets {
-        val jsMain by getting {
+        getByName("jsMain") {
             dependencies {
                 api(project(":interop:rdfjs"))
 

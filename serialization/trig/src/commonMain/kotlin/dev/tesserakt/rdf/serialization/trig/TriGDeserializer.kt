@@ -152,7 +152,7 @@ internal class TriGDeserializer(
                             return result
                         }
 
-                        token == TriGToken.EOF -> unexpectedToken(TriGToken.EOF)
+                        token == TriGToken.EOF -> unexpectedToken(parent.source, TriGToken.EOF)
 
                         token == TriGToken.Structural.BlankEnd -> {
                             parent.source.consume()
@@ -169,7 +169,7 @@ internal class TriGDeserializer(
                                     RDF.type
                                 }
 
-                                else -> unexpectedToken(token)
+                                else -> unexpectedToken(parent.source, token)
                             }
                             parent.source.consume()
                         }
@@ -201,12 +201,12 @@ internal class TriGDeserializer(
                                     p = null
                                 }
 
-                                else -> unexpectedToken(parent.source.peek())
+                                else -> unexpectedToken(parent.source, parent.source.peek())
                             }
                             return result
                         }
 
-                        else -> unexpectedToken(token)
+                        else -> unexpectedToken(parent.source, token)
                     }
                 }
             }
@@ -284,7 +284,7 @@ internal class TriGDeserializer(
                         ListItem.SimpleItem(item = parent.resolve(current) as Quad.Object).also { parent.source.consume() }
                     }
 
-                    else -> unexpectedToken(current)
+                    else -> unexpectedToken(parent.source, current)
                 }
             }
 
@@ -406,7 +406,7 @@ internal class TriGDeserializer(
 
                 token == TriGToken.Structural.GraphStatementStart -> {
                     if (inGraphBlock) {
-                        unexpectedToken(token)
+                        unexpectedToken(source, token)
                     }
                     source.consume()
                     inGraphBlock = true
@@ -424,7 +424,7 @@ internal class TriGDeserializer(
 
                 token == TriGToken.Structural.GraphStatementEnd -> {
                     if (!inGraphBlock) {
-                        unexpectedToken(token)
+                        unexpectedToken(source, token)
                     }
                     source.consume()
                     // resetting the rest of the state too
@@ -467,7 +467,7 @@ internal class TriGDeserializer(
                             Quad.Literal(value = "false", type = XSD.boolean)
                         }
 
-                        else -> unexpectedToken(token)
+                        else -> unexpectedToken(source, token)
                     } as Quad.Object
                     // the object's token
                     source.consume()
@@ -500,7 +500,7 @@ internal class TriGDeserializer(
                 return result
             }
 
-            else -> unexpectedToken(terminator)
+            else -> unexpectedToken(source, terminator)
         }
         // it's possible for other termination characters to occur now, so repeating in case this happens
         while (true) {
@@ -544,20 +544,22 @@ internal class TriGDeserializer(
             TriGToken.Keyword.PrefixAnnotationA,
             TriGToken.Keyword.PrefixAnnotationB -> {
                 val prefix = source.consume()
-                check(prefix is TriGToken.PrefixedTerm && prefix.value.isEmpty())
+                check(prefix is TriGToken.PrefixedTerm && prefix.value.isEmpty()) {
+                    "Invalid structure encountered: ${if (prefix is TriGToken.PrefixedTerm) "`${prefix.value}` should be empty!" else "`${prefix}` is not a valid prefix element!"}"
+                }
                 prefixes[prefix.prefix] = when (val uri = source.consume()) {
                     is TriGToken.Term -> uri.value
 
                     is TriGToken.RelativeTerm -> base.resolve(uri).value
 
-                    else -> unexpectedToken(uri)
+                    else -> unexpectedToken(source, uri)
                 }
                 if (source.peek() == TriGToken.Structural.StatementTermination) {
                     source.consume()
                 }
             }
 
-            else -> unexpectedToken(token)
+            else -> unexpectedToken(source, token)
         }
     }
 
@@ -590,11 +592,11 @@ internal class TriGDeserializer(
 
     internal companion object {
 
-        fun unexpectedToken(token: TriGToken?): Nothing {
+        fun unexpectedToken(source: TriGTokenBuffer, token: TriGToken?): Nothing {
             if (token == null) {
-                throw IllegalStateException("Unexpected end of input")
+                source.bail("Unexpected end of input")
             }
-            throw IllegalStateException("Unexpected token $token")
+            source.bail("Unexpected token $token")
         }
 
         inline fun <reified T> Any.into(): T {

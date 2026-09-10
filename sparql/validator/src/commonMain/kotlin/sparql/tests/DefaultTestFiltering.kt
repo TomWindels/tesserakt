@@ -20,7 +20,7 @@ object DefaultTestFiltering: TestFilter {
     }
 
     fun GraphPattern.has(callback: (pattern: TriplePattern) -> Boolean): Boolean {
-        if (patterns.any(callback)) {
+        if (statements.any { statement -> statement is TriplePattern && callback(statement) }) {
             return true
         }
         filters.forEach { filter ->
@@ -34,7 +34,8 @@ object DefaultTestFiltering: TestFilter {
                 else -> { /* nothing to do */ }
             }
         }
-        unions.forEach { union ->
+        statements.forEach { statement ->
+            val union = statement as? Union ?: return@forEach
             union.segments.forEach { segment ->
                 when (segment) {
                     is GraphPatternSegment -> if (segment.pattern.has(callback)) {

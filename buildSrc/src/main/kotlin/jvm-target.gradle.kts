@@ -18,7 +18,7 @@ kotlin {
         // https://kotlinlang.org/docs/multiplatform-hierarchy.html#manual-configuration
         // the reason for this custom hierarchy:
         // https://slack-chats.kotlinlang.org/t/15994222/hello-hello-i-started-to-use-expected-actual-is-a-module-of-#735f0201-c023-485d-bc23-577addd2215c
-        val commonJvmMain by creating {
+        val commonJvmMain = create("commonJvmMain") {
             dependsOn(commonMain.get())
         }
         jvmMain.get().dependsOn(commonJvmMain)
@@ -27,14 +27,14 @@ kotlin {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 tasks.withType(KotlinJvmCompile::class.java).configureEach {
-    compilerOptions.jvmTarget = JvmTarget.JVM_1_8
+    compilerOptions.jvmTarget = JvmTarget.JVM_11
     // src: https://jakewharton.com/kotlins-jdk-release-compatibility-flag/
-    compilerOptions.freeCompilerArgs.add("-Xjdk-release=1.8")
+    compilerOptions.freeCompilerArgs.add("-Xjdk-release=11")
 }
 
 tasks.withType(Jar::class.java) {

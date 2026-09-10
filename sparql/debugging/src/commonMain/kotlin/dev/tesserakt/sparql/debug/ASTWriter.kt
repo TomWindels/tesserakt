@@ -129,8 +129,17 @@ class ASTWriter(private val indentStyle: String = "  ") {
         }
 
         is Optional -> {
-            append("optional ")
-            process(symbol.segment)
+            append("optional")
+            indented {
+                process(symbol.patterns)
+                if (symbol.filters.isNotEmpty()) {
+                    writeLine("filters")
+                    symbol.filters.forEachIndexed { index, filter ->
+                        writeLine("$index: ")
+                        process(filter)
+                    }
+                }
+            }
         }
 
         is TriplePattern -> {
@@ -251,7 +260,20 @@ class ASTWriter(private val indentStyle: String = "  ") {
 
         is GraphPattern -> {
             indented {
-                process(symbol.patterns)
+                writeLine("statements")
+                symbol.statements.forEach { statement ->
+                    when (statement) {
+                        is Optional -> {
+                            process(statement)
+                        }
+                        is TriplePattern -> {
+                            process(statement)
+                        }
+                        is Union -> {
+                            process(statement)
+                        }
+                    }
+                }
                 indented {
                     if (symbol.filters.isNotEmpty()) {
                         writeLine("filters")
@@ -265,20 +287,6 @@ class ASTWriter(private val indentStyle: String = "  ") {
                         symbol.bindingStatements.forEachIndexed { index, statement ->
                             writeLine(index.toString())
                             process(statement)
-                        }
-                    }
-                    if (symbol.unions.isNotEmpty()) {
-                        writeLine("unions")
-                        symbol.unions.forEachIndexed { index, union ->
-                            writeLine("$index: ")
-                            process(union)
-                        }
-                    }
-                    if (symbol.optional.isNotEmpty()) {
-                        writeLine("optionals")
-                        symbol.optional.forEachIndexed { index, optional ->
-                            writeLine("$index: ")
-                            process(optional)
                         }
                     }
                 }

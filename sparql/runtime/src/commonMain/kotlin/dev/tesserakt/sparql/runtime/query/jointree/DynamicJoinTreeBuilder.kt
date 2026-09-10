@@ -1,8 +1,13 @@
 package dev.tesserakt.sparql.runtime.query.jointree
 
+import dev.tesserakt.sparql.runtime.collection.MappingArrayHint
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
+import dev.tesserakt.sparql.runtime.query.FilterExpression
 import dev.tesserakt.sparql.runtime.query.MutableJoinState
 import dev.tesserakt.sparql.runtime.query.jointree.DynamicJoinTree.Node
+import dev.tesserakt.sparql.util.Cardinality
+import dev.tesserakt.sparql.util.Counter
+import dev.tesserakt.sparql.util.ZeroCardinality
 import dev.tesserakt.util.removeLastElement
 
 internal object DynamicJoinTreeBuilder {
@@ -10,105 +15,274 @@ internal object DynamicJoinTreeBuilder {
     /**
      * Produces a tree structure, returning its root node, that contains all provided [states] joined together using
      *  properties of the individual join states in the collection.
-     * States that contain [MutableJoinState.bindings] referenced in the [prioritizedBindings] set are attempted to be
-     *  pushed down the tree as much as possible, so these bindings are processed sooner, which is useful for
-     *  early expression evaluation (filter pushdown).
+     * The various [filters] are applied in the tree at the most appropriate stages, grouping [states] where possible
+     *  to improve performance.
      */
     fun build(
         states: List<MutableJoinState>,
-        prioritizedBindings: BindingIdentifierSet,
+        filters: List<FilterExpression>,
+        externalBindings: BindingIdentifierSet,
     ): Node {
-        // used to keep old `build()` behaviour intact
-        fun Node.disconnect(): Node {
-            return when (this) {
-                is Node.Connected -> Node.Disconnected(
-                    left = left,
-                    right = right
-                )
-                is Node.Disconnected,
-                is Node.Leaf -> this
+        val states = states.mapTo(mutableListOf()) { state -> TreeSegment.leaf(state) }
+        if (filters.isEmpty()) {
+            return build(states, filters, externalBindings).node
+        }
+        // we need to apply filters that span across multiple states, as they cannot be passed down fully to any single
+        //  state because of their requirements
+        val combinedBindings = states.bindings()
+        // we associate all of our spanning filters with their exact "dependencies", so we can form the most optimal
+        //  set to join on first
+        val spanningFilters = mutableMapOf<BindingIdentifierSet, ArrayList<FilterExpression>>()
+        filters.forEach { filter ->
+            val isApplicable = filter.bindings in combinedBindings
+            // we do not possess all necessary bindings in a fully combined state, so there's no point passing it down
+            //  anywhere
+            if (!isApplicable) {
+                return@forEach
             }
+            // if any of our leaf states already contains all necessary bindings, that state is the one responsible
+            //  for ensuring it emits no filter-violating results
+            val isSpanning = states.none { state -> filter.bindings in state.properties.maximum }
+            if (!isSpanning) {
+                return@forEach
+            }
+            spanningFilters
+                .getOrPut(filter.bindings) { arrayListOf() }
+                .add(filter)
+        }
+        if (spanningFilters.isEmpty()) {
+            // regular join tree construction possible
+            return build(states, filters, externalBindings).node
+        }
+        // we have spanning filters we need to satisfy;
+        // we apply the filters, starting from those with the 'smallest' requirements first, generating subtrees
+        //  that replace the states they contain
+        val bindingOccurrences = Counter<Int>() // binding identifiers
+        spanningFilters.forEach { (bindings, filters) ->
+            bindings.asIntIterable().forEach { bindingId ->
+                bindingOccurrences.increment(bindingId, filters.size)
+            }
+        }
+        val filterOrder = mutableListOf<BindingIdentifierSet>()
+        val remaining = spanningFilters.keys.toMutableSet()
+        while (remaining.isNotEmpty()) {
+            val next = remaining.maxWith { a, b ->
+                // the value with the highest average 'score' per binding is the next filter 'type' we want to
+                //  process, so the more 'popular' bindings are pushed as low as possible
+                // we also bias it towards bindings that have already been put in the 'to be processed' order,
+                //  so we don't introduce new subtrees if it can be avoided
+                val scoreA = a
+                    .asIntIterable()
+                    .sumOf { bindingId -> bindingOccurrences[bindingId] }.toDouble().div(a.size)
+                    .plus(a.asIntIterable().count { id -> filterOrder.any { id in it } }.toDouble())
+                val scoreB = b
+                    .asIntIterable()
+                    .sumOf { bindingId -> bindingOccurrences[bindingId] }.toDouble().div(b.size)
+                    .plus(b.asIntIterable().count { id -> filterOrder.any { id in it } }.toDouble())
+                scoreA.compareTo(scoreB)
+            }
+            filterOrder.add(next)
+            remaining.remove(next)
+        }
+        // we now combine the filters, using our declared order, into new subtrees, that then apply these filters
+        //  immediately
+        filterOrder.forEach { filterBindings ->
+            val filters = spanningFilters[filterBindings]
+                // this should not happen, but we skip it just in case
+                ?: return@forEach
+
+            val patternIndexes = findOptimalGroup(
+                target = filterBindings,
+                states = states,
+            ) ?: return@forEach // no path available, so would require a cartesian join -> we skip it
+            // we consume all states referenced in the pattern index set, converting it into a larger, joined state
+            val result = (1 ..< patternIndexes.size).fold(initial = states[patternIndexes[0]]) { segment, index ->
+                val patternIndex = patternIndexes[index]
+                val newSegment = states[patternIndex]
+                val nextNewSegment = patternIndexes
+                    .getOrNull(index + 1)
+                    ?.let { states[it] }
+                TreeSegment.join(
+                    first = segment,
+                    second = newSegment,
+                    // if we're at the end, we set the empty state, as we do not yet know what to index with
+                    externalBindings = nextNewSegment?.properties?.maximum ?: BindingIdentifierSet.EMPTY,
+                    // it should be correct to keep this list empty until the very last iteration
+                    filters = filters,
+                )
+            }
+
+            // before we insert the result, we remove all states we just consumed, as these are now (indirectly)
+            //  accessible through our new resulting subtree
+            if (patternIndexes.size == states.size) {
+                // special case: we used all states to form our 'subtree' (not really a subtree anymore)
+                return result.node
+            } else {
+                // as we don't know the exact order of elements, we do a clear and swap remove pass instead
+                var j = states.size - 1
+                patternIndexes.forEach { i ->
+                    while (j in patternIndexes) {
+                        --j
+                    }
+                    check(j >= 0)
+                    states[i] = states[j]
+                    --j
+                }
+                // all N elements at the end should now be duplicates, so we can safely remove these
+                repeat(patternIndexes.size) {
+                    states.removeLastElement()
+                }
+            }
+
+            // we can now safely set our subtree as a valid state to use
+            states.add(result)
         }
 
-        val states = states.mapTo(mutableListOf()) { state -> TreeSegment.leaf(state) }
-        if (prioritizedBindings.isEmpty()) {
-            // keeping old behaviour after having constructed the tree: we keep a disconnected node at the root
-            return build(states).node.disconnect()
-        }
-        // we create subtrees for all states containing prioritized bindings
-        val currentStates = mutableListOf<TreeSegment>()
-        val subtrees = mutableListOf<TreeSegment>()
-        prioritizedBindings.asIntIterable().forEach { bindingId ->
-            var i = states.size
-            currentStates.clear()
-            while (i > 0) {
-                i -= 1
-                if (bindingId in states[i].bindings) {
-                    // we claim this state for this subtree
-                    currentStates.add(states.removeAt(i))
-                }
-            }
-            // we test our subtrees too
-            i = subtrees.size
-            while (i > 0) {
-                i -= 1
-                if (bindingId in subtrees[i].bindings) {
-                    // we now contain the subtree as our own
-                    currentStates.add(subtrees.removeAt(i))
-                }
-            }
-            // with our current set of states that need to be joined grouped together, we can create our subtree
-            subtrees.add(build(currentStates))
-        }
-        // next, we want to create the shortest possible paths between these subtrees, where possible
-        loop@ while (subtrees.size > 1) {
-            // we combine these subtrees using the shortest path possible
-            repeat(subtrees.size) { i ->
-                val left = subtrees[i]
-                repeat(subtrees.size - i - 1) { j ->
-                    val j = i + j + 1
-                    val right = subtrees[j]
-                    val connected = connect(left, right, states)
-                    if (connected != null) {
-                        // we now have less states to deal with, with the two subtrees being properly connected
-                        subtrees.removeAt(i)
-                        subtrees.removeAt(j - 1)
-                        subtrees.add(connected)
-                        // starting back from the top
-                        continue@loop
-                    }
-                }
-            }
-            // we found no paths between any subtrees, so we have to introduce a cartesian join here
-            subtrees.add(
-                TreeSegment.disconnected(
-                    first = subtrees.removeLastElement(),
-                    second = subtrees.removeLastElement(),
-                )
-            )
-            // going back up top
-        }
-        // it's possible our shortest path consumed all elements already, meaning we can short circuit here
-        if (states.isEmpty()) {
-            // keeping old behaviour after having constructed the tree: we keep a disconnected node at the root
-            return subtrees[0].node.disconnect()
-        }
-        // we have some nodes remaining, so we combine our subtrees with our remaining leaf nodes to get the total root
-        //  node set up
-        // the algorithm should be biased towards pushing our subtrees further back (deep) as we have more bindings in
-        //  these segments
-        currentStates.clear()
-        currentStates.addAll(states)
-        currentStates.addAll(subtrees)
-        // keeping old behaviour after having constructed the tree: we keep a disconnected node at the root
-        return build(currentStates).node.disconnect()
+        // we now have a more complex hierarchy of subtrees and unused states we can build to our final tree
+        return build(states, filters, externalBindings).node
     }
 
     /**
-     * Reduces all individual [TreeSegment]s listed in the [groups] collection to a single [TreeSegment]
+     * Finds a (sub)set of [TreeSegment] [states] that, when combined, result in mappings that contain at least
+     *  the [target] binding set, whilst ensuring all inner states are connected (when evaluated in the suggested order).
+     *
+     * The return value represents a set of all required [states]' indices. The optimal join order is an estimate,
+     *  as it creates no actual connected nodes that join the underlying states together, and is thus done without
+     *  intermediate cardinalities.
+     */
+    private fun findOptimalGroup(
+        target: BindingIdentifierSet,
+        states: List<TreeSegment>,
+    ): IntArray? {
+        // base case: there are no additional bindings required
+        if (target == BindingIdentifierSet.EMPTY) {
+            return intArrayOf()
+        }
+        // we group all available states based on the bindings they 'provide', keeping the ones with the smallest
+        //  cardinality
+        val lut = states
+            .withIndex()
+            .groupingBy { it.value.properties.maximum }
+            .reduce { _, min, current ->
+                if (current.value.node.cardinality < min.value.node.cardinality) {
+                    current
+                } else {
+                    min
+                }
+            }
+            .mapValues { it.value.index }
+
+        // if we have multiple paths forward: we prioritize based on substantial differences in cardinality, followed
+        //  by result length (less intermediate states), and finally by marginal differences in cardinality
+        val comparator = Comparator<IntArray> { solutionA, solutionB ->
+            val cardinalityA = solutionA.fold(ZeroCardinality) { c, index -> c + states[index].node.cardinality }
+            val cardinalityB = solutionB.fold(ZeroCardinality) { c, index -> c + states[index].node.cardinality }
+            if (cardinalityA.value < 0.5 * cardinalityB.value) {
+                // we prefer solution A
+                return@Comparator -1
+            }
+            if (cardinalityA.value * 0.5 > cardinalityB.value) {
+                // we prefer solution B
+                return@Comparator 1
+            }
+            if (solutionA.size < solutionB.size) {
+                // we prefer solution A
+                return@Comparator -1
+            }
+            if (solutionA.size > solutionB.size) {
+                // we prefer solution B
+                return@Comparator 1
+            }
+            cardinalityA.compareTo(cardinalityB)
+        }
+
+        // now we only need to evaluate the available states with distinct binding set they 'provide'
+        // we check recursively to find the option that requires the least amount of states
+        fun recurse(
+            /**
+             * The available bindings to join onto, used to ensure there is at least one binding overlap between
+             *  the prior iteration(s) and the next suggested state
+             */
+            available: BindingIdentifierSet,
+        ): IntArray? {
+            val missing = target - available
+            // base case - we have all bindings we require
+            if (missing == BindingIdentifierSet.EMPTY) {
+                return intArrayOf()
+            }
+            // if we have a state available that matches it directly and has at least one binding in common,
+            //  we have the best possible solution
+            val solutionAvailable = lut.keys.any { set ->
+                set.intersectSize(available) != 0 && missing in set
+            }
+            if (solutionAvailable) {
+                // we take the index that matches our requirement and has the lowest cardinality
+                return intArrayOf(
+                    lut
+                        .filter { (set, _) -> set.intersectSize(available) != 0 && missing in set }
+                        .values
+                        .minBy { index -> states[index].node.cardinality }
+                )
+            }
+            // we need to recurse deeper; we currently have no idea how many extra states we require to get to the end
+            // there's no point in trying states that currently have no binding overlap (as that voids the contract),
+            // nor if they don't introduce any new bindings to those we have 'discovered'
+            val contenders = lut.filter { (set, _) ->
+                set.intersectSize(available) != 0 && set.unionSize(available) > available.size
+            }
+            if (contenders.isEmpty()) {
+                // no path forward, no connection possible
+                return null
+            }
+            // we recurse, advancing using our contenders
+            val solutions = contenders.mapNotNull { (set, id) ->
+                val solution = recurse(
+                    available = available + set,
+                ) ?: return@mapNotNull null
+                val result = IntArray(1 + solution.size)
+                result[0] = id
+                repeat(solution.size) { i ->
+                    result[i + 1] = solution[i]
+                }
+                result
+            }
+            if (solutions.isEmpty()) {
+                return null
+            }
+            if (solutions.size == 1) {
+                return solutions[0]
+            }
+            return solutions.minWith(comparator)
+        }
+        // sending off the first version, in which we create one with every possible state to start with that is valid
+        val solutions = lut.mapNotNull { (set, id) ->
+            val solution = recurse(
+                available = set,
+            ) ?: return@mapNotNull null
+            val result = IntArray(1 + solution.size)
+            result[0] = id
+            repeat(solution.size) { i ->
+                result[i + 1] = solution[i]
+            }
+            result
+        }
+        if (solutions.isEmpty()) {
+            return null
+        }
+        if (solutions.size == 1) {
+            return solutions[0]
+        }
+        return solutions.minWith(comparator)
+    }
+
+    /**
+     * Reduces all individual [TreeSegment]s listed in the [groups] collection to a single [TreeSegment],
+     *  applying [filters] to connected segments where applicable
      */
     private fun build(
         groups: MutableList<TreeSegment>,
+        filters: List<FilterExpression>,
+        externalBindings: BindingIdentifierSet,
     ): TreeSegment {
         // as long as not all groups have been merged into one, we find the best match pair to join together
         while (groups.size > 2) {
@@ -116,120 +290,49 @@ internal object DynamicJoinTreeBuilder {
             val a = groups.removeAt(matches.group2)
             val b = groups.removeAt(matches.group1)
 
-            // if the new group have internal binding overlap, having their combination cached is beneficial as the
-            //  number of results obtained here are not the result of a cartesian join;
-            //  otherwise, falling back on the indexes of the leafs themselves is as performant
-            val segment = if (a.getCommonBindingsCount(b) > 0) {
-                // getting all bindings found in the other groups, and intersecting these with the individual bindings
-                //  found in this group
-                val indexes = (1 ..< groups.size)
-                    .fold(groups[0].bindings) { bindings, i -> bindings + groups[i].bindings }
-                    .intersect(a.bindings + b.bindings)
-                TreeSegment.connected(a, b, indexes)
-            } else {
-                TreeSegment.disconnected(a, b)
-            }
+            val segment = TreeSegment.join(
+                first = a,
+                second = b,
+                // all other groups are 'external' to this segment, meaning that it can reasonably expect incoming
+                //  mappings to have binding values associated with those defined in these sections
+                externalBindings = groups.bindings(),
+                // the `TreeSegment::join()` logic only retains the filters applicable to this node
+                filters = filters,
+            )
 
             groups.add(segment)
         }
         return if (groups.size == 2) {
-            if (groups[0].bindings.intersectSize(groups[1].bindings) != 0) {
-                TreeSegment.connected(groups[0], groups[1])
+            val commonExternalBindings = externalBindings.intersect(groups[0].properties.maximum + groups[1].properties.maximum)
+            if (commonExternalBindings.isEmpty() && filters.isEmpty()) {
+                TreeSegment.disconnected(
+                    first = groups[0],
+                    second = groups[1],
+                )
             } else {
-                TreeSegment.disconnected(groups[0], groups[1])
+                TreeSegment.join(
+                    first = groups[0],
+                    second = groups[1],
+                    filters = filters,
+                    // if this changes, the owner of this (sub)tree can always call `reindex`
+                    externalBindings = commonExternalBindings,
+                )
             }
         } else {
             groups.single()
         }
     }
 
-    /**
-     * Attempts to connect [left] and [right] using [Node.Connected] instances that form the shortest path, using a
-     *  subset of the provided [paths] elements. If this is not possible (no fully connected path can be formed),
-     *  `null` is returned instead. The [paths] list is also updated, removing all elements that were used to
-     *  create this shortest path.
-     *
-     * Note that if multiple paths of equal length are possible, the result prioritizes introducing less 'new' bindings,
-     *  but may have inconsistent results with different order of [paths] elements.
-     */
-    private fun connect(
-        left: TreeSegment,
-        right: TreeSegment,
-        paths: MutableList<TreeSegment>,
-    ): TreeSegment? {
-        // ideal case: there is already binding overlap, no extra path required
-        if (left.bindings.intersectSize(right.bindings) != 0) {
-            return TreeSegment.connected(
-                first = left,
-                second = right,
-            )
+    private fun Iterable<TreeSegment>.bindings(): BindingIdentifierSet {
+        val iter = iterator()
+        if (!iter.hasNext()) {
+            return BindingIdentifierSet.EMPTY
         }
-        var i = 0
-        var extended = listOf((left to right) to emptySet<Int>())
-        while (i < paths.size) {
-            extended = extended.flatMap { (segments, consumed) ->
-                paths.mapIndexedNotNull { i, path ->
-                    // if the path is already used in this solution, we can't follow it further
-                    if (i in consumed) {
-                        return@mapIndexedNotNull null
-                    }
-                    if (
-                        // we need to meaningfully connect with this path segment: there is at least 1 binding in common
-                        segments.first.bindings.intersectSize(path.bindings) != 0 &&
-                        // a path is not a logical continuation of our segment if it doesn't change the status quo in
-                        //  terms of 'encountered bindings'
-                        segments.first.bindings.size < segments.first.bindings.unionSize(path.bindings)
-                    ) {
-                        (TreeSegment.connected(segments.first, path) to segments.second) to consumed + i
-                    } else if (
-                        // we need to meaningfully connect with this path segment: there is at least 1 binding in common
-                        segments.second.bindings.intersectSize(path.bindings) != 0 &&
-                        // a path is not a logical continuation of our segment if it doesn't change the status quo in
-                        //  terms of 'encountered bindings'
-                        segments.second.bindings.size < segments.second.bindings.unionSize(path.bindings)
-                    ) {
-                        (segments.first to TreeSegment.connected(segments.second, path)) to consumed + i
-                    } else {
-                        // can't use this path
-                        null
-                    }
-                }
-            }
-            // we check whether any have a connection between left and right, as that would be a valid (connected)
-            // result
-            if (extended.any { (segments, _) -> segments.first.bindings.intersectSize(segments.second.bindings) != 0 }) {
-                // if multiple satisfy this requirement, we take the one with the smallest amount of paths
-                //  taken (lowest set of used path instances), followed by the smallest number of total bindings of the
-                //  solution
-                val valid = extended
-                    .filter { (segments, _) -> segments.first.bindings.intersectSize(segments.second.bindings) != 0 }
-                val solution = if (valid.size == 1) {
-                    valid.single()
-                } else {
-                    val smallestDistance = valid.minOf { (_, paths) -> paths.size }
-                    val smallest = valid.filter { (_, paths) -> paths.size == smallestDistance }
-                    if (smallest.size == 1) {
-                        smallest.single()
-                    } else {
-                        smallest.minBy { (segments, _) ->
-                            // union size
-                            (segments.first.bindings + segments.second.bindings).size
-                        }
-                    }
-                }
-                val segment = TreeSegment.connected(solution.first.first, solution.first.second)
-                // we consume the paths that lead to this solution as well
-                // we do so in reverse order so the indexes are valid (and less copying is required)
-                solution.second.sortedDescending().forEach { pathIndex ->
-                    paths.removeAt(pathIndex)
-                }
-                return segment
-            }
-            // we did not find a solution, we grow our existing attempts if we have more paths to 'consume'
-            ++i
+        var r = iter.next().properties.maximum
+        while (iter.hasNext()) {
+            r += iter.next().properties.maximum
         }
-        // we ended up with no valid solution, so we can assume these two segments will never connect
-        return null
+        return r
     }
 
     class TreeSegment private constructor(
@@ -245,18 +348,18 @@ internal object DynamicJoinTreeBuilder {
         private val length: Int,
     ) {
 
-        val bindings: BindingIdentifierSet get() = node.bindings
+        val properties: MutableJoinState.Properties get() = node.properties
 
         fun getTotalBindingsCount(other: TreeSegment) =
-            unionSize(bindings, other.bindings)
+            properties.maximum.unionSize(other.properties.maximum)
 
         fun getCommonBindingsCount(other: TreeSegment) =
-            bindings.intersectSize(other.bindings)
+            properties.maximum.intersectSize(other.properties.maximum)
 
         fun getTotalLength(other: TreeSegment) =
             length + other.length
 
-        override fun toString(): String = "TreeNode(${bindings.size} binding(s), length=${length})"
+        override fun toString(): String = "TreeNode(node: $node)"
 
         companion object {
 
@@ -265,18 +368,92 @@ internal object DynamicJoinTreeBuilder {
                 length = 1,
             )
 
+            /**
+             * Creates the most appropriate tree segment type based on the [first] and [second] segments' properties,
+             *  possibly applying [filters] on top of it.
+             * Uses the provided [externalBindings] to configure appropriate bindings to index on if applicable.
+             */
+            fun join(
+                first: TreeSegment,
+                second: TreeSegment,
+                externalBindings: BindingIdentifierSet,
+                filters: List<FilterExpression>,
+            ): TreeSegment {
+                // we *have* to use a connected segment if there are any filters that need to be applied, otherwise
+                //  if the new group have internal binding overlap, having their combination cached is beneficial as the
+                //  number of results obtained here are not the result of a cartesian join;
+                //  otherwise, falling back on the indexes of the leafs themselves is as performant
+                val filters = filters.filter { filter ->
+                    // we only need to apply filters to our new segment if
+                    // * we contain all bindings required by this filter to evaluate
+                    // * neither of the children can (and do) evaluate the filter on their own
+                    filter.bindings in (first.properties.maximum + second.properties.maximum) &&
+                    filter.bindings.intersectSize(first.properties.maximum) in 1 ..< filter.bindings.size &&
+                    filter.bindings.intersectSize(second.properties.maximum) in 1 ..< filter.bindings.size
+                }
+                return if (filters.isNotEmpty() || first.properties.maximum.intersectSize(second.properties.maximum) != 0) {
+                    // we index on the bindings found in either first and/or second that are also available 'externally',
+                    //  as we expect incoming mappings to join on that have these external bindings set
+                    val indexes = externalBindings
+                        .intersect(first.properties.maximum + second.properties.maximum)
+                    connected(
+                        first = first,
+                        second = second,
+                        indexes = indexes,
+                        filters = filters,
+                    )
+                } else {
+                    disconnected(
+                        first = first,
+                        second = second,
+                    )
+                }
+            }
+
             fun connected(
                 first: TreeSegment,
                 second: TreeSegment,
-                bindings: BindingIdentifierSet = first.bindings.intersect(second.bindings),
-            ) = TreeSegment(
-                node = Node.Connected(first.node, second.node, bindings),
-                length = first.length + second.length,
-            ).also {
+                /**
+                 * The bindings to index on. It is recommended this contains all bindings that are joined on by the
+                 *  parent state
+                 */
+                indexes: BindingIdentifierSet,
+                /**
+                 * Set of filters to apply after joining the two states together
+                 */
+                filters: List<FilterExpression>,
+            ): TreeSegment {
                 // requesting the child nodes to rehash themselves based on common bindings
-                val common = first.node.bindings.intersect(second.node.bindings)
-                first.node.reindex(common)
-                second.node.reindex(common)
+                // we can only index on binding values that are guaranteed to exist; and it is only
+                //  worthwhile to do so if the other end has the *possibility* of containing values
+                //  for these mappings
+                // as the first node gets results from the second, we need partial access if that second node
+                //  does not end up producing all indexed bindings
+                val firstIndexSet = first.node.properties.guaranteed.intersect(second.properties.maximum)
+                first.node.reindex(
+                    bindings = firstIndexSet,
+                    hint = MappingArrayHint(
+                        partialHashAccess = firstIndexSet !in second.node.properties.guaranteed,
+                    )
+                )
+                // same logic (but mirrored) applies for the other node
+                val secondIndexSet = second.node.properties.guaranteed.intersect(first.properties.maximum)
+                second.node.reindex(
+                    bindings = secondIndexSet,
+                    hint = MappingArrayHint(
+                        partialHashAccess = secondIndexSet !in first.node.properties.guaranteed,
+                    )
+                )
+                // followed by construction of the connecting segment
+                return TreeSegment(
+                    node = Node.Connected(
+                        left = first.node,
+                        right = second.node,
+                        indexes = indexes,
+                        filters = filters,
+                    ),
+                    length = first.length + second.length,
+                )
             }
 
             fun disconnected(
@@ -287,19 +464,26 @@ internal object DynamicJoinTreeBuilder {
                 length = first.length + second.length,
             ).also {
                 // requesting the child nodes to rehash themselves based on common bindings
-                val common = first.node.bindings.intersect(second.node.bindings)
-                first.node.reindex(common)
-                second.node.reindex(common)
-            }
-
-            /* helpers */
-
-            private inline fun unionSize(left: BindingIdentifierSet, right: BindingIdentifierSet): Int {
-                return if (left.size < right.size) {
-                    right.size + left.asIntIterable().count { it !in right }
-                } else {
-                    left.size + right.asIntIterable().count { it !in left }
-                }
+                // we can only index on binding values that are guaranteed to exist; and it is only
+                //  worthwhile to do so if the other end has the *possibility* of containing values
+                //  for these mappings
+                // as the first node gets results from the second, we need partial access if that second node
+                //  does not end up producing all indexed bindings
+                val firstIndexSet = first.node.properties.guaranteed.intersect(second.properties.maximum)
+                first.node.reindex(
+                    bindings = firstIndexSet,
+                    hint = MappingArrayHint(
+                        partialHashAccess = firstIndexSet !in second.node.properties.guaranteed,
+                    )
+                )
+                // same logic (but mirrored) applies for the other node
+                val secondIndexSet = second.node.properties.guaranteed.intersect(first.properties.maximum)
+                second.node.reindex(
+                    bindings = secondIndexSet,
+                    hint = MappingArrayHint(
+                        partialHashAccess = secondIndexSet !in first.node.properties.guaranteed,
+                    )
+                )
             }
 
         }
@@ -321,16 +505,19 @@ internal object DynamicJoinTreeBuilder {
         val common: Int,
         val total: Int,
         val length: Int,
+        // 0 if either is zero; sum if binding overlap, multiplication if no binding overlap
+        val estimatedCombinedCardinality: Cardinality,
     ) : Comparable<IntermediateMatchResult> {
 
-        constructor(a: TreeSegment, b: TreeSegment): this(
-            common = a.getCommonBindingsCount(b),
-            total = a.getTotalBindingsCount(b),
-            length = a.getTotalLength(b),
-        )
-
+        // used to get the best next match in the list; highest = best match
         override fun compareTo(other: IntermediateMatchResult): Int {
-            // we prefer common bindings first
+            // we prefer substantial differences in estimated combined cardinality first
+            if (estimatedCombinedCardinality.value < 0.5 * other.estimatedCombinedCardinality.value) {
+                return 1
+            } else if (estimatedCombinedCardinality.value * 0.5 > other.estimatedCombinedCardinality.value) {
+                return -1
+            }
+            // then, we prefer common bindings
             if (common > other.common) {
                 return 1
             } else if (common < other.common) {
@@ -345,8 +532,44 @@ internal object DynamicJoinTreeBuilder {
             }
             // we prefer lower amount of total bindings next, as fewer bindings in total
             //  means less data is likely to match
-            return other.total - total
+            // this one is more speculative as we already have some cardinality numbers in a non-incremental
+            //  scenario
+            if (other.total > total) {
+                return 1
+            } else if (other.total < total) {
+                return -1
+            }
+            // we simply compare the small differences in estimated cardinalities directly, with
+            //  the smaller cardinality meaning higher score (so inverse compare to)
+            return other.estimatedCombinedCardinality.compareTo(estimatedCombinedCardinality)
         }
+
+        companion object {
+
+            operator fun invoke(a: TreeSegment, b: TreeSegment): IntermediateMatchResult {
+                val common = a.getCommonBindingsCount(b)
+                val left = a.node.cardinality
+                val right = b.node.cardinality
+                return IntermediateMatchResult(
+                    common = common,
+                    total = a.getTotalBindingsCount(b),
+                    length = a.getTotalLength(b),
+                    estimatedCombinedCardinality = when {
+                        left == ZeroCardinality || right == ZeroCardinality -> {
+                            ZeroCardinality
+                        }
+                        common != 0 -> {
+                            left + right
+                        }
+                        else -> {
+                            left * right
+                        }
+                    }
+                )
+            }
+
+        }
+
     }
 
     private fun findGroupMatch(

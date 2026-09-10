@@ -1,7 +1,5 @@
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
 import dev.tesserakt.util.jsCastOrBail
 import dev.tesserakt.util.jsExpect
 
@@ -95,7 +93,7 @@ class GraphTerm(value: Any? = undefined): TermJs() {
 
 internal val DefaultGraphTerm = GraphTerm(Quad.DefaultGraph)
 
-private fun constructNamedTerm(value: String?) = value.jsExpect().asNamedTerm()
+private fun constructNamedTerm(value: String?) = Quad.NamedTerm(value.jsExpect())
 
 private fun constructLiteralTerm(value: Any?, type: Any? = undefined, language: Any? = undefined): Quad.Literal {
     val value = value.jsExpect()
@@ -119,7 +117,7 @@ private fun constructLiteralTerm(value: Any?, type: Any? = undefined, language: 
         /* no type information available, inferring it */
 
         value is Number -> {
-            value.asLiteralTerm()
+            Quad.Literal(value)
         }
         value is String -> {
             if (language != null) {

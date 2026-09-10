@@ -1,33 +1,101 @@
 package dev.tesserakt.rdf.types.impl
 
+import dev.tesserakt.concurrent.ConcurrentSet
+import dev.tesserakt.concurrent.globalTaskRunner
 import dev.tesserakt.rdf.types.EncodedQuad
+import dev.tesserakt.rdf.types.EncodingContext
+import dev.tesserakt.rdf.types.MutableEncodingContext
 import dev.tesserakt.rdf.types.Quad
 
 // not required here: we optimized hash code as we're readonly, but the equals check stays in place
 @Suppress("EqualsOrHashCode")
-internal class StoreImpl(data: Collection<Quad>): AbstractStore() {
+internal class StoreImpl: AbstractStore {
 
-    // we first create our encoding context
-    override val context = ImmutableEncodingContextImpl(data)
-
-    // then we create our actual set of *encoded* quads
-    // the fact they're encoded makes checking for 'contains' etc. faster, as we mainly pay the price for initial lookup
-    //  of the individual terms, and can then compare the encoded variants faster
-    private val quads = run {
-        val result = mutableSetOf<EncodedQuad>()
-        data.forEach { quad ->
-            // we can guarantee that our encoding context has all necessary terms as it was made with the same quad
-            //  collection as an argument
-            val encoded = EncodedQuad(context, quad)
-                ?: throw IllegalStateException("Encoding context did not uphold contract!")
-            result.add(encoded)
-        }
-        // we hide the fact that we're mutable
-        result as Set<EncodedQuad>
-    }
+    private val quads: Set<EncodedQuad>
+    override val context: EncodingContext
 
     // considering the contents don't change, we can cache the collection's hash code
     private val hashCode by lazy { super.hashCode() }
+
+    constructor(data: Collection<Quad>) {
+        // if the collection is big enough, we do it concurrently, for faster context encoding
+        val ctx: MutableEncodingContext
+        val set: Set<EncodedQuad>
+        val runner = globalTaskRunner
+        runner.buffered(data.iterator()).use { iter ->
+            if (iter.supportsConcurrentAccess() && data.size > 10_000) {
+                set = ConcurrentSet(data.size)
+                ctx = MutableEncodingContext {
+                    initialCapacity = data.size
+                    concurrent = true
+                }
+                // the quad encoding & storing process is at worst 2x slower than
+                //  a very fast source iterator (e.g. reading from disk)
+                //  so we limit our reading parallelization to 2
+                runner.parallelize(2) {
+                    while (true) {
+                        val q = iter.getNext() ?: break
+                        val encoded = EncodedQuad(ctx, q)
+                        set.add(encoded)
+                    }
+                }.await()
+            } else {
+                // regular evaluation
+                set = HashSet()
+                ctx = MutableEncodingContext {
+                    initialCapacity = data.size
+                }
+                while (true) {
+                    val q = iter.getNext() ?: break
+                    val encoded = EncodedQuad(ctx, q)
+                    set.add(encoded)
+                }
+            }
+        }
+        this.quads = set
+        this.context = ctx
+    }
+
+    constructor(quads: Iterable<Quad>, sizeHint: Int) {
+        val ctx: MutableEncodingContext
+        val set: Set<EncodedQuad>
+        val runner = globalTaskRunner
+        runner.buffered(quads.iterator()).use { iter ->
+            if (iter.supportsConcurrentAccess()) {
+                set = ConcurrentSet(sizeHint)
+                ctx = MutableEncodingContext {
+                    initialCapacity = sizeHint
+                    concurrent = true
+                }
+                // the quad encoding & storing process is at worst 2x slower than
+                //  a very fast source iterator (e.g. reading from disk)
+                //  so we limit our reading parallelization to 2
+                runner.parallelize(2) {
+                    while (true) {
+                        val q = iter.getNext() ?: break
+                        val encoded = EncodedQuad(ctx, q)
+                        set.add(encoded)
+                    }
+                }.await()
+            } else {
+                // regular evaluation
+                set = HashSet(sizeHint)
+                ctx = MutableEncodingContextImpl(sizeHint)
+                while (true) {
+                    val q = iter.getNext() ?: break
+                    val encoded = EncodedQuad(ctx, q)
+                    set.add(encoded)
+                }
+            }
+        }
+        this.quads = set
+        this.context = ctx
+    }
+
+    constructor(context: EncodingContext, quads: Set<EncodedQuad>) {
+        this.context = context
+        this.quads = quads
+    }
 
     override val size: Int
         get() = quads.size
@@ -36,10 +104,6 @@ internal class StoreImpl(data: Collection<Quad>): AbstractStore() {
 
     override fun isEmpty(): Boolean {
         return quads.isEmpty()
-    }
-
-    override fun containsAll(elements: Collection<Quad>): Boolean {
-        return elements.all { this.contains(it) }
     }
 
     override fun contains(element: Quad): Boolean {

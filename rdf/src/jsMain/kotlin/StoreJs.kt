@@ -1,6 +1,6 @@
 
+import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.util.jsExpect
 import dev.tesserakt.util.mapToArray
 

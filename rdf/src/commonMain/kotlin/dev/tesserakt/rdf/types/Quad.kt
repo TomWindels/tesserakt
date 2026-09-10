@@ -120,40 +120,70 @@ data class Quad(
     companion object {
 
         @JvmStatic
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged.",
+            replaceWith = ReplaceWith("Quad.NamedTerm(this)")
+        )
         fun String.asNamedTerm() = NamedTerm(this)
 
         @JvmStatic
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged.",
+            replaceWith = ReplaceWith("Quad.Literal(this)")
+        )
         fun String.asLiteralTerm() = SimpleLiteral(this)
 
         @JvmStatic
-        fun Int.asLiteralTerm() = TypedLiteral(toString(), type = XSD.int)
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged.",
+            replaceWith = ReplaceWith("Quad.Literal(this)")
+        )
+        fun Int.asLiteralTerm() = Literal(this)
 
         @JvmStatic
-        fun Long.asLiteralTerm() = TypedLiteral(toString(), type = XSD.long)
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged.",
+            replaceWith = ReplaceWith("Quad.Literal(this)")
+        )
+        fun Long.asLiteralTerm() = Literal(this)
 
         @JvmStatic
-        fun Float.asLiteralTerm() = TypedLiteral(toString(), type = XSD.float)
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged.",
+            replaceWith = ReplaceWith("Quad.Literal(this)")
+        )
+        fun Float.asLiteralTerm() = Literal(this)
 
         @JvmStatic
-        fun Double.asLiteralTerm() = TypedLiteral(toString(), type = XSD.double)
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged.",
+            replaceWith = ReplaceWith("Quad.Literal(this)")
+        )
+        fun Double.asLiteralTerm() = Literal(this)
 
         @JvmStatic
-        fun Boolean.asLiteralTerm() = TypedLiteral(toString(), type = XSD.boolean)
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged.",
+            replaceWith = ReplaceWith("Quad.Literal(this)")
+        )
+        fun Boolean.asLiteralTerm() = Literal(this)
 
         @JvmStatic
-        fun Number.asLiteralTerm() = when (this) {
-            is Int -> asLiteralTerm()
-            is Long -> asLiteralTerm()
-            is Float -> asLiteralTerm()
-            /* TODO: byte char & short  */
-            else -> toDouble().asLiteralTerm()
-        }
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged.",
+            replaceWith = ReplaceWith("Quad.Literal(this)")
+        )
+        fun Number.asLiteralTerm() = Literal(this)
 
         @JvmStatic
+        @Deprecated(
+            message = "The use of extension methods to create quad terms is discouraged."
+            // no simple replacement possible
+        )
         fun <T> T.asLiteralTerm() = when (this) {
-            is Number -> asLiteralTerm()
-            is String -> asLiteralTerm()
-            is Boolean -> asLiteralTerm()
+            is Number -> Literal(this)
+            is String -> Literal(this)
+            is Boolean -> Literal(this)
             else -> throw IllegalArgumentException("Unknown literal type `$this`")
         }
 
@@ -163,10 +193,44 @@ data class Quad(
         fun Literal(value: String): Literal = SimpleLiteral(value)
 
         @JvmStatic
+        fun Literal(value: Int): Literal = Literal(value = value.toString(), type = XSD.int)
+
+        @JvmStatic
+        fun Literal(value: Long): Literal = Literal(value = value.toString(), type = XSD.long)
+
+        @JvmStatic
+        fun Literal(value: Float): Literal = Literal(value = value.toString(), type = XSD.float)
+
+        @JvmStatic
+        fun Literal(value: Double): Literal = Literal(value = value.toString(), type = XSD.double)
+
+        @JvmStatic
+        fun Literal(value: Byte): Literal = Literal(value = value.toString(), type = XSD.byte)
+
+        @JvmStatic
+        fun Literal(value: Short): Literal = Literal(value = value.toString(), type = XSD.short)
+
+        @JvmStatic
+        fun Literal(value: Boolean): Literal = if (value) TrueLiteral else FalseLiteral
+
+        @JvmStatic
+        fun Literal(value: Number): Literal = when (value) {
+            is Int -> Literal(value)
+            is Long -> Literal(value)
+            is Float -> Literal(value)
+            is Byte -> Literal(value)
+            is Short -> Literal(value)
+            else -> Literal(value.toDouble())
+        }
+
+        @JvmStatic
         fun Literal(value: String, language: String): Literal = LangString(value, language)
 
         @JvmStatic
         fun Literal(value: String, type: NamedTerm): Literal = if (type != XSD.string) TypedLiteral(value, type) else SimpleLiteral(value)
+
+        private val TrueLiteral = TypedLiteral("true", XSD.boolean)
+        private val FalseLiteral = TypedLiteral("false", XSD.boolean)
 
     }
 

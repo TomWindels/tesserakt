@@ -6,7 +6,7 @@ group = "sparql"
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 implementation(project(":utils"))
 

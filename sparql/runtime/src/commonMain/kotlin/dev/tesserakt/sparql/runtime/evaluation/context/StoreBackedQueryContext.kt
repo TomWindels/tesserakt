@@ -1,21 +1,30 @@
 package dev.tesserakt.sparql.runtime.evaluation.context
 
-import dev.tesserakt.rdf.types.EncodingContext
-import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.TermIdentifier
-import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
+import dev.tesserakt.rdf.types.*
 import dev.tesserakt.sparql.types.QueryStructure
 
 class StoreBackedQueryContext(
     ast: QueryStructure,
     /**
-     * The context used by the data source, used to map between term IDs and term values
+     * The backing storage structure, which also owns context used by the data source, used to map between term IDs and
+     *  term values
      */
-    private val context: EncodingContext
+    private val source: Store,
 ) : QueryContext {
 
     private val bindings = BindingsContext(ast)
+
+    private val context: EncodingContext
+        get() = source.context
+
+    override fun iter(
+        s: EncodedQuadElement,
+        p: EncodedQuadElement,
+        o: EncodedQuadElement,
+        g: EncodedQuadElement
+    ): Iterator<EncodedQuad> {
+        return source.encodedIter(s, p, o, g)
+    }
 
     override fun newAnonymousBinding(): Int {
         return bindings.newAnonymousBinding()
@@ -43,18 +52,6 @@ class StoreBackedQueryContext(
         // see note above
         return context.decode(id)
             ?: throw NoSuchElementException("Failed to decode term with ID $id")
-    }
-
-    override fun mappingFromValues(terms: Iterable<Pair<String, Quad.Element>>): BitsetMapping {
-        return BitsetMapping(this, terms)
-    }
-
-    override fun mappingFromIdentifiers(terms: Iterable<Pair<BindingIdentifier, TermIdentifier>>): BitsetMapping {
-        return BitsetMapping(terms)
-    }
-
-    override fun emptyMapping(): BitsetMapping {
-        return BitsetMapping.EMPTY
     }
 
 }

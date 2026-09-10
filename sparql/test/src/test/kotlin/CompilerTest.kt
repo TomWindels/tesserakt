@@ -3,6 +3,8 @@ import TestEnvironment.Companion.test
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.sparql.compiler.CompilerException
 import dev.tesserakt.sparql.types.*
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.test.Test
 
 class CompilerTest {
@@ -16,31 +18,47 @@ class CompilerTest {
                 p = TriplePattern.NamedBinding("p"),
                 o = TriplePattern.NamedBinding("o")
             )
-            body.patterns.size == 1 && body.patterns.first() == pattern
+            body.statements.size == 1 && body.statements.first() == pattern
         }
         "select*{?s?p?o}" satisfies {
-            body.patterns.size == 1
+            body.statements.size == 1
         }
         "prefix ex: <http://example.org/> select*{?s ex:prop ?o}" satisfies {
-            body.patterns.size == 1
+            body.statements.size == 1
         }
         "prefix select: <http://example.org/> select*{?s select:prop ?o ; <prop> select:test}" satisfies {
-            body.patterns.size == 2
-                && body.patterns[0].p == TriplePattern.Exact(Quad.NamedTerm("http://example.org/prop"))
-                && body.patterns[1].o == TriplePattern.Exact(Quad.NamedTerm("http://example.org/test"))
+            check(body.statements.size == 2)
+            val (tp1, tp2) = body.statements
+            tp1.assertIsTriplePattern()
+            tp2.assertIsTriplePattern()
+            tp1.p == TriplePattern.Exact(Quad.NamedTerm("http://example.org/prop"))
+            && tp2.o == TriplePattern.Exact(Quad.NamedTerm("http://example.org/test"))
         }
         "SELECT * WHERE { ?s a/<predicate2>*/<predicate3>?o. }" satisfies {
-            body.patterns.first().p is TriplePattern.UnboundSequence
+            check(body.statements.size == 1)
+            val (tp1) = body.statements
+            tp1.assertIsTriplePattern()
+            tp1.p is TriplePattern.UnboundSequence
         }
         "SELECT * WHERE { ?s a/?p1*/?p2?o. }" causes CompilerException.Type.StructuralError
         "SELECT * WHERE { ?s (<predicate2>|<predicate3>)?o. }" satisfies {
-            body.patterns.first().p is TriplePattern.SimpleAlts
+            check(body.statements.size == 1)
+            val (tp1) = body.statements
+            tp1.assertIsTriplePattern()
+            tp1.p is TriplePattern.SimpleAlts
         }
         "SELECT * WHERE { ?s <contains>/(<prop1>|!<prop2>)* ?o2 }" satisfies {
-            body.patterns.first().p.let { p -> p is TriplePattern.UnboundSequence && p.chain[1] is TriplePattern.ZeroOrMore }
+            check(body.statements.size == 1)
+            val (tp1) = body.statements
+            tp1.assertIsTriplePattern()
+            tp1.p.let { p -> p is TriplePattern.UnboundSequence && p.chain[1] is TriplePattern.ZeroOrMore }
         }
         "SELECT ?s?p?o WHERE {?s?p?o2;?p2?o.}" satisfies {
-            body.patterns.size == 2 && body.patterns[1].p == TriplePattern.NamedBinding("p2")
+            check(body.statements.size == 2)
+            val (tp1, tp2) = body.statements
+            tp1.assertIsTriplePattern()
+            tp2.assertIsTriplePattern()
+            tp2.p == TriplePattern.NamedBinding("p2")
         }
         "SELECT ?s WHERE {?s<prop><value>}" satisfies {
             val pattern = TriplePattern(
@@ -48,10 +66,13 @@ class CompilerTest {
                 p = TriplePattern.Exact(Quad.NamedTerm("prop")),
                 o = TriplePattern.Exact(Quad.NamedTerm("value"))
             )
-            body.patterns.size == 1 && body.patterns.first() == pattern
+            body.statements.size == 1 && body.statements.first() == pattern
         }
         "SELECT ?s WHERE{{?s<prop><value>}UNION{?s<prop2><value2>}UNION{?s<prop3><value3>}}" satisfies {
-            body.unions.size == 1 && body.unions.first().size == 3
+            check(body.statements.size == 1)
+            val (union) = body.statements
+            union.assertIsUnion()
+            union.size == 3
         }
         """
             SELECT * WHERE {
@@ -65,7 +86,11 @@ class CompilerTest {
                 }
             }
         """ satisfies {
-            body.patterns.size == 1 && body.unions.size == 1 && body.unions.first().size == 3
+            check(body.statements.size == 2)
+            val (tp, union) = body.statements
+            tp.assertIsTriplePattern()
+            union.assertIsUnion()
+            union.size == 3
         }
         """
             SELECT * WHERE {
@@ -75,9 +100,11 @@ class CompilerTest {
             }
         """ satisfies {
             require(this is SelectQueryStructure)
-            body.patterns.size == 1 &&
-            body.optional.size == 1 &&
-            body.unions.size == 1 &&
+            check(body.statements.size == 3)
+            val (tp, optional, union) = body.statements
+            tp.assertIsTriplePattern()
+            optional.assertIsOptional()
+            union.assertIsUnion()
             bindings == setOf("s", "content", "value1")
         }
         """
@@ -117,10 +144,10 @@ class CompilerTest {
             }
         """ satisfies {
             require(this is SelectQueryStructure)
-            body.patterns.size == 1 &&
-            body.optional.size == 1 &&
-            bindings == setOf("s", "value")
-            // TODO: also check the optional's condition
+            val (tp, optional) = body.statements
+            tp.assertIsTriplePattern()
+            optional.assertIsOptional()
+            bindings == setOf("s", "value") && optional.filters.size == 1
         }
         "select(count(distinct ?s) as ?count){?s?p?o}" satisfies {
             require(this is SelectQueryStructure)
@@ -167,8 +194,8 @@ class CompilerTest {
             )
             val avg = output!!.find { it.name == "avg" }
             val c = output!!.find { it.name == "c" }
-            body.patterns.size == 1 &&
-            body.patterns.first() == pattern &&
+            body.statements.size == 1 &&
+            body.statements.first() == pattern &&
             ((avg as SelectQueryStructure.ExpressionOutput).expression as Expression.BindingAggregate).type == Expression.BindingAggregate.Type.AVG &&
             (c as SelectQueryStructure.ExpressionOutput).expression is Expression.Calculation
         }
@@ -177,7 +204,7 @@ class CompilerTest {
                 ?s ?p [ a <type> ; ]
             }
         """ satisfies {
-            body.patterns.size == 2 &&
+            body.statements.size == 2 &&
             this is SelectQueryStructure &&
             // the generated binding should not be visible!
             bindings.size == 2
@@ -189,7 +216,7 @@ class CompilerTest {
         """ satisfies {
             require(this is SelectQueryStructure)
 
-            body.patterns.size == 3 &&
+            body.statements.size == 3 &&
             // the generated binding should not be visible!
             bindings == setOf("s", "p", "values")
         }
@@ -204,7 +231,7 @@ class CompilerTest {
             }
         """ satisfies {
             require(this is SelectQueryStructure)
-            body.patterns.size == 7 &&
+            body.statements.size == 7 &&
             // the generated binding should not be visible!
             bindings == setOf("s", "p", "data1", "data2", "data3")
         }
@@ -426,6 +453,30 @@ class CompilerTest {
             LIMIT 2
             LIMIT 3
         """ causes(CompilerException.Type.StructuralError)
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    private fun GraphPattern.Statement.assertIsTriplePattern() {
+        contract {
+            returns() implies (this@assertIsTriplePattern is TriplePattern)
+        }
+        check(this is TriplePattern) { "Expected triple pattern statement, got ${this::class.simpleName}!" }
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    private fun GraphPattern.Statement.assertIsUnion() {
+        contract {
+            returns() implies (this@assertIsUnion is Union)
+        }
+        check(this is Union) { "Expected union statement, got ${this::class.simpleName}!" }
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    private fun GraphPattern.Statement.assertIsOptional() {
+        contract {
+            returns() implies (this@assertIsOptional is Optional)
+        }
+        check(this is Optional) { "Expected optional statement, got ${this::class.simpleName}!" }
     }
 
 }

@@ -1,10 +1,9 @@
 package sparql.types
 
 import dev.tesserakt.rdf.types.MutableStore
+import dev.tesserakt.rdf.types.ObservableStore
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.MutableStore
-import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.Bindings
 import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.QueryStatistics
@@ -69,12 +68,13 @@ class RandomUpdateTest(
             ongoing = input.query(query)
         }
         // checking the initial state (no data)
-        builder.add(
+        val success = builder.add(
             self = setupTime to ongoing.results.toList(),
             reference = reference(),
             strictOrdering = hasStrictOrdering,
             statistics = ongoing.stats()
         )
+        check(success) { "Initial state failed\n${builder.build().outputs[0]}" }
         repeat(iterations) { i ->
             // and processing it
             val current: List<Bindings>
@@ -85,17 +85,21 @@ class RandomUpdateTest(
                 } catch (e: Exception) {
                     val results = builder.build()
                     throw RuntimeException(
-                        "Exception occurred whilst processing delta ${i + 1}\nDelta: ${deltas[i]}\nTest results before exception:\n${results}\nLast received results: ${results.outputs.last().received}\n${deltaSummary(deltas.take(i + 1))}",
+                        "Exception occurred whilst processing delta ${i + 1}\nDelta: ${deltas[i]}\nTest results before exception:\n${results}\nLast received results: ${results.outputs.last().received}\nExpected new results: ${reference().second}\n${deltaSummary(deltas.take(i + 1))}",
                         e
                     )
                 }
             }
-            builder.add(
+            val success = builder.add(
                 self = elapsedTime to current,
                 reference = reference(),
                 strictOrdering = hasStrictOrdering,
                 statistics = ongoing.stats()
             )
+            check(success) {
+                val results = builder.build()
+                "Output mismatch occurred after processing delta ${i + 1}\nDelta: ${deltas[i]}\nTest results before error:\n${results}\n${deltaSummary(deltas.take(i + 1))}\nOutput mismatch:\n${results.outputs.last().exceptionOrNull()?.message}"
+            }
         }
         builder.build()
     }
@@ -125,7 +129,8 @@ class RandomUpdateTest(
                 reference: Pair<Duration, List<Bindings>>,
                 strictOrdering: Boolean,
                 statistics: QueryStatistics,
-            ) {
+            ): Boolean {
+                var isSuccess = false
                 list.add(
                     compare(
                         received = self.second,
@@ -134,8 +139,11 @@ class RandomUpdateTest(
                         referenceTime = reference.first,
                         strictOrdering = strictOrdering,
                         statistics = statistics
-                    )
+                    ).also {
+                        isSuccess = !it.isNotEmpty()
+                    }
                 )
+                return isSuccess
             }
 
             fun build() = Result(store = store, outputs = list, deltas = deltas, query = query)

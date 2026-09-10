@@ -6,11 +6,11 @@ import dev.tesserakt.rdf.serialization.common.serializer
 import dev.tesserakt.rdf.serialization.trig.TriG
 import dev.tesserakt.rdf.serialization.trig.usePrettyFormatting
 import dev.tesserakt.rdf.serialization.trig.withPrefixes
+import dev.tesserakt.rdf.types.IndexedStore
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.rdf.types.SnapshotStore
 import dev.tesserakt.rdf.types.Store
-import dev.tesserakt.rdf.types.factory.IndexedStore
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 import dev.tesserakt.stream.ldes.ontology.TREE
@@ -24,21 +24,21 @@ class SnapshotStoreImplTest {
     @Test
     fun insertion() {
         val first = buildStore {
-            "s1".asNamedTerm() has RDF.type being "Test".asNamedTerm()
+            NamedTerm("s1") a NamedTerm("Test")
         }
         val second = buildStore {
-            "s1".asNamedTerm() has RDF.type being "Test".asNamedTerm()
-            "s2".asNamedTerm() has RDF.type being "Test".asNamedTerm()
+            NamedTerm("s1") a NamedTerm("Test")
+            NamedTerm("s2") a NamedTerm("Test")
         }
         val third = buildStore {
-            "s2".asNamedTerm() has RDF.type being "Test".asNamedTerm()
+            NamedTerm("s2") a NamedTerm("Test")
         }
 
         val snapshotStore = SnapshotStore
             .Builder(start = IndexedStore(first))
             .addSnapshot(second)
             .addSnapshot(third)
-            .build("snapshotStore".asNamedTerm())
+            .build(NamedTerm("snapshotStore"))
 
         val serializer = serializer(TriG) {
             usePrettyFormatting {
@@ -50,18 +50,18 @@ class SnapshotStoreImplTest {
         val diffs = snapshotStore.diffs.iterator()
 
         assertDiffContentEqual(
-            expectedInsertions = setOf(Quad("s1".asNamedTerm(), RDF.type, "Test".asNamedTerm())),
+            expectedInsertions = setOf(Quad(NamedTerm("s1"), RDF.type, NamedTerm("Test"))),
             expectedDeletions = emptySet(),
             actual = diffs.next(),
         )
         assertDiffContentEqual(
-            expectedInsertions = setOf(Quad("s2".asNamedTerm(), RDF.type, "Test".asNamedTerm())),
+            expectedInsertions = setOf(Quad(NamedTerm("s2"), RDF.type, NamedTerm("Test"))),
             expectedDeletions = emptySet(),
             actual = diffs.next(),
         )
         assertDiffContentEqual(
             expectedInsertions = emptySet(),
-            expectedDeletions = setOf(Quad("s1".asNamedTerm(), RDF.type, "Test".asNamedTerm())),
+            expectedDeletions = setOf(Quad(NamedTerm("s1"), RDF.type, NamedTerm("Test"))),
             actual = diffs.next(),
         )
 

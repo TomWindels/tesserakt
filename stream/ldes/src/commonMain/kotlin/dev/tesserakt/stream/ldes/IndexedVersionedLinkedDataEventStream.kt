@@ -2,8 +2,6 @@ package dev.tesserakt.stream.ldes
 
 import dev.tesserakt.rdf.ontology.RDF
 import dev.tesserakt.rdf.types.*
-import dev.tesserakt.rdf.types.factory.IndexedStore
-import dev.tesserakt.rdf.types.factory.indexedStoreOf
 import dev.tesserakt.stream.ldes.ontology.DC
 import dev.tesserakt.stream.ldes.ontology.LDES
 import dev.tesserakt.util.single

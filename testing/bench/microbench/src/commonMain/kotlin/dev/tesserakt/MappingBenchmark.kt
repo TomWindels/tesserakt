@@ -1,11 +1,9 @@
 package dev.tesserakt
 
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.sparql.runtime.evaluation.context.GlobalQueryContext
-import dev.tesserakt.sparql.runtime.evaluation.mapping.BitsetMapping
-import dev.tesserakt.sparql.runtime.evaluation.mapping.IntPairMapping
+import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.Scope
 import kotlinx.benchmark.Setup
@@ -15,10 +13,10 @@ import kotlin.random.Random
 const val SIZE = 7_500
 const val VARIANCE = 50
 val BINDINGS = listOf(
-    "person" to List(VARIANCE) { "http://example/person_${it}".asNamedTerm() },
-    "job" to List(VARIANCE) { "http://example/job_${it}".asNamedTerm() },
-    "name" to List(VARIANCE) { "http://example/name_${it}".asNamedTerm() },
-    "age" to List(VARIANCE) { it.asLiteralTerm() },
+    "person" to List(VARIANCE) { NamedTerm("http://example/person_${it}") },
+    "job" to List(VARIANCE) { NamedTerm("http://example/job_${it}") },
+    "name" to List(VARIANCE) { NamedTerm("http://example/name_${it}") },
+    "age" to List(VARIANCE) { Quad.Literal(it) },
 )
 
 typealias MapMapping = Map<String, Quad.Element>
@@ -45,10 +43,8 @@ class MappingBenchmark {
 
     private val left = mutableListOf<MapMapping>()
     private val right = mutableListOf<MapMapping>()
-    private lateinit var mapping1left: List<IntPairMapping>
-    private lateinit var mapping1right: List<IntPairMapping>
-    private lateinit var mapping2left: List<BitsetMapping>
-    private lateinit var mapping2right: List<BitsetMapping>
+    private lateinit var mappingLeft: List<Mapping>
+    private lateinit var mappingRight: List<Mapping>
     private val context = GlobalQueryContext
 
     @Setup
@@ -62,10 +58,8 @@ class MappingBenchmark {
                 right.add(new)
             }
         }
-        mapping1left = left.map { IntPairMapping(context, it) }
-        mapping1right = right.map { IntPairMapping(context, it) }
-        mapping2left = left.map { BitsetMapping(context, it) }
-        mapping2right = right.map { BitsetMapping(context, it) }
+        mappingLeft = left.map { Mapping(context, it) }
+        mappingRight = right.map { Mapping(context, it) }
     }
 
     @Benchmark
@@ -75,14 +69,8 @@ class MappingBenchmark {
     }
 
     @Benchmark
-    fun joinNew(): List<IntPairMapping> {
-        return mapping1left.flatMap { l -> mapping1right.mapNotNull { r -> l.join(r) } }
-            .also { println("Result size new 1: ${it.size}") }
-    }
-
-    @Benchmark
-    fun joinNew2(): List<BitsetMapping> {
-        return mapping2left.flatMap { l -> mapping2right.mapNotNull { r -> l.join(r) } }
+    fun joinMapping(): List<Mapping> {
+        return mappingLeft.flatMap { l -> mappingRight.mapNotNull { r -> l.join(r) } }
             .also { println("Result size new 2: ${it.size}") }
     }
 

@@ -1,17 +1,15 @@
 package dev.tesserakt.sparql.runtime.collection
 
 import dev.tesserakt.sparql.runtime.evaluation.BindingIdentifierSet
-import dev.tesserakt.sparql.runtime.evaluation.context.QueryContext
 import dev.tesserakt.sparql.runtime.evaluation.mapping.Mapping
 import dev.tesserakt.sparql.runtime.stream.OptimisedStream
-import dev.tesserakt.sparql.util.Cardinality
 
 class ReindexableMappingArray(
     private var active: MappingArray
 ) : MappingArray {
 
-    override val cardinality: Cardinality
-        get() = active.cardinality
+    override val size: Int
+        get() = active.size
 
     override val indexes: BindingIdentifierSet
         get() = active.indexes
@@ -44,15 +42,13 @@ class ReindexableMappingArray(
         return active.removeAll(mappings)
     }
 
-    fun reindex(context: QueryContext, bindings: Iterable<String>, hint: MappingArrayHint = MappingArrayHint.DEFAULT) {
-        reindex(
-            bindings = BindingIdentifierSet(context, bindings),
-            hint = hint,
-        )
-    }
-
     fun reindex(bindings: BindingIdentifierSet, hint: MappingArrayHint = MappingArrayHint.DEFAULT) {
         val new = MappingArray(bindings, hint)
+        // if the new array has the same properties given the hint and index configuration, we can skip
+        //  the replacement step
+        if (active::class.isInstance(new) && new.indexes == active.indexes) {
+            return
+        }
         active.iter().forEach { new.add(it) }
         active = new
     }

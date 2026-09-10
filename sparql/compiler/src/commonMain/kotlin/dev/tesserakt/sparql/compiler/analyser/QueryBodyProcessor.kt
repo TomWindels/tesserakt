@@ -7,23 +7,20 @@ import dev.tesserakt.sparql.types.*
 class QueryBodyProcessor: Analyser<GraphPattern>() {
 
     private data class Builder(
-        /** The full pattern block that is required **/
-        val patterns: MutableList<TriplePattern> = mutableListOf(),
+        /**
+         * The ordered statements, ordered according to the input query.
+         * Contains regular [TriplePattern]s, [Union]s and [Optional]s.
+         */
+        val statements: MutableList<GraphPattern.Statement> = mutableListOf(),
         /** All binding statements found inside this pattern block (similar to filters) **/
         val bindingStatements: MutableList<BindingStatement> = mutableListOf(),
         /** All filters applied to this pattern block (optional / union filters NOT included) **/
         val filters: MutableList<Filter> = mutableListOf(),
-        /** All requested unions, not yet flattened to allow for easier optimisation **/
-        val unions: MutableList<Union> = mutableListOf(),
-        /** Collection of pattern blocks that are optional **/
-        val optional: MutableList<Optional> = mutableListOf()
     ) {
         fun build() = GraphPattern(
-            patterns = TriplePatternSet(patterns),
+            statements = statements,
             bindingStatements = bindingStatements,
             filters = filters,
-            unions = unions,
-            optional = optional
         )
     }
 
@@ -44,7 +41,7 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
                 is Token.StringLiteral,
                 is Token.Binding,
                 is Token.NumericLiteral -> {
-                    builder.patterns.addAll(use(PatternProcessor()))
+                    builder.statements.addAll(use(PatternProcessor()))
                 }
                 Token.Keyword.Filter -> {
                     consume()
@@ -54,10 +51,34 @@ class QueryBodyProcessor: Analyser<GraphPattern>() {
                     // consuming the "OPTIONAL" keyword before extracting the segment
                     consume()
                     // extracting the segment and inserting it
-                    builder.optional.add(Optional(use(SegmentProcessor())))
+                    expectToken(Token.Symbol.CurlyBracketStart)
+                    consume()
+                    val filters = mutableListOf<Filter.Predicate>()
+                    val patterns = mutableListOf<TriplePattern>()
+                    while (token != Token.Symbol.CurlyBracketEnd) {
+                        when (token) {
+                            Token.Keyword.Filter -> {
+                                // `FILTER` is expected to be consumed
+                                consume()
+                                val filter = use(FilterProcessor())
+                                if (filter !is Filter.Predicate) {
+                                    bail("Filter expression expected! Found ${filter::class.simpleName}")
+                                }
+                                filters.add(filter)
+                            }
+                            else -> {
+                                // not a filter, nor a `}`, so consuming it expecting patterns
+                                val new = use(PatternProcessor())
+                                patterns.addAll(new)
+                            }
+                        }
+                    }
+                    builder.statements.add(Optional(patterns = TriplePatternSet(patterns), filters = filters))
+                    expectToken(Token.Symbol.CurlyBracketEnd)
+                    consume()
                 }
                 Token.Symbol.CurlyBracketStart -> {
-                    builder.unions.add(use(UnionProcessor()))
+                    builder.statements.add(use(UnionProcessor()))
                 }
                 Token.Symbol.CurlyBracketEnd -> {
                     // done, consuming it and returning

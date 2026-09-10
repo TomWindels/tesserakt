@@ -16,7 +16,7 @@ kotlin {
     // source set configuration
     sourceSets {
         // https://kotlinlang.org/docs/multiplatform-hierarchy.html#manual-configuration
-        val nativeMain by creating {
+        val nativeMain = create("nativeMain") {
             dependsOn(commonMain.get())
         }
         linuxX64Main.get().dependsOn(nativeMain)

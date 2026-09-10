@@ -1,7 +1,6 @@
 
 import dev.tesserakt.rdf.ontology.XSD
 import dev.tesserakt.rdf.types.Quad
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
 import dev.tesserakt.sparql.runtime.query.select.OrderComparator
 import kotlin.random.Random
 import kotlin.test.Test
@@ -45,10 +44,10 @@ class OrderingTest {
     @Test
     fun numericalComparison() {
         val terms = listOf(
-            1.asLiteralTerm(),
-            1.2f.asLiteralTerm(),
-            2L.asLiteralTerm(),
-            5e10.asLiteralTerm(),
+            Quad.Literal(1),
+            Quad.Literal(1.2f),
+            Quad.Literal(2L),
+            Quad.Literal(5e10),
         )
         // randomising the list of reference terms, and feeding it to the comparator we're testing
         val random = Random(0)

@@ -1,7 +1,7 @@
 package dev.tesserakt.rdf.serialization.trig
 
 import dev.tesserakt.rdf.serialization.common.Prefixes
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.util.addFront
 import dev.tesserakt.util.fit
 import dev.tesserakt.util.removeFirstElement
@@ -108,14 +108,14 @@ data class PrettyTriGFormatter(
 
         private fun TriGToken.mapped(prefixes: Prefixes): TriGToken = when (this) {
             is TriGToken.Term -> prefixes
-                .format(value.asNamedTerm())
+                .format(NamedTerm(value))
                 ?.let { TriGToken.PrefixedTerm(prefix = it.prefix, value = it.value) }
                 ?: this
 
             is TriGToken.LiteralTerm -> {
                 if (type is TriGToken.Term) {
                     prefixes
-                        .format(type.value.asNamedTerm())
+                        .format(NamedTerm(type.value))
                         ?.let { TriGToken.LiteralTerm(value = value, type = TriGToken.PrefixedTerm(prefix = it.prefix, value = it.value)) }
                         ?: this
                 } else {

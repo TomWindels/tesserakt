@@ -6,10 +6,9 @@ import kotlin.jvm.JvmInline
 value class TriplePatternSet(private val items: List<TriplePattern>): List<TriplePattern> by items, QueryAtom
 
 @JvmInline
-value class Union(val segments: List<Segment>): List<Segment> by segments, QueryAtom
+value class Union(val segments: List<Segment>): List<Segment> by segments, GraphPattern.Statement, QueryAtom
 
-@JvmInline
-value class Optional(val segment: Segment): QueryAtom
+data class Optional(val patterns: TriplePatternSet, val filters: List<Filter.Predicate>): GraphPattern.Statement, QueryAtom
 
 sealed interface Segment : QueryAtom
 

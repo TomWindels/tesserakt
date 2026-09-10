@@ -153,7 +153,7 @@ class MultiHashMappingArray(
         }
     }
 
-    override var cardinality = Cardinality(0)
+    override var size: Int = 0
         private set
 
     override val indexes: BindingIdentifierSet
@@ -206,7 +206,7 @@ class MultiHashMappingArray(
             currentBucket = addBucket(constraints)
         }
         currentBucket.mappings.add(mapping)
-        cardinality += 1
+        size += 1
     }
 
     /**
@@ -229,7 +229,7 @@ class MultiHashMappingArray(
         if (!found) {
             throw NoSuchElementException("No bucket found matching $constraints (array: $this)")
         }
-        cardinality -= 1
+        size -= 1
     }
 
     override fun removeAll(mappings: Iterable<Mapping>): Int {

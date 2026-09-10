@@ -2,7 +2,6 @@ package dev.tesserakt.sparql.endpoint.server.factory
 
 import dev.tesserakt.rdf.types.MutableStore
 import dev.tesserakt.rdf.types.ObservableStore
-import dev.tesserakt.rdf.types.factory.ObservableStore
 import dev.tesserakt.sparql.endpoint.server.SparqlEndpoint
 import dev.tesserakt.sparql.endpoint.server.impl.CachingSparqlEndpointImpl
 import dev.tesserakt.sparql.endpoint.server.impl.SparqlEndpointImpl

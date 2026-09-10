@@ -1,6 +1,6 @@
 import dev.tesserakt.rdf.dsl.buildStore
-import dev.tesserakt.rdf.types.Quad.Companion.asLiteralTerm
-import dev.tesserakt.rdf.types.Quad.Companion.asNamedTerm
+import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.Quad.NamedTerm
 import dev.tesserakt.sparql.endpoint.client.*
 import dev.tesserakt.sparql.endpoint.core.SparqlContentType
 import dev.tesserakt.sparql.endpoint.server.ResultFormatter
@@ -17,10 +17,10 @@ import io.ktor.http.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.assertThrows
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.fail
 
 class SparqlEndpointTest {
@@ -40,7 +40,7 @@ class SparqlEndpointTest {
         // ensuring we actually received an XML response based on the content type
         assert((response.contentType() ?: fail("No explicit content type available in the response")).match(SparqlContentType.XmlBindings))
         // we don't actually have a decoder (transformer) specified/capable of decoding the XML response
-        assertThrows<NoTransformationFoundException> {
+        assertFailsWith<NoTransformationFoundException> {
             response.bodyAsBindings()
         }
     }
@@ -49,7 +49,7 @@ class SparqlEndpointTest {
     fun insertTest() = test { client ->
         val response = client.sparqlUpdate {
             insert {
-                "user".asNamedTerm() has "name".asNamedTerm() being "Test".asLiteralTerm()
+                NamedTerm("user") has NamedTerm("name") being Quad.Literal("Test")
             }
         }
         assertEquals(HttpStatusCode.OK, response.status)
@@ -65,7 +65,7 @@ class SparqlEndpointTest {
 
         val insertion = client.sparqlUpdate {
             insert {
-                "user".asNamedTerm() has "name".asNamedTerm() being "Test".asLiteralTerm()
+                NamedTerm("user") has NamedTerm("name") being Quad.Literal("Test")
             }
         }
         assertEquals(HttpStatusCode.OK, insertion.status)
@@ -94,7 +94,7 @@ class SparqlEndpointTest {
                         name = "update",
                         value = SparqlUpdateRequestBuilder().apply {
                             add(buildStore {
-                                "user".asNamedTerm() has "name".asNamedTerm() being "Test".asLiteralTerm()
+                                NamedTerm("user") has NamedTerm("name") being Quad.Literal("Test")
                             })
                         }.toQueryString()
                     )
@@ -141,7 +141,7 @@ class SparqlEndpointTest {
 
         val insertion = client.sparqlUpdate {
             insert {
-                "user".asNamedTerm() has "name".asNamedTerm() being "Test".asLiteralTerm()
+                NamedTerm("user") has NamedTerm("name") being Quad.Literal("Test")
             }
         }
         assertEquals(HttpStatusCode.OK, insertion.status)
@@ -155,7 +155,7 @@ class SparqlEndpointTest {
 
         val deletion = client.sparqlUpdate {
             delete {
-                "user".asNamedTerm() has "name".asNamedTerm() being "Test".asLiteralTerm()
+                NamedTerm("user") has NamedTerm("name") being Quad.Literal("Test")
             }
         }
         assertEquals(HttpStatusCode.OK, deletion.status)

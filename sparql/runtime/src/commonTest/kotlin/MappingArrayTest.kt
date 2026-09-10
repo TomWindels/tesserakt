@@ -44,12 +44,12 @@ class MappingArrayTest {
 
     @Test
     fun multiHashArrayInsertion() {
-        check(MultiHashMappingArray(BindingIdentifierSet(intArrayOf(0, 1))))
+        check(MultiHashMappingArray(BindingIdentifierSet(0, 1)))
     }
 
     @Test
     fun completeHashArrayInsertion() {
-        check(CompleteHashMappingArray(BindingIdentifierSet(intArrayOf(0, 1))))
+        check(CompleteHashMappingArray(BindingIdentifierSet(0, 1)))
     }
 
     fun check(array: MappingArray) {

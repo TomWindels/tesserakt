@@ -36,6 +36,8 @@ internal object EmptyStoreImpl : Store {
         g: Quad.Graph?
     ): Iterator<EncodedQuad> = emptyIterator()
 
+    override fun asEncodedSet(): Set<EncodedQuad> = emptySet()
+
     override fun toString(): String = "<empty store>"
 
     override fun hashCode() = 0

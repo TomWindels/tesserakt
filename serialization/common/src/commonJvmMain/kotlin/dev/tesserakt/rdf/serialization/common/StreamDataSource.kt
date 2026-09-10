@@ -6,12 +6,18 @@ import dev.tesserakt.rdf.serialization.core.DataStream
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.nio.charset.Charset
 
 
-@JvmInline
-value class StreamDataSource(private val stream: InputStream) : DataSource {
+class StreamDataSource(
+    private val stream: InputStream,
+    private val encoding: Charset,
+) : DataSource {
+
+    constructor(stream: InputStream, encoding: String): this(stream = stream, encoding = Charset.forName(encoding))
+
     @OptIn(InternalSerializationApi::class)
     override fun open(): DataStream {
-        return BufferedDataStream(BufferedReader(InputStreamReader(stream, "UTF-8")))
+        return BufferedDataStream(BufferedReader(InputStreamReader(stream, encoding)))
     }
 }
