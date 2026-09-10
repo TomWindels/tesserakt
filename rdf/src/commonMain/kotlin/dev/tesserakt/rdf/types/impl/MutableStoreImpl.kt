@@ -1,5 +1,6 @@
 package dev.tesserakt.rdf.types.impl
 
+import dev.tesserakt.concurrent.ConcurrentSet
 import dev.tesserakt.rdf.types.EncodedQuad
 import dev.tesserakt.rdf.types.MutableEncodingContext
 import dev.tesserakt.rdf.types.MutableStore
@@ -10,14 +11,14 @@ internal class MutableStoreImpl: AbstractStore, MutableStore {
     // we first create our encoding context; without any initial state
     override val context: MutableEncodingContext
 
-    private val quads: MutableSet<EncodedQuad>
+    val quads: MutableSet<EncodedQuad>
 
     override val size: Int
         get() = quads.size
 
     constructor() {
         context = MutableEncodingContextImpl()
-        quads = mutableSetOf()
+        quads = HashSet()
     }
 
     constructor(quads: Collection<Quad>) {
@@ -34,6 +35,11 @@ internal class MutableStoreImpl: AbstractStore, MutableStore {
         // we expect about twice as many unique terms compared to the number of quads
         this.context = MutableEncodingContextImpl(capacity * 2)
         this.quads = HashSet(capacity)
+    }
+
+    constructor(context: MutableEncodingContext, quads: MutableSet<EncodedQuad>) {
+        this.context = context
+        this.quads = quads
     }
 
     override fun iterator() = MutableDecodingIterator(src = quads.iterator(), context = context)
@@ -113,6 +119,17 @@ internal class MutableStoreImpl: AbstractStore, MutableStore {
         val encoded = elements
             .mapNotNullTo(mutableSetOf()) { EncodedQuad(ctx, it) }
         return quads.retainAll(encoded)
+    }
+
+    companion object {
+
+        fun withConcurrencySupport(): MutableStoreImpl {
+            return MutableStoreImpl(
+                context = MutableEncodingContext { concurrent = true },
+                quads = ConcurrentSet(),
+            )
+        }
+
     }
 
 }

@@ -1,10 +1,21 @@
 package dev.tesserakt.rdf.types.impl
 
 import dev.tesserakt.rdf.types.*
+import dev.tesserakt.rdf.types.transaction.transaction
 
 internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): AbstractStore(), ObservableStore {
 
-    private val inner = MutableStoreImpl(quads)
+    internal val inner = run {
+        try {
+            MutableStoreImpl.withConcurrencySupport()
+                .also { it.transaction { addAll(quads) } }
+        } catch (_: UnsupportedOperationException) {
+            // we are running on Kotlin/Native - we have to fall back to a regular implementation
+            // only the JVM transaction logic comes with the ability for concurrent modifications, so this fallback is
+            //  not an error
+            MutableStoreImpl(quads)
+        }
+    }
 
     private val listeners = mutableListOf<ObservableStore.Listener>()
 
@@ -52,19 +63,21 @@ internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): Abstr
         // we do the lookup here, so we only have to do it once to both add the value and use it in the callback
         val encoded = EncodedQuad(context, element)
         return if (inner.add(encoded)) {
-            listeners.forEach {
-                try {
-                    it.onQuadAdded(element)
-                    it.onQuadAddedEncoded(encoded)
-                } catch (e: Throwable) {
-                    // TODO: maybe rollback for local data and other listeners?
-                    // TODO: better exception type, or return a result type?
-                    throw RuntimeException("Failed to add `$element`", e)
-                }
-            }
+            onQuadAdded(element, encoded)
             true
         } else {
             false
+        }
+    }
+
+    fun onQuadAdded(quad: Quad, encoded: EncodedQuad) {
+        listeners.forEach {
+            try {
+                it.onQuadAdded(quad)
+                it.onQuadAddedEncoded(encoded)
+            } catch (e: Throwable) {
+                throw RuntimeException("Failed to add `$quad`", e)
+            }
         }
     }
 
@@ -75,19 +88,23 @@ internal class ObservableStoreImpl(quads: Collection<Quad> = emptyList()): Abstr
         //  deletion of unused terms in the future)
         val encoded = EncodedQuad(context, element)
         return if (inner.remove(encoded)) {
-            listeners.forEach {
-                try {
-                    it.onQuadRemoved(element)
-                    it.onQuadRemovedEncoded(encoded)
-                } catch (e: Throwable) {
-                    // TODO: maybe rollback for local data and other listeners?
-                    // TODO: better exception type, or return a result type?
-                    throw RuntimeException("Failed to remove `$element`", e)
-                }
-            }
+            onQuadRemoved(element, encoded)
             true
         } else {
             false
+        }
+    }
+
+    fun onQuadRemoved(quad: Quad, encoded: EncodedQuad) {
+        listeners.forEach {
+            try {
+                it.onQuadRemoved(quad)
+                it.onQuadRemovedEncoded(encoded)
+            } catch (e: Throwable) {
+                // TODO: maybe rollback for local data and other listeners?
+                // TODO: better exception type, or return a result type?
+                throw RuntimeException("Failed to remove `$quad`", e)
+            }
         }
     }
 

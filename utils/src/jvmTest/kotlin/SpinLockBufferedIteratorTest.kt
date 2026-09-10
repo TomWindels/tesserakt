@@ -11,7 +11,7 @@ class SpinLockBufferedIteratorTest {
     fun simple() {
         val iter = (1 .. 1_000_000).iterator()
         val results = mutableSetOf<Int>()
-        ThreadedTaskRunner.SpinLockBufferedIterator(iter).use { buffered ->
+        ThreadedTaskRunner.SpinLoopBufferedIterator(iter).use { buffered ->
             val t = thread { buffered.producerLoop() }
             var element = buffered.getNext()
             while (element != null) {
@@ -28,7 +28,7 @@ class SpinLockBufferedIteratorTest {
         val iter = (1 .. 1_000_000).iterator()
         val results = ConcurrentHashMap.newKeySet<Int>()
         var failure: Throwable? = null
-        ThreadedTaskRunner.SpinLockBufferedIterator(iter).use { buffered ->
+        ThreadedTaskRunner.SpinLoopBufferedIterator(iter).use { buffered ->
             val t = thread { buffered.producerLoop() }
             val readers = List(2) {
                 thread {
@@ -74,7 +74,7 @@ class SpinLockBufferedIteratorTest {
         }
         val results = ConcurrentHashMap.newKeySet<Int>()
         val failures = Array<Throwable?>(2) { null }
-        ThreadedTaskRunner.SpinLockBufferedIterator(iter).use { buffered ->
+        ThreadedTaskRunner.SpinLoopBufferedIterator(iter).use { buffered ->
             val t = thread { buffered.producerLoop() }
             val readers = List(2) {
                 thread {

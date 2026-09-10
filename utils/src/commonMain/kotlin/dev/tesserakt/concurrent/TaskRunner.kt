@@ -11,7 +11,7 @@ interface TaskRunner {
          *  successful case
          */
         @JvmInline
-        private value class TaskResultImpl<T>(val value: Result<T>): TaskResult<T> {
+        internal value class TaskResultImpl<T>(val value: Result<T>): TaskResult<T> {
 
             override fun await(): Result<T> {
                 return value
