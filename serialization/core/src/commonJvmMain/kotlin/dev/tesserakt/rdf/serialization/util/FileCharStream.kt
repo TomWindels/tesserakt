@@ -132,7 +132,7 @@ class FileCharStream(
 
     override fun peek(offset: Int): Int {
         ensureBufferSize(offset + 1)
-        if (size < offset) {
+        if (size <= offset) {
             return -1
         }
         return buf[head + offset].code

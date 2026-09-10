@@ -543,9 +543,9 @@ internal class TurtleDeserializer(
 
     fun onUnexpectedToken(token: TurtleToken?): Nothing {
         if (token == null) {
-            throw IllegalStateException("Unexpected end of input")
+            source.bail("Unexpected end of input")
         }
-        throw IllegalStateException("Unexpected token $token. Buffer: $source")
+        source.bail("Unexpected token $token")
     }
 
     companion object {

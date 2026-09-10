@@ -63,6 +63,10 @@ internal class TurtleTokenDecoder(private val source: BufferedCharStream) : Iter
         }
     }
 
+    fun bail(message: String): Nothing {
+        source.bail(message)
+    }
+
     override fun toString() = "TokenDecoder { source: $source }"
 
     private fun consumeWhitespace() {

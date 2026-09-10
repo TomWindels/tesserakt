@@ -8,4 +8,4 @@ import dev.tesserakt.rdf.serialization.InternalSerializationApi
  */
 class DeserializationException
 @InternalSerializationApi
-constructor(message: String, cause: Throwable): RuntimeException(message, cause)
+constructor(message: String, cause: Throwable?): RuntimeException(message, cause)

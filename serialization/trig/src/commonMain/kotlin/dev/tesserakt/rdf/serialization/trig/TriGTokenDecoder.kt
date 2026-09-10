@@ -63,6 +63,12 @@ internal class TriGTokenDecoder(private val source: BufferedCharStream) : Iterat
         }
     }
 
+    fun bail(message: String): Nothing {
+        source.bail(message)
+    }
+
+    override fun toString() = "TokenDecoder { source: $source }"
+
     private fun consumeWhitespace() {
         var nextCode = source.peek()
         if (nextCode == -1) {

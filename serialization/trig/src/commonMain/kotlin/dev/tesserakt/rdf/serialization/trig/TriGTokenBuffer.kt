@@ -1,5 +1,8 @@
 package dev.tesserakt.rdf.serialization.trig
 
+import dev.tesserakt.rdf.serialization.InternalSerializationApi
+import dev.tesserakt.rdf.serialization.common.DeserializationException
+
 internal class TriGTokenBuffer(private val source: Iterator<TriGToken>) {
 
     private var current: TriGToken = if (source.hasNext()) source.next() else TriGToken.EOF
@@ -28,6 +31,15 @@ internal class TriGTokenBuffer(private val source: Iterator<TriGToken>) {
 
     fun hasNext(): Boolean {
         return current != TriGToken.EOF
+    }
+
+    fun bail(message: String): Nothing {
+        @OptIn(InternalSerializationApi::class)
+        if (source is TriGTokenDecoder) {
+            source.bail(message)
+        } else {
+            throw DeserializationException(message, null)
+        }
     }
 
 }
