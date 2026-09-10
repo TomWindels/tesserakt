@@ -5,10 +5,12 @@ import dev.tesserakt.rdf.serialization.core.BufferedDataStream
 import dev.tesserakt.rdf.serialization.core.DataStream
 import java.io.FileInputStream
 import java.io.InputStreamReader
+import java.nio.charset.Charset
 
-actual class FileDataSource(private val file: java.io.File) : DataSource {
+actual class FileDataSource(val file: java.io.File, val encoding: Charset) : DataSource {
 
-    actual constructor(filepath: String): this(file = java.io.File(filepath))
+    actual constructor(filepath: String, encoding: String):
+            this(file = java.io.File(filepath), encoding = Charset.forName(encoding))
 
     @OptIn(InternalSerializationApi::class)
     actual override fun open(): DataStream {
@@ -17,6 +19,12 @@ actual class FileDataSource(private val file: java.io.File) : DataSource {
             /* charsetName = */ "UTF-8"
         )
         return BufferedDataStream(java.io.BufferedReader(stream))
+    }
+
+    override fun estimatedSize(): Int {
+        val fileSize = file.length()
+        val capacityHint = (fileSize / 1000L).toInt()
+        return capacityHint
     }
 
 }

@@ -3,7 +3,7 @@ package dev.tesserakt.rdf.serialization.common
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.core.DataStream
 
-actual class FileDataSource actual constructor(val filepath: String) : DataSource {
+actual class FileDataSource actual constructor(val filepath: String, val encoding: String) : DataSource {
     @OptIn(InternalSerializationApi::class)
     actual override fun open(): DataStream {
         throw NotImplementedError("The WASM implementation currently does not support file IO")

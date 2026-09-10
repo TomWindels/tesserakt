@@ -1,11 +1,12 @@
 package dev.tesserakt.rdf.serialization.common
 
-import dev.tesserakt.SuspendingIterator
 import dev.tesserakt.rdf.serialization.InternalSerializationApi
 import dev.tesserakt.rdf.serialization.core.DataStream
 import dev.tesserakt.rdf.serialization.core.SuspendingDataStream
 import dev.tesserakt.rdf.types.Quad
 import dev.tesserakt.rdf.types.Store
+import dev.tesserakt.types.SizeAwareIterator
+import dev.tesserakt.types.SuspendingIterator
 
 abstract class Serializer {
 
@@ -32,11 +33,19 @@ abstract class Serializer {
      * serializer(/* format */).deserialize(source).toStore(store)
      * ```
      */
-    class DeserializationProcess internal constructor(
-        @OptIn(InternalSerializationApi::class)
-        private val source: DataStream,
-        private val inner: Iterator<Quad>
-    ): Iterator<Quad>, AutoCloseable {
+    class DeserializationProcess
+    @InternalSerializationApi
+    constructor(
+        private val source: AutoCloseable,
+        private val inner: Iterator<Quad>,
+        /**
+         * The number of quads that are estimated to be obtained from this deserialization process.
+         *
+         * Note that this estimate is purely size driven (e.g. the size of the input file), and may thus be completely
+         *  off in certain cases.
+         */
+        override val estimatedSize: Int,
+    ): SizeAwareIterator<Quad>, AutoCloseable {
 
         private var curr: Quad? = null
 
@@ -57,7 +66,6 @@ abstract class Serializer {
         }
 
         override fun close() {
-            @OptIn(InternalSerializationApi::class)
             source.close()
         }
 
@@ -70,6 +78,7 @@ abstract class Serializer {
             }
         } catch (t: Throwable) {
             close()
+            @OptIn(InternalSerializationApi::class)
             throw DeserializationException("Deserialization failed!", t)
         }
 
@@ -98,7 +107,9 @@ abstract class Serializer {
      * serializer(/* format */).deserialize(source).toStore(store)
      * ```
      */
-    class SuspendingDeserializationProcess internal constructor(
+    class SuspendingDeserializationProcess
+    @InternalSerializationApi
+    constructor(
         @OptIn(InternalSerializationApi::class)
         private val source: SuspendingDataStream,
         private val inner: Iterator<Quad>
@@ -138,6 +149,7 @@ abstract class Serializer {
             }
         } catch (t: Throwable) {
             close()
+            @OptIn(InternalSerializationApi::class)
             throw DeserializationException("Deserialization failed!", t)
         }
 
@@ -168,17 +180,7 @@ abstract class Serializer {
      *
      * Can throw [DeserializationException] if an error occurs, upon which the [DataStream] will be closed.
      */
-    fun deserialize(input: DataSource): DeserializationProcess = try {
-        @OptIn(InternalSerializationApi::class)
-        val source = input.open()
-        @OptIn(InternalSerializationApi::class)
-        DeserializationProcess(
-            source = source,
-            inner = deserialize(source),
-        )
-    } catch (t: Throwable) {
-        throw DeserializationException("Failed to initiate deserialization", t)
-    }
+    abstract fun deserialize(input: DataSource): DeserializationProcess
 
     /**
      * Standard deserialization. Opens a new [SuspendingDataStream] from the provided [input].
@@ -190,22 +192,6 @@ abstract class Serializer {
      *
      * Can throw [DeserializationException] if an error occurs, upon which the [SuspendingDataStream] will be closed.
      */
-    suspend fun deserialize(input: SuspendingDataSource): SuspendingDeserializationProcess = try {
-        @OptIn(InternalSerializationApi::class)
-        val source = input.open()
-        @OptIn(InternalSerializationApi::class)
-        SuspendingDeserializationProcess(
-            source = source,
-            inner = deserialize(source),
-        )
-    } catch (t: Throwable) {
-        throw DeserializationException("Failed to initiate deserialization", t)
-    }
-
-    /**
-     * Standard deserialization. The [input] is iterated over once, as long as the returned [Iterator] is being consumed.
-     */
-    @OptIn(InternalSerializationApi::class)
-    protected abstract fun deserialize(input: DataStream): Iterator<Quad>
+    abstract suspend fun deserialize(input: SuspendingDataSource): SuspendingDeserializationProcess
 
 }

@@ -1,36 +1,62 @@
 package dev.tesserakt.rdf.types.impl
 
-import dev.tesserakt.rdf.types.EncodedQuad
-import dev.tesserakt.rdf.types.EncodedQuadElement
-import dev.tesserakt.rdf.types.IndexedStore
-import dev.tesserakt.rdf.types.Quad
+import dev.tesserakt.rdf.types.*
 
-internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), IndexedStore {
+// same logic as `StoreImpl`
+@Suppress("EqualsOrHashCode")
+internal class IndexedStoreImpl : AbstractStore, IndexedStore {
 
-    override val context = ImmutableEncodingContextImpl(data)
+    override val context: EncodingContext
 
-    private val backing = data
-        // making it distinct whilst mapping it to the encoded representation
-        .mapTo(mutableSetOf()) {
-            // guaranteed to be non-null as the context has been created with the same exact data
-            EncodedQuad(context, it)!!
-        }
-        // list for direct (index) access
-        .toList()
-    private val subjects = backing.indices.groupBy { i -> backing[i].s }
-    private val predicates = backing.indices.groupBy { i -> backing[i].p }
-    private val objects = backing.indices.groupBy { i -> backing[i].o }
-    private val graphs = backing.indices.groupBy { i -> backing[i].g }
+    // flattened encoded s, p, o, g pairs, allowing direct access
+    private val backing: IntArray
+
+    // the various indices, built on top of the backing list positions
+    private val subjects: Map<Int, IntArray>
+    private val predicates: Map<Int, IntArray>
+    private val objects: Map<Int, IntArray>
+    private val graphs: Map<Int, IntArray>
+
+    // considering the contents don't change, we can cache the collection's hash code
+    private val hashCode by lazy { super.hashCode() }
 
     override val size: Int
-        get() = backing.size
+        // all have identical size
+        get() = backing.size shr 2
+
+    constructor(data: Collection<Quad>) {
+        // we don't want to risk getting an encoding context that could see terms being removed, as we create an
+        //  immutable view of the data
+        if (data is Store && data.context !is MutableEncodingContext) {
+            this.backing = flatten(data.asEncodedSet())
+            this.context = data.context
+        } else {
+            val quads = HashSet<EncodedQuad>(data.size)
+            this.context = ImmutableEncodingContextImpl(data, quads)
+            this.backing = flatten(quads)
+        }
+        this.subjects = createIndex(backing, 0)
+        this.predicates = createIndex(backing, 1)
+        this.objects = createIndex(backing, 2)
+        this.graphs = createIndex(backing, 3)
+    }
 
     override fun isEmpty(): Boolean {
         return backing.isEmpty()
     }
 
     override fun encodedIterator(): Iterator<EncodedQuad> {
-        return backing.iterator()
+        return object: Iterator<EncodedQuad> {
+            private val inner = this@IndexedStoreImpl.indices.iterator()
+
+            override fun hasNext(): Boolean {
+                return inner.hasNext()
+            }
+
+            override fun next(): EncodedQuad {
+                return get(inner.next())
+            }
+        }
     }
 
     override fun encodedIter(
@@ -40,9 +66,9 @@ internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), Index
         g: EncodedQuadElement
     ): Iterator<EncodedQuad> {
         if (s == Int.MIN_VALUE && p == Int.MIN_VALUE && o == Int.MIN_VALUE && g == Int.MIN_VALUE) {
-            return backing.iterator()
+            return encodedIterator()
         }
-        val indices = mutableListOf<List<Int>>()
+        val indices = mutableListOf<IntArray>()
         if (s != Int.MIN_VALUE) {
             indices.add(subjects[s] ?: return emptyIterator())
         }
@@ -58,8 +84,22 @@ internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), Index
         val iter = quickMerge(indices).iterator()
         return object: Iterator<EncodedQuad> {
             override fun hasNext() = iter.hasNext()
-            override fun next() = backing[iter.next()]
+            override fun next() = get(iter.next())
         }
+    }
+
+    private fun get(index: Int): EncodedQuad {
+        val index = index shl 2
+        return EncodedQuad(
+            s = this.backing[index],
+            p = this.backing[index + 1],
+            o = this.backing[index + 2],
+            g = this.backing[index + 3],
+        )
+    }
+
+    override fun hashCode(): Int {
+        return hashCode
     }
 
 }
@@ -72,12 +112,12 @@ internal class IndexedStoreImpl(data: Collection<Quad>) : AbstractStore(), Index
  */
 // example: [0, 1, 2] & [2] -> [2]
 // TODO: use iterables w/ lazy evaluation instead
-private fun quickMerge(indices: List<List<Int>>): List<Int> {
+private fun quickMerge(indices: List<IntArray>): IntArray {
     var result = indices.first()
     var i = indices.size - 1
     while (i > 0) {
         if (result.isEmpty()) {
-            return emptyList()
+            return IntArray(0)
         }
         result = quickMerge(result, indices[i])
         --i
@@ -92,7 +132,7 @@ private fun quickMerge(indices: List<List<Int>>): List<Int> {
  */
 // example: [0, 1, 2] & [2] -> [2]
 // TODO: use iterables w/ lazy evaluation instead
-private fun quickMerge(left: List<Int>, right: List<Int>): List<Int> {
+private fun quickMerge(left: IntArray, right: IntArray): IntArray {
     var i = 0
     var j = 0
     val result = ArrayList<Int>(minOf(left.size, right.size))
@@ -113,5 +153,33 @@ private fun quickMerge(left: List<Int>, right: List<Int>): List<Int> {
             }
         }
     }
-    return result
+    return result.toIntArray()
+}
+
+private fun createIndex(backing: IntArray, offset: Int): Map<Int, IntArray> {
+    return backing
+        .indices
+        .step(4)
+        .groupBy { i -> backing[i + offset] }
+        .mapValues { raw ->
+            // the raw indexes point to their absolute position in the backing array;
+            //  we want them to point to the start of the actual encoded quad (so i / 4)
+            // the offset is then also dropped as a result
+            IntArray(raw.value.size) { i -> raw.value[i] shr 2 }
+        }
+}
+
+private fun flatten(set: Set<EncodedQuad>): IntArray {
+    val iter = set.iterator()
+    val arr = IntArray(set.size * 4)
+    var i = 0
+    while (iter.hasNext()) {
+        val q = iter.next()
+        arr[i++] = q.s
+        arr[i++] = q.p
+        arr[i++] = q.o
+        arr[i++] = q.g
+    }
+    check(arr.size == i) { "Reported collection size and iterator count mismatch!" }
+    return arr
 }

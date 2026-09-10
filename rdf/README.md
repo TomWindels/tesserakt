@@ -39,3 +39,19 @@ val myObservableStore = ObservableStore()
 myObservableStore.addListener(/* a listener implementation */)
 myObservableStore.add(myQuad) // notifies the listener added above
 ```
+
+## Performance
+When targeting the JVM, certain operations can benefit from multithreading. Various deserialization and store-related
+operations can split up work across multiple worker threads when available. This can be accomplished using the following
+configuration:
+```kt
+// use the default multithreaded configuration, using a cached threadpool configured as daemon threads
+ConcurrencyMode.set(MultiThreaded)
+// or, using an existing executor service
+ConcurrencyMode.set(MultiThreaded(myExecutorService))
+// or, go back to single threaded once the performance critical section ends
+ConcurrencyMode.set(SingleThreaded)
+```
+This should be set once, before the performance-critical section is executed. Whilst this is available in both
+Kotlin/JVM and Kotlin/Android, it is not recommended when targeting Android, as the multithreaded implementation favors
+throughput over computational efficiency.
