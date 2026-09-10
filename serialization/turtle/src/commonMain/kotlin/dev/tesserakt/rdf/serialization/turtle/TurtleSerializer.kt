@@ -21,19 +21,22 @@ internal class TurtleSerializer(private val config: TurtleConfig): Serializer() 
     }
 
     @OptIn(InternalSerializationApi::class)
-    override fun deserialize(input: DataSource): DeserializationProcess = try {
+    override fun deserialize(input: DataSource): DeserializationProcess {
         val source = BufferedCharStream(input)
-        val deserializer = TurtleDeserializer(
-            base = config.base,
-            source = TurtleTokenDecoder(source),
-        )
-        return DeserializationProcess(
-            source = source,
-            inner = deserializer,
-            estimatedSize = input.estimatedSize(),
-        )
-    } catch (t: Throwable) {
-        throw DeserializationException("Failed to initiate deserialization", t)
+        try {
+            val deserializer = TurtleDeserializer(
+                base = config.base,
+                source = TurtleTokenDecoder(source),
+            )
+            return DeserializationProcess(
+                source = source,
+                inner = deserializer,
+                estimatedSize = input.estimatedSize(),
+            )
+        } catch (t: Throwable) {
+            source.close()
+            throw DeserializationException("Failed to initiate deserialization", t)
+        }
     }
 
     override suspend fun deserialize(input: SuspendingDataSource): SuspendingDeserializationProcess = try {
@@ -71,14 +74,19 @@ internal class TurtleSerializer(private val config: TurtleConfig): Serializer() 
         @OptIn(InternalSerializationApi::class)
         override fun deserialize(input: DataSource): DeserializationProcess {
             val source = BufferedCharStream(input)
-            val deserializer = TurtleDeserializer(
-                source = TurtleTokenDecoder(source),
-            )
-            return DeserializationProcess(
-                source = source,
-                inner = deserializer,
-                estimatedSize = input.estimatedSize(),
-            )
+            try {
+                val deserializer = TurtleDeserializer(
+                    source = TurtleTokenDecoder(source),
+                )
+                return DeserializationProcess(
+                    source = source,
+                    inner = deserializer,
+                    estimatedSize = input.estimatedSize(),
+                )
+            } catch (t: Throwable) {
+                source.close()
+                throw DeserializationException("Deserialization failed!", t)
+            }
         }
 
         override suspend fun deserialize(input: SuspendingDataSource): SuspendingDeserializationProcess = try {

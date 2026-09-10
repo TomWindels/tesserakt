@@ -72,8 +72,9 @@ object EscapeSequenceHelper {
         while (i < input.length - 1 && input[i] != '\\') {
             ++i
         }
-        // if this condition holds, i = input.length - 1, meaning we checked the entire length successfully
-        if (input[i] != '\\') {
+        // if this condition holds, we checked until i = input.length - 1, meaning no escape sequences have to be
+        //  processed
+        if (i == input.length) {
             return input
         }
         // we have to decode the input

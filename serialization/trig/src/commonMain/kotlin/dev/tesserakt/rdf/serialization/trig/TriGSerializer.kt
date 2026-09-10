@@ -23,15 +23,20 @@ internal class TriGSerializer(private val config: TriGConfig): Serializer() {
     @OptIn(InternalSerializationApi::class)
     override fun deserialize(input: DataSource): DeserializationProcess {
         val source = BufferedCharStream(input)
-        val deserializer = TriGDeserializer(
-            base = config.base,
-            source = TriGTokenDecoder(source)
-        )
-        return DeserializationProcess(
-            source = source,
-            inner = deserializer,
-            estimatedSize = input.estimatedSize(),
-        )
+        try {
+            val deserializer = TriGDeserializer(
+                base = config.base,
+                source = TriGTokenDecoder(source)
+            )
+            return DeserializationProcess(
+                source = source,
+                inner = deserializer,
+                estimatedSize = input.estimatedSize(),
+            )
+        } catch (t: Throwable) {
+            source.close()
+            throw DeserializationException("Deserialization failed!", t)
+        }
     }
 
     override suspend fun deserialize(input: SuspendingDataSource): SuspendingDeserializationProcess = try {
@@ -69,14 +74,19 @@ internal class TriGSerializer(private val config: TriGConfig): Serializer() {
         @OptIn(InternalSerializationApi::class)
         override fun deserialize(input: DataSource): DeserializationProcess {
             val source = BufferedCharStream(input)
-            val deserializer = TriGDeserializer(
-                source = TriGTokenDecoder(source)
-            )
-            return DeserializationProcess(
-                source = source,
-                inner = deserializer,
-                estimatedSize = input.estimatedSize(),
-            )
+            try {
+                val deserializer = TriGDeserializer(
+                    source = TriGTokenDecoder(source)
+                )
+                return DeserializationProcess(
+                    source = source,
+                    inner = deserializer,
+                    estimatedSize = input.estimatedSize(),
+                )
+            } catch (t: Throwable) {
+                source.close()
+                throw DeserializationException("Deserialization failed!", t)
+            }
         }
 
         override suspend fun deserialize(input: SuspendingDataSource): SuspendingDeserializationProcess = try {

@@ -122,8 +122,21 @@ internal class TriGTokenDecoder(private val source: BufferedCharStream) : Iterat
         source.expect(matches(terminator)) { "`$terminator` sequence expected" }
         source.consume(terminator.length)
         var escaped = false
-        val value = source.consumeWhile { c -> (escaped || !matches(terminator)).also { escaped = !escaped && c == '\\' } }
-            .let { EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = it) }
+        // we can't use `matches()` whilst `consumeWhile {}` is ongoing, so we eagerly stop `consumeWhile {}` upon
+        //  encountering what could be the start of the terminator
+        val rawValue = buildString {
+            val terminatorStart = terminator[0]
+            while (!matches(terminator)) {
+                val next = source.consumeWhile { c -> (escaped || c != terminatorStart).also { escaped = !escaped && c == '\\' } }
+                append(next)
+                if (matches(terminator)) {
+                    break
+                }
+                source.consume()
+                append(terminatorStart)
+            }
+        }
+        val value = EscapeSequenceHelper.decodeNumericAndMappedCharacterEscapes(input = rawValue)
         source.consume(terminator.length)
         return if (source.nextIs('@')) {
             source.consume()
