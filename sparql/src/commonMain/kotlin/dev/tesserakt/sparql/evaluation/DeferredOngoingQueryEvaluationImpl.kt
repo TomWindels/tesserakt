@@ -6,10 +6,8 @@ import dev.tesserakt.sparql.Query
 import dev.tesserakt.sparql.QueryStatistics
 import dev.tesserakt.sparql.runtime.evaluation.DataAddition
 import dev.tesserakt.sparql.runtime.evaluation.DataDeletion
-import dev.tesserakt.sparql.runtime.evaluation.DataDelta
 import dev.tesserakt.sparql.runtime.evaluation.Statistics
 import dev.tesserakt.sparql.runtime.query.QueryState
-import dev.tesserakt.util.replace
 
 
 internal class DeferredOngoingQueryEvaluationImpl<RT>(
@@ -24,81 +22,28 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(
             return updateAndGet().results
         }
 
-    private enum class EntryState {
-        Addition,
-        Deletion,
-        /* no other options possible */;
-
-        // caching the two update types to pass to the `queue.replace` method
-        companion object {
-
-            val Increment: (EntryState?) -> EntryState? = { previous ->
-                when (previous) {
-                    null -> Addition
-                    Deletion -> null
-                    Addition -> throw IllegalStateException("Tried to add a quad that was already marked for addition!")
-                }
-            }
-
-            val Decrement: (EntryState?) -> EntryState? = { previous ->
-                when (previous) {
-                    null -> Deletion
-                    Addition -> null
-                    Deletion -> throw IllegalStateException("Tried to delete a quad that was already marked for deletion!")
-                }
-            }
-
-        }
-    }
-
-    // tracking changes, and whether it's an insertion or deletion
-    // updates that are contradictory (insertion - deletion pair) are removed
-    private val queue = mutableMapOf<EncodedQuad, EntryState>()
-
     // we construct our listener, but only attach it after processing initial state, which we only do after having
     //  been called to update for the first time
-    private val listener = object: ObservableStore.Listener {
+    private class Listener<RT>(private val state: QueryState<RT, *>): ObservableStore.Listener {
 
         override fun onQuadAddedEncoded(quad: EncodedQuad) {
-            process(DataAddition(quad))
+            state.enqueue(DataAddition(quad))
         }
 
         override fun onQuadRemovedEncoded(quad: EncodedQuad) {
-            process(DataDeletion(quad))
+            state.enqueue(DataDeletion(quad))
         }
 
     }
+
+    // the active listener - deferred until the very first `results` request is made
+    private var listener: Listener<RT>? = null
 
     override fun stats(granularity: QueryStatistics.Granularity): Statistics {
         return updateAndGet().stats(granularity)
     }
 
     private var state: QueryState<RT, *>? = null
-
-    private val EnqueuedChanges = object: Iterable<DataDelta> {
-
-        override fun iterator(): Iterator<DataDelta> = object: Iterator<DataDelta> {
-
-            private val src = queue.iterator()
-
-            override fun hasNext(): Boolean {
-                return src.hasNext()
-            }
-
-            override fun next(): DataDelta {
-                val (quad, change) = src.next()
-                return when (change) {
-                    EntryState.Addition -> DataAddition(quad)
-                    EntryState.Deletion -> DataDeletion(quad)
-                }
-            }
-
-            override fun toString(): String {
-                return "DeferredOngoingQueryEvaluationQueueConsumer(${hashCode()})"
-            }
-        }
-
-    }
 
     /**
      * Updates the internal state (creating it if necessary)
@@ -109,32 +54,23 @@ internal class DeferredOngoingQueryEvaluationImpl<RT>(
             val new = query.createState(parent)
             // we reuse this state, so we do actual incremental evaluation
             this.state = new
+            val listener = Listener(new)
             // we can now also register our listener, so data changes since our initial state can be processed
             parent.addListener(listener)
+            this.listener = listener
             // we don't need to check the queue at this point, we do not support concurrent use, so the queue cannot
             //  possibly have elements inside
             return new
         }
-        // we have a prior state that needs to be updated
-        state.process(EnqueuedChanges)
-        queue.clear()
+        // in case any changes were enqueued, since the last request, we process them here
+        state.process()
         return state
     }
 
     override fun close() {
         // we were never initialized, so the listener doesn't have to be removed
-        if (state == null) {
-            return
-        }
+        val listener = listener ?: return
         parent.removeListener(listener)
-    }
-
-    private fun process(change: DataDelta) {
-        val update = when (change) {
-            is DataAddition -> EntryState.Increment
-            is DataDeletion -> EntryState.Decrement
-        }
-        queue.replace(change.value, update)
     }
 
 }

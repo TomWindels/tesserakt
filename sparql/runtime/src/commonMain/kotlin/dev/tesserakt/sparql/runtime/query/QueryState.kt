@@ -68,6 +68,16 @@ sealed class QueryState<ResultType, Q: QueryStructure>(
             .map(::transformNewBodyResult)
     }
 
+    fun enqueue(delta: DataDelta) {
+        bgpState.enqueue(delta)
+    }
+
+    fun process() {
+        bgpState
+            .process()
+            .onEach(::onNewBodyResult)
+    }
+
     fun process(data: DataDelta) {
         bgpState.enqueue(data)
         bgpState
